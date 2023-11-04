@@ -1,0 +1,7 @@
+# generate full list of gitignore files
+*.log
+node_modules/
+dist/
+*.env
+**/node_modules/**
+transfer_db/data

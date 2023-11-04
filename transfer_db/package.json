@@ -1,0 +1,21 @@
+{
+  "name": "transfer_db",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/lodash": "^4.14.200",
+    "bun-types": "latest",
+    "drizzle-kit": "^0.19.13"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@clack/core": "^0.3.3",
+    "@clack/prompts": "^0.7.0",
+    "drizzle-orm": "^0.28.6",
+    "lodash": "^4.17.21",
+    "picocolors": "^1.0.0",
+    "postgres": "^3.4.2"
+  }
+}
