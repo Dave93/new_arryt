@@ -1,3 +1,8 @@
+export enum user_status {
+  active = "active",
+  blocked = "blocked",
+  inactive = "inactive",
+}
 interface GarantDeliveryPriceTerminal {
   terminal_id: string;
 
@@ -14,7 +19,7 @@ interface GarantDeliveryPriceOrg {
   children: GarantDeliveryPriceTerminal[];
 }
 
-export interface GarantReportItem {
+export type GarantReportItem = {
   begin_date: Date;
   last_order_date: Date;
   delivery_price: number;
@@ -60,4 +65,4 @@ export interface GarantReportItem {
   bonus_total: number;
 
   delivery_price_orgs: GarantDeliveryPriceOrg[];
-}
+};

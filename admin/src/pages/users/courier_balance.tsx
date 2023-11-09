@@ -16,15 +16,13 @@ import {
 import { ExportOutlined } from "@ant-design/icons";
 import { Excel } from "@admin/src/components/export/src";
 import { sortBy } from "lodash";
-import { FaWalking } from "react-icons/fa";
-import { AiFillCar } from "react-icons/ai";
-import { MdDirectionsBike } from "react-icons/md";
 
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import CourierWithdrawModal from "@admin/src/components/orders/courier_withdraw_modal";
 import { formatPhoneNumberIntl } from "react-phone-number-input";
 import CourierDriveTypeIcon from "@admin/src/components/users/courier_drive_type_icon";
+import { apiClient } from "@admin/src/eden";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -37,11 +35,15 @@ const CourierBalance = () => {
   const [couriersList, setCouriersList] = useState<IUsers[]>([]);
   const [terminals, setTerminals] = useState<any[]>([]);
   const [wallet, setWallet] = useState<WalletStatus[]>([]);
-  const { handleSubmit, control, watch } = useForm({
+  const { handleSubmit, control, watch } = useForm<{
+    courier_id: string[] | undefined;
+    terminal_id: string[] | undefined;
+    status: ("active" | "inactive" | "blocked")[] | undefined;
+  }>({
     defaultValues: {
       courier_id: undefined,
       terminal_id: undefined,
-      status: "active",
+      status: ["active"],
     },
   });
 
@@ -51,37 +53,45 @@ const CourierBalance = () => {
   const status = watch("status");
 
   const fetchAllData = async () => {
-    const query = gql`
-      query {
-        cachedTerminals {
-          id
-          name
-          organization {
-            id
-            name
-          }
-        }
-        users(
-          where: {
-            users_roles_usersTousers_roles_user_id: {
-              some: { roles: { is: { code: { equals: "courier" } } } }
-            }
-          }
-        ) {
-          first_name
-          last_name
-          id
-        }
-      }
-    `;
-    const { cachedTerminals, users } = await client.request<{
-      roles: IRoles[];
-      cachedTerminals: ITerminals[];
-      workSchedules: IWorkSchedules[];
-      users: IUsers[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    // const query = gql`
+    //   query {
+    //     cachedTerminals {
+    //       id
+    //       name
+    //       organization {
+    //         id
+    //         name
+    //       }
+    //     }
+    //     users(
+    //       where: {
+    //         users_roles_usersTousers_roles_user_id: {
+    //           some: { roles: { is: { code: { equals: "courier" } } } }
+    //         }
+    //       }
+    //     ) {
+    //       first_name
+    //       last_name
+    //       id
+    //     }
+    //   }
+    // `;
+    // const { cachedTerminals, users } = await client.request<{
+    //   roles: IRoles[];
+    //   cachedTerminals: ITerminals[];
+    //   workSchedules: IWorkSchedules[];
+    //   users: IUsers[];
+    // }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
 
-    setCouriersList(users);
+    // setCouriersList(users);
+
+    const { data: cachedTerminals } = await apiClient.api.terminals.cached.get({
+      $fetch: {
+        headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      },
+    });
     setTerminals(sortBy(cachedTerminals, ["name"]));
   };
 
@@ -91,63 +101,14 @@ const CourierBalance = () => {
 
   const loadData = async () => {
     setIsLoading(true);
-    let query = "";
-    if (courier_id || terminal_id || status) {
-      console.log("terminal_id", terminal_id);
-      query = gql`
-            query {
-                couriersTerminalBalance(${
-                  courier_id ? `courier_id: "${courier_id}"` : ""
-                } ${
-        terminal_id ? `terminal_id: ${JSON.stringify(terminal_id)}` : ""
-      } ${status ? `status: ${JSON.stringify(status)}` : ""}) {
-                    id
-                    courier_id
-                    terminal_id
-                    balance
-                    courier_terminal_balance_couriers {
-                        first_name
-                        last_name
-                        phone
-                        drive_type
-                    },
-                    courier_terminal_balance_terminals {
-                        name
-                    }
-                }
-            }
-            `;
-    } else {
-      query = gql`
-        query {
-          couriersTerminalBalance {
-            id
-            courier_id
-            terminal_id
-            balance
-            courier_terminal_balance_couriers {
-              first_name
-              last_name
-              phone
-              drive_type
-            }
-            courier_terminal_balance_terminals {
-              name
-            }
-          }
-        }
-      `;
-    }
-    const { couriersTerminalBalance } = await client.request<{
-      couriersTerminalBalance: WalletStatus[];
-    }>(
-      query,
-      {},
-      {
-        Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
-    setWallet(couriersTerminalBalance);
+
+    const { data: couriersTerminalBalance } =
+      await apiClient.api.couriers.terminal_balance.post({
+        courier_id,
+        terminal_id,
+        status: status,
+      });
+    couriersTerminalBalance && setWallet(couriersTerminalBalance);
 
     setIsLoading(false);
   };
@@ -162,7 +123,7 @@ const CourierBalance = () => {
     },
     {
       title: "Курьер",
-      dataIndex: "courier_terminal_balance_couriers",
+      dataIndex: "users",
       excelRender: (value: any) => `${value.first_name} ${value.last_name}`,
       render: (value: any, record: any) => {
         return (
@@ -175,7 +136,7 @@ const CourierBalance = () => {
     },
     {
       title: "Телефон",
-      dataIndex: "courier_terminal_balance_couriers",
+      dataIndex: "users",
       excelRender: (value: any) => value.phone,
       render: (value: any) => {
         return <div>{formatPhoneNumberIntl(value.phone)}</div>;
@@ -183,7 +144,7 @@ const CourierBalance = () => {
     },
     {
       title: "Филиал",
-      dataIndex: "courier_terminal_balance_terminals",
+      dataIndex: "terminals",
       excelRender: (value: any) => value.name,
       render: (value: any) => {
         return <div>{value.name}</div>;

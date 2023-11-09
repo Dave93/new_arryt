@@ -37,6 +37,7 @@ import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import CourierDriveTypeIcon from "@admin/src/components/users/courier_drive_type_icon";
+import { apiClient } from "@admin/src/eden";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -68,72 +69,37 @@ const YuriyOrdersGarantReport = () => {
   const loadData = async () => {
     setIsLoading(true);
     // start of month using luxon
-    let startDate = DateTime.local().startOf("month").toISODate();
+    let startDate = DateTime.local().startOf("month").toISO();
     // end of month using luxon
-    let endDate = DateTime.local().endOf("month").toISODate();
+    let endDate = DateTime.local().endOf("month").toISO();
     if (month) {
       // start of month using dayjs and to iso date
-      startDate = month
-        .tz("Asia/Tashkent")
-        .startOf("month")
-        .format("YYYY-MM-DD");
+      startDate = month.tz("Asia/Tashkent").startOf("month").toISOString();
       // end of month using dayjs and to iso date
-      endDate = month.tz("Asia/Tashkent").endOf("month").format("YYYY-MM-DD");
+      endDate = month.tz("Asia/Tashkent").endOf("month").toISOString();
     }
 
-    const query = gql`
-      query {
-        calculateGarant(startDate: "${startDate}", endDate: "${endDate}"${
-      courier_id ? `, courier_id: ${JSON.stringify(courier_id)}` : ""
-    } ${
-      walletPeriod ? `, walletEndDate: "${walletPeriod.toISOString()}"` : ""
-    } ${
-      terminal_id && terminal_id.length
-        ? `, terminal_id: ${JSON.stringify(terminal_id)}`
-        : ""
-    }) {
-            courier
-            courier_id
-            begin_date
-            last_order_date
-            created_at
-            status
-            avg_delivery_time
-            formatted_avg_delivery_time
-            orders_count
-            order_dates_count
-            possible_day_offs
-            actual_day_offs
-            delivery_price
-            garant_price
-            bonus_total
-            earned
-            balance
-            garant_days
-            balance_to_pay
-            drive_type
-            possible_garant_price
-            terminal_name
-        }
+    let { data } = await apiClient.api.orders.calculate_garant.post({
+      data: {
+        startDate: startDate!,
+        endDate: endDate!,
+        // courier_id: courier_id,
+        // wallet_period: walletPeriod,
+        // terminal_id: terminal_id,
+      },
+    });
+
+    if (data) {
+      setGarantData(data);
+      if (status) {
+        data = data.filter((item) => item.status === status);
       }
-    `;
+      if (driveType) {
+        data = data.filter((item) => driveType.includes(item.drive_type));
+      }
 
-    let { calculateGarant } = await client.request<{
-      calculateGarant: GarantReportItem[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setGarantData(calculateGarant);
-    if (status) {
-      calculateGarant = calculateGarant.filter(
-        (item) => item.status === status
-      );
+      setFilteredData(data);
     }
-    if (driveType) {
-      calculateGarant = calculateGarant.filter((item) =>
-        driveType.includes(item.drive_type)
-      );
-    }
-
-    setFilteredData(calculateGarant);
     setIsLoading(false);
   };
 
@@ -358,47 +324,46 @@ const YuriyOrdersGarantReport = () => {
   };
 
   const fetchAllData = async () => {
-    const query = gql`
-      query {
-        cachedTerminals {
-          id
-          name
-          organization {
-            id
-            name
-          }
-        }
-        users(
-          where: {
-            users_roles_usersTousers_roles_user_id: {
-              some: { roles: { is: { code: { equals: "courier" } } } }
-            }
-            status: { equals: active }
-          }
-        ) {
-          first_name
-          last_name
-          id
-        }
-      }
-    `;
-    const { cachedTerminals, users } = await client.request<{
-      cachedTerminals: ITerminals[];
-      users: IUsers[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-
-    var result = chain(cachedTerminals)
-      .groupBy("organization.name")
-      .toPairs()
-      .map(function (item) {
-        return {
-          name: item[0],
-          children: item[1],
-        };
-      })
-      .value();
-    setCouriersList(users);
-    setTerminals(sortBy(cachedTerminals, ["name"]));
+    // const query = gql`
+    //   query {
+    //     cachedTerminals {
+    //       id
+    //       name
+    //       organization {
+    //         id
+    //         name
+    //       }
+    //     }
+    //     users(
+    //       where: {
+    //         users_roles_usersTousers_roles_user_id: {
+    //           some: { roles: { is: { code: { equals: "courier" } } } }
+    //         }
+    //         status: { equals: active }
+    //       }
+    //     ) {
+    //       first_name
+    //       last_name
+    //       id
+    //     }
+    //   }
+    // `;
+    // const { cachedTerminals, users } = await client.request<{
+    //   cachedTerminals: ITerminals[];
+    //   users: IUsers[];
+    // }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    // var result = chain(cachedTerminals)
+    //   .groupBy("organization.name")
+    //   .toPairs()
+    //   .map(function (item) {
+    //     return {
+    //       name: item[0],
+    //       children: item[1],
+    //     };
+    //   })
+    //   .value();
+    // setCouriersList(users);
+    // setTerminals(sortBy(cachedTerminals, ["name"]));
   };
 
   const resultData = useMemo(() => {

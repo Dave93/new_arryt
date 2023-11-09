@@ -19,8 +19,9 @@ import { BrandsController } from "./modules/brands/controller";
 import { DailyGarantController } from "./modules/daily_garant/controller";
 import { OrderBonusPricingController } from "./modules/order_bonus_pricing/controller";
 import { OrdersController } from "./modules/orders/controller";
+import { ManagerWithdrawController } from "./modules/manager_withdraw/controller";
 
-const client = new Redis({
+export const client = new Redis({
   maxRetriesPerRequest: null,
 });
 
@@ -49,6 +50,7 @@ const app = new Elysia()
   .use(DailyGarantController)
   .use(OrderBonusPricingController)
   .use(OrdersController)
+  .use(ManagerWithdrawController)
   .listen(3000);
 
 export type BackendApp = typeof app;

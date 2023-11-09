@@ -26,6 +26,7 @@ export class CacheControlService {
     this.cacheOrderBonusPricing();
     this.cacheRoles();
     this.cacheOrderStatus();
+    this.cacheSystemConfigs();
   }
 
   async cacheUsers() {
@@ -225,6 +226,20 @@ export class CacheControlService {
           organization: status.organization,
         }))
       )
+    );
+  }
+
+  async cacheSystemConfigs() {
+    const systemConfigs = await this.db.query.system_configs.findMany();
+    const res: {
+      [key: string]: any;
+    } = {};
+    systemConfigs.forEach((config) => {
+      res[config.name] = config.value;
+    });
+    await this.redis.set(
+      `${process.env.PROJECT_PREFIX}_system_configs`,
+      JSON.stringify(res)
     );
   }
 }

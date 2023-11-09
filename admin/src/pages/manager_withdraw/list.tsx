@@ -128,15 +128,11 @@ export const ManagerWithdrawList: React.FC = () => {
         "amount_after",
         "created_at",
         "payed_date",
-        {
-          manager_withdraw_managers: ["first_name", "last_name"],
-        },
-        {
-          manager_withdraw_terminals: ["name"],
-        },
-        {
-          manager_withdraw_couriers: ["first_name", "last_name"],
-        },
+        "managers.first_name",
+        "managers.last_name",
+        "terminals.name",
+        "couriers.first_name",
+        "couriers.last_name",
       ],
       whereInputType: "manager_withdrawWhereInput!",
       orderByInputType: "manager_withdrawOrderByWithRelationInput!",
@@ -175,9 +171,7 @@ export const ManagerWithdrawList: React.FC = () => {
         localFilters.push({
           field: "organization_id",
           operator: "eq",
-          value: {
-            equals: organization_id,
-          },
+          value: organization_id,
         });
       }
 
@@ -193,7 +187,7 @@ export const ManagerWithdrawList: React.FC = () => {
         localFilters.push({
           field: "courier_id",
           operator: "eq",
-          value: { equals: courier_id.value },
+          value: courier_id.value,
         });
       }
 
@@ -256,22 +250,22 @@ export const ManagerWithdrawList: React.FC = () => {
     },
     {
       title: "Филиал",
-      dataIndex: "manager_withdraw_terminals",
-      key: "manager_withdraw_terminals",
+      dataIndex: "terminals",
+      key: "terminals",
       exportable: true,
       render: (value: ITerminals) => value.name,
     },
     {
       title: "Курьер",
-      dataIndex: "manager_withdraw_couriers",
-      key: "manager_withdraw_couriers",
+      dataIndex: "couriers",
+      key: "couriers",
       exportable: true,
       render: (value: IUsers) => `${value.first_name} ${value.last_name}`,
     },
     {
       title: "Менеджер",
-      dataIndex: "manager_withdraw_managers",
-      key: "manager_withdraw_managers",
+      dataIndex: "managers",
+      key: "managers",
       exportable: true,
       render: (value: IUsers) => `${value.first_name} ${value.last_name}`,
     },
@@ -310,15 +304,11 @@ export const ManagerWithdrawList: React.FC = () => {
         "amount_after",
         "created_at",
         "payed_date",
-        {
-          manager_withdraw_managers: ["first_name", "last_name"],
-        },
-        {
-          manager_withdraw_terminals: ["name"],
-        },
-        {
-          manager_withdraw_couriers: ["first_name", "last_name"],
-        },
+        "managers.first_name",
+        "managers.last_name",
+        "terminals.name",
+        "couriers.first_name",
+        "couriers.last_name",
       ],
       whereInputType: "manager_withdrawWhereInput!",
       orderByInputType: "manager_withdrawOrderByWithRelationInput!",
@@ -334,29 +324,23 @@ export const ManagerWithdrawList: React.FC = () => {
   });
 
   const getAllFilterData = async () => {
-    const query = gql`
-      query {
-        cachedOrganizations {
-          id
-          name
-        }
-        cachedTerminals {
-          id
-          name
-          organization_id
-          organization {
-            id
-            name
-          }
-        }
-      }
-    `;
-    const { cachedOrganizations, cachedTerminals } = await client.request<{
-      cachedOrganizations: IOrganization[];
-      cachedTerminals: ITerminals[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setOrganizations(cachedOrganizations);
-    setTerminals(sortBy(cachedTerminals, (item) => item.name));
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $fetch: {
+        headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      },
+    });
+    setTerminals(sortBy(terminals, (item) => item.name));
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $fetch: {
+          headers: {
+            Authorization: `Bearer ${identity?.token.accessToken}`,
+          },
+        },
+      });
+    setOrganizations(organizations);
   };
 
   const fetchCourier = async (queryText: string) => {

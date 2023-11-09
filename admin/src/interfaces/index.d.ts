@@ -536,21 +536,26 @@ class GarantDeliveryPriceOrg {
   children: GarantDeliveryPriceTerminal[];
 }
 
-export class GarantReportItem {
+export type GarantReportItem = {
   begin_date: Date;
   last_order_date: Date;
   delivery_price: number;
   courier: string;
+  terminal_name: string;
+
   orders_count: number;
+
   avg_delivery_time: string;
-  table_name: string;
 
   formatted_avg_delivery_time: string;
 
   orders_dates: Date[];
+
   courier_id: string;
+
   created_at: Date;
-  status!: keyof typeof user_status;
+
+  status: keyof typeof user_status;
 
   possible_day_offs: number;
 
@@ -560,29 +565,44 @@ export class GarantReportItem {
 
   actual_day_offs: number;
 
-  drive_type: keyof typeof drive_type;
+  actual_day_offs_list: Date[];
+
+  balance: number;
+
+  earned: number;
+
+  balance_to_pay: number;
+
+  garant_days: number;
+
+  drive_type: string;
+
+  possible_garant_price: number;
+
+  bonus_total: number;
+
   delivery_price_orgs: GarantDeliveryPriceOrg[];
-}
+};
 
 export class RollCallCourier {
   id: string;
 
-  first_name: string;
+  first_name: string | null;
 
-  last_name: string;
+  last_name: string | null;
 
-  created_at?: Date;
+  created_at?: string | null;
 
-  date?: Date;
+  date?: string | null;
 
-  is_late: boolean;
+  is_late?: boolean | null;
 
-  is_online: boolean;
+  is_online?: boolean | null;
 
-  drive_type: keyof typeof drive_type;
-  phone: string;
+  drive_type?: string | null;
+  phone?: string | null;
 
-  app_version: string;
+  app_version?: string | null;
 }
 
 export class RollCallItem {
@@ -593,28 +613,18 @@ export class RollCallItem {
   couriers: RollCallCourier[];
 }
 
-export class WalletStatus {
-  id!: string;
+export type WalletStatus = {
+  id: string;
 
-  courier_id!: string;
+  courier_id: string;
 
-  terminal_id!: string;
+  terminal_id: string;
 
-  organization_id!: string;
+  balance: number;
 
-  balance!: number;
-
-  created_at!: Date;
-
-  created_by!: string | null;
-
-  courier_terminal_balance_created_byTousers?: users | null;
-
-  courier_terminal_balance_couriers?: users;
-
-  courier_terminal_balance_terminals?: terminals;
-  courier_terminal_balance_organizations?: organization;
-}
+  terminals?: terminals;
+  users?: organization;
+};
 
 export class CourierEfficiencyTerminalItem {
   terminal_id: string;

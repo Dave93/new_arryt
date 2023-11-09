@@ -21,10 +21,12 @@
     "graphql": "^16.8.0",
     "ioredis": "^5.3.2",
     "jose": "^4.15.4",
+    "lodash": "^4.17.21",
     "otp-generator": "^4.0.1",
     "postgres": "3.3.5"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.200",
     "@types/otp-generator": "^4.0.0",
     "bun-types": "latest",
     "drizzle-kit": "^0.19.13",

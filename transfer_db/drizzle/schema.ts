@@ -942,7 +942,7 @@ export const courier_terminal_balance = pgTable(
 export const manager_withdraw = pgTable(
   "manager_withdraw",
   {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    id: uuid("id").defaultRandom().notNull(),
     manager_id: uuid("manager_id")
       .notNull()
       .references(() => users.id, { onUpdate: "cascade" }),
@@ -985,6 +985,7 @@ export const manager_withdraw = pgTable(
       organization_id_idx: index("manager_withdraw_organization_id_idx").on(
         table.organization_id
       ),
+      PK_manager_withdraw_id_created_at: primaryKey(table.id, table.created_at),
     };
   }
 );
@@ -993,9 +994,7 @@ export const manager_withdraw_transactions = pgTable(
   "manager_withdraw_transactions",
   {
     id: uuid("id").defaultRandom().notNull(),
-    withdraw_id: uuid("withdraw_id")
-      .notNull()
-      .references(() => manager_withdraw.id, { onUpdate: "cascade" }),
+    withdraw_id: uuid("withdraw_id").notNull(),
     transaction_id: uuid("transaction_id").notNull(),
     transaction_created_at: timestamp("transaction_created_at", {
       precision: 5,
@@ -1018,17 +1017,10 @@ export const manager_withdraw_transactions = pgTable(
   },
   (table) => {
     return {
-      withdraw_id_idx: index(
-        "manager_withdraw_transactions_withdraw_id_idx"
-      ).on(table.withdraw_id),
       PK_manager_withdraw_transactions_id_order_created_at: primaryKey(
         table.id,
         table.transaction_created_at
       ),
-      transactionReference: foreignKey({
-        columns: [table.transaction_id, table.transaction_created_at],
-        foreignColumns: [order_transactions.id, order_transactions.created_at],
-      }),
     };
   }
 );

@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS "delivery_pricing" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "manager_withdraw" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"manager_id" uuid NOT NULL,
 	"courier_id" uuid NOT NULL,
 	"terminal_id" uuid NOT NULL,
@@ -186,7 +186,8 @@ CREATE TABLE IF NOT EXISTS "manager_withdraw" (
 	"amount_after" double precision NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"payed_date" timestamp(5) with time zone DEFAULT now(),
-	"created_by" uuid
+	"created_by" uuid,
+	CONSTRAINT manager_withdraw_id_created_at PRIMARY KEY("id","created_at")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "manager_withdraw_transactions" (
@@ -640,7 +641,6 @@ CREATE INDEX IF NOT EXISTS "fki_FK_delivery_pricing_updated_by" ON "delivery_pri
 CREATE INDEX IF NOT EXISTS "manager_withdraw_manager_id_idx" ON "manager_withdraw" ("manager_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "manager_withdraw_terminal_id_idx" ON "manager_withdraw" ("terminal_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "manager_withdraw_organization_id_idx" ON "manager_withdraw" ("organization_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "manager_withdraw_transactions_withdraw_id_idx" ON "manager_withdraw_transactions" ("withdraw_id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "order_actions_id_key" ON "order_actions" ("id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "fki_FK_order_bonus_pricing_created_by" ON "order_bonus_pricing" ("created_by");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "fki_FK_order_bonus_pricing_updated_by" ON "order_bonus_pricing" ("updated_by");--> statement-breakpoint
@@ -817,18 +817,6 @@ END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "manager_withdraw" ADD CONSTRAINT "manager_withdraw_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "manager_withdraw_transactions" ADD CONSTRAINT "manager_withdraw_transactions_withdraw_id_manager_withdraw_id_fk" FOREIGN KEY ("withdraw_id") REFERENCES "manager_withdraw"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "manager_withdraw_transactions" ADD CONSTRAINT "manager_withdraw_transactions_transaction_id_transaction_created_at_order_transactions_id_created_at_fk" FOREIGN KEY ("transaction_id","transaction_created_at") REFERENCES "order_transactions"("id","created_at") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -1272,4 +1260,19 @@ SELECT create_hypertable(
   'created_at',
   chunk_time_interval => INTERVAL '1 month'
 );
+
+
+
+SELECT create_hypertable(
+  'manager_withdraw',
+  'created_at',
+  chunk_time_interval => INTERVAL '1 month'
+);
+
+SELECT create_hypertable(
+  'manager_withdraw_transactions',
+  'transaction_created_at',
+  chunk_time_interval => INTERVAL '1 month'
+);
+
 

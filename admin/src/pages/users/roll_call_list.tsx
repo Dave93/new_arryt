@@ -23,10 +23,8 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
 } from "@heroicons/react/24/solid";
-import { FaWalking } from "react-icons/fa";
-import { AiFillCar } from "react-icons/ai";
-import { MdDirectionsBike } from "react-icons/md";
 import CourierDriveTypeIcon from "@admin/src/components/users/courier_drive_type_icon";
+import { apiClient } from "@admin/src/eden";
 
 const { Search } = Input;
 export const RollCallList = () => {
@@ -49,31 +47,16 @@ export const RollCallList = () => {
 
   const loadData = async () => {
     setIsLoading(true);
-    const query = gql`
-      query {
-        rollCallList(date: "${filteredDate.toISOString()}") {
-            id
-            name
-            couriers {
-                id
-                first_name
-                last_name
-                created_at
-                date
-                is_online
-                is_late
-                phone
-                drive_type
-                app_version
-            }
-        }
-      }
-    `;
 
-    let { rollCallList } = await client.request<{
-      rollCallList: RollCallItem[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setData(rollCallList);
+    const { data: rollCallList } = await apiClient.api.couriers.roll_coll.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+      $query: {
+        date: filteredDate.toISOString(),
+      },
+    });
+    setData(rollCallList ?? []);
     //   if (status) {
     //     calculateGarant = calculateGarant.filter(
     //       (item) => item.status === status
@@ -85,7 +68,7 @@ export const RollCallList = () => {
     //     );
     //   }
 
-    setFilteredData(rollCallList);
+    setFilteredData(rollCallList ?? []);
     setIsLoading(false);
   };
 
@@ -167,7 +150,7 @@ export const RollCallList = () => {
                       color={courier.is_online ? "green" : "red"}
                     />
                     {courier.first_name} {courier.last_name}{" "}
-                    <CourierDriveTypeIcon driveType={courier.drive_type} />
+                    <CourierDriveTypeIcon driveType={courier.drive_type!} />
                   </Flex>
                   <Space>
                     {courier.app_version && `v${courier.app_version}`}
@@ -193,7 +176,7 @@ export const RollCallList = () => {
                       icon={<PhoneOutlined />}
                       size="small"
                       onClick={() =>
-                        (window.location.href = `tel:${courier.phone.replace(
+                        (window.location.href = `tel:${courier!.phone!.replace(
                           "+998",
                           ""
                         )}`)

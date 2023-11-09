@@ -13,6 +13,9 @@ import {
   users_terminals,
   work_schedules,
   users_work_schedules,
+  terminals,
+  timesheet,
+  courier_terminal_balance,
 } from "@api/drizzle/schema";
 import {
   InferModel,
@@ -20,7 +23,9 @@ import {
   SQLWrapper,
   and,
   eq,
+  gt,
   ilike,
+  inArray,
   or,
   sql,
 } from "drizzle-orm";
@@ -34,10 +39,65 @@ import { generateAuthToken } from "@api/src/utils/bcrypt";
 import { PgColumn, SelectedFields } from "drizzle-orm/pg-core";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { createInsertSchema } from "drizzle-typebox";
+import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
+import { sortBy } from "lodash";
 import { checkRestPermission } from "@api/src/utils/check_rest_permissions";
 
 type UsersModel = InferSelectModel<typeof users>;
+
+type RollCallCourier = {
+  id: string;
+
+  first_name: string | null;
+
+  drive_type?: string | null;
+
+  last_name: string | null;
+
+  created_at?: string | null;
+
+  date?: string | null;
+
+  is_late?: boolean | null;
+
+  is_online?: boolean | null;
+
+  phone?: string | null;
+
+  app_version?: string | null;
+};
+
+type RollCallItem = {
+  id: string;
+
+  name: string;
+
+  couriers: RollCallCourier[];
+};
+
+type RollCallUser = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  is_online: boolean;
+  drive_type: string | null;
+  phone: string;
+  app_version?: string;
+  timesheet_users: {
+    id: string | null;
+    date: string | null;
+    created_at: string | null;
+    is_late: boolean | null;
+  };
+};
+
+type RollCallTerminals = {
+  id: string;
+  name: string;
+  couriers: RollCallUser[];
+};
+
+const selectUserSchema = createSelectSchema(users);
 
 const userByPhone = db.query.users
   .findFirst({
@@ -313,6 +373,186 @@ export const UsersController = (
           verificationKey: t.String(),
           deviceToken: t.Optional(t.String()),
           tgId: t.Optional(t.Number()),
+        }),
+      }
+    )
+    .post(
+      "/api/couriers/terminal_balance",
+      async ({ body: { terminal_id, courier_id, status } }) => {
+        const result = await db
+          .select({
+            id: courier_terminal_balance.id,
+            courier_id: courier_terminal_balance.courier_id,
+            terminal_id: courier_terminal_balance.terminal_id,
+            balance: courier_terminal_balance.balance,
+            terminals: {
+              id: terminals.id,
+              name: terminals.name,
+            },
+            users: {
+              id: users.id,
+              first_name: users.first_name,
+              last_name: users.last_name,
+              status: users.status,
+              phone: users.phone,
+            },
+          })
+          .from(courier_terminal_balance)
+          .leftJoin(
+            terminals,
+            eq(courier_terminal_balance.terminal_id, terminals.id)
+          )
+          .leftJoin(users, eq(courier_terminal_balance.courier_id, users.id))
+          .where(
+            and(
+              gt(courier_terminal_balance.balance, 0),
+              terminal_id
+                ? inArray(courier_terminal_balance.terminal_id, terminal_id)
+                : undefined,
+              courier_id
+                ? inArray(courier_terminal_balance.courier_id, courier_id)
+                : undefined,
+              status ? inArray(users.status, status) : undefined
+            )
+          )
+          .execute();
+
+        return result;
+      },
+      {
+        body: t.Object({
+          terminal_id: t.Optional(t.Array(t.String())),
+          courier_id: t.Optional(t.Array(t.String())),
+          status: t.Optional(t.Array(selectUserSchema.properties.status)),
+        }),
+      }
+    )
+    .get(
+      "/api/couriers/roll_coll",
+      async ({ store: { redis }, query: { date } }) => {
+        const terminalsRes = await redis.get(
+          `${process.env.PROJECT_PREFIX}_terminals`
+        );
+        let terminalsList = JSON.parse(
+          terminalsRes || "[]"
+        ) as InferSelectModel<typeof terminals>[];
+        terminalsList = terminalsList.filter((terminal) => terminal.active);
+        const res: {
+          [key: string]: RollCallItem;
+        } = {};
+        terminalsList.forEach((terminal) => {
+          res[terminal.id] = {
+            id: terminal.id,
+            name: terminal.name,
+            couriers: [],
+          };
+        });
+
+        const couriers = await db
+          .select({
+            id: users.id,
+            first_name: users.first_name,
+            last_name: users.last_name,
+            is_online: users.is_online,
+            drive_type: users.drive_type,
+            phone: users.phone,
+            timesheet_users: {
+              id: timesheet.id,
+              created_at: timesheet.created_at,
+              is_late: timesheet.is_late,
+              date: timesheet.date,
+              app_version: users.app_version,
+            },
+          })
+          .from(users)
+          .leftJoin(users_roles, eq(users.id, users_roles.user_id))
+          .leftJoin(roles, eq(users_roles.role_id, roles.id))
+          .leftJoin(
+            timesheet,
+            and(
+              eq(timesheet.user_id, users.id),
+              eq(
+                timesheet.date,
+                dayjs(date)
+                  .hour(0)
+                  .minute(0)
+                  .second(0)
+                  .millisecond(0)
+                  .toISOString()
+              )
+            )
+          )
+          .where(and(eq(users.status, "active"), eq(roles.code, "courier")))
+          .execute();
+        const userIds = couriers.map((user) => user.id);
+
+        const usersTerminals = await db
+          .select({
+            user_id: users_terminals.user_id,
+            terminals: {
+              id: terminals.id,
+            },
+          })
+          .from(users_terminals)
+          .leftJoin(terminals, eq(users_terminals.terminal_id, terminals.id))
+          .where(inArray(users_terminals.user_id, userIds))
+          .execute();
+
+        let resCouriers: RollCallUser[] = [];
+
+        for (let i = 0; i < couriers.length; i++) {
+          resCouriers.push({
+            ...couriers[i],
+          });
+        }
+
+        console.log("resCouriers", resCouriers);
+        for (let i = 0; i < resCouriers.length; i++) {
+          let userData = await redis.get(
+            `${process.env.PROJECT_PREFIX}_user:${resCouriers[0].id}`
+          );
+          if (userData) {
+            try {
+              const userParsed = JSON.parse(userData);
+              resCouriers[i].app_version = userParsed.user.app_version;
+            } catch (e) {}
+          }
+        }
+
+        for (let i = 0; i < usersTerminals.length; i++) {
+          const userTerminal = usersTerminals[i];
+          if (res[userTerminal!.terminals!.id]) {
+            res[userTerminal!.terminals!.id].couriers.push(
+              ...resCouriers
+                .filter((user) => user.id === userTerminal.user_id)
+                .map((courier) => ({
+                  id: courier.id,
+                  first_name: courier.first_name,
+                  last_name: courier.last_name,
+                  is_online: courier.is_online,
+                  drive_type: courier.drive_type,
+                  phone: courier.phone,
+                  created_at: courier.timesheet_users?.created_at,
+                  is_late: courier.timesheet_users?.is_late,
+                  date: courier.timesheet_users?.date,
+                  app_version: courier.app_version,
+                }))
+            );
+          }
+        }
+
+        for (let i = 0; i < Object.values(res).length; i++) {
+          Object.values(res)[i].couriers = sortBy(
+            Object.values(res)[i].couriers,
+            ["first_name"]
+          );
+        }
+
+        return sortBy(Object.values(res), ["name"]);
+      },
+      {
+        query: t.Object({
+          date: t.String(),
         }),
       }
     )

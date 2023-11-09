@@ -75,16 +75,14 @@ const OrdersGarantReport = () => {
     let startDate = DateTime.local().startOf("month").toISO();
     // end of month using luxon
     let endDate = DateTime.local().endOf("month").toISO();
-    console.log("startDate", startDate);
     if (month) {
-      console.log(month.tz("Asia/Tashkent").startOf("month"));
       // start of month using dayjs and to iso date
       startDate = month.tz("Asia/Tashkent").startOf("month").toISOString();
       // end of month using dayjs and to iso date
       endDate = month.tz("Asia/Tashkent").endOf("month").toISOString();
     }
 
-    const { data } = await apiClient.api.orders.calculate_garant.post({
+    let { data } = await apiClient.api.orders.calculate_garant.post({
       data: {
         startDate: startDate!,
         endDate: endDate!,
@@ -94,68 +92,17 @@ const OrdersGarantReport = () => {
       },
     });
 
-    // const query = gql`
-    //   query {
-    //     calculateGarant(startDate: "${startDate}", endDate: "${endDate}"${
-    //   courier_id ? `, courier_id: ${JSON.stringify(courier_id)}` : ""
-    // } ${
-    //   walletPeriod ? `, walletEndDate: "${walletPeriod.toISOString()}"` : ""
-    // } ${
-    //   terminal_id && terminal_id.length
-    //     ? `, terminal_id: ${JSON.stringify(terminal_id)}`
-    //     : ""
-    // }) {
-    //         courier
-    //         courier_id
-    //         begin_date
-    //         last_order_date
-    //         created_at
-    //         status
-    //         avg_delivery_time
-    //         formatted_avg_delivery_time
-    //         orders_count
-    //         order_dates_count
-    //         possible_day_offs
-    //         actual_day_offs
-    //         delivery_price
-    //         garant_price
-    //         earned
-    //         balance
-    //         garant_days
-    //         balance_to_pay
-    //         bonus_total
-    //         drive_type
-    //         possible_garant_price
-    //         terminal_name
-    //         delivery_price_orgs {
-    //           id
-    //           name
-    //           children {
-    //             terminal_id
-    //             terminal_name
-    //             delivery_price
-    //           }
-    //         }
-    //     }
-    //   }
-    // `;
+    if (data) {
+      setGarantData(data);
+      if (status) {
+        data = data.filter((item) => item.status === status);
+      }
+      if (driveType) {
+        data = data.filter((item) => driveType.includes(item.drive_type));
+      }
 
-    // let { calculateGarant } = await client.request<{
-    //   calculateGarant: GarantReportItem[];
-    // }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    // setGarantData(calculateGarant);
-    // if (status) {
-    //   calculateGarant = calculateGarant.filter(
-    //     (item) => item.status === status
-    //   );
-    // }
-    // if (driveType) {
-    //   calculateGarant = calculateGarant.filter((item) =>
-    //     driveType.includes(item.drive_type)
-    //   );
-    // }
-
-    // setFilteredData(calculateGarant);
+      setFilteredData(data);
+    }
     setIsLoading(false);
   };
 

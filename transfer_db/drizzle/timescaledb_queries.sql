@@ -18,3 +18,18 @@ SELECT create_hypertable(
   chunk_time_interval => INTERVAL '1 month'
 );
 
+
+
+SELECT create_hypertable(
+  'manager_withdraw',
+  'created_at',
+  chunk_time_interval => INTERVAL '1 month'
+);
+
+SELECT create_hypertable(
+  'manager_withdraw_transactions',
+  'transaction_created_at',
+  chunk_time_interval => INTERVAL '1 month'
+);
+
+

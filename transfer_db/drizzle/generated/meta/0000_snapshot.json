@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "61bd7401-efae-47f1-8b7c-a8a204924620",
+  "id": "abc2d538-8a4f-4eb7-b025-8dbb313c189f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "api_tokens": {
@@ -983,7 +983,7 @@
         "id": {
           "name": "id",
           "type": "uuid",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "default": "gen_random_uuid()"
         },
@@ -1140,7 +1140,15 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "manager_withdraw_id_created_at": {
+          "name": "manager_withdraw_id_created_at",
+          "columns": [
+            "id",
+            "created_at"
+          ]
+        }
+      },
       "uniqueConstraints": {}
     },
     "manager_withdraw_transactions": {
@@ -1193,45 +1201,8 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "manager_withdraw_transactions_withdraw_id_idx": {
-          "name": "manager_withdraw_transactions_withdraw_id_idx",
-          "columns": [
-            "withdraw_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "manager_withdraw_transactions_withdraw_id_manager_withdraw_id_fk": {
-          "name": "manager_withdraw_transactions_withdraw_id_manager_withdraw_id_fk",
-          "tableFrom": "manager_withdraw_transactions",
-          "tableTo": "manager_withdraw",
-          "columnsFrom": [
-            "withdraw_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "manager_withdraw_transactions_transaction_id_transaction_created_at_order_transactions_id_created_at_fk": {
-          "name": "manager_withdraw_transactions_transaction_id_transaction_created_at_order_transactions_id_created_at_fk",
-          "tableFrom": "manager_withdraw_transactions",
-          "tableTo": "order_transactions",
-          "columnsFrom": [
-            "transaction_id",
-            "transaction_created_at"
-          ],
-          "columnsTo": [
-            "id",
-            "created_at"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "manager_withdraw_transactions_id_transaction_created_at": {
           "name": "manager_withdraw_transactions_id_transaction_created_at",

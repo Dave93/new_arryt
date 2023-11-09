@@ -50,6 +50,7 @@ if (project.start) {
   let filePath;
   let file;
   let ordersById = {};
+  let managerWithdrawById = {};
   s.start("Checking permissions json file");
   if (
     !fs.existsSync(
@@ -828,6 +829,131 @@ if (project.start) {
       s.message(`Inserted ${i}/${contents.length} order_actions`);
     }
     s.stop(`Inserted ${contents.length} order_actions`);
+  }
+
+  s.start("Checking courier_terminal_balance json file");
+  if (
+    !fs.existsSync(
+      path.join(import.meta.dir, project.path, "/courier_terminal_balance.json")
+    )
+  ) {
+    s.stop("courier_terminal_balance.json not found");
+    process.exit(0);
+  } else {
+    s.message("courier_terminal_balance.json found");
+    filePath = path.join(
+      import.meta.dir,
+      project.path,
+      "/courier_terminal_balance.json"
+    );
+    file = Bun.file(filePath);
+
+    contents = await file.json();
+
+    for (let i = 0; i < contents.length; i++) {
+      let permission = contents[i];
+      await db.insert(schema.courier_terminal_balance).values({
+        ...permission,
+      });
+      s.message(`Inserted ${i}/${contents.length} courier_terminal_balance`);
+    }
+    s.stop(`Inserted ${contents.length} courier_terminal_balance`);
+  }
+
+  s.start("Checking manager_withdraw json file");
+  if (
+    !fs.existsSync(
+      path.join(import.meta.dir, project.path, "/manager_withdraw.json")
+    )
+  ) {
+    s.stop("manager_withdraw.json not found");
+    process.exit(0);
+  } else {
+    s.message("manager_withdraw.json found");
+    filePath = path.join(
+      import.meta.dir,
+      project.path,
+      "/manager_withdraw.json"
+    );
+    file = Bun.file(filePath);
+
+    contents = await file.json();
+
+    for (let i = 0; i < contents.length; i++) {
+      let permission = contents[i];
+      managerWithdrawById[permission.id] = permission;
+      await db.insert(schema.manager_withdraw).values({
+        ...permission,
+      });
+      s.message(`Inserted ${i}/${contents.length} manager_withdraw`);
+    }
+    s.stop(`Inserted ${contents.length} manager_withdraw`);
+  }
+
+  s.start("Checking manager_withdraw_transactions json file");
+  if (
+    !fs.existsSync(
+      path.join(
+        import.meta.dir,
+        project.path,
+        "/manager_withdraw_transactions.json"
+      )
+    )
+  ) {
+    s.stop("manager_withdraw_transactions.json not found");
+    process.exit(0);
+  } else {
+    s.message("manager_withdraw_transactions.json found");
+    filePath = path.join(
+      import.meta.dir,
+      project.path,
+      "/manager_withdraw_transactions.json"
+    );
+    file = Bun.file(filePath);
+
+    contents = await file.json();
+
+    for (let i = 0; i < contents.length; i++) {
+      let permission = contents[i];
+      let managerWithdraw = managerWithdrawById[permission.withdraw_id];
+      await db.insert(schema.manager_withdraw_transactions).values({
+        ...permission,
+        transaction_created_at: managerWithdraw.created_at,
+      });
+      s.message(
+        `Inserted ${i}/${contents.length} manager_withdraw_transactions`
+      );
+    }
+    s.stop(`Inserted ${contents.length} manager_withdraw_transactions`);
+  }
+
+  s.start("Checking order_bonus_pricing json file");
+  if (
+    !fs.existsSync(
+      path.join(import.meta.dir, project.path, "/order_bonus_pricing.json")
+    )
+  ) {
+    s.stop("order_bonus_pricing.json not found");
+    process.exit(0);
+  } else {
+    s.message("order_bonus_pricing.json found");
+    filePath = path.join(
+      import.meta.dir,
+      project.path,
+      "/order_bonus_pricing.json"
+    );
+    file = Bun.file(filePath);
+
+    contents = await file.json();
+
+    for (let i = 0; i < contents.length; i++) {
+      let permission = contents[i];
+      await db.insert(schema.order_bonus_pricing).values({
+        ...permission,
+      });
+      s.message(`Inserted ${i}/${contents.length} order_bonus_pricing`);
+    }
+    s.stop(`Inserted ${contents.length} order_bonus_pricing`);
   }
 
   //   queryClient.END;
