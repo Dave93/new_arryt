@@ -51,12 +51,6 @@ const project = await p.group(
           },
         ],
       }),
-
-    start: () =>
-      p.confirm({
-        message: "Start Transfer? ",
-        initialValue: false,
-      }),
   },
   {
     onCancel: () => {
@@ -66,7 +60,7 @@ const project = await p.group(
   }
 );
 
-if (project.start) {
+if (project.part) {
   let s = p.spinner();
   p.note("Starting transfer");
   let contents;
