@@ -55,6 +55,7 @@ export const edenDataProvider: DataProvider = {
           offset: (current! - 1) * pageSize!,
           fields: meta?.fields,
           filters: JSON.stringify(filters),
+          ext_all: meta?.extract_all ?? null
         },
         headers: meta?.requestHeaders,
       }

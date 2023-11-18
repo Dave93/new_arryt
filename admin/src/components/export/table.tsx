@@ -104,6 +104,8 @@ export const useTableExport = <
           },
           meta: metaData,
         });
+        // @ts-ignore
+        metaData?.extract_all = true;
         const { data, total } = await getList<TData>({
           resource,
           filters,
