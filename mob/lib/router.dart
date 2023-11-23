@@ -19,7 +19,7 @@ class AppRouter extends _$AppRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(page: InitialRoute.page, initial: true),
-        AutoRoute(page: HomeViewRoute.page, path: '/home'),
+        AutoRoute(page: HomeRoute.page, path: '/home'),
         AutoRoute(page: QRRoute.page, path: '/qr'),
         AutoRoute(page: LoginTypePhoneRoute.page, path: '/login/type-phone'),
         AutoRoute(page: LoginTypeOtpRoute.page, path: '/login/type-otp'),

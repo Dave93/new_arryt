@@ -1,3 +1,6 @@
+import 'package:arryt/main.dart';
+import 'package:arryt/models/api_client.dart';
+import 'package:arryt/models/user_data.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:arryt/bloc/block_imports.dart';
@@ -20,23 +23,45 @@ class _InitialPageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ApiClientsBloc, ApiClientsState>(
-        builder: (context, apiState) {
-      return BlocBuilder<UserDataBloc, UserDataState>(
-          builder: (context, userDataState) {
-        print(apiState.apiClients);
-        if (apiState.apiClients.isEmpty) {
-          return const ApiClientChooseBrand();
-        } else {
-          var accessToken = userDataState.accessToken;
-          if (accessToken != null && accessToken.isNotEmpty) {
-            return const HomeViewPage();
+    return StreamBuilder<ApiClient>(
+        stream: objectBox.getDefaultApiClientStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           } else {
-            return const LoginTypePhonePage();
+            if (snapshot.hasData) {
+              var apiClient = snapshot.data!;
+              if (apiClient.isServiceDefault) {
+                return StreamBuilder<List<UserData>>(
+                    stream: objectBox.getUserDataStream(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else {
+                        if (snapshot.hasData) {
+                          var userData = snapshot.data!;
+                          if (userData.isNotEmpty) {
+                            var accessToken = userData[0].accessToken;
+                            if (accessToken != null && accessToken.isNotEmpty) {
+                              return const HomeViewPage();
+                            } else {
+                              return const LoginTypePhonePage();
+                            }
+                          } else {
+                            return const LoginTypePhonePage();
+                          }
+                        } else {
+                          return const LoginTypePhonePage();
+                        }
+                      }
+                    });
+              } else {
+                return const ApiClientChooseBrand();
+              }
+            } else {
+              return const ApiClientChooseBrand();
+            }
           }
-          // return const Center(child: Text('Initial Page'));
-        }
-      });
-    });
+        });
   }
 }

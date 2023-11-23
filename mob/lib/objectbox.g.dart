@@ -649,7 +649,7 @@ final _entities = <ModelEntity>[
   ModelEntity(
       id: const IdUid(18, 6907096769466601773),
       name: 'UserData',
-      lastPropertyId: const IdUid(8, 6694200917451304621),
+      lastPropertyId: const IdUid(9, 5457197742395468158),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
@@ -693,7 +693,12 @@ final _entities = <ModelEntity>[
             type: 11,
             flags: 520,
             indexId: const IdUid(27, 5823730739666247642),
-            relationTarget: 'UserProfile')
+            relationTarget: 'UserProfile'),
+        ModelProperty(
+            id: const IdUid(9, 5457197742395468158),
+            name: 'identity',
+            type: 9,
+            flags: 0)
       ],
       relations: <ModelRelation>[
         ModelRelation(
@@ -1553,7 +1558,8 @@ ModelDefinition getObjectBoxModel() {
           final accessTokenExpiresOffset = object.accessTokenExpires == null
               ? null
               : fbb.writeString(object.accessTokenExpires!);
-          fbb.startTable(9);
+          final identityOffset = fbb.writeString(object.identity);
+          fbb.startTable(10);
           fbb.addInt64(0, object.id);
           fbb.addOffset(1, permissionsOffset);
           fbb.addOffset(2, accessTokenOffset);
@@ -1562,14 +1568,15 @@ ModelDefinition getObjectBoxModel() {
           fbb.addBool(5, object.is_online);
           fbb.addInt64(6, object.tokenExpires.millisecondsSinceEpoch);
           fbb.addInt64(7, object.userProfile.targetId);
+          fbb.addOffset(8, identityOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
         objectFromFB: (Store store, ByteData fbData) {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
-          final idParam =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+          final identityParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 20, '');
           final permissionsParam = const fb.ListReader<String>(
                   fb.StringReader(asciiOptimization: true),
                   lazy: false)
@@ -1588,13 +1595,14 @@ ModelDefinition getObjectBoxModel() {
           final tokenExpiresParam = DateTime.fromMillisecondsSinceEpoch(
               const fb.Int64Reader().vTableGet(buffer, rootOffset, 16, 0));
           final object = UserData(
-              id: idParam,
+              identity: identityParam,
               permissions: permissionsParam,
               accessToken: accessTokenParam,
               refreshToken: refreshTokenParam,
               accessTokenExpires: accessTokenExpiresParam,
               is_online: is_onlineParam,
-              tokenExpires: tokenExpiresParam);
+              tokenExpires: tokenExpiresParam)
+            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
           object.userProfile.targetId =
               const fb.Int64Reader().vTableGet(buffer, rootOffset, 18, 0);
           object.userProfile.attach(store);
@@ -2124,6 +2132,10 @@ class UserData_ {
   /// see [UserData.userProfile]
   static final userProfile =
       QueryRelationToOne<UserData, UserProfile>(_entities[11].properties[7]);
+
+  /// see [UserData.identity]
+  static final identity =
+      QueryStringProperty<UserData>(_entities[11].properties[8]);
 
   /// see [UserData.roles]
   static final roles =

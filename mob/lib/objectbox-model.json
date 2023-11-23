@@ -643,7 +643,7 @@
     },
     {
       "id": "18:6907096769466601773",
-      "lastPropertyId": "8:6694200917451304621",
+      "lastPropertyId": "9:5457197742395468158",
       "name": "UserData",
       "properties": [
         {
@@ -689,6 +689,11 @@
           "flags": 520,
           "indexId": "27:5823730739666247642",
           "relationTarget": "UserProfile"
+        },
+        {
+          "id": "9:5457197742395468158",
+          "name": "identity",
+          "type": 9
         }
       ],
       "relations": [

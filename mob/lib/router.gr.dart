@@ -27,10 +27,10 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const CallCenterOrganizationsListPage(),
       );
     },
-    HomeViewRoute.name: (routeData) {
+    HomeRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const HomeViewPage(),
+        child: const HomePage(),
       );
     },
     InitialRoute.name: (routeData) {
@@ -111,15 +111,15 @@ class CallCenterOrganizationsListRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [HomeViewPage]
-class HomeViewRoute extends PageRouteInfo<void> {
-  const HomeViewRoute({List<PageRouteInfo>? children})
+/// [HomePage]
+class HomeRoute extends PageRouteInfo<void> {
+  const HomeRoute({List<PageRouteInfo>? children})
       : super(
-          HomeViewRoute.name,
+          HomeRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'HomeViewRoute';
+  static const String name = 'HomeRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

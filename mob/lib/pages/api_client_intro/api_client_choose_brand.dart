@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/main.dart';
+import 'package:arryt/models/api_client.dart';
 import 'package:arryt/models/brands.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -33,7 +35,8 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
     // get brands from api
     Response response = await api.get('/api/brands/',
         {'limit': 10, 'offset': 0, 'fields': 'id,name,logo_path,api_url'});
-    var brands = response.data['brands'] as List<dynamic>;
+    print(response.data['data']);
+    // var brands = response.data['data']['brands'] as List<dynamic>;
     // create http graphql request to get brands
     // save brands to _brands
     // var query = r'''
@@ -58,7 +61,7 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
 
     setState(() {
       isLoading = false;
-      _brands = brands
+      _brands = (response.data['data'] as List<dynamic>)
           .map((e) => BrandsModel.fromMap(e as Map<String, dynamic>))
           .toList();
     });
@@ -68,39 +71,32 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
     setState(() {
       isLoading = true;
     });
-    String hexString = brand.sign;
-    List<String> splitted = [];
-    for (int i = 0; i < hexString.length; i = i + 2) {
-      splitted.add(hexString.substring(i, i + 2));
-    }
-    String ascii = List.generate(splitted.length,
-        (i) => String.fromCharCode(int.parse(splitted[i], radix: 16))).join();
 
-    // remove first 6 characters from ascii
-    String asciiWithoutFirst6 = ascii.substring(6);
-    Codec<String, String> stringToBase64 = utf8.fuse(base64);
-    // base64 decode
-    String base64Decoded = stringToBase64.decode(asciiWithoutFirst6);
-    String apiUrl = base64Decoded.split("|")[0];
-    String serviceName = base64Decoded.split("|")[1];
+    ApiServer api = new ApiServer();
+    // String hexString = brand.sign ?? '';
+    // List<String> splitted = [];
+    // for (int i = 0; i < hexString.length; i = i + 2) {
+    //   splitted.add(hexString.substring(i, i + 2));
+    // }
+    // String ascii = List.generate(splitted.length,
+    //     (i) => String.fromCharCode(int.parse(splitted[i], radix: 16))).join();
+
+    // // remove first 6 characters from ascii
+    // String asciiWithoutFirst6 = ascii.substring(6);
+    // Codec<String, String> stringToBase64 = utf8.fuse(base64);
+    // // base64 decode
+    // String base64Decoded = stringToBase64.decode(asciiWithoutFirst6);
+    // String apiUrl = base64Decoded.split("|")[0];
+    // String serviceName = base64Decoded.split("|")[1];
     try {
-      var response = await http.post(
-        Uri.parse('https://$apiUrl/graphql'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: '''
-        {
-          "query": "query {checkService {\\n result}}\\n",
-          "variables": null
-        }
-        ''',
-      );
-      var result = jsonDecode(response.body);
-      if (result['errors'] != null) {
+      Response response = await api.get('/check_service', {});
+      print(response);
+      if (response.data['result'] != 'ok') {
         _onErrorServiceCheck(context);
+        return;
       } else {
-        _onSuccessServiceCheck(context, serviceName, apiUrl);
+        _onSuccessServiceCheck(context, brand.name, brand.apiUrl);
+        return;
       }
     } catch (e) {
       print(e);
@@ -200,10 +196,12 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
     setState(() {
       isLoading = false;
     });
-    BlocProvider.of<ApiClientsBloc>(context).add(ApiClientsAdd(
-        apiUrl: apiUrl, serviceName: serviceName, isServiceDefault: true));
-    // context.read<ApiClientsBloc>().add(ApiClientsAdd(
-    //     apiUrl: apiUrl, serviceName: serviceName, isServiceDefault: true));
+
+    ApiClient apiClient = new ApiClient(
+        apiUrl: apiUrl, serviceName: serviceName, isServiceDefault: true);
+
+    objectBox.setDefaultApiClient(apiClient);
+
     await Future.delayed(Duration.zero);
     AutoRouter.of(context).replaceNamed('/login/type-phone');
   }

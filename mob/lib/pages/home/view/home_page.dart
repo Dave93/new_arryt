@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:arryt/main.dart';
 import 'package:arryt/models/user_data.dart';
@@ -26,6 +28,7 @@ import '../../manager/couriers_list.dart';
 import '../../notifications/notifications.dart';
 import '../../orders_history/orders_history.dart';
 
+@RoutePage()
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -35,7 +38,6 @@ class HomePage extends StatelessWidget {
   }
 }
 
-@RoutePage()
 class HomeViewPage extends StatefulWidget {
   const HomeViewPage({super.key});
 
@@ -265,6 +267,8 @@ class _HomeViewPageState extends State<HomeViewPage> {
             } else {
               return const SizedBox(height: 0);
             }
+          } else if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox(height: 0);
           } else {
             getIt<AppRouter>().replace(LoginTypePhoneRoute());
             return const SizedBox(

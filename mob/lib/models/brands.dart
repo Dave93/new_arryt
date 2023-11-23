@@ -5,12 +5,14 @@ class BrandsModel {
   String id;
   String name;
   String logoPath;
-  String sign;
+  String? sign;
+  String apiUrl;
   BrandsModel({
     required this.id,
     required this.name,
     required this.logoPath,
     required this.sign,
+    required this.apiUrl,
   });
 
   BrandsModel copyWith({
@@ -18,12 +20,14 @@ class BrandsModel {
     String? name,
     String? logoPath,
     String? sign,
+    String? apiUrl,
   }) {
     return BrandsModel(
       id: id ?? this.id,
       name: name ?? this.name,
       logoPath: logoPath ?? this.logoPath,
       sign: sign ?? this.sign,
+      apiUrl: apiUrl ?? this.apiUrl,
     );
   }
 
@@ -33,6 +37,7 @@ class BrandsModel {
       'name': name,
       'logo_path': logoPath,
       'sign': sign,
+      'api_url': apiUrl,
     };
   }
 
@@ -41,7 +46,8 @@ class BrandsModel {
       id: map['id'] as String,
       name: map['name'] as String,
       logoPath: map['logo_path'] as String,
-      sign: map['sign'] as String,
+      sign: map['sign'] != null ? map['sign'] as String : null,
+      apiUrl: map['api_url'] as String,
     );
   }
 
@@ -52,7 +58,7 @@ class BrandsModel {
 
   @override
   String toString() {
-    return 'BrandsModel(id: $id, name: $name, logoPath: $logoPath, sign: $sign)';
+    return 'BrandsModel(id: $id, name: $name, logoPath: $logoPath, sign: $sign. apiUrl: $apiUrl)';
   }
 
   @override
@@ -62,11 +68,16 @@ class BrandsModel {
     return other.id == id &&
         other.name == name &&
         other.logoPath == logoPath &&
-        other.sign == sign;
+        other.sign == sign &&
+        other.apiUrl == apiUrl;
   }
 
   @override
   int get hashCode {
-    return id.hashCode ^ name.hashCode ^ logoPath.hashCode ^ sign.hashCode;
+    return id.hashCode ^
+        name.hashCode ^
+        logoPath.hashCode ^
+        sign.hashCode ^
+        apiUrl.hashCode;
   }
 }

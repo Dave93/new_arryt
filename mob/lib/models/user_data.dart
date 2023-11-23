@@ -68,7 +68,9 @@ class UserProfile {
       is_super_user:
           map['is_super_user'] != null ? map['is_super_user'] as bool : null,
       terminal_id: map['terminal_id'] != null
-          ? map['terminal_id'] as List<String>
+          ? (map['terminal_id'] as List<dynamic>)
+              .map((e) => e as String)
+              .toList()
           : null,
       wallet_balance: map['wallet_balance'] ?? 0,
     );
@@ -172,6 +174,7 @@ class UserData {
   @Id()
   int id = 0;
 
+  String identity;
   List<String> permissions;
   String? accessToken;
   String? refreshToken;
@@ -183,7 +186,7 @@ class UserData {
   final roles = ToMany<Role>();
 
   UserData({
-    required this.id,
+    required this.identity,
     required this.permissions,
     this.accessToken,
     this.refreshToken,
@@ -193,7 +196,7 @@ class UserData {
   });
 
   UserData copyWith({
-    int? id,
+    String? identity,
     List<String>? permissions,
     String? accessToken,
     String? refreshToken,
@@ -202,7 +205,7 @@ class UserData {
     DateTime? tokenExpires,
   }) {
     return UserData(
-      id: id ?? this.id,
+      identity: identity ?? this.identity,
       permissions: permissions ?? this.permissions,
       accessToken: accessToken ?? this.accessToken,
       refreshToken: refreshToken ?? this.refreshToken,
@@ -214,7 +217,7 @@ class UserData {
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
-      'id': id,
+      'id': identity,
       'permissions': permissions,
       'accessToken': accessToken,
       'refreshToken': refreshToken,
@@ -226,23 +229,27 @@ class UserData {
 
   factory UserData.fromMap(Map<String, dynamic> map) {
     UserData user = UserData(
-      id: map['id'] as int,
-      permissions: List<String>.from((map['permissions'] as List<String>)),
-      accessToken:
-          map['accessToken'] != null ? map['accessToken'] as String : null,
-      refreshToken:
-          map['refreshToken'] != null ? map['refreshToken'] as String : null,
-      accessTokenExpires: map['accessTokenExpires'] != null
-          ? map['accessTokenExpires'] as String
-          : null,
-      is_online: map['is_online'] as bool,
-      tokenExpires:
-          DateTime.fromMillisecondsSinceEpoch(map['tokenExpires'] as int),
-    );
+        identity: map['user']['id'] as String,
+        permissions: List<String>.from(
+            (map['access']['additionalPermissions'] as List<dynamic>)
+                .map((e) => e as String)),
+        accessToken: map['token']['accessToken'] != null
+            ? map['token']['accessToken'] as String
+            : null,
+        refreshToken: map['token']['refreshToken'] != null
+            ? map['token']['refreshToken'] as String
+            : null,
+        accessTokenExpires: map['token']['accessTokenExpires'] != null
+            ? map['token']['accessTokenExpires'] as String
+            : null,
+        is_online: map['user']['is_online'] as bool,
+        tokenExpires: DateTime.now().add(Duration(
+            hours:
+                int.parse(map['token']['accessTokenExpires'].split('h')[0]))));
     user.userProfile.target =
-        UserProfile.fromMap(map['userProfile'] as Map<String, dynamic>);
+        UserProfile.fromMap(map['user'] as Map<String, dynamic>);
     user.roles.addAll(List<Role>.from(
-        (map['roles'] as List<dynamic>).map((e) => Role.fromMap(e))));
+        (map['access']['roles'] as List<dynamic>).map((e) => Role.fromMap(e))));
 
     return user;
   }
@@ -254,7 +261,7 @@ class UserData {
 
   @override
   String toString() {
-    return 'UserData(id: $id, permissions: $permissions, accessToken: $accessToken, refreshToken: $refreshToken, accessTokenExpires: $accessTokenExpires, is_online: $is_online, tokenExpires: $tokenExpires)';
+    return 'UserData(id: $id, identity: $identity, permissions: $permissions, accessToken: $accessToken, refreshToken: $refreshToken, accessTokenExpires: $accessTokenExpires, is_online: $is_online, tokenExpires: $tokenExpires)';
   }
 
   @override
@@ -267,7 +274,8 @@ class UserData {
         other.refreshToken == refreshToken &&
         other.accessTokenExpires == accessTokenExpires &&
         other.is_online == is_online &&
-        other.tokenExpires == tokenExpires;
+        other.tokenExpires == tokenExpires &&
+        other.identity == identity;
   }
 
   @override
@@ -278,6 +286,7 @@ class UserData {
         refreshToken.hashCode ^
         accessTokenExpires.hashCode ^
         is_online.hashCode ^
-        tokenExpires.hashCode;
+        tokenExpires.hashCode ^
+        identity.hashCode;
   }
 }

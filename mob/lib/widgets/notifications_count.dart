@@ -1,4 +1,5 @@
 import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 
@@ -7,7 +8,7 @@ class NotificationsCountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(child: const NotificationsCountBadgeView());
+    return const NotificationsCountBadgeView();
   }
 }
 
@@ -24,21 +25,30 @@ class _NotificationsCountBadgeViewState
   int notificationsCount = 0;
 
   Future<void> _loadUnreadNotificationCount() async {
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      query {
-        myUnreadNotifications
-      }
-    ''';
-    var result = await client.query(
-        QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache));
-    if (result.hasException) {
-      print(result.exception);
-    } else {
+    ApiServer api = new ApiServer();
+    // var client = GraphQLProvider.of(context).value;
+    try {
+      var response = await api.get('/api/couriers/my_unread_notifications', {});
       setState(() {
-        notificationsCount = result.data!['myUnreadNotifications'];
+        notificationsCount = response.data;
       });
+    } catch (e) {
+      print(e);
     }
+    // var query = r'''
+    //   query {
+    //     myUnreadNotifications
+    //   }
+    // ''';
+    // var result = await client.query(
+    //     QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache));
+    // if (result.hasException) {
+    //   print(result.exception);
+    // } else {
+    //   setState(() {
+    //     notificationsCount = result.data!['myUnreadNotifications'];
+    //   });
+    // }
   }
 
   @override

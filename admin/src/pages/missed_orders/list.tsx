@@ -76,38 +76,17 @@ const MissedOrdersList: React.FC = () => {
         "created_at",
         "order_created_at",
         "order_id",
-        "order_number",
-        "organization_id",
-        "terminal_id",
         "system_minutes_config",
         "terminal_name",
-        "status",
-        "payment_type",
-        "allowYandex",
-        "is_courier_set",
-        "order_price",
-        "pre_distance",
-        {
-          order_status: ["id", "name", "color"],
-        },
-        {
-          yandex_delivery_data: [
-            "id",
-            "created_at",
-            {
-              pricing_data: ["price", "distance_meters"],
-            },
-            {
-              order_data: [
-                "id",
-                "version",
-                "status",
-                "skip_door_to_door",
-                "skip_client_notify",
-              ],
-            },
-          ],
-        },
+        "order_status.id",
+        "order_status.name",
+        "order_status.color",
+        "orders.courier_id",
+        "orders.order_number",
+        "orders.pre_distance",
+        "orders.order_price",
+        "orders.payment_type",
+        "terminals.name",
       ],
       whereInputType: "missedOrdersWhereInput!",
       orderByInputType: "missedOrdersOrderByWithRelationInput!",
@@ -158,7 +137,7 @@ const MissedOrdersList: React.FC = () => {
     },
 
     pagination: {
-      pageSize: 800,
+      pageSize: 50,
     },
 
     filters: {
@@ -233,8 +212,8 @@ const MissedOrdersList: React.FC = () => {
       title: "Статус",
       dataIndex: "status",
       width: 120,
-      render: (value: any, record: IMissedOrderEntity) => {
-        if (record.is_courier_set) {
+      render: (value: any, record: any) => {
+        if (record.orders.courier_id) {
           return (
             <Tag color={record.order_status.color}>
               <div
@@ -247,40 +226,6 @@ const MissedOrdersList: React.FC = () => {
                 {record.order_status.name}
               </div>
             </Tag>
-          );
-        }
-        if (value === "new") {
-          return (
-            <Button
-              type="primary"
-              shape="round"
-              size="small"
-              onClick={() => changeStatus(record.id, "pending")}
-            >
-              Взять в работу
-            </Button>
-          );
-        } else if (value === "pending") {
-          return (
-            <Button
-              type="primary"
-              shape="round"
-              size="small"
-              onClick={() => changeStatus(record.id, "done")}
-            >
-              Фиксировать
-            </Button>
-          );
-        } else if (value === "done") {
-          return (
-            <Button
-              type="primary"
-              shape="round"
-              size="small"
-              onClick={() => changeStatus(record.id, "new")}
-            >
-              Отменить фиксацию
-            </Button>
           );
         }
       },
@@ -310,7 +255,7 @@ const MissedOrdersList: React.FC = () => {
     },
     {
       title: "Номер заказа",
-      dataIndex: "order_number",
+      dataIndex: "orders.order_number",
       width: 200,
       render: (value: any, record: any) => (
         <Space>
@@ -325,19 +270,19 @@ const MissedOrdersList: React.FC = () => {
     },
     {
       title: "Филиал",
-      dataIndex: "terminal_name",
+      dataIndex: "terminals.name",
       width: 200,
     },
     {
       title: "Дистанция",
-      dataIndex: "pre_distance",
+      dataIndex: "orders.pre_distance",
       width: 100,
       render: (value: any, record: any) =>
-        `${+record.pre_distance.toFixed(2)} км`,
+        `${+record.orders.pre_distance.toFixed(2)} км`,
     },
     {
       title: "Стоимость заказа",
-      dataIndex: "order_price",
+      dataIndex: "orders.order_price",
       width: 150,
       // sorter: (a: any, b: any) => a.order_price - b.order_price,
       // defaultSortOrder: "descend" as SortOrder | undefined,
@@ -346,30 +291,30 @@ const MissedOrdersList: React.FC = () => {
     },
     {
       title: "Тип оплаты",
-      dataIndex: "payment_type",
+      dataIndex: "orders.payment_type",
       width: 100,
     },
-    {
-      title: "Отправить Яндексом",
-      dataIndex: "allowYandex",
-      width: 300,
-      render: (value: any, record: any) => (
-        <Space direction="vertical">
-          <SendOrderToYandex
-            order={record as IOrders}
-            token={identity?.token.accessToken!}
-          />
-          <TrySendMultiYandex
-            order={record as IOrders}
-            token={identity?.token.accessToken!}
-          />
-          {/* <ResentToYandex
-            order={record as IOrders}
-            token={identity?.token.accessToken!}
-          /> */}
-        </Space>
-      ),
-    },
+    // {
+    //   title: "Отправить Яндексом",
+    //   dataIndex: "allowYandex",
+    //   width: 300,
+    //   render: (value: any, record: any) => (
+    //     <Space direction="vertical">
+    //       <SendOrderToYandex
+    //         order={record as IOrders}
+    //         token={identity?.token.accessToken!}
+    //       />
+    //       <TrySendMultiYandex
+    //         order={record as IOrders}
+    //         token={identity?.token.accessToken!}
+    //       />
+    //       {/* <ResentToYandex
+    //         order={record as IOrders}
+    //         token={identity?.token.accessToken!}
+    //       /> */}
+    //     </Space>
+    //   ),
+    // },
   ];
 
   return (

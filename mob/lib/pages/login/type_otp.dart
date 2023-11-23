@@ -1,11 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/main.dart';
 import 'package:arryt/models/user_data.dart';
+import 'package:arryt/riverpods/otp_phone/provider.dart';
+import 'package:arryt/riverpods/otp_token/provider.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:awesome_notifications_fcm/awesome_notifications_fcm.dart';
+import 'package:dio/dio.dart';
 // import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:arryt/bloc/block_imports.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
@@ -17,14 +23,14 @@ import 'package:http/http.dart' as http;
 import '../../widgets/wave/wave_widget.dart';
 
 @RoutePage()
-class LoginTypeOtpPage extends StatefulWidget {
+class LoginTypeOtpPage extends ConsumerStatefulWidget {
   const LoginTypeOtpPage({super.key});
 
   @override
-  State<LoginTypeOtpPage> createState() => _LoginTypeOtpPageState();
+  ConsumerState<LoginTypeOtpPage> createState() => _LoginTypeOtpPageState();
 }
 
-class _LoginTypeOtpPageState extends State<LoginTypeOtpPage> {
+class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
   final RoundedLoadingButtonController _btnController =
       RoundedLoadingButtonController();
   TextEditingController textEditingController = TextEditingController();
@@ -41,6 +47,8 @@ class _LoginTypeOtpPageState extends State<LoginTypeOtpPage> {
     final bool keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     String code = "";
     String signature = "{{ app signature }}";
+    String phoneNumber = ref.watch(otpPhoneProviderProvider);
+    String otpToken = ref.watch(otpTokenProviderProvider);
 
     Future<void> _verifyOtpCode() async {
       var code = textEditingController.text;
@@ -68,16 +76,16 @@ class _LoginTypeOtpPageState extends State<LoginTypeOtpPage> {
         return;
       }
 
-      ApiClientsBloc apiClientsBloc = BlocProvider.of<ApiClientsBloc>(context);
-      OtpPhoneNumberBloc otpPhoneNumberBloc =
-          BlocProvider.of<OtpPhoneNumberBloc>(context);
-      OtpTokenBloc otpTokenBloc = BlocProvider.of<OtpTokenBloc>(context);
+      // ApiClientsBloc apiClientsBloc = BlocProvider.of<ApiClientsBloc>(context);
+      // OtpPhoneNumberBloc otpPhoneNumberBloc =
+      //     BlocProvider.of<OtpPhoneNumberBloc>(context);
+      // OtpTokenBloc otpTokenBloc = BlocProvider.of<OtpTokenBloc>(context);
 
-      String phoneNumber = otpPhoneNumberBloc.state.phoneNumber;
-      String otpToken = otpTokenBloc.state.token;
+      print('phoneNumber ${phoneNumber}');
+      print('otpToken ${otpToken}');
       // get first isServiceDefault client
-      ApiClients? apiClient = apiClientsBloc.state.apiClients
-          .firstWhere((element) => element.isServiceDefault == true);
+      // ApiClients? apiClient = apiClientsBloc.state.apiClients
+      //     .firstWhere((element) => element.isServiceDefault == true);
       String? fcmToken;
 
       try {
@@ -86,33 +94,22 @@ class _LoginTypeOtpPageState extends State<LoginTypeOtpPage> {
         fcmToken = null;
       }
 
-      // send phone number to server
-      String requestBody;
+      Map<String, dynamic> requestParams = {
+        'verificationKey': otpToken,
+        'phone': phoneNumber,
+        'otp': code,
+      };
       if (fcmToken != null) {
-        requestBody = '''
-      {
-        "query": "mutation {verifyOtp(phone: \\"$phoneNumber\\", otp: \\"$code\\", verificationKey: \\"$otpToken\\", deviceToken: \\"$fcmToken\\") {\\n access {\\nadditionalPermissions\\nroles {\\nname\\ncode\\nactive\\n}\\n}\\ntoken {\\naccessToken\\naccessTokenExpires\\nrefreshToken\\ntokenType\\n}\\nuser {\\nfirst_name\\nid\\nis_super_user\\nlast_name\\nis_online\\npermissions {\\nactive\\nslug\\nid\\n}\\nphone\\n}\\n}}\\n",
-        "variables": null
-      }
-      ''';
-      } else {
-        requestBody = '''
-      {
-        "query": "mutation {verifyOtp(phone: \\"$phoneNumber\\", otp: \\"$code\\", verificationKey: \\"$otpToken\\") {\\n access {\\nadditionalPermissions\\nroles {\\nname\\ncode\\nactive\\n}\\n}\\ntoken {\\naccessToken\\naccessTokenExpires\\nrefreshToken\\ntokenType\\n}\\nuser {\\nfirst_name\\nid\\nis_super_user\\nlast_name\\nis_online\\npermissions {\\nactive\\nslug\\nid\\n}\\nphone\\n}\\n}}\\n",
-        "variables": null
-      }
-      ''';
+        requestParams['deviceToken'] = fcmToken;
       }
 
-      var response = await http.post(
-        Uri.parse("https://${apiClient.apiUrl}/graphql"),
-        headers: {'Content-Type': 'application/json'},
-        body: requestBody,
-      );
+      ApiServer api = new ApiServer();
+
+      Response response =
+          await api.post('/api/users/verify-otp', requestParams);
+
       if (response.statusCode == 200) {
-        var result = jsonDecode(response.body);
-
-        if (result['errors'] != null) {
+        if (response.data['errors'] != null) {
           setState(() {
             isLoading = false;
           });
@@ -131,26 +128,9 @@ class _LoginTypeOtpPageState extends State<LoginTypeOtpPage> {
           isLoading = false;
         });
         _btnController.success();
-        UserDataBloc userDataBloc = BlocProvider.of<UserDataBloc>(context);
-        userDataBloc.add(UserDataEventChange(
-          accessToken: result['data']['verifyOtp']['token']['accessToken'],
-          refreshToken: result['data']['verifyOtp']['token']['refreshToken'],
-          accessTokenExpires: result['data']['verifyOtp']['token']
-              ['accessTokenExpires'],
-          userProfile:
-              UserProfileModel.fromMap(result['data']['verifyOtp']['user']),
-          permissions: List.from(
-              result['data']['verifyOtp']['access']['additionalPermissions']),
-          roles: List<Role>.from(result['data']['verifyOtp']['access']['roles']
-              .map((x) => Role.fromMap(x))
-              .toList()),
-          is_online: result['data']['verifyOtp']['user']['is_online'],
-          // parse 1h to duration
-          tokenExpires: DateTime.now().add(Duration(
-              hours: int.parse(result['data']['verifyOtp']['token']
-                      ['accessTokenExpires']
-                  .split('h')[0]))),
-        ));
+
+        UserData user = UserData.fromMap(response.data);
+        objectBox.setUserData(user);
         Future.delayed(const Duration(milliseconds: 200)).then((value) {
           _btnController.reset();
         });
@@ -164,6 +144,85 @@ class _LoginTypeOtpPageState extends State<LoginTypeOtpPage> {
           _btnController.reset();
         });
       }
+
+      // send phone number to server
+      // String requestBody;
+      // if (fcmToken != null) {
+      //   requestBody = '''
+      // {
+      //   "query": "mutation {verifyOtp(phone: \\"$phoneNumber\\", otp: \\"$code\\", verificationKey: \\"$otpToken\\", deviceToken: \\"$fcmToken\\") {\\n access {\\nadditionalPermissions\\nroles {\\nname\\ncode\\nactive\\n}\\n}\\ntoken {\\naccessToken\\naccessTokenExpires\\nrefreshToken\\ntokenType\\n}\\nuser {\\nfirst_name\\nid\\nis_super_user\\nlast_name\\nis_online\\npermissions {\\nactive\\nslug\\nid\\n}\\nphone\\n}\\n}}\\n",
+      //   "variables": null
+      // }
+      // ''';
+      // } else {
+      //   requestBody = '''
+      // {
+      //   "query": "mutation {verifyOtp(phone: \\"$phoneNumber\\", otp: \\"$code\\", verificationKey: \\"$otpToken\\") {\\n access {\\nadditionalPermissions\\nroles {\\nname\\ncode\\nactive\\n}\\n}\\ntoken {\\naccessToken\\naccessTokenExpires\\nrefreshToken\\ntokenType\\n}\\nuser {\\nfirst_name\\nid\\nis_super_user\\nlast_name\\nis_online\\npermissions {\\nactive\\nslug\\nid\\n}\\nphone\\n}\\n}}\\n",
+      //   "variables": null
+      // }
+      // ''';
+      // }
+
+      // var response = await http.post(
+      //   Uri.parse("https://${apiClient.apiUrl}/graphql"),
+      //   headers: {'Content-Type': 'application/json'},
+      //   body: requestBody,
+      // );
+      // if (response.statusCode == 200) {
+      //   var result = jsonDecode(response.body);
+
+      //   if (result['errors'] != null) {
+      //     setState(() {
+      //       isLoading = false;
+      //     });
+      //     _btnController.error();
+      //     AnimatedSnackBar.material(
+      //       AppLocalizations.of(context)!.otpCodeError,
+      //       type: AnimatedSnackBarType.error,
+      //     ).show(context);
+      //     Future.delayed(const Duration(milliseconds: 1000)).then((value) {
+      //       _btnController.reset();
+      //     });
+      //     return;
+      //   }
+
+      //   setState(() {
+      //     isLoading = false;
+      //   });
+      //   _btnController.success();
+      //   UserDataBloc userDataBloc = BlocProvider.of<UserDataBloc>(context);
+      //   userDataBloc.add(UserDataEventChange(
+      //     accessToken: result['data']['verifyOtp']['token']['accessToken'],
+      //     refreshToken: result['data']['verifyOtp']['token']['refreshToken'],
+      //     accessTokenExpires: result['data']['verifyOtp']['token']
+      //         ['accessTokenExpires'],
+      //     userProfile:
+      //         UserProfileModel.fromMap(result['data']['verifyOtp']['user']),
+      //     permissions: List.from(
+      //         result['data']['verifyOtp']['access']['additionalPermissions']),
+      //     roles: List<Role>.from(result['data']['verifyOtp']['access']['roles']
+      //         .map((x) => Role.fromMap(x))
+      //         .toList()),
+      //     is_online: result['data']['verifyOtp']['user']['is_online'],
+      //     // parse 1h to duration
+      //     tokenExpires: DateTime.now().add(Duration(
+      //         hours: int.parse(result['data']['verifyOtp']['token']
+      //                 ['accessTokenExpires']
+      //             .split('h')[0]))),
+      //   ));
+      //   Future.delayed(const Duration(milliseconds: 200)).then((value) {
+      //     _btnController.reset();
+      //   });
+      //   AutoRouter.of(context).pushNamed('/home');
+      // } else {
+      //   setState(() {
+      //     isLoading = false;
+      //   });
+      //   _btnController.error();
+      //   Future.delayed(const Duration(milliseconds: 200)).then((value) {
+      //     _btnController.reset();
+      //   });
+      // }
     }
 
     @override

@@ -177,6 +177,28 @@ class ObjectBox {
     return query.findFirst();
   }
 
+  Stream<ApiClient> getDefaultApiClientStream() {
+    final builder =
+        _apiClientBox.query(ApiClient_.isServiceDefault.equals(true));
+    return builder.watch(triggerImmediately: true).map((query) {
+      return query.findFirst()!;
+    });
+  }
+
+  void setDefaultApiClient(ApiClient apiClient) {
+    final query = _apiClientBox
+        .query(ApiClient_.isServiceDefault.equals(true))
+        .build()
+      ..limit = 1;
+    final oldApiClient = query.findFirst();
+    if (oldApiClient != null) {
+      oldApiClient.isServiceDefault = false;
+      _apiClientBox.put(oldApiClient);
+    }
+    apiClient.isServiceDefault = true;
+    _apiClientBox.put(apiClient);
+  }
+
   UserData? getUserData() {
     final query = _userDataBox.query().build()..limit = 1;
     return query.findFirst();
