@@ -104,73 +104,15 @@ export const SendOrderToYandex = ({
     setIsLoading(false);
     queryClient.invalidateQueries(["default", "missed_orders", "list"]);
   };
-  if (order.allowYandex) {
-    if (order.yandex_delivery_data) {
-      if (
-        order.yandex_delivery_data.pricing_data &&
-        (!order.yandex_delivery_data.order_data ||
-          !order.yandex_delivery_data.order_data.id)
-      ) {
-        return (
-          <>
-            <div>
-              Расчётная сумма доставки:{" "}
-              {new Intl.NumberFormat("ru").format(
-                order.yandex_delivery_data.pricing_data.price
-              )}
-            </div>
-            <div>
-              <Space>
-                <Button
-                  type="primary"
-                  shape="round"
-                  size="small"
-                  danger
-                  loading={isLoading}
-                  onClick={() => cancelYandex(order.id)}
-                >
-                  Отменить отправку
-                </Button>
-                <Button
-                  type="primary"
-                  shape="round"
-                  size="small"
-                  loading={isLoading}
-                  onClick={() => approveYandex(order.id)}
-                >
-                  Отправить
-                </Button>
-              </Space>
-            </div>
-          </>
-        );
-      } else if (
-        order.yandex_delivery_data.pricing_data &&
-        order.yandex_delivery_data.order_data
-      ) {
-        return (
-          <>
-            <div>
-              Статус заявки: {order.yandex_delivery_data.order_data.status}
-            </div>
-          </>
-        );
-      }
-    } else {
-      return (
-        <Button
-          type="primary"
-          shape="round"
-          size="small"
-          loading={isLoading}
-          onClick={() => approveYandex(order.id)}
-        >
-          Отправить Яндексом
-        </Button>
-      );
-    }
-  } else {
-    return <div>Не доступно</div>;
-  }
-  return <div>Не доступно</div>;
+  return (
+    <Button
+      type="primary"
+      shape="round"
+      size="small"
+      loading={isLoading}
+      onClick={() => approveYandex(order.id)}
+    >
+      Отправить Яндексом
+    </Button>
+  );
 };

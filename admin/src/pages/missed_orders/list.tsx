@@ -74,18 +74,14 @@ const MissedOrdersList: React.FC = () => {
       fields: [
         "id",
         "created_at",
-        "order_created_at",
-        "order_id",
-        "system_minutes_config",
-        "terminal_name",
         "order_status.id",
         "order_status.name",
         "order_status.color",
-        "orders.courier_id",
-        "orders.order_number",
-        "orders.pre_distance",
-        "orders.order_price",
-        "orders.payment_type",
+        "courier_id",
+        "order_number",
+        "pre_distance",
+        "order_price",
+        "payment_type",
         "terminals.name",
       ],
       whereInputType: "missedOrdersWhereInput!",
@@ -213,7 +209,7 @@ const MissedOrdersList: React.FC = () => {
       dataIndex: "status",
       width: 120,
       render: (value: any, record: any) => {
-        if (record.orders.courier_id) {
+        if (record.courier_id) {
           return (
             <Tag color={record.order_status.color}>
               <div
@@ -232,15 +228,6 @@ const MissedOrdersList: React.FC = () => {
     },
     {
       title: "Дата заказа",
-      dataIndex: "order_created_at",
-      width: 150,
-      excelRender: (value: any) => dayjs(value).format("DD.MM.YYYY HH:mm"),
-      render: (value: any) => (
-        <div>{dayjs(value).format("DD.MM.YYYY HH:mm")}</div>
-      ),
-    },
-    {
-      title: "Дата фиксации",
       dataIndex: "created_at",
       width: 150,
       excelRender: (value: any) => dayjs(value).format("DD.MM.YYYY HH:mm"),
@@ -249,13 +236,8 @@ const MissedOrdersList: React.FC = () => {
       ),
     },
     {
-      title: "Минуты для фиксации",
-      dataIndex: "system_minutes_config",
-      width: 150,
-    },
-    {
       title: "Номер заказа",
-      dataIndex: "orders.order_number",
+      dataIndex: "order_number",
       width: 200,
       render: (value: any, record: any) => (
         <Space>
@@ -263,7 +245,7 @@ const MissedOrdersList: React.FC = () => {
           <Button
             icon={<ArrowTopRightOnSquareIcon />}
             size="small"
-            onClick={() => window.open(`/orders/show/${record.order_id}`)}
+            onClick={() => window.open(`/orders/show/${record.id}`)}
           />
         </Space>
       ),
@@ -272,17 +254,18 @@ const MissedOrdersList: React.FC = () => {
       title: "Филиал",
       dataIndex: "terminals.name",
       width: 200,
+      render: (value: any, record: any) => <div>{record.terminals.name}</div>,
     },
     {
       title: "Дистанция",
-      dataIndex: "orders.pre_distance",
+      dataIndex: "pre_distance",
       width: 100,
       render: (value: any, record: any) =>
-        `${+record.orders.pre_distance.toFixed(2)} км`,
+        `${+record.pre_distance.toFixed(2)} км`,
     },
     {
       title: "Стоимость заказа",
-      dataIndex: "orders.order_price",
+      dataIndex: "order_price",
       width: 150,
       // sorter: (a: any, b: any) => a.order_price - b.order_price,
       // defaultSortOrder: "descend" as SortOrder | undefined,
@@ -291,30 +274,30 @@ const MissedOrdersList: React.FC = () => {
     },
     {
       title: "Тип оплаты",
-      dataIndex: "orders.payment_type",
+      dataIndex: "payment_type",
       width: 100,
     },
-    // {
-    //   title: "Отправить Яндексом",
-    //   dataIndex: "allowYandex",
-    //   width: 300,
-    //   render: (value: any, record: any) => (
-    //     <Space direction="vertical">
-    //       <SendOrderToYandex
-    //         order={record as IOrders}
-    //         token={identity?.token.accessToken!}
-    //       />
-    //       <TrySendMultiYandex
-    //         order={record as IOrders}
-    //         token={identity?.token.accessToken!}
-    //       />
-    //       {/* <ResentToYandex
-    //         order={record as IOrders}
-    //         token={identity?.token.accessToken!}
-    //       /> */}
-    //     </Space>
-    //   ),
-    // },
+    {
+      title: "Отправить Яндексом",
+      dataIndex: "allowYandex",
+      width: 300,
+      render: (value: any, record: any) => (
+        <Space direction="vertical">
+          <SendOrderToYandex
+            order={record as IOrders}
+            token={identity?.token.accessToken!}
+          />
+          <TrySendMultiYandex
+            order={record as IOrders}
+            token={identity?.token.accessToken!}
+          />
+          {/* <ResentToYandex
+            order={record as IOrders}
+            token={identity?.token.accessToken!}
+          /> */}
+        </Space>
+      ),
+    },
   ];
 
   return (

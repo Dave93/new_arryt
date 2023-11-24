@@ -128,7 +128,7 @@ export const useTableExport = <
           rawData = rawData.slice(0, maxItemCount);
           preparingData = false;
         }
-
+        console.log(+total === rawData.length);
         if (+total === rawData.length) {
           preparingData = false;
         }
@@ -156,6 +156,7 @@ export const useTableExport = <
       }
       return true;
     });
+    console.log("filteredColumns", filteredColumns);
     try {
       const excel = new Excel();
       excel
