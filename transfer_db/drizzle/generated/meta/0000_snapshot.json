@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "abc2d538-8a4f-4eb7-b025-8dbb313c189f",
+  "id": "46bc59d8-b587-4f6d-8e10-bf32178cc5d4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "api_tokens": {
@@ -613,7 +613,7 @@
         },
         "date": {
           "name": "date",
-          "type": "time(5) with time zone",
+          "type": "time",
           "primaryKey": false,
           "notNull": true
         },
@@ -1243,6 +1243,49 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
+    "missed_orders": {
+      "name": "missed_orders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "order_id": {
+          "name": "order_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order_created_at": {
+          "name": "order_created_at",
+          "type": "timestamp(5) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "system_minutes_config": {
+          "name": "system_minutes_config",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "missed_orders_id_order_created_at": {
+          "name": "missed_orders_id_order_created_at",
+          "columns": [
+            "id",
+            "order_created_at"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
     "order_actions": {
       "name": "order_actions",
       "schema": "",
@@ -1305,43 +1348,8 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "order_actions_id_key": {
-          "name": "order_actions_id_key",
-          "columns": [
-            "id"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "order_actions_terminal_id_terminals_id_fk": {
-          "name": "order_actions_terminal_id_terminals_id_fk",
-          "tableFrom": "order_actions",
-          "tableTo": "terminals",
-          "columnsFrom": [
-            "terminal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "order_actions_created_by_users_id_fk": {
-          "name": "order_actions_created_by_users_id_fk",
-          "tableFrom": "order_actions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        }
-      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "order_actions_id_order_created_at": {
           "name": "order_actions_id_order_created_at",
@@ -2252,13 +2260,15 @@
           "name": "wrong_lat",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": 0
         },
         "wrong_lon": {
           "name": "wrong_lon",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": 0
         },
         "pre_distance": {
           "name": "pre_distance",
@@ -2401,6 +2411,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "house": {
+          "name": "house",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flat": {
+          "name": "flat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entrance": {
+          "name": "entrance",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "yandex_pincode": {
           "name": "yandex_pincode",
           "type": "text",
@@ -2464,112 +2492,7 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {
-        "orders_organization_id_organization_id_fk": {
-          "name": "orders_organization_id_organization_id_fk",
-          "tableFrom": "orders",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "orders_customer_id_customers_id_fk": {
-          "name": "orders_customer_id_customers_id_fk",
-          "tableFrom": "orders",
-          "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "orders_courier_id_users_id_fk": {
-          "name": "orders_courier_id_users_id_fk",
-          "tableFrom": "orders",
-          "tableTo": "users",
-          "columnsFrom": [
-            "courier_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "orders_terminal_id_terminals_id_fk": {
-          "name": "orders_terminal_id_terminals_id_fk",
-          "tableFrom": "orders",
-          "tableTo": "terminals",
-          "columnsFrom": [
-            "terminal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "orders_order_status_id_order_status_id_fk": {
-          "name": "orders_order_status_id_order_status_id_fk",
-          "tableFrom": "orders",
-          "tableTo": "order_status",
-          "columnsFrom": [
-            "order_status_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "orders_cancel_voice_id_assets_id_fk": {
-          "name": "orders_cancel_voice_id_assets_id_fk",
-          "tableFrom": "orders",
-          "tableTo": "assets",
-          "columnsFrom": [
-            "cancel_voice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "orders_created_by_users_id_fk": {
-          "name": "orders_created_by_users_id_fk",
-          "tableFrom": "orders",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        },
-        "orders_updated_by_users_id_fk": {
-          "name": "orders_updated_by_users_id_fk",
-          "tableFrom": "orders",
-          "tableTo": "users",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "cascade"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {
         "orders_id_created_at": {
           "name": "orders_id_created_at",
@@ -4692,19 +4615,19 @@
         },
         "start_time": {
           "name": "start_time",
-          "type": "time(5) with time zone",
+          "type": "time",
           "primaryKey": false,
           "notNull": true
         },
         "end_time": {
           "name": "end_time",
-          "type": "time(5) with time zone",
+          "type": "time",
           "primaryKey": false,
           "notNull": true
         },
         "max_start_time": {
           "name": "max_start_time",
-          "type": "time(5) with time zone",
+          "type": "time",
           "primaryKey": false,
           "notNull": true
         },

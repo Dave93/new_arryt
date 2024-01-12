@@ -4,10 +4,11 @@ export const checkRestPermission = async ({
   request: { headers },
   store: { redis },
   permission,
+  bearer
 }: any & {
   permission?: string;
 }) => {
-  const token = headers.get("authorization")?.split(" ")[1] ?? null;
+  const token = bearer;
   if (!token) {
     set.status = 401;
 

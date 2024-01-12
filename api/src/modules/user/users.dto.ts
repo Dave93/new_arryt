@@ -26,6 +26,8 @@ export interface UserResponseDto {
   wallet_balance: number;
 
   api_token: string;
+
+  daily_garant_id: string;
 }
 
 export interface TokenDto {

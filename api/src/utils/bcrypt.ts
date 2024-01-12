@@ -38,13 +38,14 @@ function md5hash(text: string) {
 async function signJwt(payload: any, expiresIn: string = "1h") {
   const alg = "HS256";
   let jwt = new SignJWT({
-    ...payload,
-    nbf: undefined,
-    exp: undefined,
+    ...payload
   })
     .setProtectedHeader({
       alg,
     })
+    .setIssuedAt()
+    .setIssuer(process.env.JWT_ISSUER!) // issuer
+    .setAudience(process.env.JWT_AUDIENCE!) // audience
     .setExpirationTime(expiresIn);
   const jwtSecret = new TextEncoder().encode(process.env.JWT_SECRET);
   return jwt.sign(jwtSecret);
@@ -53,10 +54,10 @@ async function signJwt(payload: any, expiresIn: string = "1h") {
 async function verifyJwt(token: string) {
   const alg = "HS256";
   const jwtSecret = new TextEncoder().encode(process.env.JWT_SECRET);
+  console.log('jwtSecret', jwtSecret)
   return jwtVerify(token, jwtSecret, {
-    // issuer: process.env.JWT_ISSUER,
-    // audience: process.env.JWT_AUDIENCE,
-    algorithms: [alg],
+    issuer: process.env.JWT_ISSUER,
+    audience: process.env.JWT_AUDIENCE,
   });
 }
 

@@ -8,6 +8,7 @@ import {
 import { db } from "@api/src/lib/db";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import dayjs from "dayjs";
 import { SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-typebox";
@@ -105,6 +106,18 @@ export const WorkSchedulesController = (
         if (fields) {
           selectFields = parseSelectFields(fields, work_schedules, {});
         }
+
+        if (data.start_time) {
+          data.start_time = dayjs(data.start_time).format("HH:mm:ss");
+        }
+
+        if (data.end_time) {
+          data.end_time = dayjs(data.end_time).format("HH:mm:ss");
+        }
+
+        if (data.max_start_time) {
+          data.max_start_time = dayjs(data.max_start_time).format("HH:mm:ss");
+        }
         const result = await db
           .insert(work_schedules)
           .values(data)
@@ -127,6 +140,18 @@ export const WorkSchedulesController = (
         let selectFields = {};
         if (fields) {
           selectFields = parseSelectFields(fields, work_schedules, {});
+        }
+
+        if (data.start_time) {
+          data.start_time = dayjs(data.start_time).format("HH:mm:ss");
+        }
+
+        if (data.end_time) {
+          data.end_time = dayjs(data.end_time).format("HH:mm:ss");
+        }
+
+        if (data.max_start_time) {
+          data.max_start_time = dayjs(data.max_start_time).format("HH:mm:ss");
         }
         const result = await db
           .update(work_schedules)

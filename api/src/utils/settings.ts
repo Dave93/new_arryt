@@ -1,6 +1,6 @@
-import { client } from "..";
+import Redis from "ioredis";
 
-export async function getSetting(key: string) {
+export async function getSetting(client: Redis, key: string) {
   let systemConfigsJson = await client.get(
     `${process.env.PROJECT_PREFIX}_system_configs`
   );

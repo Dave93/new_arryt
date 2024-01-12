@@ -16,12 +16,15 @@ import {
   terminals,
   timesheet,
   courier_terminal_balance,
+  work_schedule_entries,
+  timesheet,
 } from "@api/drizzle/schema";
 import {
   InferModel,
   InferSelectModel,
   SQLWrapper,
   and,
+  arrayContains,
   eq,
   gt,
   ilike,
@@ -30,18 +33,26 @@ import {
   sql,
 } from "drizzle-orm";
 import { generate } from "otp-generator";
-import { addMinutesToDate } from "@api/src/utils/dates";
+import { addMinutesToDate, getHours } from "@api/src/lib/dates";
 import { decode, encode } from "@api/src/utils/users";
 import dayjs from "dayjs";
 import { UserResponseDto } from "./users.dto";
 import { JwtPayload } from "@api/src/utils/jwt-payload.dto";
-import { generateAuthToken } from "@api/src/utils/bcrypt";
+import { generateAuthToken, verifyJwt } from "@api/src/utils/bcrypt";
 import { PgColumn, SelectedFields } from "drizzle-orm/pg-core";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
+import { getDistance } from 'geolib';
 import { sortBy } from "lodash";
 import { checkRestPermission } from "@api/src/utils/check_rest_permissions";
+import { SearchService } from "@api/src/services/search/service";
+import { CacheControlService } from "../cache/service";
+import { getSetting } from "@api/src/utils/settings";
+import { Queue } from "bullmq";
+
+import customParseFormat from 'dayjs/plugin/customParseFormat'
+dayjs.extend(customParseFormat)
 
 type UsersModel = InferSelectModel<typeof users>;
 
@@ -122,10 +133,24 @@ export const UsersController = (
     {
       store: {
         redis: Redis;
+        searchService: SearchService,
+        cacheControl: CacheControlService;
+        processUpdateUserCache: Queue;
       };
       bearer: string;
       request: {};
       schema: {};
+      user: {
+        user: UserResponseDto;
+        access: {
+          additionalPermissions: string[];
+          roles: {
+            name: string;
+            code: string;
+            active: boolean;
+          }[];
+        };
+      } | null;
     }
   >
 ) =>
@@ -427,6 +452,409 @@ export const UsersController = (
         }),
       }
     )
+    .post('/api/users/refresh_token', async ({
+      body: {
+        refresh_token
+      }, set }) => {
+      try {
+
+        let jwtResult = await verifyJwt(refresh_token);
+        const { id, phone } = jwtResult.payload;
+        // @ts-ignore
+        return await generateAuthToken({ id, phone });
+      } catch (e) {
+        set.status = 400;
+        return {
+          message: "Token is invalid",
+        };
+      }
+    }, {
+      body: t.Object({
+        refresh_token: t.String(),
+      })
+    })
+    .get('/api/users/getme', async ({ user }) => {
+      if (!user) {
+        return {
+          message: "User not found",
+        };
+      }
+      return user;
+    })
+    .post('/api/couriers/close_time_entry', async ({ body: { lat_close, lon_close }, user, set, store: {
+      processUpdateUserCache
+    }, request }) => {
+      if (!user) {
+        set.status = 400;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (user.user.status != "active") {
+        set.status = 400;
+        return {
+          message: "User is not active",
+        };
+      }
+
+      let openedTime = await db.select({
+        id: work_schedule_entries.id,
+        date_start: work_schedule_entries.date_start,
+      }).from(work_schedule_entries).where(and(
+        eq(work_schedule_entries.user_id, user.user.id),
+        eq(work_schedule_entries.current_status, 'open')
+      )).limit(1).execute();
+
+      if (openedTime.length == 0) {
+        set.status = 400;
+        return {
+          message: "Time entry not found",
+        };
+      }
+
+      const openedTimeEntry = openedTime[0];
+
+      await db.update(users).set({
+        is_online: false,
+        latitude: +lat_close,
+        longitude: +lon_close,
+      }).where(eq(users.id, user.user.id)).execute();
+
+      await processUpdateUserCache.add(user.user.id, {
+        id: user.user.id,
+      }, { attempts: 3, removeOnComplete: true, });
+
+      let dateStart = dayjs(openedTimeEntry.date_start);
+      let dateEnd = dayjs();
+
+      const duration = dateEnd.diff(dateStart, 'seconds');
+
+      const ip = request.headers.get('x-real-ip') || '127.0.0.1';
+      await db.update(work_schedule_entries).set({
+        ip_close: ip,
+        lat_close: +lat_close,
+        lon_close: +lon_close,
+        duration: duration,
+        current_status: 'closed',
+        date_finish: new Date().toISOString(),
+      }).where(eq(work_schedule_entries.id, openedTimeEntry.id)).execute();
+
+      return openedTimeEntry;
+
+    }, {
+      body: t.Object({
+        lat_close: t.String(),
+        lon_close: t.String()
+      })
+    })
+    .post('/api/couriers/open_time_entry', async ({ body: { lat_open, lon_open }, user, set, store: { cacheControl, redis, processUpdateUserCache }, request }) => {
+      if (!user) {
+        set.status = 400;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (user.user.status != "active") {
+        set.status = 400;
+        return {
+          message: "User is not active",
+        };
+      }
+
+      const userRoles = user.access.roles;
+      const userRoleCodes = userRoles.map((role: any) => role.code);
+
+      if (!userRoleCodes.includes("courier")) {
+        set.status = 400;
+        return {
+          message: "User is not courier",
+        };
+      }
+
+      const openedTimeEntry = await db.select({
+        id: work_schedule_entries.id
+      }).from(work_schedule_entries).where(and(
+        eq(work_schedule_entries.user_id, user.user.id),
+        eq(work_schedule_entries.current_status, 'open')
+      )).limit(1).execute();
+
+      if (openedTimeEntry.length > 0) {
+        set.status = 400;
+        return {
+          message: "Time entry already opened",
+        };
+      }
+
+      const userTerminals = await db.select({
+        terminal_id: users_terminals.terminal_id,
+        terminals: {
+          id: terminals.id,
+          latitude: terminals.latitude,
+          longitude: terminals.longitude,
+          organization_id: terminals.organization_id
+        }
+      })
+        .from(users_terminals)
+        .leftJoin(terminals, eq(users_terminals.terminal_id, terminals.id))
+        .where(eq(users_terminals.user_id, user.user.id)).execute();
+
+      if (userTerminals.length == 0) {
+        set.status = 400;
+        return {
+          message: "User doesn't have terminals",
+        };
+      }
+
+      let minDistance: number | null = null;
+      let organizationId = null;
+      let terminalId = null;
+
+      userTerminals.forEach((terminal) => {
+        organizationId = terminal.terminals!.organization_id;
+        terminalId = terminal.terminals!.id;
+        const distance = getDistance(
+          { latitude: terminal.terminals!.latitude, longitude: terminal.terminals!.longitude },
+          { latitude: lat_open, longitude: lon_open },
+        );
+        if (!minDistance || distance < minDistance) {
+          minDistance = distance;
+        }
+      });
+
+      const organization = await cacheControl.getOrganization(organizationId!);
+
+      if (minDistance! > organization.max_distance) {
+        set.status = 400;
+        return {
+          message: "You are too far from terminal",
+        };
+      }
+
+      const workSchedules = await db.select({
+        id: work_schedules.id,
+        start_time: work_schedules.start_time,
+        end_time: work_schedules.end_time,
+        days: work_schedules.days,
+        user_id: users_work_schedules.user_id,
+        work_schedule_id: users_work_schedules.work_schedule_id,
+        max_start_time: work_schedules.max_start_time,
+      })
+        .from(work_schedules)
+        .leftJoin(users_work_schedules, eq(work_schedules.id, users_work_schedules.work_schedule_id))
+        .where(and(
+          eq(users_work_schedules.user_id, user.user.id),
+          arrayContains(work_schedules.days, [dayjs().day().toString()])
+        )).execute();
+
+      if (workSchedules.length == 0) {
+        set.status = 400;
+        return {
+          message: "User doesn't have work schedules",
+        };
+      }
+
+      const settingsWorkStartTime = getHours(await getSetting(redis, 'work_start_time'));
+      const settingsWorkEndTime = getHours(await getSetting(redis, 'work_end_time'));
+      const currentHours = new Date().getHours();
+
+      let minStartTime: Date | null = null;
+      let maxEndTime: Date | null = null;
+
+      const formattedDay = dayjs().format('YYYY-MM-DD');
+
+      workSchedules.forEach((schedule) => {
+        const startTime = dayjs(`${schedule.max_start_time}`, 'HH:mm:ss').toDate();
+        const endTime = dayjs(`${schedule.end_time}`, 'HH:mm:ss').toDate();
+        if (currentHours < settingsWorkEndTime) {
+          endTime.setMonth(new Date().getMonth());
+          endTime.setDate(new Date().getDate());
+          endTime.setFullYear(new Date().getFullYear());
+          startTime.setMonth(new Date().getMonth());
+          startTime.setDate(new Date().getDate() - 1);
+          startTime.setFullYear(new Date().getFullYear());
+        } else {
+          startTime.setMonth(new Date().getMonth());
+          startTime.setDate(new Date().getDate());
+          startTime.setFullYear(new Date().getFullYear());
+          if (endTime.getHours() < startTime.getHours()) {
+            endTime.setMonth(new Date().getMonth());
+            endTime.setDate(new Date().getDate() + 1);
+            endTime.setFullYear(new Date().getFullYear());
+          } else {
+            endTime.setMonth(new Date().getMonth());
+            endTime.setDate(new Date().getDate());
+            endTime.setFullYear(new Date().getFullYear());
+          }
+        }
+
+        if (!minStartTime || startTime < minStartTime) {
+          minStartTime = startTime;
+        }
+        if (!maxEndTime || endTime > maxEndTime) {
+          maxEndTime = endTime;
+        }
+      });
+
+      const currentDate = new Date();
+      let isLate = false;
+      let lateMinutes = 0;
+      if (currentDate > minStartTime!) {
+        isLate = true;
+        lateMinutes = Math.round((currentDate.getTime() - minStartTime!.getTime()) / 60000);
+      }
+      let workSchedule: typeof workSchedules[0] | null = null;
+      let timesheetDate: Date | null = null;
+      let scheduleStartTime = null;
+
+      workSchedules.forEach((schedule) => {
+        const startTime = dayjs(`${schedule.max_start_time}`, 'HH:mm:ss').toDate();
+        const endTime = dayjs(`${schedule.end_time}`, 'HH:mm:ss').toDate();
+        if (currentHours < settingsWorkEndTime) {
+          endTime.setMonth(new Date().getMonth());
+          endTime.setDate(new Date().getDate());
+          endTime.setFullYear(new Date().getFullYear());
+          startTime.setMonth(new Date().getMonth());
+          startTime.setDate(new Date().getDate() - 1);
+          startTime.setFullYear(new Date().getFullYear());
+        } else {
+          startTime.setMonth(new Date().getMonth());
+          startTime.setDate(new Date().getDate());
+          startTime.setFullYear(new Date().getFullYear());
+          if (endTime.getHours() < startTime.getHours()) {
+            endTime.setMonth(new Date().getMonth());
+            endTime.setDate(new Date().getDate() + 1);
+            endTime.setFullYear(new Date().getFullYear());
+          } else {
+            endTime.setMonth(new Date().getMonth());
+            endTime.setDate(new Date().getDate());
+            endTime.setFullYear(new Date().getFullYear());
+          }
+        }
+
+        if (currentDate >= startTime && currentDate <= endTime) {
+          if (!workSchedule && !timesheetDate) {
+            startTime.setHours(0);
+            startTime.setMinutes(0);
+            startTime.setSeconds(0);
+            timesheetDate = startTime;
+            workSchedule = schedule;
+          }
+        }
+      });
+
+      if (timesheetDate) {
+        const scheduleStartTime = dayjs(`${workSchedule!.max_start_time}`, 'HH:mm:ss').toDate();
+        if (currentDate > scheduleStartTime) {
+          isLate = true;
+          lateMinutes = Math.round((currentDate.getTime() - scheduleStartTime.getTime()) / 60000);
+        }
+      } else {
+        workSchedules.forEach((schedule) => {
+          const startTime = dayjs(`${schedule.max_start_time}`, 'HH:mm:ss').toDate();
+          const endTime = dayjs(`${schedule.end_time}`, 'HH:mm:ss').toDate();
+          startTime.setHours(startTime.getHours() - 2);
+          if (currentHours < settingsWorkEndTime) {
+            endTime.setMonth(new Date().getMonth());
+            endTime.setDate(new Date().getDate());
+            endTime.setFullYear(new Date().getFullYear());
+            startTime.setMonth(new Date().getMonth());
+            startTime.setDate(new Date().getDate() - 1);
+            startTime.setFullYear(new Date().getFullYear());
+          } else {
+            startTime.setMonth(new Date().getMonth());
+            startTime.setDate(new Date().getDate());
+            startTime.setFullYear(new Date().getFullYear());
+            if (endTime.getHours() < startTime.getHours()) {
+              endTime.setMonth(new Date().getMonth());
+              endTime.setDate(new Date().getDate() + 1);
+              endTime.setFullYear(new Date().getFullYear());
+            } else {
+              endTime.setMonth(new Date().getMonth());
+              endTime.setDate(new Date().getDate());
+              endTime.setFullYear(new Date().getFullYear());
+            }
+          }
+
+          if (currentDate >= startTime && currentDate <= endTime) {
+            if (!workSchedule && !timesheetDate) {
+              startTime.setHours(0);
+              startTime.setMinutes(0);
+              startTime.setSeconds(0);
+              timesheetDate = startTime;
+
+              const scheduleStartTime = new Date(`${schedule.max_start_time}`);
+              scheduleStartTime.setDate(startTime.getDate());
+              scheduleStartTime.setMonth(startTime.getMonth());
+              scheduleStartTime.setFullYear(startTime.getFullYear());
+              if (currentDate > scheduleStartTime) {
+                isLate = true;
+                lateMinutes = Math.round((currentDate.getTime() - scheduleStartTime.getTime()) / 60000);
+              }
+
+              workSchedule = schedule;
+            }
+          }
+        });
+      }
+
+      if (!timesheetDate) {
+        set.status = 400;
+        return {
+          message: "График не найден",
+        };
+      }
+
+      const timesheetItem = await db.select({ id: timesheet.id }).from(timesheet).where(and(
+        eq(timesheet.user_id, user.user.id),
+        eq(timesheet.date, (timesheetDate as Date).toISOString())
+      )).limit(1).execute();
+
+      if (timesheetItem.length == 0) {
+        await db.insert(timesheet).values({
+          user_id: user.user.id,
+          date: (timesheetDate as Date).toISOString(),
+          is_late: isLate,
+          late_minutes: lateMinutes,
+        }).execute();
+      }
+
+      await db.update(users).set({
+        is_online: true,
+        latitude: +lat_open,
+        longitude: +lon_open,
+      }).where(eq(users.id, user.user.id)).execute();
+
+      await processUpdateUserCache.add(user.user.id, {
+        id: user.user.id,
+      }, { attempts: 3, removeOnComplete: true, });
+
+
+      const ip = request.headers.get('x-real-ip') || '127.0.0.1';
+
+      const workScheduleEntry = await db.insert(work_schedule_entries).values({
+        ip_open: ip,
+        lat_open: +lat_open,
+        lon_open: +lon_open,
+        duration: 0,
+        current_status: 'open',
+        late: isLate,
+        date_start: new Date().toISOString(),
+        work_schedule_id: workSchedule!.id,
+        user_id: user.user.id,
+
+      }).returning().execute();
+
+      return workScheduleEntry[0];
+
+    }, {
+      body: t.Object({
+        lat_open: t.String(),
+        lon_open: t.String()
+      })
+    })
+
     .get(
       "/api/couriers/roll_coll",
       async ({ store: { redis }, query: { date } }) => {
@@ -515,7 +943,7 @@ export const UsersController = (
             try {
               const userParsed = JSON.parse(userData);
               resCouriers[i].app_version = userParsed.user.app_version;
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
@@ -584,6 +1012,15 @@ export const UsersController = (
         }),
       }
     )
+    .get("/api/couriers/my_unread_notifications", async ({ store: { redis, searchService }, user }) => {
+      if (!user) {
+        return 0;
+      }
+
+      const res = await searchService.myUnreadNotifications(user.user);
+      return res;
+
+    })
     .get(
       "/api/users",
       async ({ query: { limit, offset, sort, filters, fields } }) => {
@@ -641,21 +1078,6 @@ export const UsersController = (
             eq(work_schedules.id, users_work_schedules.work_schedule_id)
           )
           .execute();
-        console.log(
-          "sql",
-          db
-            .select(selectFields)
-            .from(usersDbSelect)
-            .leftJoin(
-              users_work_schedules,
-              eq(users.id, users_work_schedules.user_id)
-            )
-            .leftJoin(
-              work_schedules,
-              eq(users_work_schedules.user_id, users.id)
-            )
-            .toSQL().sql
-        );
         usersList.forEach((user) => {
           if (!res[user.id]) {
             res[user.id] = {

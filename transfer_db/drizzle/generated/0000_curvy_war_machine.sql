@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS "customers_comments" (
 CREATE TABLE IF NOT EXISTS "daily_garant" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
-	"date" time(5) NOT NULL,
+	"date" time NOT NULL,
 	"amount" double precision NOT NULL,
 	"late_minus_sum" double precision NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
@@ -205,6 +205,14 @@ CREATE TABLE IF NOT EXISTS "migrations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"timestamp" bigint NOT NULL,
 	"name" varchar(255) NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "missed_orders" (
+	"id" uuid DEFAULT gen_random_uuid() NOT NULL,
+	"order_id" uuid NOT NULL,
+	"order_created_at" timestamp(5) with time zone NOT NULL,
+	"system_minutes_config" integer NOT NULL,
+	CONSTRAINT missed_orders_id_order_created_at PRIMARY KEY("id","order_created_at")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "order_actions" (
@@ -326,8 +334,8 @@ CREATE TABLE IF NOT EXISTS "orders" (
 	"from_lon" double precision NOT NULL,
 	"to_lat" double precision NOT NULL,
 	"to_lon" double precision NOT NULL,
-	"wrong_lat" double precision NOT NULL,
-	"wrong_lon" double precision NOT NULL,
+	"wrong_lat" double precision DEFAULT 0 NOT NULL,
+	"wrong_lon" double precision DEFAULT 0 NOT NULL,
 	"pre_distance" double precision NOT NULL,
 	"pre_duration" integer DEFAULT 0 NOT NULL,
 	"order_number" text NOT NULL,
@@ -351,6 +359,9 @@ CREATE TABLE IF NOT EXISTS "orders" (
 	"later_time" text,
 	"cooked_time" timestamp(5) with time zone,
 	"additional_phone" text,
+	"house" text,
+	"flat" text,
+	"entrance" text,
 	"yandex_pincode" text,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
@@ -618,9 +629,9 @@ CREATE TABLE IF NOT EXISTS "work_schedules" (
 	"active" boolean DEFAULT true NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"days" text[],
-	"start_time" time(5) NOT NULL,
-	"end_time" time(5) NOT NULL,
-	"max_start_time" time(5) NOT NULL,
+	"start_time" time NOT NULL,
+	"end_time" time NOT NULL,
+	"max_start_time" time NOT NULL,
 	"bonus_price" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
@@ -641,7 +652,6 @@ CREATE INDEX IF NOT EXISTS "fki_FK_delivery_pricing_updated_by" ON "delivery_pri
 CREATE INDEX IF NOT EXISTS "manager_withdraw_manager_id_idx" ON "manager_withdraw" ("manager_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "manager_withdraw_terminal_id_idx" ON "manager_withdraw" ("terminal_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "manager_withdraw_organization_id_idx" ON "manager_withdraw" ("organization_id");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "order_actions_id_key" ON "order_actions" ("id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "fki_FK_order_bonus_pricing_created_by" ON "order_bonus_pricing" ("created_by");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "fki_FK_order_bonus_pricing_updated_by" ON "order_bonus_pricing" ("updated_by");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "order_locations_id_key" ON "order_locations" ("id");--> statement-breakpoint
@@ -822,18 +832,6 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "order_actions" ADD CONSTRAINT "order_actions_terminal_id_terminals_id_fk" FOREIGN KEY ("terminal_id") REFERENCES "terminals"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "order_actions" ADD CONSTRAINT "order_actions_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
  ALTER TABLE "order_bonus_pricing" ADD CONSTRAINT "order_bonus_pricing_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE restrict ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
@@ -925,54 +923,6 @@ END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "order_votes" ADD CONSTRAINT "order_votes_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "orders" ADD CONSTRAINT "orders_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "orders" ADD CONSTRAINT "orders_customer_id_customers_id_fk" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "orders" ADD CONSTRAINT "orders_courier_id_users_id_fk" FOREIGN KEY ("courier_id") REFERENCES "users"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "orders" ADD CONSTRAINT "orders_terminal_id_terminals_id_fk" FOREIGN KEY ("terminal_id") REFERENCES "terminals"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "orders" ADD CONSTRAINT "orders_order_status_id_order_status_id_fk" FOREIGN KEY ("order_status_id") REFERENCES "order_status"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "orders" ADD CONSTRAINT "orders_cancel_voice_id_assets_id_fk" FOREIGN KEY ("cancel_voice_id") REFERENCES "assets"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "orders" ADD CONSTRAINT "orders_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "orders" ADD CONSTRAINT "orders_updated_by_users_id_fk" FOREIGN KEY ("updated_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -1240,39 +1190,63 @@ DO $$ BEGIN
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
-
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 SELECT create_hypertable(
-  'orders',
-  'created_at',
-  chunk_time_interval => INTERVAL '1 month'
-);
+               'orders',
+               'created_at',
+               chunk_time_interval => INTERVAL '1 month'
+       );
 
 SELECT create_hypertable(
-  'order_items',
-  'order_created_at',
-  chunk_time_interval => INTERVAL '1 month'
-);
+               'order_items',
+               'order_created_at',
+               chunk_time_interval => INTERVAL '1 month'
+       );
 
 SELECT create_hypertable(
-  'order_transactions',
-  'created_at',
-  chunk_time_interval => INTERVAL '1 month'
-);
+               'order_transactions',
+               'created_at',
+               chunk_time_interval => INTERVAL '1 month'
+       );
 
 
 
 SELECT create_hypertable(
-  'manager_withdraw',
-  'created_at',
-  chunk_time_interval => INTERVAL '1 month'
-);
+               'manager_withdraw',
+               'created_at',
+               chunk_time_interval => INTERVAL '1 month'
+       );
 
 SELECT create_hypertable(
-  'manager_withdraw_transactions',
-  'transaction_created_at',
-  chunk_time_interval => INTERVAL '1 month'
-);
+               'manager_withdraw_transactions',
+               'transaction_created_at',
+               chunk_time_interval => INTERVAL '1 month'
+       );
+
+SELECT create_hypertable(
+               'missed_orders',
+               'order_created_at',
+               chunk_time_interval => INTERVAL '1 month'
+       );
+
+SELECT create_hypertable(
+               'order_actions',
+               'order_created_at',
+               chunk_time_interval => INTERVAL '1 month'
+       );
+
+ALTER TABLE orders SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'terminal_id'
+    );
+
+SELECT add_compression_policy('orders', INTERVAL '1 month');
 
 
+ALTER TABLE order_actions SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'order_id'
+    );
+
+SELECT add_compression_policy('order_actions', INTERVAL '1 month');

@@ -13,6 +13,7 @@ export const parseSelectFields = (
   if (typeof selectFields === "string") {
     selectFields = selectFields.split(",");
   }
+  console.log('selectFields', selectFields)
   for (const field of selectFields) {
     if (Object.prototype.hasOwnProperty.call(nativeTable, field)) {
       // @ts-ignore

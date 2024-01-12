@@ -1,0 +1,233 @@
+import { customers, order_items, orders, terminals, users } from "@api/drizzle/schema";
+import { DB } from "@api/src/lib/db";
+import { CacheControlService } from "@api/src/modules/cache/service";
+import { SearchService } from "@api/src/services/search/service";
+import { getSetting } from "@api/src/utils/settings";
+import { Queue } from "bullmq";
+import { sleep } from "bun";
+import { eq, getTableColumns } from "drizzle-orm";
+import Redis from "ioredis/built/Redis";
+
+export default async function processCheckAndSendYandex(db: DB, redis: Redis, cacheControl: CacheControlService, searchService: SearchService, processOrderIndex: Queue, orderId: string) {
+    const orderStatuses = await cacheControl.getOrderStatuses();
+
+    const newOrders = await db.select({
+        ...getTableColumns(orders),
+        orders_terminals: getTableColumns(terminals),
+        orders_customers: getTableColumns(customers),
+    })
+        .from(orders)
+        .leftJoin(terminals, eq(terminals.id, orders.terminal_id))
+        .leftJoin(customers, eq(customers.id, orders.customer_id))
+        .where(eq(
+            orders.id, orderId
+        ));
+
+    const order = newOrders[0];
+
+    const newStatus = orderStatuses.find(status => status.sort == 1 && status.organization_id == order.organization_id);
+
+    if (!order.courier_id && order.order_status_id == newStatus!.id) {
+        const yandexSenderName = await getSetting(redis, 'yandex_sender_name');
+        const yandexSenderPhone = await getSetting(redis, 'yandex_sender_phone');
+
+        let orderPrice = 0;
+        if (order.payment_type == 'Наличными') {
+            orderPrice = +order.order_price;
+        }
+
+        const organization = await cacheControl.getOrganization(order.organization_id);
+
+        let isClient = false;
+
+        // get delivery pricing
+        const deliveryPricing = await cacheControl.getDeliveryPricingById(order.delivery_pricing_id!);
+
+        isClient = deliveryPricing.payment_type == "client";
+
+        let comment = 'Savollar: +998 71 2050642 ';
+
+        comment += `${organization.name} \n`;
+
+        comment += `// Klient uchun yetkazish BEPUL!!!\n`;
+        if (isClient) {
+            orderPrice += +order.delivery_price;
+            comment += `// Naqd pul kerak: ${new Intl.NumberFormat('ru').format(orderPrice)} so'm\nID: ${order.order_number
+                } \n`;
+        } else {
+            if (order.payment_type == 'Наличными') {
+                comment += `// Naqd pul kerak: ${new Intl.NumberFormat('ru').format(orderPrice)} so'm\nID: ${order.order_number
+                    }\n`;
+            } else {
+                comment += ` ID: ${order.order_number}\n`;
+            }
+        }
+
+        if (order.additional_phone) {
+            comment += `// Qo'shimcha raqam: ${order.additional_phone}\n`;
+        }
+
+        const expressTerminals = ['419b466b-a575-4e2f-b771-7206342bc242'];
+
+        // generate 6 digit code
+        const pinCode = Math.floor(100000 + Math.random() * 900000);
+
+        const orderPriceLabel = new Intl.NumberFormat('ru').format(orderPrice);
+
+        let cargo_options = ['thermobag'];
+
+        const yandexData = {
+            auto_accept: true,
+            callback_properties: {
+                callback_url: `https://${this.configService.get('API_DOMAIN')}/api/external/yandex-callback`,
+            },
+            client_requirements: {
+                cargo_options,
+                door_to_door: true,
+                taxi_class: expressTerminals.includes(order!.orders_terminals!.id) ? 'express' : 'courier',
+            },
+            emergency_contact: {
+                name: yandexSenderName ? yandexSenderName.value : order!.orders_terminals!.manager_name,
+                phone: yandexSenderPhone ? yandexSenderPhone.value : order!.orders_terminals!.phone,
+            },
+            items: [],
+            route_points: [
+                {
+                    address: {
+                        coordinates: [order!.orders_terminals!.longitude, order!.orders_terminals!.latitude],
+                        fullname: order!.orders_terminals!.address,
+                        comment: comment,
+                    },
+                    contact: {
+                        name: yandexSenderName ? yandexSenderName.value : order!.orders_terminals!.manager_name,
+                        phone: yandexSenderPhone ? yandexSenderPhone.value : order!.orders_terminals!.phone,
+                    },
+                    type: 'source',
+                    // pickup_code: ['56fe54a9-ae37-49b7-8de7-62aadb2abd19', '972b7402-345d-400e-9bf2-b77691b0fcd9'].includes(
+                    //   order.orders_terminals.id,
+                    // )
+                    //   ? pinCode.toString()
+                    //   : null,
+                    // skip_confirmation: !['56fe54a9-ae37-49b7-8de7-62aadb2abd19', '972b7402-345d-400e-9bf2-b77691b0fcd9'].includes(
+                    //   order.orders_terminals.id,
+                    // ),
+                    skip_confirmation: true,
+                    visit_order: 1,
+                    point_id: 1,
+                },
+                {
+                    address: {
+                        coordinates: [order.to_lon, order.to_lat],
+                        fullname: order.delivery_address,
+                        building: order.house,
+                        porch: order.entrance,
+                        flat: order.flat ? +order.flat : null,
+                    },
+                    contact: {
+                        name: order!.orders_customers!.name,
+                        phone: order!.orders_customers!.phone,
+                    },
+                    external_order_id: order.order_number,
+                    point_id: 2,
+                    skip_confirmation: true,
+                    type: 'destination',
+                    visit_order: 2,
+                },
+                {
+                    address: {
+                        coordinates: [order!.orders_terminals!.longitude, order!.orders_terminals!.latitude],
+                        fullname: order!.orders_terminals!.address,
+                        comment: comment,
+                    },
+                    contact: {
+                        name: yandexSenderName ? yandexSenderName.value : order!.orders_terminals!.manager_name,
+                        phone: yandexSenderPhone ? yandexSenderPhone.value : order!.orders_terminals!.phone,
+                    },
+                    type: 'return',
+                    // pickup_code: ['56fe54a9-ae37-49b7-8de7-62aadb2abd19', '972b7402-345d-400e-9bf2-b77691b0fcd9'].includes(
+                    //   order.orders_terminals.id,
+                    // )
+                    //   ? pinCode.toString()
+                    //   : null,
+                    // skip_confirmation: !['56fe54a9-ae37-49b7-8de7-62aadb2abd19', '972b7402-345d-400e-9bf2-b77691b0fcd9'].includes(
+                    //   order.orders_terminals.id,
+                    // ),
+                    skip_confirmation: true,
+                    visit_order: 3,
+                    point_id: 3,
+                },
+            ],
+            skip_client_notify: false,
+            skip_door_to_door: false,
+        };
+        const items = await db.select().from(order_items).where(eq(order_items.order_id, order.id));
+        items.forEach((item) => {
+            // @ts-ignore
+            yandexData.items.push({
+                pickup_point: 1,
+                dropoff_point: 2,
+                cost_currency: 'UZS',
+                cost_value: item.price,
+                title: item.name,
+                quantity: item.quantity,
+                weight: 0,
+            });
+        });
+
+        const yandexUrl = `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/create?request_id=${order.id}`;
+
+        const yandexReponse = await fetch(yandexUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept-Language': 'ru',
+                Authorization: `Bearer ${process.env.YANDEX_DELIVERY_TOKEN}`,
+            },
+            body: JSON.stringify(yandexData),
+        });
+
+        const yandexJson = await yandexReponse.json();
+        const yandexCourier = await db.select({
+            id: users.id,
+        }).from(users).where(eq(users.phone, '+998908251218'));
+
+        const davrUser = await db.select().from(users).where(eq(users.phone, '+998909514019'));
+
+        await db.update(orders).set({
+            courier_id: yandexCourier[0].id,
+        }).where(eq(orders.id, order.id));
+
+        await sleep(300);
+
+        const approveUrl = `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/accept?claim_id=${yandexJson.id}`;
+        try {
+            const approveResponse = await fetch(approveUrl, {
+                method: 'POST',
+                body: JSON.stringify({
+                    version: yandexJson.version,
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept-Language': 'ru',
+                    Authorization: `Bearer ${process.env.YANDEX_DELIVERY_TOKEN}`,
+                },
+            });
+
+            const approveJson = await approveResponse.json();
+
+            await searchService.indexYandexDeliveryOrder(order.id, {
+                // @ts-ignore
+                ...yandexJson,
+                // @ts-ignore
+                ...approveJson,
+            }, {}, davrUser[0]);
+        } catch (e) {
+        }
+
+        await processOrderIndex.add(order.id, {
+            id: order.id
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
+    }
+}

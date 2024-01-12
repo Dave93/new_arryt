@@ -68,6 +68,7 @@ if (project.part) {
   let file;
   let ordersById = {};
   let managerWithdrawById = {};
+  let orderTransactionsById = {};
   if (project.part === "base") {
     s.start("Checking permissions json file");
     if (
@@ -963,7 +964,6 @@ if (project.part) {
 
       for (let i = 0; i < contents.length; i++) {
         let permission = contents[i];
-        managerWithdrawById[permission.id] = permission;
         await db.insert(schema.manager_withdraw).values({
           ...permission,
         });
@@ -995,12 +995,28 @@ if (project.part) {
 
       contents = await file.json();
 
+      let orderTransactionFilePath = path.join(
+          import.meta.dir,
+          project.path,
+          "/order_transactions.json"
+      );
+      let orderTransactionFile = Bun.file(orderTransactionFilePath);
+
+      let orderTransactionContents = await orderTransactionFile.json();
+
+      let orderTransactionsById = {};
+
+        for (let i = 0; i < orderTransactionContents.length; i++) {
+            let permission = orderTransactionContents[i];
+            orderTransactionsById[permission.id] = permission;
+        }
+
       for (let i = 0; i < contents.length; i++) {
         let permission = contents[i];
-        let managerWithdraw = managerWithdrawById[permission.withdraw_id];
+        let orderTransaction = orderTransactionsById[permission.transaction_id];
         await db.insert(schema.manager_withdraw_transactions).values({
           ...permission,
-          transaction_created_at: managerWithdraw.created_at,
+          transaction_created_at: orderTransaction.created_at,
         });
         s.message(
           `Inserted ${i}/${contents.length} manager_withdraw_transactions`

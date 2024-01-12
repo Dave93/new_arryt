@@ -15,7 +15,9 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@api/*": ["./api/*"],
-      "@admin/*": ["./admin/*"]
+      "@admin/*": ["./admin/*"],
+      "@queue/*": ["./queue/*"],
+      "@crons/*": ["./crons/*"]
     }
   }
 }

@@ -7,6 +7,7 @@ import {
 import { db } from "@api/src/lib/db";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import dayjs from "dayjs";
 import { SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-typebox";
@@ -127,6 +128,15 @@ export const DeliveryPricingController = (
         if (fields) {
           selectFields = parseSelectFields(fields, delivery_pricing, {});
         }
+
+        if (data.start_time) {
+          data.start_time = dayjs(data.start_time).format("HH:mm:ss");
+        }
+
+        if (data.end_time) {
+          data.end_time = dayjs(data.end_time).format("HH:mm:ss");
+        }
+
         const result = await db
           .update(delivery_pricing)
           .set(data)
