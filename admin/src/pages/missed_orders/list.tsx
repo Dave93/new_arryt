@@ -74,40 +74,15 @@ const MissedOrdersList: React.FC = () => {
       fields: [
         "id",
         "created_at",
-        "order_created_at",
-        "order_id",
+        "order_status.id",
+        "order_status.name",
+        "order_status.color",
+        "courier_id",
         "order_number",
-        "organization_id",
-        "terminal_id",
-        "system_minutes_config",
-        "terminal_name",
-        "status",
-        "payment_type",
-        "allowYandex",
-        "is_courier_set",
-        "order_price",
         "pre_distance",
-        {
-          order_status: ["id", "name", "color"],
-        },
-        {
-          yandex_delivery_data: [
-            "id",
-            "created_at",
-            {
-              pricing_data: ["price", "distance_meters"],
-            },
-            {
-              order_data: [
-                "id",
-                "version",
-                "status",
-                "skip_door_to_door",
-                "skip_client_notify",
-              ],
-            },
-          ],
-        },
+        "order_price",
+        "payment_type",
+        "terminals.name",
       ],
       whereInputType: "missedOrdersWhereInput!",
       orderByInputType: "missedOrdersOrderByWithRelationInput!",
@@ -158,7 +133,7 @@ const MissedOrdersList: React.FC = () => {
     },
 
     pagination: {
-      pageSize: 800,
+      pageSize: 50,
     },
 
     filters: {
@@ -233,8 +208,8 @@ const MissedOrdersList: React.FC = () => {
       title: "Статус",
       dataIndex: "status",
       width: 120,
-      render: (value: any, record: IMissedOrderEntity) => {
-        if (record.is_courier_set) {
+      render: (value: any, record: any) => {
+        if (record.courier_id) {
           return (
             <Tag color={record.order_status.color}>
               <div
@@ -249,64 +224,16 @@ const MissedOrdersList: React.FC = () => {
             </Tag>
           );
         }
-        if (value === "new") {
-          return (
-            <Button
-              type="primary"
-              shape="round"
-              size="small"
-              onClick={() => changeStatus(record.id, "pending")}
-            >
-              Взять в работу
-            </Button>
-          );
-        } else if (value === "pending") {
-          return (
-            <Button
-              type="primary"
-              shape="round"
-              size="small"
-              onClick={() => changeStatus(record.id, "done")}
-            >
-              Фиксировать
-            </Button>
-          );
-        } else if (value === "done") {
-          return (
-            <Button
-              type="primary"
-              shape="round"
-              size="small"
-              onClick={() => changeStatus(record.id, "new")}
-            >
-              Отменить фиксацию
-            </Button>
-          );
-        }
       },
     },
     {
       title: "Дата заказа",
-      dataIndex: "order_created_at",
-      width: 150,
-      excelRender: (value: any) => dayjs(value).format("DD.MM.YYYY HH:mm"),
-      render: (value: any) => (
-        <div>{dayjs(value).format("DD.MM.YYYY HH:mm")}</div>
-      ),
-    },
-    {
-      title: "Дата фиксации",
       dataIndex: "created_at",
       width: 150,
       excelRender: (value: any) => dayjs(value).format("DD.MM.YYYY HH:mm"),
       render: (value: any) => (
         <div>{dayjs(value).format("DD.MM.YYYY HH:mm")}</div>
       ),
-    },
-    {
-      title: "Минуты для фиксации",
-      dataIndex: "system_minutes_config",
-      width: 150,
     },
     {
       title: "Номер заказа",
@@ -318,15 +245,16 @@ const MissedOrdersList: React.FC = () => {
           <Button
             icon={<ArrowTopRightOnSquareIcon />}
             size="small"
-            onClick={() => window.open(`/orders/show/${record.order_id}`)}
+            onClick={() => window.open(`/orders/show/${record.id}`)}
           />
         </Space>
       ),
     },
     {
       title: "Филиал",
-      dataIndex: "terminal_name",
+      dataIndex: "terminals.name",
       width: 200,
+      render: (value: any, record: any) => <div>{record.terminals.name}</div>,
     },
     {
       title: "Дистанция",

@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "92327347967",
+    "project_id": "arryt-b201e",
+    "storage_bucket": "arryt-b201e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:92327347967:android:a6355f25ce0d792616eeca",
+        "android_client_info": {
+          "package_name": "com.arryt"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "92327347967-nr5o80cb2t1jg18gjh38vafsg9jn0q6r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDz5DeoDqhOQuO2e3g2rp40TYo-vSItZHE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "92327347967-nr5o80cb2t1jg18gjh38vafsg9jn0q6r.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "92327347967-8hahcp2160qs5ea14s0r0b11qhfir3ub.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.arryt"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:92327347967:android:be126bad9edb558d16eeca",
+        "android_client_info": {
+          "package_name": "com.arryt.arryt"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "92327347967-nr5o80cb2t1jg18gjh38vafsg9jn0q6r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDz5DeoDqhOQuO2e3g2rp40TYo-vSItZHE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "92327347967-nr5o80cb2t1jg18gjh38vafsg9jn0q6r.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "92327347967-8hahcp2160qs5ea14s0r0b11qhfir3ub.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.arryt"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

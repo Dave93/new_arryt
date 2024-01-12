@@ -46,16 +46,24 @@ export const edenDataProvider: DataProvider = {
       .join("&");
     const resourceName = resource as string;
 
+    const query = {
+      limit: pageSize,
+      offset: (current! - 1) * pageSize!,
+      fields: meta?.fields,
+      filters: JSON.stringify(filters),
+    };
+
+    // @ts-ignore
+    if (meta.extract_all) {
+      // @ts-ignore
+      query.ext_all = 1;
+    }
+
     const { data, error } = (await apiFetch(
       // @ts-ignore
       `/api/${resourceName}`,
       {
-        query: {
-          limit: pageSize,
-          offset: (current! - 1) * pageSize!,
-          fields: meta?.fields,
-          filters: JSON.stringify(filters),
-        },
+        query,
         headers: meta?.requestHeaders,
       }
     )) as {

@@ -104,6 +104,7 @@ export const useTableExport = <
           },
           meta: metaData,
         });
+
         const { data, total } = await getList<TData>({
           resource,
           filters,
@@ -112,10 +113,14 @@ export const useTableExport = <
             current,
             pageSize,
           },
-          meta: metaData,
+          meta: {
+            ...metaData,
+            extract_all: true,
+          },
         });
 
         current++;
+        console.log("total", total);
         console.log("data", data);
         rawData.push(...data);
 
@@ -123,7 +128,7 @@ export const useTableExport = <
           rawData = rawData.slice(0, maxItemCount);
           preparingData = false;
         }
-
+        console.log(+total === rawData.length);
         if (+total === rawData.length) {
           preparingData = false;
         }
@@ -151,15 +156,19 @@ export const useTableExport = <
       }
       return true;
     });
-
-    const excel = new Excel();
-    excel
-      .addSheet("test")
-      .addColumns(filteredColumns)
-      .addDataSource(rawData, {
-        str2Percent: true,
-      })
-      .saveAs(filename + ".xlsx");
+    console.log("filteredColumns", filteredColumns);
+    try {
+      const excel = new Excel();
+      excel
+        .addSheet("test")
+        .addColumns(filteredColumns)
+        .addDataSource(rawData, {
+          str2Percent: true,
+        })
+        .saveAs(filename + ".xlsx");
+    } catch (error) {
+      console.log("exporting error", error);
+    }
 
     setIsLoading(false);
   };
