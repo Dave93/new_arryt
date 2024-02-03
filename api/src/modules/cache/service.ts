@@ -5,7 +5,13 @@ import {
   roles_permissions,
   users_roles,
   order_status,
-  organization, terminals, delivery_pricing, api_tokens, users, users_terminals, constructed_bonus_pricing,
+  organization,
+  terminals,
+  delivery_pricing,
+  api_tokens,
+  users,
+  users_terminals,
+  constructed_bonus_pricing,
 } from "@api/drizzle/schema";
 import { DB } from "@api/src/lib/db";
 import { eq, InferSelectModel } from "drizzle-orm";
@@ -131,8 +137,13 @@ export class CacheControlService {
   }
 
   async cacheUser(id: string) {
-    const user = (await this.db.select().from(users).where(eq(users.id, id)).limit(1))[0];
-    const usersTerminalsList = await this.db.select().from(users_terminals).where(eq(users_terminals.user_id, id));
+    const user = (
+      await this.db.select().from(users).where(eq(users.id, id)).limit(1)
+    )[0];
+    const usersTerminalsList = await this.db
+      .select()
+      .from(users_terminals)
+      .where(eq(users_terminals.user_id, id));
     const permissions = await this.db
       .select({
         permission_slug: permissionsTable.slug,
@@ -142,7 +153,8 @@ export class CacheControlService {
       .leftJoin(
         permissionsTable,
         eq(users_permissions.permission_id, permissionsTable.id)
-      ).where(eq(users_permissions.user_id, id));
+      )
+      .where(eq(users_permissions.user_id, id));
 
     const userRoles = await this.db
       .select({
@@ -192,14 +204,13 @@ export class CacheControlService {
         roles: [],
       },
     };
-    let additionalPermissions = permissions
-      .map(({ permission_slug }) => permission_slug!);
+    let additionalPermissions = permissions.map(
+      ({ permission_slug }) => permission_slug!
+    );
     const rolePermissions: string[] = [];
-    userRoles
-      .forEach(({ permission_slug }) => {
-        rolePermissions.push(permission_slug!);
-      }
-      );
+    userRoles.forEach(({ permission_slug }) => {
+      rolePermissions.push(permission_slug!);
+    });
     additionalPermissions = [...additionalPermissions, ...rolePermissions];
     userData.access.additionalPermissions = additionalPermissions;
     const rolesList: {
@@ -210,15 +221,14 @@ export class CacheControlService {
       };
     } = {};
 
-    userRoles
-      .forEach(({ role_name, role_code, role_active, role_id }) => {
-        if (role_id)
-          rolesList[role_id] = {
-            name: role_name!,
-            code: role_code!,
-            active: role_active!,
-          };
-      });
+    userRoles.forEach(({ role_name, role_code, role_active, role_id }) => {
+      if (role_id)
+        rolesList[role_id] = {
+          name: role_name!,
+          code: role_code!,
+          active: role_active!,
+        };
+    });
     userData.access.roles = Object.values(rolesList);
 
     await this.redis.set(
@@ -355,14 +365,18 @@ export class CacheControlService {
     const apiTokens = await this.redis.get(
       `${process.env.PROJECT_PREFIX}_api_tokens`
     );
-    return JSON.parse(apiTokens || "[]") as InferSelectModel<typeof api_tokens>[];
+    return JSON.parse(apiTokens || "[]") as InferSelectModel<
+      typeof api_tokens
+    >[];
   }
 
   async getOrderStatuses() {
     const orderStatuses = await this.redis.get(
       `${process.env.PROJECT_PREFIX}_order_status`
     );
-    return JSON.parse(orderStatuses || "[]") as InferSelectModel<typeof order_status>[];
+    return JSON.parse(orderStatuses || "[]") as InferSelectModel<
+      typeof order_status
+    >[];
   }
 
   async getUser(id: string) {
@@ -386,21 +400,27 @@ export class CacheControlService {
     const organizations = await this.redis.get(
       `${process.env.PROJECT_PREFIX}_organizations`
     );
-    return JSON.parse(organizations || "[]") as InferSelectModel<typeof organization>[];
+    return JSON.parse(organizations || "[]") as InferSelectModel<
+      typeof organization
+    >[];
   }
 
   async getPermissions() {
     const permissions = await this.redis.get(
       `${process.env.PROJECT_PREFIX}_permissions`
     );
-    return JSON.parse(permissions || "[]") as InferSelectModel<typeof permissionsTable>[];
+    return JSON.parse(permissions || "[]") as InferSelectModel<
+      typeof permissionsTable
+    >[];
   }
 
   async getTerminals() {
     const terminalsList = await this.redis.get(
       `${process.env.PROJECT_PREFIX}_terminals`
     );
-    return JSON.parse(terminalsList || "[]") as InferSelectModel<typeof terminals>[];
+    return JSON.parse(terminalsList || "[]") as InferSelectModel<
+      typeof terminals
+    >[];
   }
 
   async getOrganizationDeliveryPricing(organizationId: string) {
@@ -420,7 +440,6 @@ export class CacheControlService {
       (organization: any) => organization.id === organizationId
     ) as InferSelectModel<typeof organization>;
   }
-
 
   async getDeliveryPricingById(delivery_pricing_id: string) {
     const deliveryPricing = await this.redis.get(

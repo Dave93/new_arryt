@@ -6,6 +6,6 @@ module.exports = {
       "@admin": path.resolve(__dirname),
       "@api": path.resolve(__dirname, "../api"),
     },
-    plugins: [million.webpack({ auto: true })],
+    plugins: { add: [million.webpack({ auto: true })] },
   },
 };

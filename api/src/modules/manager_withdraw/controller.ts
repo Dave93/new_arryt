@@ -1,33 +1,22 @@
 import {
   manager_withdraw,
-  orders,
   terminals,
   users,
 } from "@api/drizzle/schema";
-import { db } from "@api/src/lib/db";
+import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { SQLWrapper, and, desc, eq, sql } from "drizzle-orm";
 import { SelectedFields, alias } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
-import Redis from "ioredis";
 
-export const ManagerWithdrawController = (
-  app: Elysia<
-    "",
-    {
-      store: {
-        redis: Redis;
-      };
-      bearer: string;
-      request: {};
-      schema: {};
-    }
-  >
-) =>
-  app.get(
-    "/api/manager_withdraw",
-    async ({ query: { limit, offset, sort, filters, fields } }) => {
+export const ManagerWithdrawController = new Elysia({
+  name: "@app/manager_withdraw",
+})
+  .use(ctx)
+  .get(
+    "/manager_withdraw",
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       const couriers = alias(users, "couriers");
       const managers = alias(users, "managers");
       let selectFields: SelectedFields = {};
@@ -46,7 +35,7 @@ export const ManagerWithdrawController = (
           couriers,
         });
       }
-      const rolesCount = await db
+      const rolesCount = await drizzle
         .select({ count: sql<number>`count(*)` })
         .from(manager_withdraw)
         .leftJoin(terminals, eq(manager_withdraw.terminal_id, terminals.id))
@@ -54,7 +43,7 @@ export const ManagerWithdrawController = (
         .leftJoin(couriers, eq(manager_withdraw.courier_id, couriers.id))
         .where(and(...whereClause))
         .execute();
-      const rolesList = await db
+      const rolesList = await drizzle
         .select(selectFields)
         .from(manager_withdraw)
         .leftJoin(terminals, eq(manager_withdraw.terminal_id, terminals.id))
@@ -79,4 +68,4 @@ export const ManagerWithdrawController = (
         fields: t.Optional(t.String()),
       }),
     }
-  );
+  )
