@@ -1329,6 +1329,29 @@ export const OrdersController = new Elysia({
                              order by o.courier_id;`)
             );
 
+            console.log('query', `select min(o.created_at)                                              as begin_date,
+                                    max(o.created_at)                                              as last_order_date,
+                                    sum(o.delivery_price)                                          as delivery_price,
+                                    concat(u.first_name, ' ', u.last_name)                         as courier,
+                                    count(o.id)                                                    as orders_count,
+                                    AVG(EXTRACT(EPOCH FROM (o.finished_date - o.created_at)) / 60) as avg_delivery_time,
+                                    array_agg(o.created_at)                                        as orders_dates,
+                                    o.courier_id
+                             from orders o
+                                      left join order_status os on o.order_status_id = os.id
+                                      left join users u on o.courier_id = u.id
+                             where o.created_at >= '${sqlStartDate}'
+                               and o.created_at <= '${sqlEndDate}'
+                               and os.finish = true
+                               and u.phone not in ('+998908251218', '+998908249891') ${courierId
+                    ? `and o.courier_id in (${courierId
+                        .map((id) => `'${id}'`)
+                        .join(",")})`
+                    : ""
+                }
+                             group by o.courier_id, u.first_name, u.last_name
+                             order by courier;`)
+
             let query = await drizzle.execute<GarantReportItem>(
                 sql.raw(`select min(o.created_at)                                              as begin_date,
                                     max(o.created_at)                                              as last_order_date,
