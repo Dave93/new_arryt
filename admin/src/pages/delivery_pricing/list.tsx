@@ -10,12 +10,14 @@ import { useGetIdentity } from "@refinedev/core";
 
 import { IDeliveryPricing } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
+import { delivery_pricing } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 export const DeliveryPricingList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<IDeliveryPricing>({
+  const { tableProps } = useTable<InferSelectModel<typeof delivery_pricing>>({
     meta: {
       fields: ["id", "name", "organization.id", "organization.name", "active"],
       whereInputType: "delivery_pricingWhereInput!",

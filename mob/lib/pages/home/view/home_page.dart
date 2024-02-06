@@ -34,7 +34,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(child: const HomeViewPage());
+    return const HomeViewPage();
   }
 }
 
@@ -282,7 +282,7 @@ class _HomeViewPageState extends State<HomeViewPage> {
     if (role.code == 'courier') {
       return [
         ApiGraphqlProvider(child: const ProfilePageView()),
-        ApiGraphqlProvider(child: OrdersPage()),
+        OrdersPage(),
         const OrdersHistory(),
         const NotificationPage(),
         // const MyGarantPage(),

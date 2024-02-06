@@ -1,3 +1,6 @@
+import 'package:arryt/main.dart';
+import 'package:arryt/models/user_data.dart';
+import 'package:arryt/objectbox.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -46,19 +49,32 @@ class OrdersPage extends StatelessWidget {
                       Text(AppLocalizations.of(context)!.orders,
                           style: const TextStyle(
                               color: Colors.black, fontSize: 35)),
-                      BlocBuilder<UserDataBloc, UserDataState>(
-                        builder: (context, state) {
-                          // if roles exist and courier role exists
-                          // find role with code = courier
-                          if (state.roles.any((element) =>
-                              element.code == 'courier' && element.active)) {
-                            return ApiGraphqlProvider(
-                                child: const HomeViewWorkSwitch());
-                          } else {
-                            return const SizedBox();
-                          }
-                        },
-                      )
+                      StreamBuilder<List<UserData>>(
+                          stream: objectBox.getUserDataStream(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              if (snapshot.data!.isNotEmpty) {
+                                UserData user = snapshot.data!.first;
+                                Role? userRole;
+                                if (user.roles.isNotEmpty) {
+                                  userRole = user.roles.first;
+                                }
+                                if (userRole == null) {
+                                  return const SizedBox();
+                                }
+
+                                if (userRole.code == 'courier') {
+                                  return const HomeViewWorkSwitch();
+                                } else {
+                                  return const SizedBox();
+                                }
+                              } else {
+                                return const SizedBox();
+                              }
+                            } else {
+                              return const SizedBox();
+                            }
+                          }),
                     ]),
               ),
               elevation: 0,
@@ -69,17 +85,8 @@ class OrdersPage extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: TabBar(
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.black,
                     labelStyle: const TextStyle(
                       fontWeight: FontWeight.bold,
-                    ),
-                    indicator: RectangularIndicator(
-                      color: Theme.of(context).primaryColor,
-                      bottomLeftRadius: 30,
-                      bottomRightRadius: 30,
-                      topLeftRadius: 30,
-                      topRightRadius: 30,
                     ),
                     tabs: [
                       Tab(
@@ -94,20 +101,11 @@ class OrdersPage extends StatelessWidget {
                   ),
                 ),
               )),
-          body: Column(
+          body: const TabBarView(
+            physics: NeverScrollableScrollPhysics(),
             children: [
-              ListenDeletedCurrentOrders(),
-              // const ListenNewCurrentOrder(),
-              ListenDeletedWaitingOrders(),
-              const Expanded(
-                child: TabBarView(
-                  physics: NeverScrollableScrollPhysics(),
-                  children: [
-                    MyCurrentOrdersList(),
-                    MyWaitingOrdersList(),
-                  ],
-                ),
-              ),
+              MyCurrentOrdersList(),
+              MyWaitingOrdersList(),
             ],
           ),
         ),

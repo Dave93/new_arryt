@@ -104,45 +104,59 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
       }
 
       ApiServer api = new ApiServer();
+      try {
+        Response response =
+            await api.post('/api/users/verify-otp', requestParams);
 
-      Response response =
-          await api.post('/api/users/verify-otp', requestParams);
+        if (response.statusCode == 200) {
+          if (response.data['errors'] != null) {
+            setState(() {
+              isLoading = false;
+            });
+            _btnController.error();
+            AnimatedSnackBar.material(
+              AppLocalizations.of(context)!.otpCodeError,
+              type: AnimatedSnackBarType.error,
+            ).show(context);
+            Future.delayed(const Duration(milliseconds: 1000)).then((value) {
+              _btnController.reset();
+            });
+            return;
+          }
 
-      if (response.statusCode == 200) {
-        if (response.data['errors'] != null) {
+          setState(() {
+            isLoading = false;
+          });
+          _btnController.success();
+
+          UserData user = UserData.fromMap(response.data);
+          objectBox.setUserData(user);
+          Future.delayed(const Duration(milliseconds: 200)).then((value) {
+            _btnController.reset();
+          });
+          AutoRouter.of(context).pushNamed('/home');
+        } else {
           setState(() {
             isLoading = false;
           });
           _btnController.error();
-          AnimatedSnackBar.material(
-            AppLocalizations.of(context)!.otpCodeError,
-            type: AnimatedSnackBarType.error,
-          ).show(context);
-          Future.delayed(const Duration(milliseconds: 1000)).then((value) {
+          Future.delayed(const Duration(milliseconds: 200)).then((value) {
             _btnController.reset();
           });
-          return;
         }
-
-        setState(() {
-          isLoading = false;
-        });
-        _btnController.success();
-
-        UserData user = UserData.fromMap(response.data);
-        objectBox.setUserData(user);
-        Future.delayed(const Duration(milliseconds: 200)).then((value) {
-          _btnController.reset();
-        });
-        AutoRouter.of(context).pushNamed('/home');
-      } else {
+      } catch (e) {
         setState(() {
           isLoading = false;
         });
         _btnController.error();
-        Future.delayed(const Duration(milliseconds: 200)).then((value) {
+        AnimatedSnackBar.material(
+          AppLocalizations.of(context)!.otpCodeError,
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+        Future.delayed(const Duration(milliseconds: 1000)).then((value) {
           _btnController.reset();
         });
+        return;
       }
 
       // send phone number to server

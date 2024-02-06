@@ -49,6 +49,7 @@ class _LoginTypePhonePageState extends ConsumerState<LoginTypePhonePage> {
         Response response = await api.post('/api/users/send-otp', {
           'phone': phoneNumber,
         });
+        print(response);
         var details = response.data['details'];
 
         ref.read(otpTokenProviderProvider.notifier).setToken(details);
@@ -60,6 +61,7 @@ class _LoginTypePhonePageState extends ConsumerState<LoginTypePhonePage> {
           AutoRouter.of(context).pushNamed('/login/type-otp');
         });
       } catch (e) {
+        _btnController.reset();
         AnimatedSnackBar.material(
           AppLocalizations.of(context)!.error_label,
           type: AnimatedSnackBarType.error,

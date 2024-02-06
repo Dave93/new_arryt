@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNotification } from "@refinedev/core";
 import { IOrders } from "@admin/src/interfaces";
 import { sleep } from "radash";
+import { apiClient } from "@admin/src/eden";
 
 export const SendOrderToYandex = ({
   order,
@@ -79,18 +80,23 @@ export const SendOrderToYandex = ({
   const approveYandex = async (id: string) => {
     try {
       setIsLoading(true);
-      const query = gql`
-        mutation ($id: String!) {
-          sendToYandexWithApprove(id: $id)
-        }
-      `;
-      await client.request(
-        query,
-        { id },
-        {
-          Authorization: `Bearer ${token}`,
-        }
-      );
+      // @ts-ignore
+      await apiClient.api.missed_orders.send_yandex.post({
+        id,
+        $headers: { Authorization: `Bearer ${token}` },
+      });
+      // const query = gql`
+      //   mutation ($id: String!) {
+      //     sendToYandexWithApprove(id: $id)
+      //   }
+      // `;
+      // await client.request(
+      //   query,
+      //   { id },
+      //   {
+      //     Authorization: `Bearer ${token}`,
+      //   }
+      // );
     } catch (e: any) {
       setIsLoading(false);
       open!({

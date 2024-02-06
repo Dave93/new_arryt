@@ -209,6 +209,33 @@ class ObjectBox {
     _userDataBox.put(userData);
   }
 
+  void setUserDataToken(String accessToken, String refreshToken,
+      String accessTokenExpires, DateTime tokenExpires) {
+    final query = _userDataBox.query().build()..limit = 1;
+    final userData = query.findFirst();
+    if (userData != null) {
+      userData.accessToken = accessToken;
+      userData.refreshToken = refreshToken;
+      userData.accessTokenExpires = accessTokenExpires;
+      userData.tokenExpires = tokenExpires;
+      _userDataBox.put(userData);
+    }
+  }
+
+  void setUserOnlineStatus(bool isOnline) {
+    final query = _userDataBox.query().build()..limit = 1;
+    final userData = query.findFirst();
+    if (userData != null) {
+      userData.is_online = isOnline;
+      _userDataBox.put(userData);
+    }
+
+    // get all users
+    final allUsersQuery = _userDataBox.query().build();
+    final users = allUsersQuery.find();
+    print(users);
+  }
+
   void deleteUserData() {
     _userDataBox.removeAll();
     getIt<AppRouter>().replace(LoginTypePhoneRoute());

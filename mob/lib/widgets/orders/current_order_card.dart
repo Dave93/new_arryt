@@ -1,7 +1,9 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:currency_formatter/currency_formatter.dart';
+import 'package:dio/dio.dart';
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
@@ -188,132 +190,94 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
         ).show(context);
       }
     }
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      mutation($orderStatusId: String!, $orderId: String!, $latitude: Float, $longitude: Float, $cancelReason: String, $sentSmsToCustomer: Boolean) {
-        setOrderStatus(orderStatusId: $orderStatusId, orderId: $orderId, latitude: $latitude, longitude: $longitude, cancelReason: $cancelReason, sentSmsToCustomer: $sentSmsToCustomer) {
-          id
-          to_lat
-          to_lon
-          from_lat
-          from_lon
-          pre_distance
-          order_number
-          order_price
-          delivery_price
-          customer_delivery_price
-          delivery_address
-          delivery_comment
-          created_at
-          payment_type
-          orders_organization {
-            id
-            name
-            icon_url
-            active
-            external_id
-            support_chat_url
+
+    ApiServer api = new ApiServer();
+
+    try {
+      var response = await api.post('/api/orders/set_status', {
+        'order_id': widget.order.identity,
+        'status_id': orderStatusId,
+        'latitude': currentPosition?.latitude,
+        'longitude': currentPosition?.longitude
+      });
+      if (response.statusCode != 200) {
+        setState(() {
+          loading = false;
+        });
+        return AnimatedSnackBar.material(
+          response.data['message'] ?? "Error",
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+      } else {
+        if (response.data != null) {
+          var order = response.data;
+          OrderStatus orderStatus = OrderStatus(
+            identity: order['orders_order_status']['id'],
+            name: order['orders_order_status']['name'],
+            cancel: order['orders_order_status']['cancel'],
+            finish: order['orders_order_status']['finish'],
+          );
+          Terminals terminals = Terminals(
+            identity: order['orders_terminals']['id'],
+            name: order['orders_terminals']['name'],
+          );
+          Customer customer = Customer(
+            identity: order['orders_customers']['id'],
+            name: order['orders_customers']['name'],
+            phone: order['orders_customers']['phone'],
+          );
+          Organizations organizations = Organizations(
+              order['orders_organization']['id'],
+              order['orders_organization']['name'],
+              order['orders_organization']['active'],
+              order['orders_organization']['icon_url'],
+              order['orders_organization']['description'],
+              order['orders_organization']['max_distance'],
+              order['orders_organization']['max_active_orderCount'],
+              order['orders_organization']['max_order_close_distance'],
+              order['orders_organization']['support_chat_url']);
+          OrderModel orderModel = OrderModel.fromMap(order);
+          orderModel.customer.target = customer;
+          orderModel.terminal.target = terminals;
+          orderModel.orderStatus.target = orderStatus;
+          orderModel.organization.target = organizations;
+          if (order['next_buttons'] != null) {
+            order['next_buttons'].forEach((button) {
+              OrderNextButton orderNextButton = OrderNextButton.fromMap(button);
+              orderModel.orderNextButton.add(orderNextButton);
+            });
           }
-          orders_customers {
-            id
-            name
-            phone
-          }
-          orders_terminals {
-            id
-            name
-          }
-          orders_order_status {
-            id
-            name
-            cancel
-            finish
-            on_way
-            in_terminal
-          }
-          next_buttons {
-            name
-            id
-            color
-            sort
-            finish
-            waiting
-            cancel
-            on_way
-            in_terminal
+
+          if (orderModel.orderStatus.target!.finish ||
+              orderModel.orderStatus.target!.cancel) {
+            objectBox.deleteCurrentOrder(widget.order.identity);
+          } else {
+            objectBox.updateCurrentOrder(widget.order.identity, orderModel);
           }
         }
+        setState(() {
+          loading = false;
+        });
       }
-    ''';
-    var result = await client.mutate(MutationOptions(
-        document: gql(query),
-        variables: <String, dynamic>{
-          'orderStatusId': orderStatusId,
-          'orderId': widget.order.identity,
-          'latitude': currentPosition?.latitude,
-          'longitude': currentPosition?.longitude,
-          'sentSmsToCustomer': isChecked,
-          'cancelReason': cancelText
-        },
-        fetchPolicy: FetchPolicy.noCache));
-    if (result.hasException) {
-      AnimatedSnackBar.material(
-        result.exception?.graphqlErrors[0].message ?? "Error",
+    } on DioException catch (e) {
+      setState(() {
+        loading = false;
+      });
+      print(e);
+      return AnimatedSnackBar.material(
+        e.error.toString(),
         type: AnimatedSnackBarType.error,
       ).show(context);
-      print(result.exception);
-    } else {
-      print(result.data);
-      if (result.data != null) {
-        var order = result.data!['setOrderStatus'];
-        OrderStatus orderStatus = OrderStatus(
-          identity: order['orders_order_status']['id'],
-          name: order['orders_order_status']['name'],
-          cancel: order['orders_order_status']['cancel'],
-          finish: order['orders_order_status']['finish'],
-        );
-        Terminals terminals = Terminals(
-          identity: order['orders_terminals']['id'],
-          name: order['orders_terminals']['name'],
-        );
-        Customer customer = Customer(
-          identity: order['orders_customers']['id'],
-          name: order['orders_customers']['name'],
-          phone: order['orders_customers']['phone'],
-        );
-        Organizations organizations = Organizations(
-            order['orders_organization']['id'],
-            order['orders_organization']['name'],
-            order['orders_organization']['active'],
-            order['orders_organization']['icon_url'],
-            order['orders_organization']['description'],
-            order['orders_organization']['max_distance'],
-            order['orders_organization']['max_active_orderCount'],
-            order['orders_organization']['max_order_close_distance'],
-            order['orders_organization']['support_chat_url']);
-        OrderModel orderModel = OrderModel.fromMap(order);
-        orderModel.customer.target = customer;
-        orderModel.terminal.target = terminals;
-        orderModel.orderStatus.target = orderStatus;
-        orderModel.organization.target = organizations;
-        if (order['next_buttons'] != null) {
-          order['next_buttons'].forEach((button) {
-            OrderNextButton orderNextButton = OrderNextButton.fromMap(button);
-            orderModel.orderNextButton.add(orderNextButton);
-          });
-        }
-
-        if (orderModel.orderStatus.target!.finish ||
-            orderModel.orderStatus.target!.cancel) {
-          objectBox.deleteCurrentOrder(widget.order.identity);
-        } else {
-          objectBox.updateCurrentOrder(widget.order.identity, orderModel);
-        }
-      }
+    } catch (e) {
+      setState(() {
+        loading = false;
+      });
+      print(e);
+      return AnimatedSnackBar.material(
+        e.toString() ?? "Error",
+        type: AnimatedSnackBarType.error,
+      ).show(context);
     }
-    setState(() {
-      loading = false;
-    });
 
     // if (statusButton.onWay) {
     //   await launchUrl(Uri.parse(
@@ -790,9 +754,10 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: color,
-                            // shape: RoundedRectangleBorder(
-                            //   borderRadius: BorderRadius.circular(32.0),
-                            // ),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(0),
+                            ),
                           ),
                           onPressed: () async {
                             if (loading) return;
@@ -800,7 +765,11 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 20.0),
-                            child: Text(e.name.toUpperCase()),
+                            child: loading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : Text(e.name.toUpperCase()),
                           ),
                         ),
                       );

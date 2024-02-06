@@ -1,8 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:animated_snack_bar/animated_snack_bar.dart';
+import 'package:animated_toggle_switch/animated_toggle_switch.dart';
+import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/main.dart';
 import 'package:arryt/models/user_data.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -25,10 +30,7 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
   bool isCheckingFromServer = false;
 
   Future<bool> _toggleWork(BuildContext context) async {
-    UserDataBloc userDataBloc = BlocProvider.of<UserDataBloc>(context);
-    var client = GraphQLProvider.of(context).value;
-    UserDataState userDataState = context.read<UserDataBloc>().state;
-
+    UserData? user = objectBox.getUserData();
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -52,181 +54,94 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
         await Geolocator.requestPermission();
-        return userDataState.is_online;
+        return user!.is_online;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately.
-      return userDataState.is_online;
+      return user!.is_online;
     }
 
     Position currentPosition = await Geolocator.getCurrentPosition();
     print('get current position');
-    if (userDataState.is_online) {
-      var query = gql('''
-      mutation {
-        closeTimeEntry(lat_close: ${currentPosition.latitude}, lon_close: ${currentPosition.longitude}) {
-          id
+
+    ApiServer api = new ApiServer();
+
+    if (user!.is_online) {
+      try {
+        var response = await api.post('/api/couriers/close_time_entry', {
+          'lat_close': currentPosition.latitude.toString(),
+          'lon_close': currentPosition.longitude.toString(),
+        });
+        if (response.statusCode != 200) {
+          AnimatedSnackBar.material(
+            jsonDecode(response.data)['message'] ?? "Error",
+            type: AnimatedSnackBarType.error,
+          ).show(context);
+          return value;
         }
-      }
-    ''');
-
-      QueryResult result =
-          await client.mutate(MutationOptions(document: query));
-      if (result.hasException) {
-        AnimatedSnackBar.material(
-          result.exception?.graphqlErrors[0].message ?? "Error",
-          type: AnimatedSnackBarType.error,
-        ).show(context);
-        return value;
-      }
-
-      if (result.data!['closeTimeEntry']['id'] != null) {
-        BlocProvider.of<UserDataBloc>(context).add(UserDataEventChange(
-          accessToken: userDataBloc.state.accessToken,
-          is_online: false,
-          accessTokenExpires: userDataBloc.state.accessTokenExpires,
-          refreshToken: userDataBloc.state.refreshToken,
-          permissions: userDataBloc.state.permissions,
-          roles: userDataBloc.state.roles,
-          userProfile: userDataBloc.state.userProfile,
-          tokenExpires: userDataBloc.state.tokenExpires,
-        ));
-        // positionStream?.cancel();
-        // setState(() {
-        //   positionStream = null;
-        // });
-        return false;
+        if (response.data['id'] != null) {
+          objectBox.setUserOnlineStatus(false);
+          setState(() {
+            value = false;
+          });
+        }
+      } catch (e) {
+        print(e);
+        setState(() {
+          value = true;
+        });
       }
     } else {
-      var query = gql('''
-      mutation {
-        openTimeEntry(lat_open: ${currentPosition.latitude}, lon_open: ${currentPosition.longitude}) {
-          id
+      try {
+        var response = await api.post('/api/couriers/open_time_entry', {
+          'lat_open': currentPosition.latitude.toString(),
+          'lon_open': currentPosition.longitude.toString(),
+        });
+
+        if (response.statusCode != 200) {
+          AnimatedSnackBar.material(
+            jsonDecode(response.data)['message'] ?? "Error",
+            type: AnimatedSnackBarType.error,
+          ).show(context);
+          return value;
         }
-      }
-    ''');
-      QueryResult result =
-          await client.mutate(MutationOptions(document: query));
 
-      if (result.hasException) {
-        AnimatedSnackBar.material(
-          result.exception?.graphqlErrors[0].message ?? "Error",
-          type: AnimatedSnackBarType.error,
-        ).show(context);
-        return value;
-      }
-
-      if (result.data!['openTimeEntry']['id'] != null) {
-        ApiClientsState apiClientsState =
-            BlocProvider.of<ApiClientsBloc>(context).state;
-        final apiClient = apiClientsState.apiClients.firstWhere(
-            (element) => element.isServiceDefault == true,
-            orElse: () => apiClientsState.apiClients.first);
-        BlocProvider.of<UserDataBloc>(context).add(UserDataEventChange(
-          accessToken: userDataBloc.state.accessToken,
-          is_online: true,
-          accessTokenExpires: userDataBloc.state.accessTokenExpires,
-          refreshToken: userDataBloc.state.refreshToken,
-          permissions: userDataBloc.state.permissions,
-          roles: userDataBloc.state.roles,
-          userProfile: userDataBloc.state.userProfile,
-          tokenExpires: userDataBloc.state.tokenExpires,
-        ));
-        // const LocationSettings locationSettings = LocationSettings(
-        //   accuracy: LocationAccuracy.bestForNavigation,
-        //   distanceFilter: 2,
-        // );
-
-        // positionStream =
-        //     Geolocator.getPositionStream(locationSettings: locationSettings)
-        //         .listen((Position? position) async {
-        //   var query = gql('''mutation {
-        //     storeLocation(latitude: ${position!.latitude}, longitude: ${position.longitude}) {
-        //       success
-        //       }
-        //       },''');
-        //   QueryResult result =
-        //       await client.mutate(MutationOptions(document: query));
-        // });
-
-        return true;
+        if (response.data['id'] != null) {
+          objectBox.setUserOnlineStatus(true);
+          setState(() {
+            value = true;
+          });
+        }
+      } catch (e) {
+        print(e);
+        setState(() {
+          value = false;
+        });
       }
     }
     return !value;
   }
 
   Future<void> checkCurrentStatus() async {
-    setState(() {
-      isCheckingFromServer = true;
-    });
-    var query = gql('''
-      mutation {
-        reloadUserData {
-          access {
-            additionalPermissions
-            roles {
-                name
-                code
-                active
-            }
-          }
-          token {
-            accessToken
-            accessTokenExpires
-            refreshToken
-            tokenType
-          }
-          user {
-            first_name
-            id
-            is_super_user
-            last_name
-            is_online
-            permissions {
-              active
-              slug
-              id
-            }
-            phone
-          }
-        }
-      }
-    ''');
-    var client = GraphQLProvider.of(context).value;
-    QueryResult result = await client.mutate(MutationOptions(document: query));
-    if (result.hasException) {
-      print(result.exception);
+    try {
+      ApiServer api = new ApiServer();
+      var response = await api.get('/api/users/getme', {});
       setState(() {
-        isCheckingFromServer = false;
+        value = response.data!['user']['is_online'];
       });
-    } else {
-      setState(() {
-        value = result.data!['reloadUserData']['user']['is_online'];
-      });
-      BlocProvider.of<UserDataBloc>(context).add(UserDataEventChange(
-        accessToken: result.data!['reloadUserData']['token']['accessToken'],
-        refreshToken: result.data!['reloadUserData']['token']['refreshToken'],
-        accessTokenExpires: result.data!['reloadUserData']['token']
-            ['accessTokenExpires'],
-        userProfile:
-            UserProfileModel.fromMap(result.data!['reloadUserData']['user']),
-        permissions: List.from(
-            result.data!['reloadUserData']['access']['additionalPermissions']),
-        roles: List<Role>.from(result.data!['reloadUserData']['access']['roles']
-            .map((x) => Role.fromMap(x))
-            .toList()),
-        is_online: result.data!['reloadUserData']['user']['is_online'],
-        // parse 1h to duration
-        tokenExpires: DateTime.now().add(Duration(
-            hours: int.parse(result.data!['reloadUserData']['token']
-                    ['accessTokenExpires']
-                .split('h')[0]))),
-      ));
-      setState(() {
-        isCheckingFromServer = false;
-      });
+      UserData user = objectBox.getUserData()!;
+      UserData newUserData = UserData.fromMap(response.data);
+      newUserData.accessToken = user.accessToken;
+      newUserData.refreshToken = user.refreshToken;
+      newUserData.tokenExpires = user.tokenExpires;
+      newUserData.accessTokenExpires = user.accessTokenExpires;
+      newUserData.is_online = response.data!['user']['is_online'];
+
+      objectBox.setUserData(newUserData);
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -248,24 +163,42 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<UserDataBloc, UserDataState>(
-      builder: (context, state) {
-        return Container(
-          child: isCheckingFromServer
-              ? const SizedBox()
-              : LoadSwitch(
-                  value: state.is_online,
-                  future: () async {
-                    return await _toggleWork(context);
-                  },
-                  onChange: (v) {
-                    value = v;
-                    setState(() {});
-                  },
-                  onTap: (bool) {},
-                ),
-        );
+    return AnimatedToggleSwitch<bool>.dual(
+      current: value,
+      first: false,
+      second: true,
+      spacing: 0.0,
+      animationDuration: const Duration(milliseconds: 600),
+      style: const ToggleStyle(
+        borderColor: Colors.transparent,
+        indicatorColor: Colors.white,
+        backgroundColor: Colors.amber,
+      ),
+      customStyleBuilder: (context, local, global) => ToggleStyle(
+          backgroundGradient: LinearGradient(
+        colors: const [Colors.green, Colors.red],
+        stops: [
+          global.position - (1 - 2 * max(0, global.position - 0.5)) * 0.5,
+          global.position + max(0, 2 * (global.position - 0.5)) * 0.5,
+        ],
+      )),
+      borderWidth: 4.0,
+      height: 40.0,
+      loadingIconBuilder: (context, global) => CupertinoActivityIndicator(
+          color: Color.lerp(Colors.red, Colors.green, global.position)),
+      onChanged: (b) {
+        return _toggleWork(context);
       },
+      iconBuilder: (value) => value
+          ? Icon(Icons.power_outlined, color: Colors.green, size: 20.0)
+          : Icon(Icons.power_settings_new_rounded,
+              color: Colors.red, size: 20.0),
+      textBuilder: (value) => Center(
+          child: Text(
+        value ? 'On' : 'Off',
+        style: const TextStyle(
+            color: Colors.white, fontSize: 15.0, fontWeight: FontWeight.w600),
+      )),
     );
   }
 }

@@ -9,11 +9,13 @@ import {
   TimePicker,
   InputNumber,
 } from "antd";
-import { IWorkSchedules } from "@admin/src/interfaces";
+import { IOrganization, IWorkSchedules } from "@admin/src/interfaces";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { useGetIdentity } from "@refinedev/core";
+import { apiClient } from "@admin/src/eden";
+import { useEffect, useState } from "react";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -56,6 +58,24 @@ export const WorkSchedulesEdit: React.FC = () => {
     },
   });
 
+  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+
+  const fetchOrganizations = async () => {
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $fetch: {
+          headers: {
+            Authorization: `Bearer ${identity?.token.accessToken}`,
+          },
+        },
+      });
+    setOrganizations(organizations);
+  };
+
+  useEffect(() => {
+    fetchOrganizations();
+  }, [identity]);
+
   return (
     <Edit saveButtonProps={saveButtonProps}>
       <Form {...formProps} layout="vertical">
@@ -82,7 +102,7 @@ export const WorkSchedulesEdit: React.FC = () => {
         >
           <Input />
         </Form.Item>
-        {/* <Form.Item
+        <Form.Item
           label="Организация"
           name="organization_id"
           rules={[
@@ -98,7 +118,7 @@ export const WorkSchedulesEdit: React.FC = () => {
               </Select.Option>
             ))}
           </Select>
-        </Form.Item> */}
+        </Form.Item>
         <Form.Item
           label="Дни недели"
           name="days"

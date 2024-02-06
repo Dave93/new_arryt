@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:arryt/main.dart';
 import 'package:arryt/models/api_client.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_http2_adapter/dio_http2_adapter.dart';
+import 'package:http/http.dart' as http;
 
 class ApiServer {
   static String url = 'https://newapi.arryt.uz';
@@ -12,7 +15,7 @@ class ApiServer {
   ApiServer() {
     ApiClient? client = objectBox.getDefaultApiClient();
     if (client != null) {
-      url = client.apiUrl;
+      url = "https://" + client.apiUrl;
     }
 
     dio = Dio()
@@ -22,14 +25,46 @@ class ApiServer {
       );
 
     UserData? user = objectBox.getUserData();
-
     if (user != null) {
+      print(user.accessToken);
+
       dio.options.headers['Authorization'] = 'Bearer ${user.accessToken}';
     }
 
     dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
+        onRequest:
+            (RequestOptions options, RequestInterceptorHandler handler) async {
+          if (options.headers.containsKey('Authorization')) {
+            UserData? user = objectBox.getUserData();
+            if (user!.tokenExpires.isBefore(DateTime.now())) {
+              try {
+                var response = await http.post(
+                  Uri.parse("${options.baseUrl}/api/users/refresh_token"),
+                  headers: {'Content-Type': 'application/json'},
+                  body: '{"refresh_token": "${user.refreshToken}"}',
+                );
+                if (response.statusCode == 200) {
+                  var result = jsonDecode(response.body);
+                  if (result['errors'] == null) {
+                    var data = result;
+                    objectBox.setUserDataToken(
+                        data['accessToken'],
+                        data['refreshToken'],
+                        data['accessTokenExpires'],
+                        DateTime.now().add(Duration(
+                            hours: int.parse(
+                                data['accessTokenExpires'].split('h')[0]))));
+                    options.headers['Authorization'] =
+                        'Bearer ${data['accessToken']}';
+                  }
+                }
+              } catch (e) {
+                print(e);
+              }
+            }
+          }
+
           // Do something before request is sent.
           // If you want to resolve the request with custom data,
           // you can resolve a `Response` using `handler.resolve(response)`.
@@ -66,7 +101,27 @@ class ApiServer {
 
   // create function for post request
   Future<Response> post(String path, Map<String, dynamic> data) async {
-    return await dio.post(path, data: data);
+    try {
+      final response = await dio.post(path, data: data);
+      return response;
+    } on DioException catch (e) {
+      String message = e.toString();
+      if (e.response != null && e.response!.data != null) {
+        if (e.response!.data is Map<String, dynamic>) {
+          // Here you can handle the case where e.response!.data is a Map<String, dynamic>
+          // For example, extracting a specific message:
+          var responseData = e.response!.data as Map<String, dynamic>;
+          if (responseData.containsKey('message')) {
+            message = responseData['message'];
+          }
+        } else {
+          message = e.response!.data;
+        }
+      }
+
+      throw DioException(
+          error: message, requestOptions: RequestOptions(path: path));
+    }
   }
 
   // create function for put request

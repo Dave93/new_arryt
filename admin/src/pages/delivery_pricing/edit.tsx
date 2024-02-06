@@ -30,6 +30,8 @@ import dayjs from "dayjs";
 import { organization_payment_types } from "@admin/src/interfaces/enums";
 import { apiClient } from "@admin/src/eden";
 import { sortBy } from "lodash";
+import { delivery_pricing, organization, terminals } from "@api/drizzle/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 let daysOfWeekRu = {
   "1": "Понедельник",
@@ -47,7 +49,9 @@ export const DeliveryPricingEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps, id } = useForm<IDeliveryPricing>({
+  const { formProps, saveButtonProps, id } = useForm<
+    InferInsertModel<typeof delivery_pricing>
+  >({
     meta: {
       fields: [
         "id",
@@ -79,8 +83,12 @@ export const DeliveryPricingEdit: React.FC = () => {
 
   const tr = useTranslate();
 
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
   const [aproximatePrice, setAproximatePrice] = useState<number>(0);
 
   const fetchOrganizations = async () => {
@@ -100,7 +108,7 @@ export const DeliveryPricingEdit: React.FC = () => {
           },
         },
       });
-    setOrganizations(organizations);
+    if (organizations) setOrganizations(organizations);
   };
 
   const calculateAproximatePrice = (value: any) => {
@@ -231,7 +239,7 @@ export const DeliveryPricingEdit: React.FC = () => {
           <Col span={12}>
             <Form.Item label="Филиал" name="terminal_id">
               <Select showSearch optionFilterProp="children">
-                {terminals.map((terminal) => (
+                {terminalsList.map((terminal) => (
                   <Select.Option key={terminal.id} value={terminal.id}>
                     {terminal.name}
                   </Select.Option>

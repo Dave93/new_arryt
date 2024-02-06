@@ -33,6 +33,8 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { apiClient } from "@admin/src/eden";
 import { sortBy } from "lodash";
+import { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { delivery_pricing, organization, terminals } from "@api/drizzle/schema";
 
 let daysOfWeekRu = {
   "1": "Понедельник",
@@ -56,7 +58,9 @@ export const DeliveryPricingCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IDeliveryPricing>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof delivery_pricing>
+  >({
     meta: {
       fields: [
         "id",
@@ -82,8 +86,12 @@ export const DeliveryPricingCreate = () => {
 
   const tr = useTranslate();
 
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
+  const [organizationsList, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
 
   const fetchOrganizations = async () => {
     const { data: terminals } = await apiClient.api.terminals.cached.get({
@@ -102,7 +110,7 @@ export const DeliveryPricingCreate = () => {
           },
         },
       });
-    setOrganizations(organizations);
+    if (organizations) setOrganizations([...organizations]);
   };
 
   useEffect(() => {
@@ -174,7 +182,7 @@ export const DeliveryPricingCreate = () => {
               ]}
             >
               <Select showSearch optionFilterProp="children">
-                {organizations.map((organization) => (
+                {organizationsList.map((organization) => (
                   <Select.Option key={organization.id} value={organization.id}>
                     {organization.name}
                   </Select.Option>
@@ -185,7 +193,7 @@ export const DeliveryPricingCreate = () => {
           <Col span={12}>
             <Form.Item label="Филиал" name="terminal_id">
               <Select showSearch optionFilterProp="children">
-                {terminals.map((terminal) => (
+                {terminalsList.map((terminal) => (
                   <Select.Option key={terminal.id} value={terminal.id}>
                     {terminal.name}
                   </Select.Option>

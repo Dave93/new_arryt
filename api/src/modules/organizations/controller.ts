@@ -26,7 +26,7 @@ export const OrganizationsController = new Elysia({
         .from(organization)
         .limit(+limit)
         .offset(+offset)
-        .execute();
+        .execute() as InferSelectModel<typeof organization>[];
       return {
         total: rolesCount[0].count,
         data: rolesList,

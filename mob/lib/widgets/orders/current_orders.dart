@@ -1,3 +1,5 @@
+import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/models/user_data.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -6,6 +8,7 @@ import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:arryt/models/order_status.dart';
 import 'package:arryt/models/terminals.dart';
+import 'package:keframe/keframe.dart';
 
 import '../../main.dart';
 import '../../models/customer.dart';
@@ -19,7 +22,7 @@ class MyCurrentOrdersList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(child: const MyCurrentOrderListView());
+    return const MyCurrentOrderListView();
   }
 }
 
@@ -34,74 +37,13 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
   late EasyRefreshController _controller;
 
   Future<void> _loadOrders() async {
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      query {
-        myCurrentOrders {
-          id
-          to_lat
-          to_lon
-          from_lat
-          from_lon
-          pre_distance
-          order_number
-          order_price
-          delivery_price
-          customer_delivery_price
-          delivery_address
-          delivery_comment
-          created_at
-          payment_type
-          additional_phone
-          house
-          flat
-          entrance
-          orders_organization {
-            id
-            name
-            icon_url
-            active
-            external_id
-            support_chat_url
-          }
-          orders_customers {
-            id
-            name
-            phone
-          }
-          orders_terminals {
-            id
-            name
-          }
-          orders_order_status {
-            id
-            name
-            cancel
-            finish
-            on_way
-            in_terminal
-          }
-          next_buttons {
-            name
-            id
-            color
-            sort
-            finish
-            waiting
-            cancel
-            on_way
-            in_terminal
-          }
-        }
-      }
-    ''';
-    var data = await client.query(
-      QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache),
-    );
-    // var store = await ObjectBoxStore.getStore();
-    if (data.data?['myCurrentOrders'] != null) {
-      List<OrderModel> orders = [];
-      data.data?['myCurrentOrders'].forEach((order) {
+    ApiServer api = new ApiServer();
+
+    var response = await api.get('/api/orders/my_orders', {});
+
+    List<OrderModel> orders = [];
+    if (response.data != null && response.data.isNotEmpty) {
+      response.data.forEach((order) {
         OrderStatus orderStatus = OrderStatus(
           identity: order['orders_order_status']['id'],
           name: order['orders_order_status']['name'],
@@ -167,86 +109,120 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<UserDataBloc, UserDataState>(builder: (context, state) {
-      if (state.roles
-          .any((element) => element.code == 'courier' && element.active)) {
-        if (!state.is_online) {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10),
-                child: Text(
-                  AppLocalizations.of(context)!
-                      .error_work_schedule_offline_title
-                      .toUpperCase(),
-                  style: Theme.of(context)
-                      .textTheme
-                      .headline5
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text(
-                  AppLocalizations.of(context)!
-                      .notice_torn_on_work_schedule_subtitle,
-                  style: Theme.of(context).textTheme.subtitle1,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          );
-        } else {
-          return ApiGraphqlProvider(
-              child: Stack(
-            children: [
-              StreamBuilder<List<OrderModel>>(
-                stream: objectBox.getCurrentOrders(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return EasyRefresh(
-                      controller: _controller,
-                      header: const BezierCircleHeader(),
-                      onRefresh: () async {
-                        await _loadOrders();
-                        _controller.finishRefresh();
-                        _controller.resetFooter();
-                      },
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: snapshot.data!.length,
-                        itemBuilder: (context, index) {
-                          if (index == snapshot.data!.length - 1) {
-                            return Column(
-                              children: [
-                                CurrentOrderCard(order: snapshot.data![index]),
-                                const SizedBox(height: 100)
-                              ],
-                            );
-                          } else {
-                            return CurrentOrderCard(
-                                order: snapshot.data![index]);
-                          }
-                        },
+    return StreamBuilder<List<UserData>>(
+        stream: objectBox.getUserDataStream(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            if (snapshot.data!.isNotEmpty) {
+              UserData user = snapshot.data!.first;
+              Role? userRole;
+              if (user.roles.isNotEmpty) {
+                userRole = user.roles.first;
+              }
+              if (userRole == null) {
+                return const SizedBox();
+              }
+
+              if (userRole.code == 'courier') {
+                if (!user.is_online) {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 15.0, vertical: 10),
+                        child: Text(
+                          AppLocalizations.of(context)!
+                              .error_work_schedule_offline_title
+                              .toUpperCase(),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headline5
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    );
-                  } else {
-                    return const Center(child: Text('Заказов нет'));
-                  }
-                },
-              )
-              // const Positioned(
-              //     bottom: 20, left: 0, right: 0, child: BuildOrdersRoute())
-            ],
-          ));
-        }
-      } else {
-        return Text(AppLocalizations.of(context)!.you_are_not_courier,
-            style: Theme.of(context).textTheme.headline6);
-      }
-    });
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Text(
+                          AppLocalizations.of(context)!
+                              .notice_torn_on_work_schedule_subtitle,
+                          style: Theme.of(context).textTheme.subtitle1,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  );
+                } else {
+                  return Stack(
+                    children: [
+                      StreamBuilder<List<OrderModel>>(
+                        stream: objectBox.getCurrentOrders(),
+                        builder: (context, snapshot) {
+                          return EasyRefresh(
+                            controller: _controller,
+                            header: const BezierCircleHeader(),
+                            onRefresh: () async {
+                              await _loadOrders();
+                              _controller.finishRefresh();
+                              _controller.resetFooter();
+                            },
+                            child: snapshot.hasData && snapshot.data!.isNotEmpty
+                                ? SizeCacheWidget(
+                                    child: ListView.builder(
+                                      shrinkWrap: true,
+                                      itemCount: snapshot.data!.length,
+                                      itemBuilder: (context, index) {
+                                        if (index ==
+                                            snapshot.data!.length - 1) {
+                                          return Column(
+                                            children: [
+                                              CurrentOrderCard(
+                                                  order: snapshot.data![index]),
+                                              const SizedBox(height: 100)
+                                            ],
+                                          );
+                                        } else {
+                                          return CurrentOrderCard(
+                                              order: snapshot.data![index]);
+                                        }
+                                      },
+                                    ),
+                                  )
+                                : ListView(
+                                    children: [
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minHeight: MediaQuery.of(context)
+                                                  .size
+                                                  .height *
+                                              0.8,
+                                        ),
+                                        child: const IntrinsicHeight(
+                                          child: Center(
+                                              child: Text('Заказов нет')),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                          );
+                        },
+                      )
+                      // const Positioned(
+                      //     bottom: 20, left: 0, right: 0, child: BuildOrdersRoute())
+                    ],
+                  );
+                }
+              } else {
+                return Text(AppLocalizations.of(context)!.you_are_not_courier,
+                    style: Theme.of(context).textTheme.headline6);
+              }
+            } else {
+              return const SizedBox();
+            }
+          } else {
+            return const SizedBox();
+          }
+        });
   }
 }

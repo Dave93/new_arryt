@@ -5,7 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   awesome_notifications
   awesome_notifications_core
-  connectivity_plus_windows
+  connectivity_plus
   dynamic_color
   file_selector_windows
   firebase_core

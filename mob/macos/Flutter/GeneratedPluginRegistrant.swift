@@ -9,7 +9,7 @@ import appkit_ui_element_colors
 import audio_session
 import awesome_notifications
 import awesome_notifications_core
-import connectivity_plus_macos
+import connectivity_plus
 import device_info_plus
 import dynamic_color
 import file_selector_macos

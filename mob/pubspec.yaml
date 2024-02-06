@@ -10,6 +10,7 @@ environment:
 dependencies:
   adaptive_dialog: ^1.8.0+1
   animated_snack_bar: ^0.3.0
+  animated_toggle_switch: ^0.8.0
   app_settings: ^5.1.1
   auto_route: ^7.8.4
   auto_size_text: ^3.0.0
@@ -27,10 +28,10 @@ dependencies:
   currency_text_input_formatter: ^2.1.8
   data_table_2: ^2.3.7
   device_info_plus: ^9.0.1
-  dio: ^5.3.3
+  dio: ^5.3.4
   dio_http2_adapter: ^2.3.1+1
   disable_battery_optimization: ^1.1.0+1
-  easy_refresh: ^3.0.4+2
+  easy_refresh: ^3.3.2+4
   equatable: ^2.0.5
   expandable: ^5.0.1
   firebase_analytics: ^10.0.1
@@ -62,12 +63,12 @@ dependencies:
   geolocator: ^9.0.2
   get_it: ^7.6.4
   google_fonts: ^4.0.4
-  graphql: 5.1.2-beta.4
-  graphql_flutter: 5.1.1-beta.4
+  graphql: 5.2.0-beta.6
+  graphql_flutter: 5.2.0-beta.6
   group_button: ^5.2.2
   grouped_list: ^5.1.2
   hex: ^0.2.0
-  http: ^0.13.5
+  http: ^1.1.2
   http_parser: ^4.0.2
   hydrated_bloc: ^9.1.0
   icons_launcher: ^2.0.5
@@ -113,7 +114,7 @@ dependencies:
 #       path: packages/graphql
 #       ref: graphql-transport-ws
 dependency_overrides:
-  web_socket_channel: 2.2.0
+  # web_socket_channel: 2.2.0
   intl: ^0.17.0
 
 dev_dependencies:

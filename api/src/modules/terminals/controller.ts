@@ -44,7 +44,7 @@ export const TerminalsController = new Elysia({
         .where(and(...whereClause))
         .limit(+limit)
         .offset(+offset)
-        .execute();
+        .execute() as InferSelectModel<typeof terminals>[];
       return {
         total: rolesCount[0].count,
         data: rolesList,

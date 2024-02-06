@@ -95,19 +95,19 @@ class _ApiGraphqlProviderView extends StatelessWidget {
             getToken: () async => await getBoxToken(context),
           );
 
-          final WebSocketLink wsLink = WebSocketLink(
-            'wss://${apiClient.apiUrl}/ws',
-            config: const SocketClientConfig(
-              autoReconnect: true,
-              inactivityTimeout: Duration(seconds: 30),
-            ),
-            subProtocol: GraphQLProtocol.graphqlTransportWs,
-          );
+          // final WebSocketLink wsLink = WebSocketLink(
+          //   'wss://${apiClient.apiUrl}/ws',
+          //   config: const SocketClientConfig(
+          //     autoReconnect: true,
+          //     inactivityTimeout: Duration(seconds: 30),
+          //   ),
+          //   subProtocol: GraphQLProtocol.graphqlTransportWs,
+          // );
 
           final Link queryLink = authLink.concat(httpLink);
 
-          final Link link = Link.split(
-              (request) => request.isSubscription, wsLink, queryLink);
+          final Link link =
+              Link.split((request) => request.isSubscription, queryLink);
 
           ValueNotifier<GraphQLClient> client = ValueNotifier(
             GraphQLClient(

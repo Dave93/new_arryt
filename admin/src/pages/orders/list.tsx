@@ -221,9 +221,7 @@ export const OrdersList: React.FC = () => {
         localFilters.push({
           field: "order_number",
           operator: "eq",
-          value: {
-            equals: order_number,
-          },
+          value: order_number,
         });
       }
 

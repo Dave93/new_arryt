@@ -30,7 +30,7 @@ class _NotificationsCountBadgeViewState
     try {
       var response = await api.get('/api/couriers/my_unread_notifications', {});
       setState(() {
-        notificationsCount = response.data;
+        notificationsCount = int.parse(response.data);
       });
     } catch (e) {
       print(e);

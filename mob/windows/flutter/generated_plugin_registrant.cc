@@ -8,7 +8,7 @@
 
 #include <awesome_notifications/awesome_notifications_plugin_c_api.h>
 #include <awesome_notifications_core/awesome_notifications_core_plugin_c_api.h>
-#include <connectivity_plus_windows/connectivity_plus_windows_plugin.h>
+#include <connectivity_plus/connectivity_plus_windows_plugin.h>
 #include <dynamic_color/dynamic_color_plugin_c_api.h>
 #include <file_selector_windows/file_selector_windows.h>
 #include <firebase_core/firebase_core_plugin_c_api.h>
