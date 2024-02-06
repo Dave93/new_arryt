@@ -93,6 +93,7 @@ export const OrdersController = new Elysia({
         "/orders",
         async ({ query: { limit, offset, sort, filters, fields, ext_all }, drizzle }) => {
             const couriers = alias(users, "couriers");
+            console.log('rolesCount');
             let selectFields: SelectedFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, orders, {
@@ -124,7 +125,6 @@ export const OrdersController = new Elysia({
                 .where(and(...whereClause))
                 .execute();
             let rolesList;
-
             if (ext_all == '1') {
                 rolesList = await drizzle
                     .select(selectFields)
