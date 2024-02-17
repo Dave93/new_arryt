@@ -1,13 +1,16 @@
 import { useForm, Edit } from "@refinedev/antd";
 import { Form, Input, Switch } from "antd";
 import { useGetIdentity } from "@refinedev/core";
-import { IPermissions } from "@admin/src/interfaces";
+import { permissions } from "@api/drizzle/schema";
+import { InferInsertModel } from "drizzle-orm";
 
 export const PermissionsEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IPermissions>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof permissions>
+  >({
     meta: {
       fields: ["id", "slug", "active", "created_at", "description"],
       pluralize: true,

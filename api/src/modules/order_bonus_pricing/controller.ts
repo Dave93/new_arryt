@@ -17,6 +17,7 @@ import { SelectedFields } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 import Redis from "ioredis";
+import { OrderBonusPricingWithRelations } from "./dto/list.dto";
 
 export const OrderBonusPricingController = new Elysia({
   name: "@app/order_bonus_pricing",
@@ -24,7 +25,20 @@ export const OrderBonusPricingController = new Elysia({
   .use(ctx)
   .get(
     "/order_bonus_pricing",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_bonus_pricing.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_bonus_pricing, {
@@ -58,7 +72,7 @@ export const OrderBonusPricingController = new Elysia({
         .where(and(...whereClause))
         .limit(+limit)
         .offset(+offset)
-        .execute();
+        .execute() as OrderBonusPricingWithRelations[];
       return {
         total: rolesCount[0].count,
         data: rolesList,
@@ -74,7 +88,20 @@ export const OrderBonusPricingController = new Elysia({
       }),
     }
   )
-  .get("/order_bonus_pricing/cached", async ({ redis }) => {
+  .get("/order_bonus_pricing/cached", async ({ redis, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("order_bonus_pricing.list")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
     const res = await redis.get(
       `${process.env.PROJECT_PREFIX}_order_bonus_pricing`
     );
@@ -82,7 +109,20 @@ export const OrderBonusPricingController = new Elysia({
   })
   .get(
     "/order_bonus_pricing/:id",
-    async ({ params: { id }, drizzle }) => {
+    async ({ params: { id }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_bonus_pricing.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const permissionsRecord = await drizzle
         .select()
         .from(order_bonus_pricing)
@@ -100,7 +140,20 @@ export const OrderBonusPricingController = new Elysia({
   )
   .post(
     "/order_bonus_pricing",
-    async ({ body: { data, fields }, drizzle }) => {
+    async ({ body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_bonus_pricing.create")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_bonus_pricing, {});
@@ -123,7 +176,20 @@ export const OrderBonusPricingController = new Elysia({
   )
   .put(
     "/order_bonus_pricing/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_bonus_pricing.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_bonus_pricing, {});

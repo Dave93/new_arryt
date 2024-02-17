@@ -1,29 +1,9 @@
 import { Create, useForm } from "@refinedev/antd";
-import {
-  Col,
-  Form,
-  Input,
-  InputNumber,
-  Row,
-  Select,
-  Switch,
-  TimePicker,
-} from "antd";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
-import { IOrganization, IWorkSchedules } from "@admin/src/interfaces";
-import { useEffect, useState } from "react";
+import { Col, Form, Input, InputNumber, Row, TimePicker } from "antd";
 import dayjs from "dayjs";
 import { useGetIdentity } from "@refinedev/core";
-let daysOfWeekRu = {
-  "1": "Понедельник",
-  "2": "Вторник",
-  "3": "Среда",
-  "4": "Четверг",
-  "5": "Пятница",
-  "6": "Суббота",
-  "7": "Воскресенье",
-};
+import { daily_garant } from "@api/drizzle/schema";
+import { InferInsertModel } from "drizzle-orm";
 
 const format = "HH:mm";
 
@@ -31,7 +11,9 @@ export const DailyGarantCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IWorkSchedules>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof daily_garant>
+  >({
     meta: {
       fields: ["id", "name", "date", "amount", "late_minus_sum"],
       pluralize: true,

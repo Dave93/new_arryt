@@ -14,13 +14,19 @@ import * as gqlb from "gql-query-builder";
 import { useEffect, useState } from "react";
 import { drive_type, user_status } from "@admin/src/interfaces/enums";
 import FileUploaderMultiple from "@admin/src/components/file_uploader/multiple";
+import { daily_garant, roles, terminals, users } from "@api/drizzle/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { WorkScheduleWithRelations } from "@api/src/modules/work_schedules/dto/list.dto";
+import { apiClient } from "@admin/src/eden";
 
 export const UsersEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
   const tr = useTranslate();
-  const { formProps, saveButtonProps, redirect, id } = useForm<IUsers>({
+  const { formProps, saveButtonProps, redirect, id } = useForm<
+    InferInsertModel<typeof users>
+  >({
     meta: {
       fields: [
         "id",
@@ -38,27 +44,8 @@ export const UsersEdit: React.FC = () => {
         "status",
         "max_active_order_count",
         "doc_files",
-        {
-          users_terminals: [
-            {
-              terminals: ["id", "name"],
-            },
-          ],
-        },
-        {
-          users_work_schedules: [
-            {
-              work_schedules: ["id", "name"],
-            },
-          ],
-        },
-        {
-          users_roles_usersTousers_roles_user_id: [
-            {
-              roles: ["id", "name"],
-            },
-          ],
-        },
+        "terminals.id",
+        "terminals.name",
       ],
       pluralize: true,
       updateInputName: "usersUncheckedUpdateInput",
@@ -68,55 +55,72 @@ export const UsersEdit: React.FC = () => {
     },
   });
 
-  const [roles, setRoles] = useState<IRoles[]>([]);
-  const [terminals, setTerminals] = useState<any[]>([]);
-  const [work_schedules, setWorkSchedules] = useState<any[]>([]);
+  const [rolesList, setRoles] = useState<InferSelectModel<typeof roles>[]>([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
+  const [work_schedules, setWorkSchedules] = useState<
+    {
+      name: string;
+      children: WorkScheduleWithRelations[];
+    }[]
+  >([]);
+  const [daily_garantList, setDailyGarant] = useState<
+    InferSelectModel<typeof daily_garant>[]
+  >([]);
 
   const fetchAllData = async () => {
-    const query = gql`
-      query {
-        roles {
-          id
-          name
-        }
-        cachedTerminals {
-          id
-          name
-          organization {
-            id
-            name
-          }
-        }
-        workSchedules {
-          id
-          name
-          organization {
-            id
-            name
-          }
-        }
-      }
-    `;
-    const { roles, cachedTerminals, workSchedules } = await client.request<{
-      roles: IRoles[];
-      cachedTerminals: ITerminals[];
-      workSchedules: IWorkSchedules[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    const { data: roles } = await apiClient.api.roles.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
 
-    var workScheduleResult = chain(workSchedules)
-      .groupBy("organization.name")
-      .toPairs()
-      .map(function (item) {
-        return {
-          name: item[0],
-          children: item[1],
-        };
-      })
-      .value();
+    if (roles && Array.isArray(roles)) {
+      setRoles(roles);
+    }
 
-    setWorkSchedules(workScheduleResult);
-    setTerminals(sortBy(cachedTerminals, ["name"]));
-    setRoles(roles);
+    const { data: cachedDailyGarant } =
+      await apiClient.api.daily_garant.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+
+    if (cachedDailyGarant && Array.isArray(cachedDailyGarant)) {
+      setDailyGarant(cachedDailyGarant);
+    }
+
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, ["name"]));
+    }
+
+    const { data: workSchedules } =
+      await apiClient.api.work_schedules.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+
+    if (workSchedules && Array.isArray(workSchedules)) {
+      var workScheduleResult = chain(workSchedules)
+        .groupBy("organization.name")
+        .toPairs()
+        .map(function (item) {
+          return {
+            name: item[0],
+            children: item[1],
+          };
+        })
+        .value();
+      setWorkSchedules(workScheduleResult);
+    }
   };
 
   const setSelectValues = () => {
@@ -124,9 +128,9 @@ export const UsersEdit: React.FC = () => {
       let formValues: any = formProps.form?.getFieldsValue();
       formProps.form?.setFieldsValue({
         ...formValues,
-        users_roles_usersTousers_roles_user_id:
-          formValues.users_roles_usersTousers_roles_user_id
-            ? formValues.users_roles_usersTousers_roles_user_id[0].roles.id
+        roles:
+          formValues.roles && formValues.roles.length > 0
+            ? formValues.roles[0].roles.id
             : null,
         users_work_schedules:
           formValues.users_work_schedules &&
@@ -269,7 +273,7 @@ export const UsersEdit: React.FC = () => {
           <Col span={12}>
             <Form.Item
               label="Роль"
-              name="users_roles_usersTousers_roles_user_id"
+              name="roles"
               rules={[
                 {
                   required: true,
@@ -277,7 +281,7 @@ export const UsersEdit: React.FC = () => {
               ]}
             >
               <Select>
-                {roles.map((role: IRoles) => (
+                {rolesList.map((role) => (
                   <Select.Option key={role.id} value={role.id}>
                     {role.name}
                   </Select.Option>
@@ -336,7 +340,7 @@ export const UsersEdit: React.FC = () => {
           <Col span={12}>
             <Form.Item label="Филиалы" name="users_terminals">
               <Select mode="multiple">
-                {terminals.map((terminal: any) => (
+                {terminalsList.map((terminal) => (
                   <Select.Option key={terminal.id} value={terminal.id}>
                     {terminal.name}
                   </Select.Option>
@@ -347,21 +351,19 @@ export const UsersEdit: React.FC = () => {
           <Col span={12}>
             <Form.Item label="Рабочие графики" name="users_work_schedules">
               <Select mode="multiple">
-                {work_schedules.map((work_schedule: any) => (
+                {work_schedules.map((work_schedule) => (
                   <Select.OptGroup
                     key={work_schedule.name}
                     label={work_schedule.name}
                   >
-                    {work_schedule.children.map(
-                      (work_schedule: IWorkSchedules) => (
-                        <Select.Option
-                          key={work_schedule.id}
-                          value={work_schedule.id}
-                        >
-                          {work_schedule.name}
-                        </Select.Option>
-                      )
-                    )}
+                    {work_schedule.children.map((work_schedule) => (
+                      <Select.Option
+                        key={work_schedule.id}
+                        value={work_schedule.id}
+                      >
+                        {work_schedule.name}
+                      </Select.Option>
+                    ))}
                   </Select.OptGroup>
                 ))}
               </Select>

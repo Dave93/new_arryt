@@ -9,15 +9,19 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useGetIdentity } from "@refinedev/core";
 import { ExportOutlined } from "@ant-design/icons";
+import { UsersModel } from "@api/src/modules/user/dto/list.dto";
+import { apiClient } from "@admin/src/eden";
+import { timesheet } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 const { RangePicker } = DatePicker;
 
-const UserRollCallList = ({ user }: { user: IUsers }) => {
+const UserRollCallList = ({ user }: { user: UsersModel }) => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [data, setData] = useState<ITimesheet[]>([]);
+  const [data, setData] = useState<InferSelectModel<typeof timesheet>[]>([]);
   const { handleSubmit, control, getValues } = useForm<{
     created_at: [dayjs.Dayjs, dayjs.Dayjs];
   }>({
@@ -35,26 +39,18 @@ const UserRollCallList = ({ user }: { user: IUsers }) => {
 
     const { created_at } = getValues();
 
-    const query = gql`
-      query {
-        courierRollCallList(
-          startDate: "${created_at[0].toISOString()}"
-          endDate: "${created_at[1].toISOString()}"
-            courierId: "${user.id}"
-        ) {
-            id
-            date
-            is_late
-            created_at
-            late_minutes
-        }
-      }
-    `;
-    const { courierRollCallList } = await client.request<{
-      courierRollCallList: ITimesheet[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-
-    setData(courierRollCallList);
+    const { data } = await apiClient.api.couriers.roll_call[user.id].get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+      $query: {
+        startDate: created_at[0].toISOString(),
+        endDate: created_at[1].toISOString(),
+      },
+    });
+    if (data && Array.isArray(data)) {
+      setData(data);
+    }
     setIsLoading(false);
   };
 

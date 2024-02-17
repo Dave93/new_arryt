@@ -8,14 +8,14 @@ import {
 import { Table, Switch, Space } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IDeliveryPricing } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
+import { OrderBonusPricingWithRelations } from "@api/src/modules/order_bonus_pricing/dto/list.dto";
 
 export const OrderBonusPricingList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<IDeliveryPricing>({
+  const { tableProps } = useTable<OrderBonusPricingWithRelations>({
     meta: {
       fields: ["id", "name", "organization.id", "organization.name", "active"],
       whereInputType: "order_bonus_pricingWhereInput!",
@@ -50,7 +50,7 @@ export const OrderBonusPricingList: React.FC = () => {
           <Table.Column
             dataIndex="organization.name"
             title="Организация"
-            render={(value: any, record: IDeliveryPricing) =>
+            render={(value: any, record: OrderBonusPricingWithRelations) =>
               record?.organization?.name
             }
           />
@@ -65,7 +65,7 @@ export const OrderBonusPricingList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<IDeliveryPricing>
+          <Table.Column<OrderBonusPricingWithRelations>
             title="Actions"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

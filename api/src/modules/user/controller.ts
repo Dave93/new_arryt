@@ -19,11 +19,15 @@ import {
   and,
   arrayContains,
   eq,
+  getTableColumns,
   gt,
+  gte,
   ilike,
   inArray,
+  lte,
   or,
   sql,
+  desc
 } from "drizzle-orm";
 import { generate } from "otp-generator";
 import { addMinutesToDate, getHours } from "@api/src/lib/dates";
@@ -37,14 +41,14 @@ import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
 import { getDistance } from "geolib";
-import { sortBy } from "lodash";
+import { List, sortBy, uniq } from "lodash";
 import { getSetting } from "@api/src/utils/settings";
 
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { ctx } from "@api/src/context";
+import { CourierEfficiencyReportItem, UsersModel, WalletStatus } from "./dto/list.dto";
 dayjs.extend(customParseFormat);
 
-type UsersModel = InferSelectModel<typeof users>;
 
 type RollCallCourier = {
   id: string;
@@ -118,7 +122,7 @@ const otpById = db.query.otp
   .prepare("otpById");
 
 export const UsersController = new Elysia({
-  name: '@app/users',
+  name: "@app/users",
 })
   .use(ctx)
   .post(
@@ -226,7 +230,7 @@ export const UsersController = new Elysia({
       body: { phone, otp, verificationKey, deviceToken, tgId },
       redis,
       set,
-      drizzle
+      drizzle,
     }) => {
       const currentDate = new Date();
 
@@ -370,8 +374,27 @@ export const UsersController = new Elysia({
   )
   .post(
     "/couriers/terminal_balance",
-    async ({ body: { terminal_id, courier_id, status }, drizzle }) => {
-      const result = await drizzle
+    async ({
+      body: { terminal_id, courier_id, status },
+      drizzle,
+      user,
+      set,
+    }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("orders.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
+
+      const result = (await drizzle
         .select({
           id: courier_terminal_balance.id,
           courier_id: courier_terminal_balance.courier_id,
@@ -407,7 +430,7 @@ export const UsersController = new Elysia({
             status ? inArray(users.status, status) : undefined
           )
         )
-        .execute();
+        .execute()) as WalletStatus[];
 
       return result;
     },
@@ -415,7 +438,15 @@ export const UsersController = new Elysia({
       body: t.Object({
         terminal_id: t.Optional(t.Array(t.String())),
         courier_id: t.Optional(t.Array(t.String())),
-        status: t.Optional(t.Array(selectUserSchema.properties.status)),
+        status: t.Optional(
+          t.Array(
+            t.Union([
+              t.Literal("active"),
+              t.Literal("inactive"),
+              t.Literal("blocked"),
+            ])
+          )
+        ),
       }),
     }
   )
@@ -548,7 +579,9 @@ export const UsersController = new Elysia({
       body: { lat_open, lon_open },
       user,
       set,
-      cacheControl, redis, processUpdateUserCache,
+      cacheControl,
+      redis,
+      processUpdateUserCache,
       drizzle,
       request,
     }) => {
@@ -638,9 +671,7 @@ export const UsersController = new Elysia({
         }
       });
 
-      const organization = await cacheControl.getOrganization(
-        organizationId!
-      );
+      const organization = await cacheControl.getOrganization(organizationId!);
 
       if (minDistance! > organization.max_distance) {
         set.status = 400;
@@ -828,17 +859,14 @@ export const UsersController = new Elysia({
               startTime.setSeconds(0);
               timesheetDate = startTime;
 
-              const scheduleStartTime = new Date(
-                `${schedule.max_start_time}`
-              );
+              const scheduleStartTime = new Date(`${schedule.max_start_time}`);
               scheduleStartTime.setDate(startTime.getDate());
               scheduleStartTime.setMonth(startTime.getMonth());
               scheduleStartTime.setFullYear(startTime.getFullYear());
               if (currentDate > scheduleStartTime) {
                 isLate = true;
                 lateMinutes = Math.round(
-                  (currentDate.getTime() - scheduleStartTime.getTime()) /
-                  60000
+                  (currentDate.getTime() - scheduleStartTime.getTime()) / 60000
                 );
               }
 
@@ -927,13 +955,26 @@ export const UsersController = new Elysia({
 
   .get(
     "/couriers/roll_coll",
-    async ({ redis, query: { date }, drizzle }) => {
+    async ({ redis, query: { date }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("terminals.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const terminalsRes = await redis.get(
         `${process.env.PROJECT_PREFIX}_terminals`
       );
-      let terminalsList = JSON.parse(
-        terminalsRes || "[]"
-      ) as InferSelectModel<typeof terminals>[];
+      let terminalsList = JSON.parse(terminalsRes || "[]") as InferSelectModel<
+        typeof terminals
+      >[];
       terminalsList = terminalsList.filter((terminal) => terminal.active);
       const res: {
         [key: string]: RollCallItem;
@@ -1004,7 +1045,6 @@ export const UsersController = new Elysia({
         });
       }
 
-      console.log("resCouriers", resCouriers);
       for (let i = 0; i < resCouriers.length; i++) {
         let userData = await redis.get(
           `${process.env.PROJECT_PREFIX}_user:${resCouriers[0].id}`
@@ -1054,11 +1094,57 @@ export const UsersController = new Elysia({
       }),
     }
   )
+  .get('/couriers/roll_call/:id', async ({ params: { id }, query: { startDate, endDate }, drizzle, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("terminals.list")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+
+    const items = await drizzle.select({
+      id: timesheet.id,
+      date: timesheet.date,
+      is_late: timesheet.is_late,
+      created_at: timesheet.created_at,
+      late_minutes: timesheet.late_minutes,
+    }).from(timesheet).where(and(
+      eq(timesheet.user_id, id),
+      gte(timesheet.date, startDate),
+      lte(timesheet.date, endDate)
+    )).orderBy(desc(timesheet.date)).execute() as InferSelectModel<typeof timesheet>[];
+
+    return items;
+  }, {
+    params: t.Object({
+      id: t.String()
+    }),
+    query: t.Object({
+      startDate: t.String(),
+      endDate: t.String()
+    })
+  })
   .get(
     "/couriers/search",
-    async ({ query: { search }, drizzle }) => {
+    async ({ query: { search }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+      const { password, ...fields } = getTableColumns(users);
       const couriersList = await drizzle
-        .select()
+        .select({
+          ...fields,
+        })
         .from(users)
         .leftJoin(users_roles, eq(users.id, users_roles.user_id))
         .leftJoin(roles, eq(users_roles.role_id, roles.id))
@@ -1082,6 +1168,23 @@ export const UsersController = new Elysia({
       }),
     }
   )
+  .get("/couriers/all", async ({ drizzle, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+    const { password, ...fields } = getTableColumns(users);
+    const couriersList = await drizzle
+      .select(fields)
+      .from(users)
+      .leftJoin(users_roles, eq(users.id, users_roles.user_id))
+      .leftJoin(roles, eq(users_roles.role_id, roles.id))
+      .where(and(eq(users.status, "active"), eq(roles.code, "courier")))
+      .execute() as InferSelectModel<typeof users>[];
+    return couriersList;
+  })
   .get(
     "/couriers/my_unread_notifications",
     async ({ redis, searchService, user }) => {
@@ -1089,24 +1192,34 @@ export const UsersController = new Elysia({
         return 0;
       }
 
+      // @ts-ignore
       const res = await searchService.myUnreadNotifications(user.user);
       return res;
     }
   )
   .get(
     "/users",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
-      let res: {
-        [key: string]: UsersModel & {
-          work_schedules: {
-            id: string;
-            user_id: string;
-            work_schedule_id: string;
-            start_time: string;
-            end_time: string;
-            day: string;
-          }[];
+    async ({
+      query: { limit, offset, sort, filters, fields },
+      drizzle,
+      user,
+      set,
+    }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
         };
+      }
+
+      if (!user.access.additionalPermissions.includes("users.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
+      let res: {
+        [key: string]: UsersModel;
       } = {};
       let selectFields: SelectedFields = {};
       if (fields) {
@@ -1181,58 +1294,286 @@ export const UsersController = new Elysia({
   )
   .get(
     "/users/:id",
-    async ({ params: { id }, drizzle }) => {
-      const permissionsRecord = await drizzle
+    async ({ params: { id }, query: { fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("users.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
+      let res: {
+        [key: string]: UsersModel;
+      } = {};
+      let selectFields: SelectedFields = {};
+      if (fields) {
+        selectFields = parseSelectFields(fields, users, {
+          work_schedules,
+          terminals,
+          users_roles,
+          roles
+        });
+      }
+      const usersDbSelect = drizzle
         .select()
         .from(users)
         .where(eq(users.id, id))
+        .limit(1)
+        .as("users");
+
+      // @ts-ignore
+      const usersList: UsersModel[] = await drizzle
+        .select(selectFields)
+        .from(usersDbSelect)
+        .leftJoin(
+          users_work_schedules,
+          eq(users.id, users_work_schedules.user_id)
+        )
+        .leftJoin(
+          work_schedules,
+          eq(work_schedules.id, users_work_schedules.work_schedule_id)
+        )
+        .leftJoin(
+          users_roles,
+          eq(users.id, users_roles.user_id)
+        )
+        .leftJoin(
+          roles,
+          eq(users_roles.role_id, roles.id)
+        )
+        .leftJoin(
+          users_terminals,
+          eq(users_terminals.user_id, users.id)
+        )
+        .leftJoin(
+          terminals,
+          eq(users_terminals.terminal_id, terminals.id)
+        )
         .execute();
+      usersList.forEach((user) => {
+        if (!res[user.id]) {
+          res[user.id] = {
+            ...user,
+            work_schedules: [],
+            terminals: []
+          };
+        }
+        // @ts-ignore
+        if (user.work_schedules) {
+          // @ts-ignore
+          res[user.id].work_schedules.push(user.work_schedules);
+        }
+
+        if (user.terminals) {
+          // @ts-ignore
+          res[user.id].terminals.push(user.terminals);
+        }
+
+        if (user.roles) {
+          res[user.id].roles = user.roles;
+        }
+      });
+
+      const resultUser = Object.values(res)[0];
+
+      if (resultUser.terminals && resultUser.terminals.length > 0) {
+        // remove duplicates, check by id field
+        resultUser.terminals = resultUser.terminals.filter(
+          (terminal, index, self) =>
+            index ===
+            self.findIndex((t) => t.id === terminal.id)
+        );
+      }
+
+      if (resultUser.work_schedules && resultUser.work_schedules.length > 0) {
+        // remove duplicates, check by id field
+        resultUser.work_schedules = resultUser.work_schedules.filter(
+          (work_schedule, index, self) =>
+            index ===
+            self.findIndex((ws) => ws.id === work_schedule.id)
+        );
+      }
+
       return {
-        data: permissionsRecord[0],
+        data: resultUser,
       };
     },
     {
       params: t.Object({
         id: t.String(),
       }),
+      query: t.Object({
+        fields: t.Optional(t.String()),
+      })
     }
   )
   .post(
     "/users",
-    async ({ body: { data, fields }, drizzle }) => {
-      let selectFields = {};
+    async ({ body: { data, fields }, drizzle, user, set, cacheControl }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("users.create")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
+      let selectFields = { id: users.id };
       if (fields) {
+        // @ts-ignore
         selectFields = parseSelectFields(fields, users, {});
       }
+
+      const {
+        roles,
+        usersTerminals,
+        usersWorkSchedules,
+        ...fieldValues
+      } = data;
+
       const result = await drizzle
         .insert(users)
-        .values(data)
+        .values(fieldValues)
         .returning(selectFields);
 
+      const createdUser = result[0];
+
+      await drizzle
+        .insert(users_roles)
+        .values({
+          user_id: createdUser.id,
+          role_id: roles,
+        })
+        .execute();
+
+      if (usersTerminals) {
+        await drizzle
+          .insert(users_terminals)
+          .values(usersTerminals.map(terminal_id => ({
+            user_id: createdUser.id,
+            terminal_id,
+          })))
+          .execute();
+      }
+
+      if (usersWorkSchedules) {
+        await drizzle
+          .insert(users_work_schedules)
+          .values(usersWorkSchedules.map(work_schedule_id => ({
+            user_id: createdUser.id,
+            work_schedule_id,
+          })))
+          .execute();
+      }
+      await cacheControl.cacheUser(createdUser.id);
       return {
-        data: result[0],
+        data: createdUser,
       };
     },
     {
       body: t.Object({
-        data: createInsertSchema(users) as any,
+        data: t.Object({
+          first_name: t.String(),
+          last_name: t.String(),
+          phone: t.String(),
+          status: t.Union([
+            t.Literal("active"),
+            t.Literal("inactive"),
+            t.Literal("blocked"),
+          ]),
+          drive_type: t.Optional(t.Union([t.Literal("car"), t.Literal("bike"), t.Literal("foot"), t.Literal("bycicle")])),
+          roles: t.String(),
+          usersTerminals: t.Array(t.String()),
+          usersWorkSchedules: t.Optional(t.Array(t.String())),
+          daily_garant_id: t.Optional(t.String()),
+          max_active_order_count: t.Optional(t.Number()),
+          card_name: t.Optional(t.String()),
+          card_number: t.Optional(t.String()),
+          car_model: t.Optional(t.String()),
+          car_number: t.Optional(t.String()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
   )
   .put(
     "/users/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, user, set, cacheControl }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("users.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, users, {});
       }
+      const {
+        roles,
+        usersTerminals,
+        usersWorkSchedules,
+        doc_files,
+        ...fieldValues
+      } = data;
+
       const result = await drizzle
         .update(users)
-        .set(data)
+        .set(fieldValues)
         .where(eq(users.id, id))
         .returning(selectFields);
 
+      await drizzle.delete(users_roles).where(eq(users_roles.user_id, id)).execute();
+
+      await drizzle
+        .insert(users_roles)
+        .values({
+          user_id: id,
+          role_id: roles,
+        })
+        .execute();
+
+      if (usersTerminals) {
+        await drizzle.delete(users_terminals).where(eq(users_terminals.user_id, id)).execute();
+        await drizzle
+          .insert(users_terminals)
+          .values(usersTerminals.map(terminal_id => ({
+            user_id: id,
+            terminal_id,
+          })))
+          .execute();
+      }
+
+      if (usersWorkSchedules) {
+        await drizzle.delete(users_work_schedules).where(eq(users_work_schedules.user_id, id)).execute();
+        await drizzle
+          .insert(users_work_schedules)
+          .values(usersWorkSchedules.map(work_schedule_id => ({
+            user_id: id,
+            work_schedule_id,
+          })))
+          .execute();
+      }
+
+      await cacheControl.cacheUser(id);
       return {
         data: result[0],
       };
@@ -1242,8 +1583,211 @@ export const UsersController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(users) as any,
-        fields: t.Optional(t.Array(t.String())),
+        data: t.Object({
+          first_name: t.String(),
+          last_name: t.String(),
+          phone: t.String(),
+          status: t.Union([
+            t.Literal("active"),
+            t.Literal("inactive"),
+            t.Literal("blocked"),
+          ]),
+          drive_type: t.Optional(t.Union([t.Literal("car"), t.Literal("bike"), t.Literal("foot"), t.Literal("bycicle")])),
+          roles: t.String(),
+          usersTerminals: t.Array(t.String()),
+          usersWorkSchedules: t.Optional(t.Array(t.String())),
+          daily_garant_id: t.Optional(t.String()),
+          max_active_order_count: t.Optional(t.Nullable(t.Number())),
+          card_name: t.Optional(t.Nullable(t.String())),
+          card_number: t.Optional(t.Nullable(t.String())),
+          car_model: t.Optional(t.Nullable(t.String())),
+          car_number: t.Optional(t.Nullable(t.String())),
+          order_start_date: t.Optional(t.Nullable(t.String())),
+        }),
+        fields: t.Optional(t.String()),
       }),
     }
   )
+  .post('/couriers/efficiency', async ({ body: { startDate, endDate, courier_id, terminal_id, status }, drizzle, user, set, cacheControl }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("orders.edit")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+
+    const query = await db.execute<{
+      courier_id: string;
+      terminal_id: string;
+      hour_period: string;
+      courier_count: number;
+      total_count: number;
+      courier_percentage: number;
+    }>(sql.raw(`WITH total_orders AS (
+      SELECT terminal_id,
+             (CASE
+                WHEN extract(hour from created_at) BETWEEN 5 AND 9 THEN '10:00-15:00'
+                WHEN extract(hour from created_at) BETWEEN 10 AND 16 THEN '15:00-22:00'
+                ELSE '22:00-03:00'
+               END) AS hour_period,
+             count(*) AS total_count
+      FROM orders
+      WHERE created_at BETWEEN '${dayjs(startDate).add(-5, 'hour').format('YYYY-MM-DD HH:mm:ss')}' AND '${dayjs(endDate)
+        .add(-5, 'hour')
+        .format('YYYY-MM-DD HH:mm:ss')}'
+      ${terminal_id && terminal_id.length ? `AND terminal_id IN ('${terminal_id.join("','")}')` : ''}
+      GROUP BY terminal_id, hour_period
+    ), courier_orders AS (
+      SELECT terminal_id, courier_id,
+             (CASE
+                WHEN extract(hour from created_at) BETWEEN 5 AND 9 THEN '10:00-15:00'
+                WHEN extract(hour from created_at) BETWEEN 10 AND 16 THEN '15:00-22:00'
+                ELSE '22:00-03:00'
+               END) AS hour_period,
+             count(*) AS courier_count
+      FROM orders
+      WHERE created_at BETWEEN '${dayjs(startDate).add(-5, 'hour').format('YYYY-MM-DD HH:mm:ss')}' AND '${dayjs(endDate)
+        .add(-5, 'hour')
+        .format('YYYY-MM-DD HH:mm:ss')}'
+        ${courier_id ? `AND courier_id = '${courier_id}'` : ''}
+        ${terminal_id && terminal_id.length ? `AND terminal_id IN ('${terminal_id.join("','")}')` : ''}
+      GROUP BY terminal_id, courier_id, hour_period
+    )
+    SELECT courier_orders.terminal_id, courier_orders.courier_id, courier_orders.hour_period,
+           courier_orders.courier_count, total_orders.total_count,
+           (courier_orders.courier_count / total_orders.total_count) * 100 AS courier_percentage
+    FROM total_orders
+           JOIN courier_orders
+                ON total_orders.terminal_id = courier_orders.terminal_id
+                  AND total_orders.hour_period = courier_orders.hour_period`));
+
+    const res: CourierEfficiencyReportItem[] = [];
+    const courierIds: string[] = [];
+    const terminalIds: string[] = [];
+    query.forEach((item) => {
+      if (!courierIds.includes(item.courier_id)) {
+        courierIds.push(item.courier_id);
+      }
+      if (!terminalIds.includes(item.terminal_id)) {
+        terminalIds.push(item.terminal_id);
+      }
+    });
+
+    // remove null values from courierIds
+    const filteredCourierIds = courierIds.filter((courierId) => courierId !== null);
+
+    let whereClause: (SQLWrapper | undefined)[] = [
+    ];
+
+    if (filteredCourierIds.length > 0) {
+      whereClause.push(inArray(users.id, filteredCourierIds));
+    }
+
+    if (status && status.length) {
+      whereClause.push(eq(users.status, status));
+    }
+
+    const courierData: Record<string, any> = {};
+    const couriers = await drizzle.select({
+      id: users.id,
+      first_name: users.first_name,
+      last_name: users.last_name,
+      phone: users.phone,
+      drive_type: users.drive_type,
+    }).from(users).where(and(...whereClause)).execute();
+    couriers.forEach((courier) => {
+      courierData[courier.id] = courier;
+    });
+
+    const terminalsList = await cacheControl.getTerminals();
+    const terminalData: Record<string, InferSelectModel<typeof terminals>> = {};
+    terminalsList.forEach((terminal) => {
+      terminalData[terminal.id] = terminal;
+    });
+
+    const resultData: Record<string, {
+      courier_id: string;
+      first_name: string;
+      last_name: string;
+      phone: string;
+      drive_type: string;
+      courier_count: number;
+      total_count: number;
+      efficiency: number | string;
+      terminals: {
+        terminal_id: string;
+        terminal_name: string;
+        courier_count: number;
+        total_count: number;
+        efficiency: number;
+        hour_period: string;
+        courier_percentage: number;
+      }[];
+    }> = {};
+    query.forEach((item) => {
+      const courier = courierData[item.courier_id];
+      const terminal = terminalData[item.terminal_id];
+      if (courier && terminal) {
+        if (!resultData[item.courier_id]) {
+          resultData[item.courier_id] = {
+            courier_id: item.courier_id,
+            first_name: courier.first_name,
+            last_name: courier.last_name,
+            phone: courier.phone,
+            drive_type: courier.drive_type,
+            courier_count: 0,
+            total_count: 0,
+            efficiency: 0,
+            terminals: [],
+          };
+        }
+
+        let couriersForPeriod: any[] | null | undefined = [];
+        if (couriersForPeriod.length) {
+          couriersForPeriod = couriersForPeriod.filter((courierId) => courierId !== null);
+          couriersForPeriod = uniq(couriersForPeriod);
+        }
+
+        const countOfCouriers = couriersForPeriod.length;
+
+        resultData[item.courier_id].terminals.push({
+          terminal_id: item.terminal_id,
+          terminal_name: terminal.name,
+          courier_count: Number(item.courier_count),
+          total_count: Number(item.total_count),
+          efficiency: item.courier_percentage,
+          hour_period: item.hour_period,
+          courier_percentage: item.courier_percentage,
+        });
+      }
+    });
+
+    Object.keys(resultData).forEach((key) => {
+      const courier = resultData[key];
+      let efficiency = 0;
+      courier.terminals.forEach((terminal) => {
+        courier.courier_count += terminal.courier_count;
+        courier.total_count += terminal.total_count;
+        efficiency += +terminal.efficiency;
+      });
+      courier.efficiency = (efficiency / courier.terminals.length).toFixed(1);
+      res.push(courier);
+    });
+
+    return res;
+  }, {
+    body: t.Object({
+      startDate: t.String(),
+      endDate: t.String(),
+      courier_id: t.Optional(t.String()),
+      terminal_id: t.Optional(t.Array(t.String())),
+      status: t.Optional(t.Union([t.Literal('active'), t.Literal('inactive'), t.Literal('blocked')])),
+    })
+  })

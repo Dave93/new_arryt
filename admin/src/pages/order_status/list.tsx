@@ -2,13 +2,13 @@ import { List, useTable, EditButton } from "@refinedev/antd";
 import { Table, Switch, Space } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IOrderStatus } from "@admin/src/interfaces";
+import { OrderStatusWithRelations } from "@api/src/modules/order_status/dto/list.dto";
 
 export const OrderStatusList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<IOrderStatus>({
+  const { tableProps } = useTable<OrderStatusWithRelations>({
     meta: {
       fields: [
         "id",
@@ -25,9 +25,6 @@ export const OrderStatusList: React.FC = () => {
         "yandex_delivery_statuses",
         "organization.id",
         "organization.name",
-        // {
-        //   organization: ["id", "name"],
-        // },
       ],
       whereInputType: "order_statusWhereInput!",
       orderByInputType: "order_statusOrderByWithRelationInput!",
@@ -55,7 +52,7 @@ export const OrderStatusList: React.FC = () => {
           <Table.Column
             dataIndex="organization.name"
             title="Организация"
-            render={(value: any, record: IOrderStatus) =>
+            render={(value: any, record: OrderStatusWithRelations) =>
               record.organization.name
             }
           />
@@ -112,7 +109,7 @@ export const OrderStatusList: React.FC = () => {
               ></div>
             )}
           />
-          <Table.Column<IOrderStatus>
+          <Table.Column<OrderStatusWithRelations>
             title="Actions"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

@@ -2,17 +2,19 @@ import { Edit, useForm } from "@refinedev/antd";
 import { Col, Form, Input, InputNumber, Row, Switch } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IOrderStatus, IOrganization } from "@admin/src/interfaces";
 import { useEffect, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { Colorpicker } from "antd-colorpicker";
+import { apiClient } from "@admin/src/eden";
+import { order_status, organization } from "@api/drizzle/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 export const OrderStatusEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps, id } = useForm<IOrderStatus>({
+  const { formProps, saveButtonProps, id } = useForm<
+    InferInsertModel<typeof order_status>
+  >({
     meta: {
       fields: [
         "id",
@@ -38,28 +40,22 @@ export const OrderStatusEdit: React.FC = () => {
     },
   });
 
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
 
   const fetchOrganizations = async () => {
-    const query = gql`
-      query {
-        cachedOrganizations {
-          id
-          name
-        }
-      }
-    `;
-
-    const { cachedOrganizations } = await client.request<{
-      cachedOrganizations: IOrganization[];
-    }>(
-      query,
-      {},
-      {
-        Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
-    setOrganizations(cachedOrganizations);
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $fetch: {
+          headers: {
+            Authorization: `Bearer ${identity?.token.accessToken}`,
+          },
+        },
+      });
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations([...organizations]);
+    }
   };
 
   useEffect(() => {

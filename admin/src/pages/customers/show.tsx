@@ -10,14 +10,7 @@ export const CustomersShow = () => {
   }>();
   const { queryResult } = useShow({
     meta: {
-      fields: [
-        "id",
-        "name",
-        "phone",
-        {
-          customers_comments_customers: ["id", "comment", "created_at"],
-        },
-      ],
+      fields: ["id", "name", "phone"],
       pluralize: true,
       requestHeaders: {
         Authorization: `Bearer ${identity?.token.accessToken}`,

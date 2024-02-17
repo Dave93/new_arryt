@@ -2,7 +2,7 @@ import { CacheControlService } from "@api/src/modules/cache/service";
 import { DB } from "@api/src/lib/db";
 import { OrderMobilePeriodStat, OrdersLocationEntity } from "@api/src/services/search/search.dto";
 import { and, eq, gte, InferSelectModel, lte, sql } from "drizzle-orm";
-import { order_transactions, orders, users } from "@api/drizzle/schema";
+import { order_status, order_transactions, orders, users } from "@api/drizzle/schema";
 import { getSetting } from "@api/src/utils/settings";
 import dayjs from "dayjs";
 import Redis from "ioredis";
@@ -81,7 +81,7 @@ export class SearchService {
                     body: JSON.stringify(indexMapping),
                 });
             }
-        } catch (e) {
+        } catch (e: any) {
             console.log(e.message);
         }
     }
@@ -292,7 +292,7 @@ export class SearchService {
                     body: JSON.stringify(indexMapping),
                 });
             }
-        } catch (e) {
+        } catch (e: any) {
             console.log(e.message);
         }
     }
@@ -417,12 +417,12 @@ export class SearchService {
         const canceledStatuses = orderStatuses.filter((status) => status.cancel).map((status) => status.id);
         const currentUser = await this.cacheControl.getUser(user.id);
 
-        const finishedMatch = [];
+        const finishedMatch: { match_phrase: { order_status_id: string } }[] = [];
         finishedStatuses.forEach((status) => {
             finishedMatch.push({ match_phrase: { order_status_id: status } });
         });
 
-        const canceledMatch = [];
+        const canceledMatch: { match_phrase: { order_status_id: string } }[] = [];
         canceledStatuses.forEach((status) => {
             canceledMatch.push({ match_phrase: { order_status_id: status } });
         });
@@ -1021,7 +1021,7 @@ export class SearchService {
 
         const result = await resultJson.json();
 
-        const { responses } = result;
+        const { responses }: { responses: any[] } = result;
 
         const res: OrderMobilePeriodStat[] = [];
         const data: OrderMobilePeriodStat = {
@@ -1578,7 +1578,14 @@ export class SearchService {
         value: string;
     }[], take: number, skip: number) {
         const indexName = `${process.env.PROJECT_SEARCH_PREFIX}_notifications`;
-        const query = {
+        const query: {
+            bool: {
+                must: any[];
+                filter: any[];
+                should: any[];
+                must_not: any[];
+            };
+        } = {
             bool: {
                 must: [],
                 filter: [],
@@ -1698,7 +1705,14 @@ export class SearchService {
         value: string;
     }[], skip: number) {
         const indexName = `${process.env.PROJECT_SEARCH_PREFIX}_missed_orders`;
-        const query = {
+        const query: {
+            bool: {
+                must: any[];
+                filter: any[];
+                should: any[];
+                must_not: any[];
+            };
+        } = {
             bool: {
                 must: [],
                 filter: [],
@@ -1840,7 +1854,14 @@ export class SearchService {
         value: string;
     }[]) {
         const indexName = `${process.env.PROJECT_SEARCH_PREFIX}_notifications`;
-        const query = {
+        const query: {
+            bool: {
+                must: any[];
+                filter: any[];
+                should: any[];
+                must_not: any[];
+            };
+        } = {
             bool: {
                 must: [],
                 filter: [],
@@ -1959,7 +1980,14 @@ export class SearchService {
         value: string;
     }[]) {
         const indexName = `${process.env.PROJECT_SEARCH_PREFIX}_missed_orders`;
-        const query = {
+        const query: {
+            bool: {
+                must: any[];
+                filter: any[];
+                should: any[];
+                must_not: any[];
+            };
+        } = {
             bool: {
                 must: [],
                 filter: [],
@@ -2656,7 +2684,7 @@ export class SearchService {
 
         const result = await resultJson.json();
 
-        return result.hits.hits.map((hit) => ({ id: hit._id, ...hit._source }));
+        return result.hits.hits.map((hit: any) => ({ id: hit._id, ...hit._source }));
     }
 
     async getYandexDeliveryOrders(yesterday: Date, today: Date) {
@@ -2689,7 +2717,7 @@ export class SearchService {
 
         const result = await resultJson.json();
 
-        return result.hits.hits.map((hit) => ({ id: hit._id, ...hit._source }));
+        return result.hits.hits.map((hit: any) => ({ id: hit._id, ...hit._source }));
     }
 
     async getYandexDeliveryByOrderId(orderId: string) {
@@ -2719,7 +2747,7 @@ export class SearchService {
 
         const result = await resultJson.json();
 
-        return result.hits.hits.map((hit) => ({ id: hit._id, ...hit._source }))[0];
+        return result.hits.hits.map((hit: any) => ({ id: hit._id, ...hit._source }))[0];
     }
 
     async removeAcceptedYandexDeliveryByOrderId(orderId: string) {
@@ -2748,7 +2776,7 @@ export class SearchService {
             const res = await resultJson.json();
 
             if (res.hits.hits.length > 0) {
-                const order: any = res.hits.hits.map((hit) => ({ id: hit._id, ...hit._source }))[0];
+                const order: any = res.hits.hits.map((hit: any) => ({ id: hit._id, ...hit._source }))[0];
                 if (order.order_data && order.order_data.id) {
                     const yandexUrl = `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${order.order_data.id}`;
                     await fetch(yandexUrl, {
@@ -2844,7 +2872,7 @@ export class SearchService {
 
         const result = await resultJson.json();
 
-        return result.hits.hits.map((hit) => ({ id: hit._id, ...hit._source }));
+        return result.hits.hits.map((hit: any) => ({ id: hit._id, ...hit._source }));
     }
 
     async saveSentReport(param: { created_at: Date; report_code: string }) {
@@ -2881,7 +2909,7 @@ export class SearchService {
 
         const result = await resultJson.json();
 
-        return result.hits.hits.map((hit) => ({ id: hit._id, ...hit._source }));
+        return result.hits.hits.map((hit: any) => ({ id: hit._id, ...hit._source }));
     }
 
     async getOrderLocationLastIncrement(indexName: string) {
@@ -2992,7 +3020,7 @@ export class SearchService {
         const res = await resultJson.json();
 
         if (res.hits.hits.length > 0) {
-            const result = res.hits.hits.map((hit) => hit._source);
+            const result = res.hits.hits.map((hit: any) => hit._source);
             if (limit == 1) {
                 return result[0];
             }

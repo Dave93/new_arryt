@@ -4,8 +4,6 @@ import { PhoneOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import dayjs from "dayjs";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { RollCallItem } from "@admin/src/interfaces";
 import {
   Card as TremorCard,
@@ -56,7 +54,12 @@ export const RollCallList = () => {
         date: filteredDate.toISOString(),
       },
     });
-    setData(rollCallList ?? []);
+
+    if (rollCallList && Array.isArray(rollCallList)) {
+      setData(rollCallList);
+      setFilteredData(rollCallList);
+    }
+    // setData(rollCallList ?? []);
     //   if (status) {
     //     calculateGarant = calculateGarant.filter(
     //       (item) => item.status === status
@@ -68,7 +71,7 @@ export const RollCallList = () => {
     //     );
     //   }
 
-    setFilteredData(rollCallList ?? []);
+    // setFilteredData(rollCallList ?? []);
     setIsLoading(false);
   };
 

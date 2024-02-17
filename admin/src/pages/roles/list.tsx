@@ -8,14 +8,15 @@ import {
 import { Table, Switch, Space } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IRoles } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
+import { roles } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 export const RolesList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<IRoles>({
+  const { tableProps } = useTable<InferSelectModel<typeof roles>>({
     meta: {
       fields: ["id", "name", "active"],
       whereInputType: "rolesWhereInput!",
@@ -55,7 +56,7 @@ export const RolesList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<IRoles>
+          <Table.Column<InferSelectModel<typeof roles>>
             title="Actions"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

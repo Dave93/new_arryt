@@ -1,43 +1,30 @@
-import {
-  Create,
-  List,
-  ShowButton,
-  useDrawerForm,
-  useTable,
-} from "@refinedev/antd";
+import { List, useTable } from "@refinedev/antd";
 import {
   Button,
   Checkbox,
   Col,
   DatePicker,
-  Drawer,
   Form,
-  Input,
   Row,
   Select,
   Space,
   Table,
   Tag,
 } from "antd";
-import {
-  CrudFilters,
-  HttpError,
-  SortOrder,
-  useGetIdentity,
-} from "@refinedev/core";
+import { CrudFilters, HttpError, useGetIdentity } from "@refinedev/core";
 import { useQueryClient } from "@tanstack/react-query";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 import dayjs from "dayjs";
-import { IMissedOrderEntity, IOrders, ITerminals } from "@admin/src/interfaces";
+import { IMissedOrderEntity, IOrders } from "@admin/src/interfaces";
 import { rangePresets } from "@admin/src/components/dates/RangePresets";
 import { useEffect, useState } from "react";
 import { sortBy } from "lodash";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
 import { SendOrderToYandex } from "@admin/src/components/orders/sendToYandex";
 import { TrySendMultiYandex } from "@admin/src/components/orders/trySendMultiYandex";
-import { ResentToYandex } from "@admin/src/components/orders/resendToYandex";
 import { apiClient } from "@admin/src/eden";
+import { InferSelectModel } from "drizzle-orm";
+import { terminals } from "@api/drizzle/schema";
+import { MissedOrders } from "@api/src/modules/missed_orders/dto/list.dto";
 
 const { RangePicker } = DatePicker;
 
@@ -45,18 +32,14 @@ const MissedOrdersList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
 
   const queryClient = useQueryClient();
 
-  const {
-    tableProps,
-    searchFormProps,
-    filters,
-    sorters: sorter,
-    setFilters,
-  } = useTable<
-    IMissedOrderEntity,
+  const { tableProps, searchFormProps } = useTable<
+    MissedOrders,
     HttpError,
     {
       created_at: [dayjs.Dayjs, dayjs.Dayjs];
@@ -98,7 +81,7 @@ const MissedOrdersList: React.FC = () => {
       console.log("params", params);
 
       // queryClient.invalidateQueries();
-      const { created_at, status, role, terminal_id, need_action } = params;
+      const { created_at, terminal_id, need_action } = params;
 
       localFilters.push(
         {
@@ -171,23 +154,9 @@ const MissedOrdersList: React.FC = () => {
         },
       },
     });
-    setTerminals(sortBy(terminalsData, (item) => item.name));
-  };
-
-  const changeStatus = async (id: string, status: string) => {
-    const query = gql`
-      mutation ($id: String!, $status: String!) {
-        updateMissedOrder(id: $id, status: $status)
-      }
-    `;
-    await client.request(
-      query,
-      { id, status },
-      {
-        Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
-    queryClient.invalidateQueries(["default", "missed_orders", "list"]);
+    if (terminalsData && Array.isArray(terminalsData)) {
+      setTerminals(sortBy(terminalsData, (item) => item.name));
+    }
   };
 
   useEffect(() => {
@@ -328,7 +297,7 @@ const MissedOrdersList: React.FC = () => {
                   allowClear
                   mode="multiple"
                 >
-                  {terminals.map((terminal: any) => (
+                  {terminalsList.map((terminal: any) => (
                     <Select.Option key={terminal.id} value={terminal.id}>
                       {terminal.name}
                     </Select.Option>

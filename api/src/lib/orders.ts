@@ -1,4 +1,4 @@
-import { orders } from "@api/drizzle/schema";
+import { order_status, orders } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { CacheControlService } from "../modules/cache/service";
 
@@ -7,7 +7,9 @@ export const prepareOrdersNextButton = async (ordersList: any[], cacheControl: C
     // sort order statuses by sort field
     const sortedOrderStatuses = orderStatuses.sort((a, b) => a.sort - b.sort);
     // order statuses by organization
-    const orderStatusesByOrganization = {} as any;
+    const orderStatusesByOrganization = {} as {
+        [key in string]: InferSelectModel<typeof order_status>[];
+    };
     sortedOrderStatuses.forEach((orderStatus) => {
         if (!orderStatusesByOrganization[orderStatus.organization_id]) {
             orderStatusesByOrganization[orderStatus.organization_id] = [];

@@ -10,6 +10,7 @@ import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
+import { DeliveryPricingWithRelations } from "./dto/list.dto";
 
 export const DeliveryPricingController = new Elysia({
   name: "@app/delivery_pricing",
@@ -17,7 +18,20 @@ export const DeliveryPricingController = new Elysia({
   .use(ctx)
   .get(
     "/delivery_pricing",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("delivery_pricing.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, delivery_pricing, {
@@ -45,7 +59,7 @@ export const DeliveryPricingController = new Elysia({
         .where(and(...whereClause))
         .limit(+limit)
         .offset(+offset)
-        .execute();
+        .execute() as DeliveryPricingWithRelations[];
       return {
         total: rolesCount[0].count,
         data: rolesList,
@@ -61,7 +75,20 @@ export const DeliveryPricingController = new Elysia({
       }),
     }
   )
-  .get("/delivery_pricing/cached", async ({ redis }) => {
+  .get("/delivery_pricing/cached", async ({ redis, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("delivery_pricing.list")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
     const res = await redis.get(
       `${process.env.PROJECT_PREFIX}_delivery_pricing`
     );
@@ -69,7 +96,20 @@ export const DeliveryPricingController = new Elysia({
   })
   .get(
     "/delivery_pricing/:id",
-    async ({ params: { id }, drizzle }) => {
+    async ({ params: { id }, drizzle, set, user }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("delivery_pricing.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const permissionsRecord = await drizzle
         .select()
         .from(delivery_pricing)
@@ -87,7 +127,20 @@ export const DeliveryPricingController = new Elysia({
   )
   .post(
     "/delivery_pricing",
-    async ({ body: { data, fields }, drizzle }) => {
+    async ({ body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("delivery_pricing.create")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, delivery_pricing, {});
@@ -110,7 +163,20 @@ export const DeliveryPricingController = new Elysia({
   )
   .put(
     "/delivery_pricing/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, set, user }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("delivery_pricing.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, delivery_pricing, {});

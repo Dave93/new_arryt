@@ -28,6 +28,7 @@ import isBetween from "dayjs/plugin/isBetween";
 import timezone from "dayjs/plugin/timezone";
 import { getSetting } from "@api/src/utils/settings";
 import { ctx } from "@api/src/context";
+import { MissedOrders } from "./dto/list.dto";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -40,7 +41,20 @@ export const MissedOrdersController = new Elysia({
     .use(ctx)
     .get(
         "/missed_orders",
-        async ({ query: { limit, offset, sort, filters, fields, ext_all }, redis, cacheControl, drizzle }) => {
+        async ({ query: { limit, offset, sort, filters, fields, ext_all }, redis, cacheControl, drizzle, user, set }) => {
+            if (!user) {
+                set.status = 401;
+                return {
+                    message: "User not found",
+                };
+            }
+
+            if (!user.access.additionalPermissions.includes("orders.list")) {
+                set.status = 401;
+                return {
+                    message: "You don't have permissions",
+                };
+            }
 
             const laterMinutes = await getSetting(redis, 'late_order_time');
             let selectFields: SelectedFields = {};
@@ -103,7 +117,7 @@ export const MissedOrdersController = new Elysia({
                 .limit(+limit)
                 .offset(+offset)
                 .orderBy(desc(orders.created_at))
-                .execute();
+                .execute() as MissedOrders[];
             return {
                 total: rolesCount[0].count,
                 data: rolesList,
@@ -118,13 +132,24 @@ export const MissedOrdersController = new Elysia({
                 fields: t.Optional(t.String()),
                 ext_all: t.Optional(t.Nullable(t.String()))
             }),
-            beforeHandle: checkRestPermission,
         }
     )
-    .decorate('permission', 'orders.list')
     .post('/missed_orders/send_yandex', async ({ processCheckAndSendYandex, body: {
         id
-    } }) => {
+    }, user, set }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.list")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
         await processCheckAndSendYandex.add('checkAndSendYandex', {
             id
         }, { removeOnComplete: true });
@@ -133,5 +158,4 @@ export const MissedOrdersController = new Elysia({
         body: t.Object({
             id: t.String(),
         }),
-        beforeHandle: checkRestPermission,
     })

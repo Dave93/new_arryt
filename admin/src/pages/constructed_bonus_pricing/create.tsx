@@ -10,44 +10,28 @@ import {
   Row,
   Select,
   Space,
-  Switch,
-  TimePicker,
 } from "antd";
 
 import { PlusOutlined, DeleteOutlined, CloseOutlined } from "@ant-design/icons";
-import { useGetIdentity, useTranslate } from "@refinedev/core";
+import { useGetIdentity } from "@refinedev/core";
 
-import {
-  IConstructedBonusPricing,
-  IDeliveryPricing,
-  IOrganization,
-  ITerminals,
-  IUsers,
-} from "@admin/src/interfaces";
-import { drive_type } from "@admin/src/interfaces/enums";
 import { useEffect, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
-import { organization_payment_types } from "@admin/src/interfaces/enums";
 
 import isBetween from "dayjs/plugin/isBetween";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import DebounceSelect from "@admin/src/components/select/debounceSelector";
 import { apiClient } from "@admin/src/eden";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import {
+  constructed_bonus_pricing,
+  organization,
+  terminals,
+} from "@api/drizzle/schema";
 
-let daysOfWeekRu = {
-  "1": "Понедельник",
-  "2": "Вторник",
-  "3": "Среда",
-  "4": "Четверг",
-  "5": "Пятница",
-  "6": "Суббота",
-  "7": "Воскресенье",
-};
+import { sortBy } from "lodash";
 
-const format = "HH:mm";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -59,7 +43,9 @@ export const ConstructedBonusPricingCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IConstructedBonusPricing>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof constructed_bonus_pricing>
+  >({
     meta: {
       fields: ["id", "name", "organization_id", "pricing"],
       pluralize: true,
@@ -69,31 +55,31 @@ export const ConstructedBonusPricingCreate = () => {
     },
   });
 
-  const tr = useTranslate();
-
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
 
   const fetchOrganizations = async () => {
-    const query = gql`
-      query {
-        cachedOrganizations {
-          id
-          name
-        }
-        cachedTerminals {
-          id
-          name
-        }
-      }
-    `;
-
-    const { cachedOrganizations, cachedTerminals } = await client.request<{
-      cachedOrganizations: IOrganization[];
-      cachedTerminals: ITerminals[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setOrganizations(cachedOrganizations);
-    setTerminals(cachedTerminals);
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
   const fetchCourier = async (queryText: string) => {
@@ -101,15 +87,21 @@ export const ConstructedBonusPricingCreate = () => {
       $query: {
         search: queryText,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    // @ts-ignore
-    return (
-      users?.map((user) => ({
-        key: user.users.id,
-        value: user.users.id,
-        label: `${user.users.first_name} ${user.users.last_name} (${user.users.phone})`,
-      })) ?? []
-    );
+    if (users && Array.isArray(users)) {
+      return (
+        users?.map((user) => ({
+          key: user.id,
+          value: user.id,
+          label: `${user.first_name} ${user.last_name} (${user.phone})`,
+        })) ?? []
+      );
+    } else {
+      return [];
+    }
   };
 
   useEffect(() => {
@@ -157,7 +149,7 @@ export const ConstructedBonusPricingCreate = () => {
           {(pricingFields, { add, remove }) => {
             return (
               <div>
-                {pricingFields.map((pricingField, index) => (
+                {pricingFields.map((pricingField) => (
                   <div
                     key={pricingField.key}
                     // className="border-2 rounded-lg shadow-md px-5 py-4 "
@@ -186,7 +178,7 @@ export const ConstructedBonusPricingCreate = () => {
                               allowClear
                               mode="multiple"
                             >
-                              {terminals.map((terminal) => (
+                              {terminalsList.map((terminal) => (
                                 <Select.Option
                                   key={terminal.id}
                                   value={terminal.id}

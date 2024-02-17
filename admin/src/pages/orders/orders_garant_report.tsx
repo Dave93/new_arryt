@@ -22,9 +22,9 @@ import { Controller, useForm } from "react-hook-form";
 import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
-import { GarantReportItem, ITerminals, IUsers } from "@admin/src/interfaces";
+import { GarantReportItem, IUsers } from "@admin/src/interfaces";
 import { ExportOutlined } from "@ant-design/icons";
-import { chain, sortBy, sumBy } from "lodash";
+import { chain, sumBy } from "lodash";
 import { drive_type, user_status } from "@admin/src/interfaces/enums";
 import { ArrowDownIcon } from "@heroicons/react/24/solid";
 import { useDownloadExcel } from "react-export-table-to-excel";
@@ -32,6 +32,8 @@ import { useDownloadExcel } from "react-export-table-to-excel";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { apiClient } from "@admin/src/eden";
+import { users, terminals } from "@api/drizzle/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -44,8 +46,12 @@ const OrdersGarantReport = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [garantData, setGarantData] = useState<GarantReportItem[]>([]);
   const [filteredData, setFilteredData] = useState<GarantReportItem[]>([]);
-  const [couriersList, setCouriersList] = useState<IUsers[]>([]);
-  const [terminals, setTerminals] = useState<any[]>([]);
+  const [couriersList, setCouriersList] = useState<
+    InferSelectModel<typeof users>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
   const [orderField, setOrderField] = useState<string | undefined>();
   const [direction, setDirection] = useState<"asc" | "desc" | undefined>();
   const { handleSubmit, control, watch } = useForm();
@@ -95,7 +101,7 @@ const OrdersGarantReport = () => {
       },
     });
 
-    if (data) {
+    if (data && Array.isArray(data)) {
       setGarantData(data);
       if (status) {
         data = data.filter((item) => item.status === status);
@@ -117,7 +123,7 @@ const OrdersGarantReport = () => {
     saveButtonProps,
     deleteButtonProps,
     id,
-  } = useDrawerForm<IUsers>({
+  } = useDrawerForm<InferInsertModel<typeof users>>({
     action: "edit",
     resource: "users",
     redirect: false,
@@ -379,7 +385,7 @@ const OrdersGarantReport = () => {
                           allowClear
                           mode="multiple"
                         >
-                          {terminals.map((terminal: any) => (
+                          {terminalsList.map((terminal: any) => (
                             <Select.Option
                               key={terminal.id}
                               value={terminal.id}

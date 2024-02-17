@@ -11,7 +11,20 @@ export const PermissionsController = new Elysia({
   .use(ctx)
   .get(
     "/permissions",
-    async ({ query: { limit, offset, sort, filter, fields }, drizzle }) => {
+    async ({ query: { limit, offset, sort, filter, fields }, drizzle, set, user }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("permissions.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});
@@ -49,13 +62,40 @@ export const PermissionsController = new Elysia({
       }),
     }
   )
-  .get("/permissions/cached", async ({ redis }) => {
+  .get("/permissions/cached", async ({ redis, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("permissions.list")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_permissions`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof permissions>[];
   })
   .get(
     "/permissions/:id",
-    async ({ params: { id }, drizzle }) => {
+    async ({ params: { id }, drizzle, user, set }) => {
+
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("permissions.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const permissionsRecord = await drizzle
         .select()
         .from(permissions)
@@ -73,7 +113,20 @@ export const PermissionsController = new Elysia({
   )
   .post(
     "/permissions",
-    async ({ body: { data, fields }, drizzle }) => {
+    async ({ body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("permissions.create")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});
@@ -100,7 +153,20 @@ export const PermissionsController = new Elysia({
   )
   .put(
     "/permissions/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("permissions.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});

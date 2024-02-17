@@ -2,14 +2,17 @@ import { Edit, useForm } from "@refinedev/antd";
 import { Col, Form, Input, Row } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IBrands } from "@admin/src/interfaces";
 import FileUploader from "@admin/src/components/file_uploader";
+import { brands } from "@api/drizzle/schema";
+import { InferInsertModel } from "drizzle-orm";
 
 export const BrandsEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps, id } = useForm<IBrands>({
+  const { formProps, saveButtonProps, id } = useForm<
+    InferInsertModel<typeof brands>
+  >({
     meta: {
       fields: ["id", "name", "api_url", "logo_path"],
       pluralize: true,

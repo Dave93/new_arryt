@@ -8,6 +8,7 @@ import { Queue } from "bullmq";
 import { verifyJwt } from "../utils/bcrypt";
 import { SearchService } from "../services/search/service";
 import { UserResponseDto } from "../modules/user/users.dto";
+import { duckdb } from "../lib/duck";
 
 export const client = new Redis({
   port: 6379, // Redis port
@@ -17,38 +18,38 @@ export const client = new Redis({
 export const cacheControlService = new CacheControlService(db, client);
 
 const searchService = new SearchService(cacheControlService, db, client);
-const permissionExtension = new Elysia({
-  name: "permission_extension",
-}).macro(({ onBeforeHandle }) => {
-  return {
-    permission(permission: string) {
-      onBeforeHandle(({ user, set }) => {
-        console.log("user", user);
-        if (!user) {
-          console.log("set.status");
-          return new Response(
-            JSON.stringify({
-              error: "User not found",
-            }),
-            {
-              status: 401,
-            }
-          );
-          return (set.status = 401);
-          return error(401, "User not found");
-        }
+// const permissionExtension = new Elysia({
+//   name: "permission_extension",
+// }).macro(({ onBeforeHandle }) => {
+//   return {
+//     permission(permission: string) {
+//       onBeforeHandle(({ user, set }) => {
+//         console.log("user", user);
+//         if (!user) {
+//           console.log("set.status");
+//           return new Response(
+//             JSON.stringify({
+//               error: "User not found",
+//             }),
+//             {
+//               status: 401,
+//             }
+//           );
+//           return (set.status = 401);
+//           return error(401, "User not found");
+//         }
 
-        if (!user.permissions) {
-          return error(403, "You don't have permissions");
-        }
+//         if (!user.permissions) {
+//           return error(403, "You don't have permissions");
+//         }
 
-        if (!user.permissions.includes(permission)) {
-          return error(403, "You don't have permissions");
-        }
-      });
-    },
-  };
-});
+//         if (!user.permissions.includes(permission)) {
+//           return error(403, "You don't have permissions");
+//         }
+//       });
+//     },
+//   };
+// });
 
 const newOrderNotify = new Queue(
   `${process.env.TASKS_PREFIX}_new_order_notify`,
@@ -104,6 +105,7 @@ export const ctx = new Elysia({
 })
   .decorate("redis", client)
   .decorate("drizzle", db)
+  .decorate("duckdb", duckdb)
   .decorate("cacheControl", cacheControlService)
   .decorate("searchService", searchService)
   .decorate("newOrderNotify", newOrderNotify)
@@ -168,4 +170,3 @@ export const ctx = new Elysia({
     }
   });
 
-export type ContextType = Context<any, any, any>;

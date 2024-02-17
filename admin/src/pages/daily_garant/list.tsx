@@ -5,30 +5,22 @@ import {
   EditButton,
   ShowButton,
 } from "@refinedev/antd";
-import { Table, Switch, Space, Tag } from "antd";
+import { Table, Space } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IDailyGarant, IWorkSchedules } from "@admin/src/interfaces";
+import { IWorkSchedules } from "@admin/src/interfaces";
 import {
   defaultDateTimeFormat,
   defaultTimeFormat,
 } from "@admin/src/localConstants";
-
-const daysOfWeekRu = {
-  "1": "Понедельник",
-  "2": "Вторник",
-  "3": "Среда",
-  "4": "Четверг",
-  "5": "Пятница",
-  "6": "Суббота",
-  "7": "Воскресенье",
-};
+import { daily_garant } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 export const DailyGarantList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<IDailyGarant>({
+  const { tableProps } = useTable<InferSelectModel<typeof daily_garant>>({
     meta: {
       fields: ["id", "name", "date", "amount", "late_minus_sum"],
       whereInputType: "daily_garantWhereInput!",
@@ -56,7 +48,7 @@ export const DailyGarantList: React.FC = () => {
           <Table.Column
             dataIndex="date"
             title="Время"
-            render={(value: any, record: IDailyGarant) => (
+            render={(value: any) => (
               <DateField
                 format={defaultTimeFormat}
                 value={value}
@@ -90,7 +82,7 @@ export const DailyGarantList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<IWorkSchedules>
+          <Table.Column<InferSelectModel<typeof daily_garant>>
             title="Действия"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLogin, useNotification } from "@refinedev/core";
-import { gql } from "graphql-request";
 // It is recommended to use explicit import as seen below to reduce bundle size.
 // import { IconName } from "@ant-design/icons";
 import { ArrowLeftOutlined } from "@ant-design/icons";
-import { AuthPage as AntdAuthPage, AuthProps } from "@refinedev/antd";
-import { client } from "@admin/src/graphConnect";
 
 // It is recommended to use explicit import as seen below to reduce bundle size.
 // import { IconName } from "@ant-design/icons";

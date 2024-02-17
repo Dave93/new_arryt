@@ -1,5 +1,7 @@
+import { terminals, users } from "@api/drizzle/schema";
 import { drive_type, organization_system_type, user_status } from "./enums";
 import { GraphQLScalarType } from "graphql";
+import { InferSelectModel } from "drizzle-orm";
 
 export interface IPermissions {
   id: number;
@@ -622,8 +624,11 @@ export type WalletStatus = {
 
   balance: number;
 
-  terminals?: terminals;
-  users?: organization;
+  terminals?: Pick<InferSelectModel<typeof terminals>, "id" | "name">;
+  users?: Pick<
+    InferSelectModel<typeof users>,
+    "id" | "first_name" | "last_name" | "status" | "phone"
+  >;
 };
 
 export class CourierEfficiencyTerminalItem {

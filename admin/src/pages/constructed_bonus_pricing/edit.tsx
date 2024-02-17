@@ -4,56 +4,43 @@ import {
   Button,
   Card,
   Col,
-  Divider,
   Form,
   Input,
   InputNumber,
   Row,
   Select,
   Space,
-  Switch,
 } from "antd";
 
 import { PlusOutlined, DeleteOutlined, CloseOutlined } from "@ant-design/icons";
-import { useGetIdentity, useTranslate } from "@refinedev/core";
+import { useGetIdentity } from "@refinedev/core";
 
-import {
-  IConstructedBonusPricing,
-  IOrganization,
-  ITerminals,
-  IUsers,
-} from "@admin/src/interfaces";
 import { useEffect, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import DebounceSelect from "@admin/src/components/select/debounceSelector";
 import { apiClient } from "@admin/src/eden";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import {
+  constructed_bonus_pricing,
+  organization,
+  terminals,
+} from "@api/drizzle/schema";
+import { sortBy } from "lodash";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 dayjs.tz.setDefault("Asia/Tashkent");
 
-let daysOfWeekRu = {
-  "1": "Понедельник",
-  "2": "Вторник",
-  "3": "Среда",
-  "4": "Четверг",
-  "5": "Пятница",
-  "6": "Суббота",
-  "7": "Воскресенье",
-};
-
-const format = "HH:mm";
-
 export const ConstructedBonusPricingEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps, id } = useForm<IConstructedBonusPricing>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof constructed_bonus_pricing>
+  >({
     meta: {
       fields: ["id", "name", "organization_id", "pricing"],
       pluralize: true,
@@ -64,63 +51,31 @@ export const ConstructedBonusPricingEdit: React.FC = () => {
     },
   });
 
-  const tr = useTranslate();
-
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
-  const [aproximatePrice, setAproximatePrice] = useState<number>(0);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
 
   const fetchOrganizations = async () => {
-    const query = gql`
-      query {
-        cachedOrganizations {
-          id
-          name
-        }
-        cachedTerminals {
-          id
-          name
-        }
-      }
-    `;
-
-    const { cachedOrganizations, cachedTerminals } = await client.request<{
-      cachedOrganizations: IOrganization[];
-      cachedTerminals: ITerminals[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setOrganizations(cachedOrganizations);
-    setTerminals(cachedTerminals);
-  };
-
-  const calculateAproximatePrice = (value: any) => {
-    let formValues: any = formProps?.form?.getFieldsValue();
-    let rules = formValues.rules;
-    let price = 0;
-    let distance = +value;
-    if (rules) {
-      rules.forEach((rule: any) => {
-        let { from, to, price: rulePrice } = rule;
-        if (distance > 0) {
-          distance -= +to - +from;
-          price += +rulePrice;
-        }
-      });
-      if (distance > 0) {
-        let additional = 0;
-        const decimals = +(distance % 1).toFixed(3) * 1000;
-
-        if (decimals > 0 && decimals < 250) {
-          additional = 500;
-        } else if (decimals >= 250 && decimals < 500) {
-          additional = 1000;
-        } else if (decimals >= 500 && decimals < 1000) {
-          additional = 1500;
-        }
-        const pricePerKm = Math.floor(distance) * formValues.price_per_km;
-        price += pricePerKm + additional;
-      }
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
     }
-    setAproximatePrice(price);
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
   const fetchCourier = async (queryText: string) => {
@@ -128,15 +83,21 @@ export const ConstructedBonusPricingEdit: React.FC = () => {
       $query: {
         search: queryText,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    // @ts-ignore
-    return (
-      users?.map((user) => ({
-        key: user.users.id,
-        value: user.users.id,
-        label: `${user.users.first_name} ${user.users.last_name} (${user.users.phone})`,
-      })) ?? []
-    );
+    if (users && Array.isArray(users)) {
+      return (
+        users?.map((user) => ({
+          key: user.id,
+          value: user.id,
+          label: `${user.first_name} ${user.last_name} (${user.phone})`,
+        })) ?? []
+      );
+    } else {
+      return [];
+    }
   };
 
   useEffect(() => {
@@ -187,7 +148,7 @@ export const ConstructedBonusPricingEdit: React.FC = () => {
           {(pricingFields, { add, remove }) => {
             return (
               <div>
-                {pricingFields.map((pricingField, index) => (
+                {pricingFields.map((pricingField) => (
                   <div
                     key={pricingField.key}
                     // className="border-2 rounded-lg shadow-md px-5 py-4 "
@@ -216,7 +177,7 @@ export const ConstructedBonusPricingEdit: React.FC = () => {
                               allowClear
                               mode="multiple"
                             >
-                              {terminals.map((terminal) => (
+                              {terminalsList.map((terminal) => (
                                 <Select.Option
                                   key={terminal.id}
                                   value={terminal.id}

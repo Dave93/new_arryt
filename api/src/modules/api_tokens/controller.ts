@@ -6,6 +6,7 @@ import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
+import { ApiTokensWithRelations } from "./dto/list.dto";
 
 export const ApiTokensController = new Elysia({
   name: "@app/api_tokens",
@@ -13,7 +14,21 @@ export const ApiTokensController = new Elysia({
   .use(ctx)
   .get(
     "/api_tokens",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("api_tokens.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
+
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {
@@ -38,7 +53,7 @@ export const ApiTokensController = new Elysia({
         .where(and(...whereClause))
         .limit(+limit)
         .offset(+offset)
-        .execute();
+        .execute() as ApiTokensWithRelations[];
       return {
         total: rolesCount[0].count,
         data: rolesList,
@@ -54,13 +69,41 @@ export const ApiTokensController = new Elysia({
       }),
     }
   )
-  .get("/api_tokens/cached", async ({ redis }) => {
+  .get("/api_tokens/cached", async ({ redis, set, user }) => {
+
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("api_tokens.list")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_api_tokens`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof api_tokens>[];
   })
   .get(
     "/api_tokens/:id",
-    async ({ params: { id }, drizzle }) => {
+    async ({ params: { id }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("api_tokens.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const permissionsRecord = await drizzle
         .select()
         .from(api_tokens)
@@ -78,7 +121,20 @@ export const ApiTokensController = new Elysia({
   )
   .post(
     "/api_tokens",
-    async ({ body: { data, fields }, drizzle }) => {
+    async ({ body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("api_tokens.create")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {});
@@ -101,7 +157,20 @@ export const ApiTokensController = new Elysia({
   )
   .put(
     "/api_tokens/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("api_tokens.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {});

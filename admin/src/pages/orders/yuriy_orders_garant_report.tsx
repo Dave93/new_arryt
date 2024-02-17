@@ -19,19 +19,16 @@ import {
 import { SortOrder } from "antd/lib/table/interface";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
 import { DateTime } from "luxon";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
-import { GarantReportItem, ITerminals, IUsers } from "@admin/src/interfaces";
+import { GarantReportItem, IUsers } from "@admin/src/interfaces";
 import { ExportOutlined, EditOutlined } from "@ant-design/icons";
 import { Excel } from "@admin/src/components/export/src";
-import { chain, filter, sortBy } from "lodash";
+import { chain } from "lodash";
 import { drive_type, user_status } from "@admin/src/interfaces/enums";
-import { FaWalking } from "react-icons/fa";
-import { AiFillCar } from "react-icons/ai";
-import { MdDirectionsBike } from "react-icons/md";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
 
 import utc from "dayjs/plugin/utc";
@@ -58,11 +55,8 @@ const YuriyOrdersGarantReport = () => {
   const month = watch("month");
   const status = watch("status");
   const driveType = watch("drive_type");
-  const courier_id = watch("courier_id");
-  const walletPeriod = watch("wallet_period");
-  const terminal_id = watch("terminal_id");
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async () => {
     loadData();
   };
 
@@ -89,7 +83,7 @@ const YuriyOrdersGarantReport = () => {
       },
     });
 
-    if (data) {
+    if (data && Array.isArray(data)) {
       setGarantData(data);
       if (status) {
         data = data.filter((item) => item.status === status);
@@ -584,9 +578,6 @@ const YuriyOrdersGarantReport = () => {
             onClick: async () => {
               try {
                 let values: any = await formProps.form?.validateFields();
-                let users_terminals = values.users_terminals;
-                let work_schedules = values.users_work_schedules;
-                let roles = values.users_roles_usersTousers_roles_user_id;
                 delete values.users_terminals;
                 delete values.users_work_schedules;
                 delete values.users_roles_usersTousers_roles_user_id;

@@ -8,14 +8,15 @@ import {
 import { Table, Switch, Space } from "antd";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
 
-import { IOrganization } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
+import { organization } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 export const OrganizationList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<IOrganization>({
+  const { tableProps } = useTable<InferSelectModel<typeof organization>>({
     meta: {
       fields: [
         "id",
@@ -78,7 +79,7 @@ export const OrganizationList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<IOrganization>
+          <Table.Column<InferSelectModel<typeof organization>>
             title="Действия"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

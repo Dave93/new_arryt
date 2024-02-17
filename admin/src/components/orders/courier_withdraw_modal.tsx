@@ -5,7 +5,7 @@ import { Button, InputNumber, Modal } from "antd";
 import { useNotification } from "@refinedev/core";
 import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
-import { WalletStatus } from "@admin/src/interfaces";
+import { WalletStatus } from "@api/src/modules/user/dto/list.dto";
 interface Props {
   order: WalletStatus;
   onWithdraw: () => void;

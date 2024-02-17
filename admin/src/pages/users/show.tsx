@@ -14,6 +14,11 @@ import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
 import { useEffect, useState } from "react";
 import { sortBy } from "lodash";
+import { organization, terminals } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { apiClient } from "@admin/src/eden";
+import { UsersModel } from "@api/src/modules/user/dto/list.dto";
+
 dayjs.locale("ru");
 dayjs.extend(duration);
 
@@ -21,32 +26,35 @@ const UsersShow = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
   const tr = useTranslate();
 
   const getAllFilterData = async () => {
-    const query = gql`
-      query {
-        cachedOrganizations {
-          id
-          name
-        }
-        cachedTerminals {
-          id
-          name
-        }
-      }
-    `;
-    const { cachedTerminals, cachedOrganizations } = await client.request<{
-      cachedTerminals: ITerminals[];
-      cachedOrganizations: IOrganization[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setOrganizations(cachedOrganizations);
-    setTerminals(sortBy(cachedTerminals, (item) => item.name));
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
-  const { queryResult } = useShow<IUsers>({
+  const { queryResult } = useShow<UsersModel>({
     meta: {
       fields: [
         "id",
@@ -65,27 +73,12 @@ const UsersShow = () => {
         "max_active_order_count",
         "doc_files",
         "order_start_date",
-        {
-          users_terminals: [
-            {
-              terminals: ["id", "name"],
-            },
-          ],
-        },
-        {
-          users_work_schedules: [
-            {
-              work_schedules: ["id", "name"],
-            },
-          ],
-        },
-        {
-          users_roles_usersTousers_roles_user_id: [
-            {
-              roles: ["id", "name"],
-            },
-          ],
-        },
+        "terminals.id",
+        "terminals.name",
+        "work_schedules.id",
+        "work_schedules.name",
+        "roles.id",
+        "roles.name",
       ],
       requestHeaders: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
@@ -131,29 +124,23 @@ const UsersShow = () => {
                     {tr("deliveryPricing.driveType." + record?.drive_type)}
                   </Descriptions.Item>
                 )}
-                {record?.users_terminals && (
+                {record?.terminals && (
                   <Descriptions.Item label="Филиалы" span={3}>
-                    {record?.users_terminals.map((item: any) => (
-                      <Tag key={item.terminals.id}>{item.terminals.name}</Tag>
+                    {record?.terminals.map((item: any) => (
+                      <Tag key={item.id}>{item.name}</Tag>
                     ))}
                   </Descriptions.Item>
                 )}
-                {record?.users_work_schedules && (
+                {record?.work_schedules && (
                   <Descriptions.Item label="График работы" span={3}>
-                    {record?.users_work_schedules.map((item: any) => (
-                      <Tag key={item.work_schedules.id}>
-                        {item.work_schedules.name}
-                      </Tag>
+                    {record?.work_schedules.map((item: any) => (
+                      <Tag key={item.id}>{item.name}</Tag>
                     ))}
                   </Descriptions.Item>
                 )}
-                {record?.users_roles_usersTousers_roles_user_id && (
+                {record?.roles && (
                   <Descriptions.Item label="Роли" span={3}>
-                    {record?.users_roles_usersTousers_roles_user_id.map(
-                      (item: any) => (
-                        <Tag key={item.roles.id}>{item.roles.name}</Tag>
-                      )
-                    )}
+                    <Tag>{record.roles.name}</Tag>
                   </Descriptions.Item>
                 )}
                 <Descriptions.Item label="Модель автомобиля" span={3}>
@@ -179,11 +166,11 @@ const UsersShow = () => {
                     {dayjs(record?.order_start_date).format("DD.MM.YYYY HH:mm")}
                   </Descriptions.Item>
                 )}
-                <Descriptions.Item label="Документы" span={3}>
+                {/* <Descriptions.Item label="Документы" span={3}>
                   {record?.doc_files.map((item: any) => (
                     <Tag key={item.id}>{item.name}</Tag>
                   ))}
-                </Descriptions.Item>
+                </Descriptions.Item> */}
               </Descriptions>
             </Col>
             <Col xs={24} md={12}>
@@ -195,16 +182,16 @@ const UsersShow = () => {
           {record && <CourierWithdraws user={record} />}
         </Tabs.TabPane>
         <Tabs.TabPane tab="Начисления" key="transactions">
-          {record && (
+          {/* {record && (
             <CourierTransactions
               user={record}
               terminals={terminals}
               organizations={organizations}
             />
-          )}
+          )} */}
         </Tabs.TabPane>
         <Tabs.TabPane tab="Эффективность" key="efficiency">
-          {record && <CourierEffectiveness user={record} />}
+          {/* {record && <CourierEffectiveness user={record} />} */}
         </Tabs.TabPane>
       </Tabs>
     </Show>

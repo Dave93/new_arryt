@@ -5,9 +5,13 @@ import { IOrders, IOrderStatus } from "@admin/src/interfaces";
 import * as gqlb from "gql-query-builder";
 import { FC, useState } from "react";
 import { gql } from "graphql-request";
+import { OrdersWithRelations } from "@api/src/modules/orders/dtos/list.dto";
+import { order_status } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { apiClient } from "@admin/src/eden";
 
 interface IOrdersTableActionsProps {
-  selectedOrders: IOrders[] | undefined;
+  selectedOrders: OrdersWithRelations[] | undefined;
   onFinishAction: () => void;
 }
 
@@ -19,7 +23,9 @@ export const OrdersTableActions: FC<IOrdersTableActionsProps> = ({
     token: { accessToken: string };
   }>();
   const [currentAction, setCurrentAction] = useState<string | null>(null);
-  const [orderStatuses, setOrderStatuses] = useState<IOrderStatus[]>([]);
+  const [orderStatuses, setOrderStatuses] = useState<
+    InferSelectModel<typeof order_status>[]
+  >([]);
   const [chosenStatusId, setChosenStatusId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [enabledApply, setEnabledApply] = useState<boolean>(false);
@@ -46,29 +52,19 @@ export const OrdersTableActions: FC<IOrdersTableActionsProps> = ({
       return;
     }
     const organizationId = Object.keys(organizations)[0];
-    const query = gql`
-        query {
-            orderStatuses(where: {
-                organization_id: {
-                    equals: "${organizationId}"
-                }
-            }, orderBy: {
-                sort: asc}) {
-                id
-                name
-            }
-        }`;
-    const { orderStatuses } = await client.request<{
-      orderStatuses: IOrderStatus[];
-    }>(
-      query,
-      {},
-      {
+
+    const { data } = await apiClient.api.order_status.cached.get({
+      $query: {
+        organization_id: organizationId,
+      },
+      $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
+      },
+    });
     setErrorMessage(null);
-    setOrderStatuses(orderStatuses);
+    if (data && Array.isArray(data)) {
+      setOrderStatuses(data);
+    }
   };
 
   const changeOrdersStatus = async (statusId: string | null) => {

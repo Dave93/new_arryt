@@ -33,8 +33,7 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
     ApiServer api = new ApiServer();
 
     // get brands from api
-    Response response = await api.get('/api/brands/',
-        {'limit': 10, 'offset': 0, 'fields': 'id,name,logo_path,api_url'});
+    Response response = await api.get('/api/brands/cached');
     print(response.data['data']);
     // var brands = response.data['data']['brands'] as List<dynamic>;
     // create http graphql request to get brands
