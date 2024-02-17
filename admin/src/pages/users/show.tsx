@@ -182,13 +182,13 @@ const UsersShow = () => {
           {record && <CourierWithdraws user={record} />}
         </Tabs.TabPane>
         <Tabs.TabPane tab="Начисления" key="transactions">
-          {/* {record && (
+          {record && (
             <CourierTransactions
               user={record}
-              terminals={terminals}
+              terminalsList={terminalsList}
               organizations={organizations}
             />
-          )} */}
+          )}
         </Tabs.TabPane>
         <Tabs.TabPane tab="Эффективность" key="efficiency">
           {/* {record && <CourierEffectiveness user={record} />} */}

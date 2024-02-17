@@ -16,32 +16,28 @@ import {
 import { rangePresets } from "@admin/src/components/dates/RangePresets";
 import { ExportOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import {
-  IOrderTransactions,
-  IOrganization,
-  ITerminals,
-  IUsers,
-} from "@admin/src/interfaces";
+import { IOrderTransactions } from "@admin/src/interfaces";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { GrShare } from "react-icons/gr";
 import { Excel } from "@admin/src/components/export/src";
 import { IconContext } from "react-icons/lib";
 import { useModalForm } from "@refinedev/antd";
-import { sortBy } from "lodash";
+import { terminals, organization } from "@api/drizzle/schema";
+import { UsersModel } from "@api/src/modules/user/dto/list.dto";
+import { InferSelectModel } from "drizzle-orm";
+import { apiClient } from "@admin/src/eden";
 
 const { RangePicker } = DatePicker;
 
 const CourierTransactions = ({
   user,
-  terminals,
+  terminalsList,
   organizations,
 }: {
-  user: IUsers;
-  terminals: ITerminals[];
-  organizations: IOrganization[];
+  user: UsersModel;
+  terminalsList: InferSelectModel<typeof terminals>[];
+  organizations: InferSelectModel<typeof organization>[];
 }) => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
@@ -93,47 +89,43 @@ const CourierTransactions = ({
 
     const { created_at, status } = getValues();
 
-    const query = gql`
-      query {
-        orderTransactions(
-          where: {
-            AND: { created_at: { gt: "${created_at[0].toISOString()}" } }
-            created_at: { lt: "${created_at[1].toISOString()}" }
-            courier_id: { equals: "${user.id}" }
-            ${status ? `status: { equals: ${status} }` : ""}
-          }
-          orderBy: { created_at: desc }
-        ) {
-          id
-          order_id
-          created_at
-          amount
-          status
-          balance_before
-          balance_after
-          comment
-          not_paid_amount
-          transaction_type
-          order_transactions_orders {
-              order_number
-          }
-          order_transactions_terminals {
-              id
-              name
-          }
-          order_transactions_created_byTousers {
-              id
-              first_name
-              last_name
-          }
-        }
-      }
-    `;
-    const { orderTransactions } = await client.request<{
-      orderTransactions: IOrderTransactions[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    const filters = [
+      {
+        field: "duckdb_order_transactions.created_at",
+        operator: "gte",
+        value: created_at[0].toISOString(),
+      },
+      {
+        field: "duckdb_order_transactions.created_at",
+        operator: "lte",
+        value: created_at[1].toISOString(),
+      },
+      {
+        field: "duckdb_order_transactions.courier_id",
+        operator: "eq",
+        value: user.id,
+      },
+    ];
 
-    setData(orderTransactions);
+    if (status) {
+      filters.push({
+        field: "duckdb_order_transactions.status",
+        operator: "eq",
+        value: status,
+      });
+    }
+
+    const { data } = await apiClient.api.order_transactions.get({
+      $query: {
+        filters: JSON.stringify(filters),
+      },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+    if (data && Array.isArray(data)) {
+      setData(data);
+    }
     setIsLoading(false);
   };
 
@@ -178,14 +170,15 @@ const CourierTransactions = ({
     },
     {
       title: "Заказ",
-      dataIndex: "order_transactions_orders",
-      key: "order_transactions_orders",
+      dataIndex: "order_id",
+      key: "order_id",
       exportable: true,
-      excelRender: (value: any) => (value ? value.order_number : ""),
-      render: (value: any, record: IOrderTransactions) =>
+      excelRender: (value: any, record: any) =>
+        record.order_number ? record.order_number : "",
+      render: (value: any, record: any) =>
         record.order_id ? (
           <div>
-            {value.order_number}{" "}
+            {record.order_number}{" "}
             <Button
               type="primary"
               size="small"
@@ -207,21 +200,25 @@ const CourierTransactions = ({
     },
     {
       title: "Филиал",
-      dataIndex: "order_transactions_terminals",
-      key: "order_transactions_terminals",
+      dataIndex: "terminal_name",
+      key: "terminal_name",
       exportable: true,
-      excelRender: (value: any) => (value ? value.name : ""),
-      render: (value: any) => (value ? value.name : ""),
+      excelRender: (value: any) => value ?? "",
+      render: (value: any) => value ?? "",
     },
     {
       title: "Кто добавил",
-      dataIndex: "order_transactions_created_byTousers",
-      key: "order_transactions_created_byTousers",
+      dataIndex: "last_name",
+      key: "last_name",
       exportable: true,
-      excelRender: (value: any) =>
-        value ? `${value.first_name} ${value.last_name}` : "Система",
-      render: (value: any) =>
-        value ? `${value.first_name} ${value.last_name}` : "Система",
+      excelRender: (value: any, record: any) =>
+        record.last_name
+          ? `${record.first_name} ${record.last_name}`
+          : "Система",
+      render: (value: any, record: any) =>
+        record.last_name
+          ? `${record.first_name} ${record.last_name}`
+          : "Система",
     },
     {
       title: "Комментарий",
@@ -385,7 +382,7 @@ const CourierTransactions = ({
             ]}
           >
             <Select>
-              {terminals.map((t) => (
+              {terminalsList.map((t) => (
                 <Select.Option key={t.id} value={t.id}>
                   {t.name}
                 </Select.Option>

@@ -257,36 +257,35 @@ export const ManagerWithdrawTransactions = ({
   const columns = [
     {
       title: "Номер заказа",
-      dataIndex: "orders",
-      key: "orders",
+      dataIndex: "order_number",
+      key: "order_number",
       exportable: true,
       render: (value: string, record: any) => {
-        if (!record.orders) return "";
-        return record.orders.order_number;
+        return value;
       },
     },
     {
       title: "Дата зачисления в кошелёк",
-      dataIndex: "order_transactions",
-      key: "order_transactions",
+      dataIndex: "transaction_created_at",
+      key: "transaction_created_at",
       exportable: true,
       render: (value: string, record: any) =>
-        dayjs(record.order_transactions.created_at).format("DD.MM.YYYY HH:mm"),
+        dayjs(value).format("DD.MM.YYYY HH:mm"),
     },
     {
       title: "Дата заказа",
-      dataIndex: "orders",
-      key: "orders",
+      dataIndex: "order_created_at",
+      key: "order_created_at",
       exportable: true,
       render: (value: string, record: any) => {
-        if (!record.orders) return "";
-        return dayjs(record.orders.created_at).format("DD.MM.YYYY HH:mm");
+        if (!value) return "";
+        return dayjs(value).format("DD.MM.YYYY HH:mm");
       },
     },
     {
       title: "Выплачено",
-      dataIndex: "amount",
-      key: "amount",
+      dataIndex: "withdraw_amount",
+      key: "withdraw_amount",
       exportable: true,
       excelRender: (value: number) => +value,
       render: (value: string) => new Intl.NumberFormat("ru-RU").format(+value),
