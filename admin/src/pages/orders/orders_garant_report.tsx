@@ -90,6 +90,9 @@ const OrdersGarantReport = () => {
         // wallet_period: walletPeriod,
         // terminal_id: terminal_id,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
 
     if (data) {

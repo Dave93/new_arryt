@@ -57,8 +57,8 @@ export const Login: React.FC = () => {
       res.data?.details && setOtpSecret(res.data.details);
       setLoading(false);
       setCurrent("code");
-      const tempDeviceToken = await getMessageToken();
-      setDeviceToken(tempDeviceToken);
+      // const tempDeviceToken = await getMessageToken();
+      // setDeviceToken(tempDeviceToken);
     } catch (e: any) {
       setLoading(false);
       open &&

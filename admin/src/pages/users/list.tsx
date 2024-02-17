@@ -341,6 +341,9 @@ export const UsersList: React.FC = () => {
       $query: {
         search: queryText,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
     // @ts-ignore
     return (

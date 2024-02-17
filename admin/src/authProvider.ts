@@ -11,7 +11,10 @@ export const TOKEN_KEY = "refine-auth";
 
 export const authProvider: AuthBindings = {
   login: async ({ phone, code, otpSecret, deviceToken }) => {
+    console.log('davr')
     try {
+      console.log('phone', phone);
+      console.log('code', phone);
       const { data } = await apiClient.api.users["verify-otp"].post({
         otp: code,
         phone,
@@ -38,7 +41,7 @@ export const authProvider: AuthBindings = {
         };
       }
     } catch (e: any) {
-      console.log(e);
+      console.log('login error', e);
       return {
         success: false,
         error: e.response.errors.map((e: any) => e.message).join("\n"),
