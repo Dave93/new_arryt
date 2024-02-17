@@ -2,13 +2,16 @@ import { Create, useForm } from "@refinedev/antd";
 import { Form, Input, Switch } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IRoles } from "@admin/src/interfaces";
+import { roles } from "@api/drizzle/schema";
+import { InferInsertModel } from "drizzle-orm";
 
 export const RolesCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IRoles>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof roles>
+  >({
     meta: {
       fields: ["id", "name", "active", "code", "created_at"],
       pluralize: true,

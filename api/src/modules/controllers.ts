@@ -15,6 +15,7 @@ import { RolesController } from "./roles/controller";
 import { TerminalsController } from "./terminals/controller";
 import { UsersController } from "./user/controller";
 import { WorkSchedulesController } from "./work_schedules/controller";
+import { OrderActionsController } from "./order_actions/controller";
 
 export const apiController = new Elysia({
   prefix: "/api",
@@ -36,4 +37,5 @@ export const apiController = new Elysia({
   .use(OrderBonusPricingController)
   .use(OrdersController)
   .use(MissedOrdersController)
-  .use(ManagerWithdrawController);
+  .use(ManagerWithdrawController)
+  .use(OrderActionsController);

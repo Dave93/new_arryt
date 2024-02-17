@@ -9,7 +9,20 @@ export const CustomersController = new Elysia({
   .use(ctx)
   .get(
     "/customers",
-    async ({ query: { limit, offset, sort, filter }, drizzle }) => {
+    async ({ query: { limit, offset, sort, filter }, drizzle, set, user }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("customers.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const customersCount = await drizzle
         .select({ count: sql<number>`count(*)` })
         .from(customers)
@@ -45,7 +58,20 @@ export const CustomersController = new Elysia({
   )
   .get(
     "/customers/:id",
-    async ({ params: { id }, drizzle }) => {
+    async ({ params: { id }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("customers.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const customer = await drizzle
         .select()
         .from(customers)

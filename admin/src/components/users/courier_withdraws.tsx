@@ -13,15 +13,21 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useGetIdentity } from "@refinedev/core";
 import { ExportOutlined } from "@ant-design/icons";
+import {
+  ManagerWithdrawWithRelations,
+  ManagerWithdrawTransactionsWithRelations,
+} from "@api/src/modules/manager_withdraw/dto/list.dto";
+import { UsersModel } from "@api/src/modules/user/dto/list.dto";
+import { apiClient } from "@admin/src/eden";
 
 const { RangePicker } = DatePicker;
 
-const CourierWithdraws = ({ user }: { user: IUsers }) => {
+const CourierWithdraws = ({ user }: { user: UsersModel }) => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [data, setData] = useState<IManagerWithdraw[]>([]);
+  const [data, setData] = useState<ManagerWithdrawWithRelations[]>([]);
   const { handleSubmit, control, getValues } = useForm<{
     created_at: [dayjs.Dayjs, dayjs.Dayjs];
   }>({
@@ -39,34 +45,39 @@ const CourierWithdraws = ({ user }: { user: IUsers }) => {
 
     const { created_at } = getValues();
 
-    const query = gql`
-      query {
-        getCourierWithdraws(
-          startDate: "${created_at[0].toISOString()}"
-          endDate: "${created_at[1].toISOString()}"
-          courierId: "${user.id}"
-        ) {
-            id
-            amount
-            amount_before
-            amount_after
-            created_at
-            payed_date
-            manager_withdraw_managers {
-                first_name
-                last_name
-            }
-            manager_withdraw_terminals {
-                name
-            }
-        }
-      }
-    `;
-    const { getCourierWithdraws } = await client.request<{
-      getCourierWithdraws: IManagerWithdraw[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    const { data } = await apiClient.api.manager_withdraw.get({
+      $query: {
+        limit: "100",
+        offset: "0",
+        fields:
+          "id,amount,amount_before,amount_after,created_at,payed_date,managers.first_name,managers.last_name,terminals.name",
+        filters: JSON.stringify([
+          {
+            field: "created_at",
+            operator: "gte",
+            value: created_at[0].toISOString(),
+          },
+          {
+            field: "created_at",
+            operator: "lte",
+            value: created_at[1].toISOString(),
+          },
+          {
+            field: "courier_id",
+            operator: "eq",
+            value: user.id,
+          },
+        ]),
+      },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
 
-    setData(getCourierWithdraws);
+    if (data && data.data && Array.isArray(data.data)) {
+      setData(data.data);
+    }
+
     setIsLoading(false);
   };
 
@@ -80,8 +91,8 @@ const CourierWithdraws = ({ user }: { user: IUsers }) => {
     },
     {
       title: "Менеджер",
-      dataIndex: "manager_withdraw_managers",
-      key: "manager_withdraw_managers",
+      dataIndex: "managers",
+      key: "managers",
       exportable: true,
       render: (value: IUsers) => `${value.first_name} ${value.last_name}`,
     },
@@ -175,7 +186,7 @@ const CourierWithdraws = ({ user }: { user: IUsers }) => {
         size="small"
         columns={columns}
         expandable={{
-          expandedRowRender: (record: IManagerWithdraw) => (
+          expandedRowRender: (record: ManagerWithdrawWithRelations) => (
             <ManagerWithdrawTransactions record={record} />
           ),
         }}
@@ -220,82 +231,56 @@ const CourierWithdraws = ({ user }: { user: IUsers }) => {
 export const ManagerWithdrawTransactions = ({
   record,
 }: {
-  record: IManagerWithdraw;
+  record: ManagerWithdrawWithRelations;
 }) => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const [data, setData] = useState<IManagerWithdrawTransactions[]>([]);
+  const [data, setData] = useState<ManagerWithdrawTransactionsWithRelations[]>(
+    []
+  );
 
   const loadData = async () => {
-    const query = gql`
-      query {
-        getCourierWithdrawTransactions(
-            withdrawId: "${record.id}"
-        ) {
-            id
-            amount
-            created_at
-            manager_withdraw_transactions_transaction {
-                id
-                created_at
-                order_transactions_orders {
-                    order_number
-                    delivery_price
-                    created_at
-                }
-            }
-        }
-      }
-    `;
-    const { getCourierWithdrawTransactions } = await client.request<{
-      getCourierWithdrawTransactions: IManagerWithdrawTransactions[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    const { data } = await apiClient.api.manager_withdraw[
+      record.id
+    ].transactions.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
 
-    setData(getCourierWithdrawTransactions);
+    if (data && Array.isArray(data)) {
+      setData(data);
+    }
   };
 
   const columns = [
     {
       title: "Номер заказа",
-      dataIndex: "manager_withdraw_transactions_transaction",
-      key: "manager_withdraw_transactions_transaction",
+      dataIndex: "orders",
+      key: "orders",
       exportable: true,
       render: (value: string, record: any) => {
-        if (
-          !record.manager_withdraw_transactions_transaction
-            .order_transactions_orders
-        )
-          return "";
-        return record.manager_withdraw_transactions_transaction
-          .order_transactions_orders.order_number;
+        if (!record.orders) return "";
+        return record.orders.order_number;
       },
     },
     {
       title: "Дата зачисления в кошелёк",
-      dataIndex: "manager_withdraw_transactions_transaction",
-      key: "manager_withdraw_transactions_transaction",
+      dataIndex: "order_transactions",
+      key: "order_transactions",
       exportable: true,
       render: (value: string, record: any) =>
-        dayjs(
-          record.manager_withdraw_transactions_transaction.created_at
-        ).format("DD.MM.YYYY HH:mm"),
+        dayjs(record.order_transactions.created_at).format("DD.MM.YYYY HH:mm"),
     },
     {
       title: "Дата заказа",
-      dataIndex: "manager_withdraw_transactions_transaction",
-      key: "manager_withdraw_transactions_transaction",
+      dataIndex: "orders",
+      key: "orders",
       exportable: true,
       render: (value: string, record: any) => {
-        if (
-          !record.manager_withdraw_transactions_transaction
-            .order_transactions_orders
-        )
-          return "";
-        return dayjs(
-          record.manager_withdraw_transactions_transaction
-            .order_transactions_orders.created_at
-        ).format("DD.MM.YYYY HH:mm");
+        if (!record.orders) return "";
+        return dayjs(record.orders.created_at).format("DD.MM.YYYY HH:mm");
       },
     },
     {

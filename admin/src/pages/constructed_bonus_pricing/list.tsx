@@ -5,7 +5,7 @@ import {
   EditButton,
   ShowButton,
 } from "@refinedev/antd";
-import { Table, Switch, Space } from "antd";
+import { Table, Space } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
 import {
@@ -13,20 +13,18 @@ import {
   IDeliveryPricing,
 } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
+import { constructed_bonus_pricing } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 export const ConstructedBonusPricingList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<IConstructedBonusPricing>({
+  const { tableProps } = useTable<
+    InferSelectModel<typeof constructed_bonus_pricing>
+  >({
     meta: {
-      fields: [
-        "id",
-        "name",
-        {
-          constructed_bonus_pricing_organization: ["id", "name"],
-        },
-      ],
+      fields: ["id", "name", "organization.id", "organization.name"],
       whereInputType: "constructed_bonus_pricingWhereInput!",
       orderByInputType: "constructed_bonus_pricingOrderByWithRelationInput!",
       operation: "constructedBonusPricings",
@@ -69,7 +67,7 @@ export const ConstructedBonusPricingList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<IDeliveryPricing>
+          <Table.Column<InferSelectModel<typeof constructed_bonus_pricing>>
             title="Actions"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

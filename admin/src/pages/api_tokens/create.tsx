@@ -2,16 +2,18 @@ import { Create, useForm } from "@refinedev/antd";
 import { Button, Col, Form, Input, Row, Select, Switch } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IApiTokens, IOrganization } from "@admin/src/interfaces";
 import { useEffect, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
+import { api_tokens, organization } from "@api/drizzle/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { apiClient } from "@admin/src/eden";
 
 export const ApiTokensCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IApiTokens>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof api_tokens>
+  >({
     meta: {
       fields: ["id", "active", "token", "organization_id"],
       pluralize: true,
@@ -21,22 +23,22 @@ export const ApiTokensCreate = () => {
     },
   });
 
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
 
   const fetchOrganizations = async () => {
-    const query = gql`
-      query {
-        cachedOrganizations {
-          id
-          name
-        }
-      }
-    `;
-
-    const { cachedOrganizations } = await client.request<{
-      cachedOrganizations: IOrganization[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setOrganizations(cachedOrganizations);
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $fetch: {
+          headers: {
+            Authorization: `Bearer ${identity?.token.accessToken}`,
+          },
+        },
+      });
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
   const generateToken = () => {

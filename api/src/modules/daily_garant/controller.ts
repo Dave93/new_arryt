@@ -16,7 +16,20 @@ export const DailyGarantController = new Elysia({
   .use(ctx)
   .get(
     "/daily_garant",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("daily_garant.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, daily_garant, {});
@@ -52,13 +65,39 @@ export const DailyGarantController = new Elysia({
       }),
     }
   )
-  .get("/daily_garant/cached", async ({ redis }) => {
-    const res = await redis.get(`${process.env.PROJECT_PREFIX}_daily_garant`);
-    return JSON.parse(res || "[]") as InferSelectModel<typeof daily_garant>[];
+  .get("/daily_garant/cached", async ({ redis, user, set, cacheControl }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("daily_garant.list")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+    const res = await cacheControl.getDailyGarant();
+    return res;
   })
   .get(
     "/daily_garant/:id",
-    async ({ params: { id }, drizzle }) => {
+    async ({ params: { id }, drizzle, set, user }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("daily_garant.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const permissionsRecord = await drizzle
         .select()
         .from(daily_garant)
@@ -76,7 +115,21 @@ export const DailyGarantController = new Elysia({
   )
   .post(
     "/daily_garant",
-    async ({ body: { data, fields }, drizzle }) => {
+    async ({ body: { data, fields }, drizzle, user, set }) => {
+
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("daily_garant.create")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, daily_garant, {});
@@ -98,8 +151,21 @@ export const DailyGarantController = new Elysia({
     }
   )
   .put(
-    "_tokens/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    "daily_garant/:id",
+    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("daily_garant.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {});

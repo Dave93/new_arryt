@@ -11,51 +11,36 @@ import {
   Select,
   Space,
   Switch,
-  TimePicker,
 } from "antd";
 
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useGetIdentity, useTranslate } from "@refinedev/core";
+import { useGetIdentity } from "@refinedev/core";
 
-import {
-  IDeliveryPricing,
-  IOrganization,
-  ITerminals,
-  IUsers,
-} from "@admin/src/interfaces";
-import { drive_type } from "@admin/src/interfaces/enums";
 import { useEffect, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import { organization_payment_types } from "@admin/src/interfaces/enums";
-import DebounceSelect from "@admin/src/components/select/debounceSelector";
 import { apiClient } from "@admin/src/eden";
+import {
+  order_bonus_pricing,
+  organization,
+  terminals,
+} from "@api/drizzle/schema";
+import { sortBy } from "lodash";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 dayjs.tz.setDefault("Asia/Tashkent");
 
-let daysOfWeekRu = {
-  "1": "Понедельник",
-  "2": "Вторник",
-  "3": "Среда",
-  "4": "Четверг",
-  "5": "Пятница",
-  "6": "Суббота",
-  "7": "Воскресенье",
-};
-
-const format = "HH:mm";
-
 export const OrderBonusPricingEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps, id } = useForm<IDeliveryPricing>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof order_bonus_pricing>
+  >({
     meta: {
       fields: [
         "id",
@@ -78,32 +63,36 @@ export const OrderBonusPricingEdit: React.FC = () => {
     },
   });
 
-  const tr = useTranslate();
-
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
+  const [organizationsList, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
   const [aproximatePrice, setAproximatePrice] = useState<number>(0);
 
   const fetchOrganizations = async () => {
-    const query = gql`
-      query {
-        cachedOrganizations {
-          id
-          name
-        }
-        cachedTerminals {
-          id
-          name
-        }
-      }
-    `;
-
-    const { cachedOrganizations, cachedTerminals } = await client.request<{
-      cachedOrganizations: IOrganization[];
-      cachedTerminals: ITerminals[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setOrganizations(cachedOrganizations);
-    setTerminals(cachedTerminals);
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $fetch: {
+        headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      },
+    });
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $fetch: {
+          headers: {
+            Authorization: `Bearer ${identity?.token.accessToken}`,
+          },
+        },
+      });
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations([...organizations]);
+    }
   };
 
   const calculateAproximatePrice = (value: any) => {
@@ -135,22 +124,6 @@ export const OrderBonusPricingEdit: React.FC = () => {
       }
     }
     setAproximatePrice(price);
-  };
-
-  const fetchCourier = async (queryText: string) => {
-    const { data: users } = await apiClient.api.couriers.search.get({
-      $query: {
-        search: queryText,
-      },
-    });
-    // @ts-ignore
-    return (
-      users?.map((user) => ({
-        key: user.users.id,
-        value: user.users.id,
-        label: `${user.users.first_name} ${user.users.last_name} (${user.users.phone})`,
-      })) ?? []
-    );
   };
 
   useEffect(() => {
@@ -206,7 +179,7 @@ export const OrderBonusPricingEdit: React.FC = () => {
               ]}
             >
               <Select showSearch optionFilterProp="children">
-                {organizations.map((organization) => (
+                {organizationsList.map((organization) => (
                   <Select.Option key={organization.id} value={organization.id}>
                     {organization.name}
                   </Select.Option>
@@ -217,7 +190,7 @@ export const OrderBonusPricingEdit: React.FC = () => {
           <Col span={12}>
             <Form.Item label="Филиал" name="terminal_id">
               <Select showSearch optionFilterProp="children" allowClear>
-                {terminals.map((terminal) => (
+                {terminalsList.map((terminal) => (
                   <Select.Option key={terminal.id} value={terminal.id}>
                     {terminal.name}
                   </Select.Option>
@@ -235,7 +208,7 @@ export const OrderBonusPricingEdit: React.FC = () => {
                 allowClear
                 mode="multiple"
               >
-                {terminals.map((terminal) => (
+                {terminalsList.map((terminal) => (
                   <Select.Option key={terminal.id} value={terminal.id}>
                     {terminal.name}
                   </Select.Option>

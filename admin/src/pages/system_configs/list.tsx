@@ -20,16 +20,17 @@ import { useGetIdentity, useTranslate } from "@refinedev/core";
 import dayjs from "dayjs";
 import * as gql from "gql-query-builder";
 import { client } from "@admin/src/graphConnect";
-import { ITerminals, IUsers } from "@admin/src/interfaces";
+import { ITerminals } from "@admin/src/interfaces";
 import { useEffect, useState } from "react";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { drive_type } from "@admin/src/interfaces/enums";
-import { gql as gqlq } from "graphql-request";
-import { chain } from "lodash";
+import { sortBy } from "lodash";
 import StickyBox from "react-sticky-box";
 import DebounceSelect from "@admin/src/components/select/debounceSelector";
 import { apiClient } from "@admin/src/eden";
+import { terminals } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 const { TabPane } = Tabs;
 
@@ -38,7 +39,9 @@ export const SystemConfigsList: React.FC = () => {
     token: { accessToken: string };
   }>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [terminals, setTerminals] = useState<any[]>([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
   const tr = useTranslate();
 
   const renderTabBar: TabsProps["renderTabBar"] = (
@@ -194,28 +197,14 @@ export const SystemConfigsList: React.FC = () => {
   };
 
   const fetchAllData = async () => {
-    const { query } = gql.query([
-      {
-        operation: "cachedTerminals",
-        fields: ["id", "name", "organization { id name }"],
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
       },
-    ]);
-    const { cachedTerminals } = await client.request<{
-      cachedTerminals: ITerminals[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-
-    var result = chain(cachedTerminals)
-      .groupBy("organization.name")
-      .toPairs()
-      .map(function (item) {
-        return {
-          name: item[0],
-          children: item[1],
-        };
-      })
-      .value();
-
-    setTerminals(result);
+    });
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
   };
 
   const fetchCourier = async (queryText: string) => {
@@ -223,15 +212,21 @@ export const SystemConfigsList: React.FC = () => {
       $query: {
         search: queryText,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    // @ts-ignore
-    return (
-      users?.map((user) => ({
-        key: user.users.id,
-        value: user.users.id,
-        label: `${user.users.first_name} ${user.users.last_name} (${user.users.phone})`,
-      })) ?? []
-    );
+    if (users && Array.isArray(users)) {
+      return (
+        users?.map((user) => ({
+          key: user.id,
+          value: user.id,
+          label: `${user.first_name} ${user.last_name} (${user.phone})`,
+        })) ?? []
+      );
+    } else {
+      return [];
+    }
   };
 
   useEffect(() => {
@@ -619,22 +614,13 @@ export const SystemConfigsList: React.FC = () => {
                                   rules={{ required: true }}
                                   render={({ field }) => (
                                     <Select {...field}>
-                                      {terminals.map((terminal: any) => (
-                                        <Select.OptGroup
-                                          key={terminal.name}
-                                          label={terminal.name}
+                                      {terminalsList.map((terminal: any) => (
+                                        <Select.Option
+                                          key={terminal.id}
+                                          value={terminal.id}
                                         >
-                                          {terminal.children.map(
-                                            (terminal: ITerminals) => (
-                                              <Select.Option
-                                                key={terminal.id}
-                                                value={terminal.id}
-                                              >
-                                                {terminal.name}
-                                              </Select.Option>
-                                            )
-                                          )}
-                                        </Select.OptGroup>
+                                          {terminal.name}
+                                        </Select.Option>
                                       ))}
                                     </Select>
                                   )}

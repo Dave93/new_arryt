@@ -1,41 +1,25 @@
 import { useForm, Edit } from "@refinedev/antd";
-import {
-  Form,
-  Input,
-  Switch,
-  Select,
-  Row,
-  Col,
-  TimePicker,
-  InputNumber,
-} from "antd";
-import { IDailyGarant, IWorkSchedules } from "@admin/src/interfaces";
+import { Form, Input, Row, Col, TimePicker, InputNumber } from "antd";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { useGetIdentity } from "@refinedev/core";
+import { daily_garant } from "@api/drizzle/schema";
+import { InferInsertModel } from "drizzle-orm";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 dayjs.tz.setDefault("Asia/Tashkent");
 
-let daysOfWeekRu = {
-  "1": "Понедельник",
-  "2": "Вторник",
-  "3": "Среда",
-  "4": "Четверг",
-  "5": "Пятница",
-  "6": "Суббота",
-  "7": "Воскресенье",
-};
-
 const format = "HH:mm";
 export const DailyGarantEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IDailyGarant>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof daily_garant>
+  >({
     meta: {
       fields: ["id", "name", "date", "amount", "late_minus_sum"],
       pluralize: true,

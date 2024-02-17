@@ -1,26 +1,24 @@
 import { Create, useForm } from "@refinedev/antd";
 import { Col, Form, Input, InputNumber, Row, Select } from "antd";
-import { useGetIdentity, useTranslate } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
-import * as gqlb from "gql-query-builder";
-import {
-  IDailyGarant,
-  IRoles,
-  ITerminals,
-  IUsers,
-  IWorkSchedules,
-} from "@admin/src/interfaces";
+import { useGetIdentity, useNotification, useTranslate } from "@refinedev/core";
+import { IWorkSchedules } from "@admin/src/interfaces";
 import { drive_type, user_status } from "@admin/src/interfaces/enums";
 import { useEffect, useState } from "react";
 import { chain, sortBy } from "lodash";
+import { daily_garant, roles, terminals, users } from "@api/drizzle/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { apiClient } from "@admin/src/eden";
+import { WorkScheduleWithRelations } from "@api/src/modules/work_schedules/dto/list.dto";
 
 export const UsersCreate = () => {
+  const { open } = useNotification();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
   const tr = useTranslate();
-  const { formProps, saveButtonProps, redirect } = useForm<IUsers>({
+  const { formProps, saveButtonProps, redirect } = useForm<
+    InferInsertModel<typeof users>
+  >({
     redirect: false,
     meta: {
       fields: [
@@ -35,13 +33,8 @@ export const UsersCreate = () => {
         "longitude",
         "max_active_order_count",
         "daily_garant_id",
-        {
-          users_terminals: [
-            {
-              terminals: ["id", "name"],
-            },
-          ],
-        },
+        "terminals.id",
+        "terminals.name",
       ],
       pluralize: true,
       requestHeaders: {
@@ -50,63 +43,72 @@ export const UsersCreate = () => {
     },
   });
 
-  const [roles, setRoles] = useState<IRoles[]>([]);
-  const [terminals, setTerminals] = useState<any[]>([]);
-  const [work_schedules, setWorkSchedules] = useState<any[]>([]);
-  const [daily_garant, setDailyGarant] = useState<IDailyGarant[]>([]);
+  const [rolesList, setRoles] = useState<InferSelectModel<typeof roles>[]>([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
+  const [work_schedules, setWorkSchedules] = useState<
+    {
+      name: string;
+      children: WorkScheduleWithRelations[];
+    }[]
+  >([]);
+  const [daily_garantList, setDailyGarant] = useState<
+    InferSelectModel<typeof daily_garant>[]
+  >([]);
 
   const fetchAllData = async () => {
-    const query = gql`
-      query {
-        roles {
-          id
-          name
-        }
-        cachedTerminals {
-          id
-          name
-          organization {
-            id
-            name
-          }
-        }
-        workSchedules {
-          id
-          name
-          organization {
-            id
-            name
-          }
-        }
-        cachedDailyGarant {
-          id
-          name
-        }
-      }
-    `;
-    const { roles, cachedTerminals, workSchedules, cachedDailyGarant } =
-      await client.request<{
-        roles: IRoles[];
-        cachedTerminals: ITerminals[];
-        workSchedules: IWorkSchedules[];
-        cachedDailyGarant: IDailyGarant[];
-      }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    const { data: roles } = await apiClient.api.roles.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
 
-    var workScheduleResult = chain(workSchedules)
-      .groupBy("organization.name")
-      .toPairs()
-      .map(function (item) {
-        return {
-          name: item[0],
-          children: item[1],
-        };
-      })
-      .value();
+    if (roles && Array.isArray(roles)) {
+      setRoles(roles);
+    }
 
-    setWorkSchedules(workScheduleResult);
-    setDailyGarant(cachedDailyGarant);
-    setTerminals(sortBy(cachedTerminals, ["name"]));
-    setRoles(roles);
+    const { data: cachedDailyGarant } =
+      await apiClient.api.daily_garant.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+
+    if (cachedDailyGarant && Array.isArray(cachedDailyGarant)) {
+      setDailyGarant(cachedDailyGarant);
+    }
+
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, ["name"]));
+    }
+
+    const { data: workSchedules } =
+      await apiClient.api.work_schedules.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+
+    if (workSchedules && Array.isArray(workSchedules)) {
+      var workScheduleResult = chain(workSchedules)
+        .groupBy("organization.name")
+        .toPairs()
+        .map(function (item) {
+          return {
+            name: item[0],
+            children: item[1],
+          };
+        })
+        .value();
+      setWorkSchedules(workScheduleResult);
+    }
   };
 
   useEffect(() => {
@@ -121,81 +123,40 @@ export const UsersCreate = () => {
         onClick: async () => {
           try {
             let values: any = await formProps.form?.validateFields();
-            let users_terminals = values.users_terminals;
-            let work_schedules = values.users_work_schedules;
+            let usersTerminals = values.users_terminals;
+            let usersWorkSchedules = values.users_work_schedules;
             let roles = values.roles;
             delete values.users_terminals;
             delete values.users_work_schedules;
             delete values.roles;
 
-            let createQuery = gql`
-              mutation ($data: usersUncheckedCreateInput!) {
-                userCreate(data: $data) {
-                  id
-                }
-              }
-            `;
-            let { userCreate } = await client.request<{
-              userCreate: IUsers;
-            }>(
-              createQuery,
-              {
-                data: values,
-              },
-              { Authorization: `Bearer ${identity?.token.accessToken}` }
-            );
-
-            if (userCreate) {
-              let { query, variables } = gqlb.mutation([
-                {
-                  operation: "linkUserToRoles",
-                  variables: {
-                    userId: {
-                      value: userCreate.id,
-                      required: true,
-                    },
-                    roleId: {
-                      value: roles,
-                      required: true,
-                    },
-                  },
-                  fields: ["user_id"],
+            try {
+              const { data, status, error } = await apiClient.api.users.post({
+                data: {
+                  ...values,
+                  usersTerminals,
+                  usersWorkSchedules,
+                  roles,
                 },
-                {
-                  operation: "linkUserToWorkSchedules",
-                  variables: {
-                    userId: {
-                      value: userCreate.id,
-                      required: true,
-                    },
-                    workScheduleId: {
-                      value: work_schedules,
-                      type: "[String!]",
-                      required: true,
-                    },
-                  },
-                  fields: ["count"],
+                $headers: {
+                  Authorization: `Bearer ${identity?.token.accessToken}`,
                 },
-                {
-                  operation: "linkUserToTerminals",
-                  variables: {
-                    userId: {
-                      value: userCreate.id,
-                      required: true,
-                    },
-                    terminalId: {
-                      value: users_terminals,
-                      type: "[String!]",
-                      required: true,
-                    },
-                  },
-                  fields: ["count"],
-                },
-              ]);
-              await client.request(query, variables, {
-                Authorization: `Bearer ${identity?.token.accessToken}`,
               });
+              if (status != 200) {
+                return open!({
+                  type: "error",
+                  message:
+                    data && data.message
+                      ? data.message
+                      : error?.message ?? "Ошибка при создании пользователя",
+                });
+              }
               redirect("list");
+            } catch (e: any) {
+              return open!({
+                type: "error",
+                message: e.message,
+              });
             }
           } catch (error) {}
         },
@@ -234,7 +195,7 @@ export const UsersCreate = () => {
               ]}
             >
               <Select>
-                {roles.map((role: IRoles) => (
+                {rolesList.map((role) => (
                   <Select.Option key={role.id} value={role.id}>
                     {role.name}
                   </Select.Option>
@@ -293,7 +254,7 @@ export const UsersCreate = () => {
           <Col span={12}>
             <Form.Item label="Филиалы" name="users_terminals">
               <Select mode="multiple">
-                {terminals.map((terminal: any) => (
+                {terminalsList.map((terminal) => (
                   <Select.Option key={terminal.id} value={terminal.id}>
                     {terminal.name}
                   </Select.Option>
@@ -329,7 +290,7 @@ export const UsersCreate = () => {
           <Col span={12}>
             <Form.Item label="Дневной гарант" name="daily_garant_id">
               <Select allowClear>
-                {daily_garant.map((daily_garant: any) => (
+                {daily_garantList.map((daily_garant: any) => (
                   <Select.Option key={daily_garant.id} value={daily_garant.id}>
                     {daily_garant.name}
                   </Select.Option>

@@ -10,24 +10,13 @@ import {
   Select,
   Space,
   Switch,
-  TimePicker,
 } from "antd";
 
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useGetIdentity, useTranslate } from "@refinedev/core";
+import { useGetIdentity } from "@refinedev/core";
 
-import {
-  IDeliveryPricing,
-  IOrganization,
-  ITerminals,
-  IUsers,
-} from "@admin/src/interfaces";
-import { drive_type } from "@admin/src/interfaces/enums";
 import { useEffect, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
-import { organization_payment_types } from "@admin/src/interfaces/enums";
 
 import isBetween from "dayjs/plugin/isBetween";
 import utc from "dayjs/plugin/utc";
@@ -35,6 +24,12 @@ import timezone from "dayjs/plugin/timezone";
 import DebounceSelect from "@admin/src/components/select/debounceSelector";
 import { sortBy } from "lodash";
 import { apiClient } from "@admin/src/eden";
+import {
+  order_bonus_pricing,
+  organization,
+  terminals,
+} from "@api/drizzle/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 let daysOfWeekRu = {
   "1": "Понедельник",
@@ -58,7 +53,9 @@ export const OrderBonusPricingCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IDeliveryPricing>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof order_bonus_pricing>
+  >({
     meta: {
       fields: [
         "id",
@@ -78,29 +75,31 @@ export const OrderBonusPricingCreate = () => {
     },
   });
 
-  const tr = useTranslate();
-
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
+  const [organizationsList, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
 
   const fetchOrganizations = async () => {
     const { data: terminals } = await apiClient.api.terminals.cached.get({
-      $fetch: {
-        headers: {
-          Authorization: `Bearer ${identity?.token.accessToken}`,
-        },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
       },
     });
-    setTerminals(sortBy(terminals, (item) => item.name));
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
     const { data: organizations } =
       await apiClient.api.organizations.cached.get({
-        $fetch: {
-          headers: {
-            Authorization: `Bearer ${identity?.token.accessToken}`,
-          },
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
-    setOrganizations(organizations);
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations([...organizations]);
+    }
   };
 
   const fetchCourier = async (queryText: string) => {
@@ -108,15 +107,22 @@ export const OrderBonusPricingCreate = () => {
       $query: {
         search: queryText,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    // @ts-ignore
-    return (
-      users?.map((user) => ({
-        key: user.users.id,
-        value: user.users.id,
-        label: `${user.users.first_name} ${user.users.last_name} (${user.users.phone})`,
-      })) ?? []
-    );
+
+    if (users && Array.isArray(users)) {
+      return (
+        users?.map((user) => ({
+          key: user.id,
+          value: user.id,
+          label: `${user.first_name} ${user.last_name} (${user.phone})`,
+        })) ?? []
+      );
+    } else {
+      return [];
+    }
   };
 
   useEffect(() => {
@@ -169,7 +175,7 @@ export const OrderBonusPricingCreate = () => {
               ]}
             >
               <Select showSearch optionFilterProp="children">
-                {organizations.map((organization) => (
+                {organizationsList.map((organization) => (
                   <Select.Option key={organization.id} value={organization.id}>
                     {organization.name}
                   </Select.Option>
@@ -180,7 +186,7 @@ export const OrderBonusPricingCreate = () => {
           <Col span={12}>
             <Form.Item label="Филиал" name="terminal_id">
               <Select showSearch optionFilterProp="children" allowClear>
-                {terminals.map((terminal) => (
+                {terminalsList.map((terminal) => (
                   <Select.Option key={terminal.id} value={terminal.id}>
                     {terminal.name}
                   </Select.Option>

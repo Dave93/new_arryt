@@ -27,25 +27,26 @@ import { FC, useEffect, useMemo, useRef, useState } from "react";
 import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
 import { YMaps, Map } from "react-yandex-maps";
-import {
-  IGroupedLocations,
-  IOrderActions,
-  IOrderLocation,
-  IOrderStatus,
-} from "@admin/src/interfaces";
+import { IGroupedLocations, IOrderLocation } from "@admin/src/interfaces";
 import "dayjs/locale/ru";
 import duration from "dayjs/plugin/duration";
 import { CloseOutlined } from "@ant-design/icons";
 import { ChangeOrdersCouirer } from "@admin/src/components/orders/changeCourier";
 import OrderDeliveryPricing from "@admin/src/components/orders/order_delivery_pricing";
 import OrderNotes from "@admin/src/components/orders/order_notes";
-import { chain, zipObject, zipObjectDeep } from "lodash";
+import { chain, zipObjectDeep } from "lodash";
+import { OrdersWithRelations } from "@api/src/modules/orders/dtos/list.dto";
+import { order_status } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { apiClient } from "@admin/src/eden";
+import { OrderActionsWithRelations } from "@api/src/modules/order_actions/dto/list.dto";
+
 dayjs.locale("ru");
 dayjs.extend(duration);
 
 interface OrderShowHeaderProps {
-  startDate: Date;
-  endDate: Date;
+  startDate: string;
+  endDate?: string | null;
   defaultButtons: React.ReactNode;
 }
 
@@ -79,9 +80,13 @@ export const OrdersShow = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const [orderActions, setOrderActions] = useState<IOrderActions[]>([]);
+  const [orderActions, setOrderActions] = useState<OrderActionsWithRelations[]>(
+    []
+  );
   const [orderLocations, setOrderLocations] = useState<IGroupedLocations[]>([]);
-  const [orderStatuses, setOrderStatuses] = useState<IOrderStatus[]>([]);
+  const [orderStatuses, setOrderStatuses] = useState<
+    InferSelectModel<typeof order_status>[]
+  >([]);
 
   const { show } = useNavigation();
 
@@ -90,7 +95,7 @@ export const OrdersShow = () => {
     action: "edit",
   });
 
-  const { queryResult, showId } = useShow({
+  const { queryResult, showId } = useShow<OrdersWithRelations>({
     meta: {
       fields: [
         "id",
@@ -115,21 +120,19 @@ export const OrdersShow = () => {
         "delivery_schedule",
         "later_time",
         "cooked_time",
-        {
-          orders_organization: ["id", "name"],
-        },
-        {
-          orders_couriers: ["id", "first_name", "last_name"],
-        },
-        {
-          orders_customers: ["id", "name", "phone"],
-        },
-        {
-          orders_order_status: ["id", "name", "color"],
-        },
-        {
-          orders_terminals: ["id", "name"],
-        },
+        "organization.id",
+        "organization.name",
+        "couriers.id",
+        "couriers.first_name",
+        "couriers.last_name",
+        "customers.id",
+        "customers.name",
+        "customers.phone",
+        "order_status.id",
+        "order_status.name",
+        "order_status.color",
+        "terminals.id",
+        "terminals.name",
       ],
       requestHeaders: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
@@ -144,29 +147,17 @@ export const OrdersShow = () => {
     let organizations: any = {};
 
     if (record) {
-      const query = gql`
-        query {
-            orderStatuses(where: {
-                organization_id: {
-                    equals: "${record.orders_organization.id}"
-                }
-            }, orderBy: {
-                sort: asc}) {
-                id
-                name
-                color
-            }
-        }`;
-      const { orderStatuses } = await client.request<{
-        orderStatuses: IOrderStatus[];
-      }>(
-        query,
-        {},
-        {
+      const { data } = await apiClient.api.order_status.cached.get({
+        $query: {
+          organization_id: record.organization.id,
+        },
+        $headers: {
           Authorization: `Bearer ${identity?.token.accessToken}`,
-        }
-      );
-      setOrderStatuses(orderStatuses);
+        },
+      });
+      if (data && Array.isArray(data)) {
+        setOrderStatuses(data);
+      }
     }
   };
 
@@ -200,50 +191,45 @@ export const OrdersShow = () => {
   ];
 
   const productsData = useMemo(() => {
-    let order_items = [];
-    if (record?.order_items) {
-      try {
-        order_items = JSON.parse(record?.order_items);
-      } catch (error) {}
-    }
-    return order_items?.map((item: any) => ({
-      key: item.id,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      sum: item.price * item.quantity,
-    }));
+    // let order_items = [];
+    // if (record?.order_items) {
+    //   try {
+    //     order_items = JSON.parse(record?.order_items);
+    //   } catch (error) {}
+    // }
+    // return order_items?.map((item: any) => ({
+    //   key: item.id,
+    //   name: item.name,
+    //   quantity: item.quantity,
+    //   price: item.price,
+    //   sum: item.price * item.quantity,
+    // }));
+    return [];
   }, [record]);
 
   const onTabChange = async (key: string) => {
     if (key === "3") {
-      const query = gql`
-        query ($id: String!) {
-          findForOrder(orderId: $id) {
-            id
-            created_at
-            action
-            action_text
-            duration
-            order_actions_created_byTousers {
-              first_name
-              last_name
-            }
-          }
-        }
-      `;
-
-      const { findForOrder } = await client.request<{
-        findForOrder: IOrderActions[];
-      }>(
-        query,
-        { id: showId },
-        {
+      const { data } = await apiClient.api.order_actions.get({
+        $query: {
+          limit: "100",
+          offset: "0",
+          fields:
+            "id,created_at,action,action_text,duration,users.first_name,users.last_name",
+          filters: JSON.stringify([
+            {
+              field: "order_id",
+              operator: "eq",
+              value: showId,
+            },
+          ]),
+        },
+        $headers: {
           Authorization: `Bearer ${identity?.token.accessToken}`,
-        }
-      );
-
-      setOrderActions(findForOrder);
+        },
+      });
+      if (data && Array.isArray(data)) {
+        setOrderActions(data);
+      }
     }
   };
 
@@ -349,7 +335,7 @@ export const OrdersShow = () => {
       title={`Заказ #${record?.order_number}`}
       headerButtons={({ defaultButtons }) => (
         <OrderShowHeader
-          startDate={record?.created_at}
+          startDate={record?.created_at!}
           endDate={record?.finished_date}
           defaultButtons={defaultButtons}
         />
@@ -364,7 +350,7 @@ export const OrdersShow = () => {
                   {dayjs(record?.created_at).format("DD.MM.YYYY HH:mm")}
                 </Descriptions.Item>
                 <Descriptions.Item label="Статус">
-                  <Tag color={record?.orders_order_status?.color}>
+                  <Tag color={record?.order_status.color!}>
                     <div
                       style={{
                         fontWeight: 800,
@@ -372,7 +358,7 @@ export const OrdersShow = () => {
                         textTransform: "uppercase",
                       }}
                     >
-                      {record?.orders_order_status?.name}
+                      {record?.order_status?.name}
                     </div>
                   </Tag>
                   <CanAccess resource="orders" action="edit">
@@ -427,14 +413,10 @@ export const OrdersShow = () => {
                     type="link"
                     size="small"
                     onClick={() =>
-                      show(
-                        "organizations",
-                        "show",
-                        record?.orders_organization?.id
-                      )
+                      show("organizations", record?.organization.id ?? "")
                     }
                   >
-                    {record?.orders_organization?.name}
+                    {record?.organization?.name}
                   </Button>
                 </Descriptions.Item>
                 <Descriptions.Item label="Филиал">
@@ -442,10 +424,10 @@ export const OrdersShow = () => {
                     type="link"
                     size="small"
                     onClick={() =>
-                      show("terminals", "show", record?.orders_terminals?.id)
+                      show("terminals", record?.terminals.id ?? "")
                     }
                   >
-                    {record?.orders_terminals?.name}
+                    {record?.terminals?.name}
                   </Button>
                 </Descriptions.Item>
                 <Descriptions.Item label="Курьер">
@@ -456,22 +438,23 @@ export const OrdersShow = () => {
                       justifyContent: "space-around",
                     }}
                   >
-                    <div
-                      style={{
-                        flex: 1,
-                      }}
-                    >
-                      <Button
-                        type="link"
-                        size="small"
-                        onClick={() =>
-                          show("couriers", "show", record?.orders_couriers?.id)
-                        }
+                    {record?.couriers && (
+                      <div
+                        style={{
+                          flex: 1,
+                        }}
                       >
-                        {record?.orders_couriers?.first_name}{" "}
-                        {record?.orders_couriers?.last_name}
-                      </Button>
-                    </div>
+                        <Button
+                          type="link"
+                          size="small"
+                          onClick={() => show("couriers", record.couriers.id)}
+                        >
+                          {record.couriers.first_name}{" "}
+                          {record.couriers.last_name}
+                        </Button>
+                      </div>
+                    )}
+
                     <div
                       style={{
                         marginLeft: 5,
@@ -481,7 +464,7 @@ export const OrdersShow = () => {
                       <CanAccess resource="orders" action="changeCourier">
                         <ChangeOrdersCouirer
                           id={showId?.toString()}
-                          terminal_id={record?.orders_terminals.id}
+                          terminal_id={record?.terminals.id}
                         />
                       </CanAccess>
                     </div>
@@ -506,10 +489,10 @@ export const OrdersShow = () => {
                   </div>
                 </Descriptions.Item>
                 <Descriptions.Item label="ФИО">
-                  {record?.orders_customers?.name}
+                  {record?.customers?.name}
                 </Descriptions.Item>
                 <Descriptions.Item label="Телефон">
-                  {record?.orders_customers?.phone}
+                  {record?.customers?.phone}
                 </Descriptions.Item>
                 <Descriptions.Item label="Способ оплаты">
                   {record?.payment_type}
@@ -525,10 +508,10 @@ export const OrdersShow = () => {
                   </Descriptions.Item>
                 )}
                 <Descriptions.Item label="Стоимость заказа">
-                  {new Intl.NumberFormat("ru").format(record?.order_price)} сум
+                  {new Intl.NumberFormat("ru").format(record?.order_price!)} сум
                 </Descriptions.Item>
                 <Descriptions.Item label="Стоимость доставки">
-                  {new Intl.NumberFormat("ru").format(record?.delivery_price)}{" "}
+                  {new Intl.NumberFormat("ru").format(record?.delivery_price!)}{" "}
                   сум
                 </Descriptions.Item>
                 <Descriptions.Item label="Дистанция">
@@ -546,7 +529,7 @@ export const OrdersShow = () => {
                 </Descriptions.Item>
                 <Descriptions.Item label="Время доставки">
                   {dayjs
-                    .duration(record?.pre_duration * 1000)
+                    .duration(record?.pre_duration! * 1000)
                     .format("HH:mm:ss")}
                 </Descriptions.Item>
                 <Descriptions.Item label="Комментарий">
@@ -577,7 +560,7 @@ export const OrdersShow = () => {
               >
                 <Map
                   defaultState={{
-                    center: [record?.from_lat, record?.from_lon],
+                    center: [record?.from_lat!, record?.from_lon!],
                     zoom: 15,
                     controls: ["zoomControl"],
                   }}
@@ -704,19 +687,15 @@ export const OrdersShow = () => {
                   </div>
                 }
                 style={{
-                  paddingBottom: item.order_actions_created_byTousers
-                    ? "20px"
-                    : "40px",
+                  paddingBottom: item.users ? "20px" : "40px",
                 }}
               >
                 <Space direction="vertical" style={{ display: "flex" }}>
                   <div>{item.action_text}</div>
-                  {item.order_actions_created_byTousers && (
+                  {item.users && (
                     <div>
                       <strong>Пользователь: </strong>
-                      <Tag color="blue">
-                        {item.order_actions_created_byTousers.first_name}
-                      </Tag>
+                      <Tag color="blue">{item.users.first_name}</Tag>
                     </div>
                   )}
                 </Space>

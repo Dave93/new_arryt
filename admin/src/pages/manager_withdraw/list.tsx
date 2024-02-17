@@ -1,59 +1,24 @@
-import { List, useTable, ShowButton, ExportButton } from "@refinedev/antd";
-import {
-  Table,
-  Space,
-  Button,
-  Form,
-  Select,
-  Col,
-  Row,
-  DatePicker,
-  Tag,
-  Input,
-  Popover,
-  List as AntdList,
-} from "antd";
-import type { TableRowSelection } from "antd/es/table/interface";
+import { List, useTable, ExportButton } from "@refinedev/antd";
+import { Table, Button, Form, Select, Col, Row, DatePicker } from "antd";
 
-import {
-  CrudFilters,
-  HttpError,
-  useCan,
-  useExport,
-  useGetIdentity,
-  useNavigation,
-  useTranslate,
-} from "@refinedev/core";
+import { CrudFilters, HttpError, useGetIdentity } from "@refinedev/core";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 
-import {
-  IManagerWithdraw,
-  IOrders,
-  IOrderStatus,
-  IOrganization,
-  ITerminals,
-  IUsers,
-} from "@admin/src/interfaces";
+import { IManagerWithdraw, ITerminals, IUsers } from "@admin/src/interfaces";
 import { sortBy } from "lodash";
-import {
-  UpOutlined,
-  DownOutlined,
-  UserOutlined,
-  EyeOutlined,
-} from "@ant-design/icons";
-import { useState, useEffect, useMemo, FC } from "react";
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/ru";
 import duration from "dayjs/plugin/duration";
 import DebounceSelect from "@admin/src/components/select/debounceSelector";
-import { OrdersTableActions } from "@admin/src/components/table_actions/orders";
 import { useTableExport } from "@admin/src/components/export/table";
 import { rangePresets } from "@admin/src/components/dates/RangePresets";
 import { ManagerWithdrawTransactions } from "@admin/src/components/users/courier_withdraws";
 import { apiClient } from "@admin/src/eden";
+import { organization } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { ManagerWithdrawWithRelations } from "@api/src/modules/manager_withdraw/dto/list.dto";
 
 var weekday = require("dayjs/plugin/weekday");
 dayjs.locale("ru");
@@ -62,39 +27,13 @@ dayjs.extend(duration);
 
 const { RangePicker } = DatePicker;
 
-interface IOrdersListProps {
-  startDate: Date;
-  endDate: Date;
-  emptyMessage?: string;
-}
-
-const IOrdersListPropsDuration: FC<IOrdersListProps> = ({
-  startDate,
-  endDate,
-  emptyMessage,
-}) => {
-  const duration = useMemo(() => {
-    if (startDate && endDate) {
-      return `${dayjs(endDate).diff(startDate, "minute")} минут`;
-    } else {
-      return emptyMessage ?? "Доставка не завершена";
-    }
-  }, [startDate, endDate]);
-  return (
-    <Space>
-      <div>
-        <strong>{duration}</strong>
-      </div>
-    </Space>
-  );
-};
-
 export const ManagerWithdrawList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const tr = useTranslate();
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
   const [terminals, setTerminals] = useState<any[]>([]);
 
   const queryClient = useQueryClient();
@@ -104,9 +43,8 @@ export const ManagerWithdrawList: React.FC = () => {
     searchFormProps,
     filters,
     sorters: sorter,
-    setFilters,
   } = useTable<
-    IManagerWithdraw,
+    ManagerWithdrawWithRelations,
     HttpError,
     {
       organization_id: string;
@@ -325,22 +263,22 @@ export const ManagerWithdrawList: React.FC = () => {
 
   const getAllFilterData = async () => {
     const { data: terminals } = await apiClient.api.terminals.cached.get({
-      $fetch: {
-        headers: {
-          Authorization: `Bearer ${identity?.token.accessToken}`,
-        },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
       },
     });
-    setTerminals(sortBy(terminals, (item) => item.name));
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
     const { data: organizations } =
       await apiClient.api.organizations.cached.get({
-        $fetch: {
-          headers: {
-            Authorization: `Bearer ${identity?.token.accessToken}`,
-          },
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
-    setOrganizations(organizations);
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
   const fetchCourier = async (queryText: string) => {
@@ -348,15 +286,21 @@ export const ManagerWithdrawList: React.FC = () => {
       $query: {
         search: queryText,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    // @ts-ignore
-    return (
-      users?.map((user) => ({
-        key: user.users.id,
-        value: user.users.id,
-        label: `${user.users.first_name} ${user.users.last_name} (${user.users.phone})`,
-      })) ?? []
-    );
+    if (users && Array.isArray(users)) {
+      return (
+        users?.map((user) => ({
+          key: user.id,
+          value: user.id,
+          label: `${user.first_name} ${user.last_name} (${user.phone})`,
+        })) ?? []
+      );
+    } else {
+      return [];
+    }
   };
 
   useEffect(() => {
@@ -445,7 +389,7 @@ export const ManagerWithdrawList: React.FC = () => {
             size="small"
             columns={columns}
             expandable={{
-              expandedRowRender: (record: IManagerWithdraw) => (
+              expandedRowRender: (record: ManagerWithdrawWithRelations) => (
                 <ManagerWithdrawTransactions record={record} />
               ),
             }}

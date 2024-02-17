@@ -9,8 +9,9 @@ import {
 import { Table, Switch, Space, Drawer, Form, Input } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IPermissions } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
+import { permissions } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 export const PermissionsList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
@@ -23,7 +24,7 @@ export const PermissionsList: React.FC = () => {
     saveButtonProps,
     deleteButtonProps,
     id,
-  } = useDrawerForm<IPermissions>({
+  } = useDrawerForm<InferSelectModel<typeof permissions>>({
     action: "edit",
     meta: {
       fields: ["id", "slug", "active", "created_at", "description"],
@@ -34,7 +35,7 @@ export const PermissionsList: React.FC = () => {
     },
   });
 
-  const { tableProps } = useTable<IPermissions>({
+  const { tableProps } = useTable<InferSelectModel<typeof permissions>>({
     meta: {
       fields: ["id", "slug", "active", "created_at"],
       whereInputType: "permissionsWhereInput!",
@@ -74,7 +75,7 @@ export const PermissionsList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<IPermissions>
+          <Table.Column<InferSelectModel<typeof permissions>>
             title="Действия"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

@@ -3,6 +3,8 @@ import { Table, Space } from "antd";
 import { useGetIdentity, useNavigation } from "@refinedev/core";
 
 import { ICustomers } from "@admin/src/interfaces";
+import { customers } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 export const CustomersList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
@@ -10,7 +12,7 @@ export const CustomersList: React.FC = () => {
   }>();
   const { show } = useNavigation();
 
-  const { tableProps } = useTable<ICustomers>({
+  const { tableProps } = useTable<InferSelectModel<typeof customers>>({
     meta: {
       fields: ["id", "name", "phone"],
       whereInputType: "customersWhereInput!",
@@ -43,7 +45,7 @@ export const CustomersList: React.FC = () => {
         >
           <Table.Column dataIndex="name" title="Ф.И.О." />
           <Table.Column dataIndex="phone" title="Телефон" />
-          <Table.Column<ICustomers>
+          <Table.Column<InferSelectModel<typeof customers>>
             title="Действия"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

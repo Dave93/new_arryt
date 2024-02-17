@@ -28,7 +28,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { client } from "@admin/src/graphConnect";
 import { gql } from "graphql-request";
 
-import { IOrders, IOrderStatus, IOrganization } from "@admin/src/interfaces";
 import { sortBy } from "lodash";
 import {
   UpOutlined,
@@ -45,6 +44,9 @@ import { OrdersTableActions } from "@admin/src/components/table_actions/orders";
 import { useTableExport } from "@admin/src/components/export/table";
 import { rangePresets } from "@admin/src/components/dates/RangePresets";
 import { apiClient } from "@admin/src/eden";
+import { order_status, organization, terminals } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { OrdersWithRelations } from "@api/src/modules/orders/dtos/list.dto";
 
 var weekday = require("dayjs/plugin/weekday");
 dayjs.locale("ru");
@@ -54,8 +56,8 @@ dayjs.extend(duration);
 const { RangePicker } = DatePicker;
 
 interface IOrdersListProps {
-  startDate: Date;
-  endDate: Date;
+  startDate: string;
+  endDate: string;
   emptyMessage?: string;
 }
 
@@ -86,11 +88,17 @@ export const OrdersList: React.FC = () => {
   }>();
   const tr = useTranslate();
   const [expand, setExpand] = useState(false);
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
-  const [terminals, setTerminals] = useState<any[]>([]);
-  const [orderStatuses, setOrderStatuses] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
+  const [orderStatuses, setOrderStatuses] = useState<
+    InferSelectModel<typeof order_status>[]
+  >([]);
   const [orderChangeStatuses, setOrderChangeStatuses] = useState<
-    IOrderStatus[]
+    InferSelectModel<typeof order_status>[]
   >([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
@@ -105,7 +113,7 @@ export const OrdersList: React.FC = () => {
     sorters: sorter,
     setFilters,
   } = useTable<
-    IOrders,
+    OrdersWithRelations,
     HttpError,
     {
       organization_id: string;
@@ -287,9 +295,13 @@ export const OrdersList: React.FC = () => {
       $query: {
         organization_id: organizationId,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-
-    setOrderChangeStatuses(data);
+    if (data && Array.isArray(data)) {
+      setOrderChangeStatuses(data);
+    }
   };
 
   const updateOrderStatus = async (showId: string, id: string) => {
@@ -324,7 +336,7 @@ export const OrdersList: React.FC = () => {
       dataIndex: "actions",
       exportable: false,
       width: 50,
-      render: (_text: any, record: IOrders): React.ReactNode => (
+      render: (_text: any, record: OrdersWithRelations): React.ReactNode => (
         <Space>
           <Button
             size="small"
@@ -352,7 +364,7 @@ export const OrdersList: React.FC = () => {
       title: "Дата заказа",
       dataIndex: "created_at",
       width: 110,
-      excelRender: (value: any, record: any) =>
+      excelRender: (value: any, record: OrdersWithRelations) =>
         dayjs(value).format("DD.MM.YYYY HH:mm"),
       render: (value: any) => (
         <span>{dayjs(value).format("DD.MM.YYYY HH:mm")}</span>
@@ -362,8 +374,9 @@ export const OrdersList: React.FC = () => {
       title: "Статус",
       dataIndex: "order_status_id",
       width: 120,
-      excelRender: (value: any, record: any) => record.order_status.name,
-      render: (value: any, record: any) =>
+      excelRender: (value: any, record: OrdersWithRelations) =>
+        record.order_status.name,
+      render: (value: any, record: OrdersWithRelations) =>
         orderCanEdit?.can ? (
           <Popover
             placement="bottom"
@@ -417,7 +430,7 @@ export const OrdersList: React.FC = () => {
             </Button>
           </Popover>
         ) : (
-          <Tag color={record.order_status.color}>
+          <Tag color={record.order_status.color!}>
             <div
               style={{
                 fontWeight: 800,
@@ -434,7 +447,7 @@ export const OrdersList: React.FC = () => {
       title: "Организация",
       dataIndex: "organization.name",
       width: 120,
-      render: (value: any, record: IOrders) => (
+      render: (value: any, record: OrdersWithRelations) => (
         <Button
           type="link"
           size="small"
@@ -452,8 +465,9 @@ export const OrdersList: React.FC = () => {
       title: "Филиал",
       width: 120,
       dataIndex: "terminals.name",
-      excelRender: (value: any, record: IOrders) => record.terminals.name,
-      render: (value: any, record: IOrders) => (
+      excelRender: (value: any, record: OrdersWithRelations) =>
+        record.terminals.name,
+      render: (value: any, record: OrdersWithRelations) => (
         <Button
           type="link"
           size="small"
@@ -471,11 +485,11 @@ export const OrdersList: React.FC = () => {
       title: "Курьер",
       width: 120,
       dataIndex: "couriers.first_name",
-      excelRender: (value: any, record: IOrders) =>
+      excelRender: (value: any, record: OrdersWithRelations) =>
         record.couriers
           ? `${record.couriers.first_name} ${record.couriers.last_name}`
           : "Не назначен",
-      render: (value: any, record: IOrders) =>
+      render: (value: any, record: OrdersWithRelations) =>
         record.couriers ? (
           <span>
             {`${record.couriers.first_name} ${record.couriers.last_name} `}
@@ -494,9 +508,9 @@ export const OrdersList: React.FC = () => {
       title: "Клиент",
       dataIndex: "customers.name",
       width: 100,
-      excelRender: (value: any, record: IOrders) =>
+      excelRender: (value: any, record: OrdersWithRelations) =>
         record.customers.name.replace(/[^\x00-\x7F]/g, ""),
-      render: (value: any, record: IOrders) => (
+      render: (value: any, record: OrdersWithRelations) => (
         <Button
           type="link"
           size="small"
@@ -514,8 +528,9 @@ export const OrdersList: React.FC = () => {
       title: "Телефон",
       dataIndex: "customers.phone",
       width: 150,
-      excelRender: (value: any, record: IOrders) => record.customers.phone,
-      render: (value: any, record: IOrders) => (
+      excelRender: (value: any, record: OrdersWithRelations) =>
+        record.customers.phone,
+      render: (value: any, record: OrdersWithRelations) => (
         <Button
           type="link"
           size="small"
@@ -529,8 +544,9 @@ export const OrdersList: React.FC = () => {
       title: "Цена",
       dataIndex: "order_price",
       width: 90,
-      excelRender: (value: any, record: IOrders) => +record.order_price,
-      render: (value: any, record: IOrders) => (
+      excelRender: (value: any, record: OrdersWithRelations) =>
+        +record.order_price,
+      render: (value: any, record: OrdersWithRelations) => (
         <span>{new Intl.NumberFormat("ru").format(record.order_price)}</span>
       ),
     },
@@ -538,9 +554,9 @@ export const OrdersList: React.FC = () => {
       title: "Дата выпечки",
       dataIndex: "cooked_time",
       width: 110,
-      excelRender: (value: any, record: IOrders) =>
+      excelRender: (value: any, record: OrdersWithRelations) =>
         value ? dayjs(value).format("DD.MM.YYYY HH:mm") : "",
-      render: (value: any, record: IOrders) => (
+      render: (value: any, record: OrdersWithRelations) => (
         <span>{value ? dayjs(value).format("DD.MM.YYYY HH:mm") : ""}</span>
       ),
     },
@@ -548,7 +564,7 @@ export const OrdersList: React.FC = () => {
       title: "Время выпечки",
       dataIndex: "cooked_time",
       width: 100,
-      excelRender: (value: any, record: IOrders) => {
+      excelRender: (value: any, record: OrdersWithRelations) => {
         if (record?.cooked_time) {
           const ft = dayjs(record.created_at);
           const tt = dayjs(record.cooked_time);
@@ -560,7 +576,7 @@ export const OrdersList: React.FC = () => {
           return "Не заполнена выпечка";
         }
       },
-      render: (value: any, record: IOrders) => (
+      render: (value: any, record: OrdersWithRelations) => (
         <IOrdersListPropsDuration
           startDate={record?.created_at}
           endDate={record?.cooked_time!}
@@ -572,7 +588,7 @@ export const OrdersList: React.FC = () => {
       title: "Время доставки",
       dataIndex: "duration",
       width: 100,
-      excelRender: (value: any, record: IOrders) => {
+      excelRender: (value: any, record: OrdersWithRelations) => {
         if (record?.finished_date) {
           const ft = dayjs(record.created_at);
           const tt = dayjs(record.finished_date);
@@ -584,7 +600,7 @@ export const OrdersList: React.FC = () => {
           return "Не завершен";
         }
       },
-      render: (value: any, record: IOrders) => (
+      render: (value: any, record: OrdersWithRelations) => (
         <IOrdersListPropsDuration
           startDate={record?.created_at}
           endDate={record?.finished_date!}
@@ -595,8 +611,8 @@ export const OrdersList: React.FC = () => {
       title: "Бонус",
       dataIndex: "bonus",
       width: 90,
-      excelRender: (value: any, record: IOrders) => +record.bonus,
-      render: (value: any, record: IOrders) => (
+      excelRender: (value: any, record: OrdersWithRelations) => +record.bonus,
+      render: (value: any, record: OrdersWithRelations) => (
         <span>{new Intl.NumberFormat("ru").format(record.bonus)}</span>
       ),
     },
@@ -604,15 +620,16 @@ export const OrdersList: React.FC = () => {
       title: "Дистанция",
       dataIndex: "pre_distance",
       width: 100,
-      render: (value: any, record: IOrders) =>
+      render: (value: any, record: OrdersWithRelations) =>
         `${+record.pre_distance.toFixed(2)} км`,
     },
     {
       title: "Цена доставки",
       dataIndex: "delivery_price",
       width: 80,
-      excelRender: (value: any, record: IOrders) => +record.delivery_price,
-      render: (value: any, record: IOrders) => (
+      excelRender: (value: any, record: OrdersWithRelations) =>
+        +record.delivery_price,
+      render: (value: any, record: OrdersWithRelations) => (
         <span>{new Intl.NumberFormat("ru").format(record.delivery_price)}</span>
       ),
     },
@@ -620,11 +637,12 @@ export const OrdersList: React.FC = () => {
       title: "Тип оплаты",
       dataIndex: "payment_type",
       width: 100,
-      excelRender: (value: any, record: IOrders) => record.payment_type,
+      excelRender: (value: any, record: OrdersWithRelations) =>
+        record.payment_type,
     },
   ];
 
-  const { triggerExport, isLoading } = useTableExport<IOrders>({
+  const { triggerExport, isLoading } = useTableExport<OrdersWithRelations>({
     metaData: {
       fields: [
         "id",
@@ -667,33 +685,33 @@ export const OrdersList: React.FC = () => {
 
   const getAllFilterData = async () => {
     const { data: terminals } = await apiClient.api.terminals.cached.get({
-      $fetch: {
-        headers: {
-          Authorization: `Bearer ${identity?.token.accessToken}`,
-        },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
       },
     });
-    setTerminals(sortBy(terminals, (item) => item.name));
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
     const { data: organizations } =
       await apiClient.api.organizations.cached.get({
-        $fetch: {
-          headers: {
-            Authorization: `Bearer ${identity?.token.accessToken}`,
-          },
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
-    setOrganizations(organizations);
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
     const { data: orderStatuses } = await apiClient.api.order_status.cached.get(
       {
-        $fetch: {
-          headers: {
-            Authorization: `Bearer ${identity?.token.accessToken}`,
-          },
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
         },
         $query: {},
       }
     );
-    setOrderStatuses(sortBy(orderStatuses, (item) => item.sort));
+    if (orderStatuses && Array.isArray(orderStatuses)) {
+      setOrderStatuses(sortBy(orderStatuses, (item) => item.sort));
+    }
   };
 
   const goToCustomer = (id: string) => {
@@ -716,22 +734,28 @@ export const OrdersList: React.FC = () => {
       $query: {
         search: queryText,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    // @ts-ignore
-    return (
-      users?.map((user) => ({
-        key: user.users.id,
-        value: user.users.id,
-        label: `${user.users.first_name} ${user.users.last_name} (${user.users.phone})`,
-      })) ?? []
-    );
+    if (users && Array.isArray(users)) {
+      return (
+        users?.map((user) => ({
+          key: user.id,
+          value: user.id,
+          label: `${user.first_name} ${user.last_name} (${user.phone})`,
+        })) ?? []
+      );
+    } else {
+      return [];
+    }
   };
 
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
-  const rowSelection: TableRowSelection<IOrders> = useMemo(() => {
+  const rowSelection: TableRowSelection<OrdersWithRelations> = useMemo(() => {
     const res = {
       selectedRowKeys,
       onChange: onSelectChange,
@@ -764,7 +788,7 @@ export const OrdersList: React.FC = () => {
 
     let organizations: any = {};
     if (tableProps.dataSource?.length) {
-      tableProps.dataSource?.forEach((item: IOrders) => {
+      tableProps.dataSource?.forEach((item: OrdersWithRelations) => {
         organizations[item.organization.id] = item.organization.name;
         // res.selectedRowKeys?.push(item.id);
       });
@@ -777,9 +801,9 @@ export const OrdersList: React.FC = () => {
             setSelectedRowKeys(
               tableProps
                 .dataSource!.filter(
-                  (item: IOrders) => item.organization.id === key
+                  (item: OrdersWithRelations) => item.organization.id === key
                 )
-                .map((item: IOrders) => item.id)
+                .map((item: OrdersWithRelations) => item.id)
             );
           },
         });
@@ -894,7 +918,7 @@ export const OrdersList: React.FC = () => {
                       allowClear
                       mode="multiple"
                     >
-                      {terminals.map((terminal: any) => (
+                      {terminalsList.map((terminal: any) => (
                         <Select.Option key={terminal.id} value={terminal.id}>
                           {terminal.name}
                         </Select.Option>

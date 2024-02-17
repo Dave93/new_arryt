@@ -3,8 +3,9 @@ import { Form, Input, Switch, Select } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 import { client } from "@admin/src/graphConnect";
 import { gql } from "graphql-request";
-import { IPermissions, IRoles } from "@admin/src/interfaces";
 import { useEffect, useState } from "react";
+import { permissions, roles } from "@api/drizzle/schema";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 const { Option } = Select;
 
@@ -12,10 +13,14 @@ export const RolesEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const [permissions, setPermissions] = useState<IPermissions[]>([]);
+  const [permissionsList, setPermissions] = useState<
+    InferSelectModel<typeof permissions>[]
+  >([]);
   const [chosenPermissions, setChosenPermissions] = useState<string[]>([]);
 
-  const { formProps, saveButtonProps, id } = useForm<IRoles>({
+  const { formProps, saveButtonProps, id } = useForm<
+    InferInsertModel<typeof roles>
+  >({
     meta: {
       fields: ["id", "name", "code", "active"],
       pluralize: true,
@@ -140,7 +145,7 @@ export const RolesEdit: React.FC = () => {
             onChange={onPermissionsSelect}
             optionLabelProp="label"
           >
-            {permissions.map((item: any) => (
+            {permissionsList.map((item: any) => (
               <Option key={item.id} value={item.id} label={item.description}>
                 {item.description}
               </Option>

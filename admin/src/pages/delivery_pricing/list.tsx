@@ -12,12 +12,13 @@ import { IDeliveryPricing } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
 import { delivery_pricing } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
+import { DeliveryPricingWithRelations } from "@api/src/modules/delivery_pricing/dto/list.dto";
 
 export const DeliveryPricingList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<InferSelectModel<typeof delivery_pricing>>({
+  const { tableProps } = useTable<DeliveryPricingWithRelations>({
     meta: {
       fields: ["id", "name", "organization.id", "organization.name", "active"],
       whereInputType: "delivery_pricingWhereInput!",
@@ -50,7 +51,7 @@ export const DeliveryPricingList: React.FC = () => {
           <Table.Column
             dataIndex="organization.name"
             title="Организация"
-            render={(value: any, record: IDeliveryPricing) =>
+            render={(value: any, record: DeliveryPricingWithRelations) =>
               record.organization.name
             }
           />
@@ -65,7 +66,7 @@ export const DeliveryPricingList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<IDeliveryPricing>
+          <Table.Column<DeliveryPricingWithRelations>
             title="Actions"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

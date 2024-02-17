@@ -32,6 +32,9 @@ import { MdDirectionsBike } from "react-icons/md";
 import { formatPhoneNumberIntl } from "react-phone-number-input";
 import { CourierEfficiencyDetails } from "@admin/src/components/orders/courierEfficiencyDetails";
 import CourierDriveTypeIcon from "@admin/src/components/users/courier_drive_type_icon";
+import { terminals, users } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { apiClient } from "@admin/src/eden";
 
 const { RangePicker } = DatePicker;
 
@@ -40,14 +43,18 @@ const CourierEfficiency = () => {
     token: { accessToken: string };
   }>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [couriersList, setCouriersList] = useState<IUsers[]>([]);
-  const [terminals, setTerminals] = useState<any[]>([]);
+  const [couriersList, setCouriersList] = useState<
+    InferSelectModel<typeof users>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
   const [efficiencyData, setEfficiencyData] = useState<any[]>([]);
   const { handleSubmit, control, getValues } = useForm<{
     created_at: [dayjs.Dayjs, dayjs.Dayjs];
     courier_id: string;
-    terminal_id: string;
-    status: string;
+    terminal_id: string[];
+    status: "active" | "inactive" | "blocked";
   }>({
     defaultValues: {
       created_at: [dayjs().startOf("d"), dayjs().endOf("d")],
@@ -63,36 +70,26 @@ const CourierEfficiency = () => {
   };
 
   const fetchAllData = async () => {
-    const query = gql`
-      query {
-        cachedTerminals {
-          id
-          name
-          organization {
-            id
-            name
-          }
-        }
-        users(
-          where: {
-            users_roles_usersTousers_roles_user_id: {
-              some: { roles: { is: { code: { equals: "courier" } } } }
-            }
-          }
-        ) {
-          first_name
-          last_name
-          id
-        }
-      }
-    `;
-    const { cachedTerminals, users } = await client.request<{
-      cachedTerminals: ITerminals[];
-      users: IUsers[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-
-    setCouriersList(users);
-    setTerminals(sortBy(cachedTerminals, ["name"]));
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $fetch: {
+        headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      },
+    });
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, ["name"]));
+    }
+    const { data: couriers } = await apiClient.api.couriers.all.get({
+      $fetch: {
+        headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      },
+    });
+    if (couriers && Array.isArray(couriers)) {
+      setCouriersList(couriers);
+    }
   };
 
   const columns = [
@@ -185,40 +182,19 @@ const CourierEfficiency = () => {
 
     const { created_at, courier_id, terminal_id, status } = getValues();
 
-    const query = gql`
-      query {
-        getCouriersEfficiency(
-          startDate: "${created_at[0].toISOString()}"
-          endDate: "${created_at[1].toISOString()}"
-          ${courier_id ? `courier_id: ${JSON.stringify(courier_id)}` : ""}
-          ${terminal_id ? `terminal_id: ${JSON.stringify(terminal_id)}` : ""}
-          ${status ? `status: ${JSON.stringify(status)}` : ""}
-        ) {
-          courier_id
-          first_name
-          last_name
-          phone
-          drive_type
-          courier_count
-          total_count
-          efficiency
-          terminals {
-            terminal_id
-            terminal_name
-            courier_count
-            total_count
-            efficiency
-            hour_period
-            courier_ids
-          }
-        }
-      }
-    `;
-    const { getCouriersEfficiency } = await client.request<{
-      getCouriersEfficiency: CourierEfficiencyReportItem[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-
-    setEfficiencyData(getCouriersEfficiency);
+    const { data } = await apiClient.api.couriers.efficiency.post({
+      startDate: created_at[0].toISOString(),
+      endDate: created_at[1].toISOString(),
+      courier_id: courier_id,
+      terminal_id: terminal_id,
+      status: status,
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+    if (data && Array.isArray(data)) {
+      setEfficiencyData(data);
+    }
     setIsLoading(false);
   };
 
@@ -302,7 +278,7 @@ const CourierEfficiency = () => {
                           allowClear
                           mode="multiple"
                         >
-                          {terminals.map((terminal: any) => (
+                          {terminalsList.map((terminal) => (
                             <Select.Option
                               key={terminal.id}
                               value={terminal.id}

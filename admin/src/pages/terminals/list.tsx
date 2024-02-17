@@ -14,15 +14,20 @@ import { IOrganization, ITerminals } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
 import { useEffect, useState } from "react";
 import { apiClient } from "@admin/src/eden";
+import { organization, terminals } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { TerminalsWithRelations } from "@api/src/modules/terminals/dto/list.dto";
 
 export const TerminalsList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
 
   const { tableProps, searchFormProps } = useTable<
-    ITerminals,
+    TerminalsWithRelations,
     HttpError,
     { organization_id: string }
   >({
@@ -87,7 +92,9 @@ export const TerminalsList: React.FC = () => {
           },
         },
       });
-    setOrganizations(organizations);
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
   const loadTerminals = async () => {
@@ -147,7 +154,7 @@ export const TerminalsList: React.FC = () => {
           <Table.Column
             dataIndex="organization.name"
             title="Организация"
-            render={(value: any, record: ITerminals) =>
+            render={(value: any, record: TerminalsWithRelations) =>
               record.organization.name
             }
           />
@@ -172,7 +179,7 @@ export const TerminalsList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<ITerminals>
+          <Table.Column<InferSelectModel<typeof terminals>>
             title="Действия"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

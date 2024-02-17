@@ -10,6 +10,7 @@ import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
+import { WorkScheduleWithRelations } from "./dto/list.dto";
 
 export const WorkSchedulesController = new Elysia({
   name: "@app/work_schedules",
@@ -17,7 +18,20 @@ export const WorkSchedulesController = new Elysia({
   .use(ctx)
   .get(
     "/work_schedules",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("work_schedules.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {
@@ -45,7 +59,7 @@ export const WorkSchedulesController = new Elysia({
         .where(and(...whereClause))
         .limit(+limit)
         .offset(+offset)
-        .execute();
+        .execute() as WorkScheduleWithRelations[];
       return {
         total: rolesCount[0].count,
         data: rolesList,
@@ -61,15 +75,39 @@ export const WorkSchedulesController = new Elysia({
       }),
     }
   )
-  .get("/work_schedules/cached", async ({ redis }) => {
-    const res = await redis.get(
-      `${process.env.PROJECT_PREFIX}_work_schedules`
-    );
-    return JSON.parse(res || "[]") as InferSelectModel<typeof work_schedules>[];
+  .get("/work_schedules/cached", async ({ redis, user, set, cacheControl }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("work_schedules.list")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+    const res = await cacheControl.getWorkSchedules();
+    return res;
   })
   .get(
     "/work_schedules/:id",
-    async ({ params: { id }, drizzle }) => {
+    async ({ params: { id }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("work_schedules.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const permissionsRecord = await drizzle
         .select()
         .from(work_schedules)
@@ -87,7 +125,20 @@ export const WorkSchedulesController = new Elysia({
   )
   .post(
     "/work_schedules",
-    async ({ body: { data, fields }, drizzle }) => {
+    async ({ body: { data, fields }, drizzle, user, set, cacheControl }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("work_schedules.create")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {});
@@ -108,7 +159,7 @@ export const WorkSchedulesController = new Elysia({
         .insert(work_schedules)
         .values(data)
         .returning(selectFields);
-
+      await cacheControl.cacheWorkSchedules();
       return {
         data: result[0],
       };
@@ -122,7 +173,20 @@ export const WorkSchedulesController = new Elysia({
   )
   .put(
     "/work_schedules/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, user, set, cacheControl }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("work_schedules.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {});
@@ -145,6 +209,7 @@ export const WorkSchedulesController = new Elysia({
         .where(eq(work_schedules.id, id))
         .returning(selectFields);
 
+      await cacheControl.cacheWorkSchedules();
       return {
         data: result[0],
       };

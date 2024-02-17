@@ -3,16 +3,7 @@ import { Button, Card, Col, Form, Row, Select, Space, Spin, Table } from "antd";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
-import {
-  IRoles,
-  ITerminals,
-  IUsers,
-  IWorkSchedules,
-  WalletStatus,
-} from "@admin/src/interfaces";
 import { ExportOutlined } from "@ant-design/icons";
 import { Excel } from "@admin/src/components/export/src";
 import { sortBy } from "lodash";
@@ -23,6 +14,9 @@ import CourierWithdrawModal from "@admin/src/components/orders/courier_withdraw_
 import { formatPhoneNumberIntl } from "react-phone-number-input";
 import CourierDriveTypeIcon from "@admin/src/components/users/courier_drive_type_icon";
 import { apiClient } from "@admin/src/eden";
+import { users, terminals } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { WalletStatus } from "@api/src/modules/user/dto/list.dto";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -32,8 +26,12 @@ const CourierBalance = () => {
     token: { accessToken: string };
   }>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [couriersList, setCouriersList] = useState<IUsers[]>([]);
-  const [terminals, setTerminals] = useState<any[]>([]);
+  const [couriersList, setCouriersList] = useState<
+    InferSelectModel<typeof users>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
   const [wallet, setWallet] = useState<WalletStatus[]>([]);
   const { handleSubmit, control, watch } = useForm<{
     courier_id: string[] | undefined;
@@ -86,13 +84,13 @@ const CourierBalance = () => {
     // setCouriersList(users);
 
     const { data: cachedTerminals } = await apiClient.api.terminals.cached.get({
-      $fetch: {
-        headers: {
-          Authorization: `Bearer ${identity?.token.accessToken}`,
-        },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
       },
     });
-    setTerminals(sortBy(cachedTerminals, ["name"]));
+    if (cachedTerminals && Array.isArray(cachedTerminals)) {
+      setTerminals(sortBy(cachedTerminals, ["name"]));
+    }
   };
 
   const onSubmit = async (data: any) => {
@@ -107,8 +105,13 @@ const CourierBalance = () => {
         courier_id,
         terminal_id,
         status: status,
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
       });
-    couriersTerminalBalance && setWallet(couriersTerminalBalance);
+    if (couriersTerminalBalance && Array.isArray(couriersTerminalBalance)) {
+      setWallet(couriersTerminalBalance);
+    }
 
     setIsLoading(false);
   };
@@ -239,7 +242,7 @@ const CourierBalance = () => {
                           allowClear
                           mode="multiple"
                         >
-                          {terminals.map((terminal: any) => (
+                          {terminalsList.map((terminal: any) => (
                             <Select.Option
                               key={terminal.id}
                               value={terminal.id}

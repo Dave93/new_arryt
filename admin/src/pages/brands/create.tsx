@@ -2,13 +2,16 @@ import { Create, useForm } from "@refinedev/antd";
 import { Col, Form, Input, Row } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IBrands } from "@admin/src/interfaces";
+import { brands } from "@api/drizzle/schema";
+import { InferInsertModel } from "drizzle-orm";
 
 export const BrandsCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IBrands>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof brands>
+  >({
     meta: {
       fields: ["id", "name", "api_url", "logo_path"],
       pluralize: true,

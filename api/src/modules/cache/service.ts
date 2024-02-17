@@ -12,11 +12,14 @@ import {
   users,
   users_terminals,
   constructed_bonus_pricing,
+  work_schedules,
+  daily_garant,
 } from "@api/drizzle/schema";
 import { DB } from "@api/src/lib/db";
-import { eq, InferSelectModel } from "drizzle-orm";
+import { eq, getTableColumns, InferSelectModel } from "drizzle-orm";
 import { Redis } from "ioredis";
 import { UserResponseDto } from "../user/users.dto";
+import { WorkScheduleWithRelations } from "../work_schedules/dto/list.dto";
 
 export class CacheControlService {
   constructor(private readonly db: DB, private readonly redis: Redis) {
@@ -270,7 +273,20 @@ export class CacheControlService {
   }
 
   async cacheWorkSchedules() {
-    const workSchedules = await this.db.query.work_schedules.findMany();
+
+    const workSchedules = await this.db
+      .select({
+        ...getTableColumns(work_schedules),
+        organization: {
+          ...getTableColumns(organization),
+        },
+      })
+      .from(work_schedules)
+      .leftJoin(
+        organization,
+        eq(work_schedules.organization_id, organization.id)
+      )
+      .execute()
     await this.redis.set(
       `${process.env.PROJECT_PREFIX}_work_schedules`,
       JSON.stringify(workSchedules)
@@ -457,5 +473,19 @@ export class CacheControlService {
     return JSON.parse(constructedBonusPricing || "[]").find(
       (pricing: any) => pricing.organization_id === organizationId
     ) as InferSelectModel<typeof constructed_bonus_pricing>;
+  }
+
+  async getWorkSchedules() {
+    const workSchedules = await this.redis.get(
+      `${process.env.PROJECT_PREFIX}_work_schedules`
+    );
+    return JSON.parse(workSchedules || "[]") as WorkScheduleWithRelations[];
+  }
+
+  async getDailyGarant() {
+    const dailyGarant = await this.redis.get(
+      `${process.env.PROJECT_PREFIX}_daily_garant`
+    );
+    return JSON.parse(dailyGarant || "[]") as InferSelectModel<typeof daily_garant>[];
   }
 }

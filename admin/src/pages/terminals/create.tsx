@@ -1,19 +1,22 @@
 import { Create, useForm } from "@refinedev/antd";
 import { Col, Form, Input, InputNumber, Row, Select, Switch } from "antd";
 import { useGetIdentity } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
-import { IOrganization, ITerminals } from "@admin/src/interfaces";
 import { useEffect, useState } from "react";
 import { sortBy } from "lodash";
 import { apiClient } from "@admin/src/eden";
+import { terminals, organization } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 export const TerminalsCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
-  const { formProps, saveButtonProps } = useForm<ITerminals>({
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
+  const { formProps, saveButtonProps } = useForm<
+    InferSelectModel<typeof terminals>
+  >({
     meta: {
       fields: [
         "id",
@@ -33,7 +36,9 @@ export const TerminalsCreate = () => {
     },
   });
 
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
 
   const fetchOrganizations = async () => {
     const { data: terminals } = await apiClient.api.terminals.cached.get({
@@ -43,7 +48,9 @@ export const TerminalsCreate = () => {
         },
       },
     });
-    setTerminals(sortBy(terminals, (item) => item.name));
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
     const { data: organizations } =
       await apiClient.api.organizations.cached.get({
         $fetch: {
@@ -52,7 +59,9 @@ export const TerminalsCreate = () => {
           },
         },
       });
-    setOrganizations(organizations);
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
   useEffect(() => {
@@ -137,7 +146,7 @@ export const TerminalsCreate = () => {
           <Col span={12}>
             <Form.Item label="Филиал" name="linked_terminal_id">
               <Select showSearch optionFilterProp="children">
-                {terminals.map((terminal) => (
+                {terminalsList.map((terminal) => (
                   <Select.Option key={terminal.id} value={terminal.id}>
                     {terminal.name}
                   </Select.Option>

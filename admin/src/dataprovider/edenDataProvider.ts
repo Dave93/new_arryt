@@ -1,5 +1,5 @@
-import { BaseRecord, DataProvider, GetListParams } from "@refinedev/core";
-import { apiClient, apiFetch } from "../eden";
+import { DataProvider, GetListParams } from "@refinedev/core";
+import { apiFetch } from "../eden";
 
 export const edenDataProvider: DataProvider = {
   getList: async ({
@@ -147,13 +147,18 @@ export const edenDataProvider: DataProvider = {
   },
 
   // @ts-ignore
-  getOne: async ({ resource, id, metaData }) => {
+  getOne: async ({ resource, id, meta }) => {
     const resourceName = resource as string;
 
     const { data, error } = (await apiFetch(
       // @ts-ignore
       `/api/${resourceName}/${id}`,
-      {}
+      {
+        query: {
+          fields: meta?.fields,
+        },
+        headers: meta?.requestHeaders,
+      }
     )) as {
       data: {
         data: any[];

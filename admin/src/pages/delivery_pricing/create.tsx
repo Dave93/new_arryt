@@ -16,15 +16,8 @@ import {
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
 
-import {
-  IDeliveryPricing,
-  IOrganization,
-  ITerminals,
-} from "@admin/src/interfaces";
 import { drive_type } from "@admin/src/interfaces/enums";
 import { useEffect, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
 import { organization_payment_types } from "@admin/src/interfaces/enums";
 
@@ -101,7 +94,9 @@ export const DeliveryPricingCreate = () => {
         },
       },
     });
-    setTerminals(sortBy(terminals, (item) => item.name));
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
     const { data: organizations } =
       await apiClient.api.organizations.cached.get({
         $fetch: {
@@ -110,7 +105,9 @@ export const DeliveryPricingCreate = () => {
           },
         },
       });
-    if (organizations) setOrganizations([...organizations]);
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations([...organizations]);
+    }
   };
 
   useEffect(() => {

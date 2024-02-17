@@ -2,7 +2,6 @@ import {
   List,
   DateField,
   useTable,
-  ShowButton,
   useDrawerForm,
   Edit,
 } from "@refinedev/antd";
@@ -25,30 +24,26 @@ import {
   CrudFilters,
   HttpError,
   useGetIdentity,
+  useNotification,
   useTranslate,
 } from "@refinedev/core";
 import { useQueryClient } from "@tanstack/react-query";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 import { chain, sortBy } from "lodash";
 import { EditOutlined, LinkOutlined } from "@ant-design/icons";
-import {
-  IDailyGarant,
-  IRoles,
-  ITerminals,
-  IUsers,
-  IWorkSchedules,
-} from "@admin/src/interfaces";
+import { IUsers } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
 import { useEffect, useState } from "react";
 import { drive_type, user_status } from "@admin/src/interfaces/enums";
 import FileUploaderMultiple from "@admin/src/components/file_uploader/multiple";
-import * as gqlb from "gql-query-builder";
 import DebounceSelect from "@admin/src/components/select/debounceSelector";
 import { formatPhoneNumberIntl } from "react-phone-number-input";
 import dayjs from "dayjs";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
 import { apiClient } from "@admin/src/eden";
+import { daily_garant, roles, terminals } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { WorkScheduleWithRelations } from "@api/src/modules/work_schedules/dto/list.dto";
+import { UsersModel } from "@api/src/modules/user/dto/list.dto";
 
 const OnlineStatus = ({ value }: { value: boolean }) => {
   return (
@@ -64,17 +59,27 @@ const OnlineStatus = ({ value }: { value: boolean }) => {
 };
 
 export const UsersList: React.FC = () => {
+  const { open } = useNotification();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
 
   const queryClient = useQueryClient();
-  const [terminals, setTerminals] = useState<any[]>([]);
-  const [roles, setRoles] = useState<IRoles[]>([]);
-  const [work_schedules, setWorkSchedules] = useState<any[]>([]);
-  const [daily_garant, setDailyGarant] = useState<IDailyGarant[]>([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
+  const [rolesList, setRoles] = useState<InferSelectModel<typeof roles>[]>([]);
+  const [work_schedulesList, setWorkSchedules] = useState<
+    {
+      name: string;
+      children: WorkScheduleWithRelations[];
+    }[]
+  >([]);
+  const [daily_garantList, setDailyGarant] = useState<
+    InferSelectModel<typeof daily_garant>[]
+  >([]);
   const { tableProps, searchFormProps, filters, setFilters } = useTable<
-    IUsers,
+    UsersModel,
     HttpError,
     {
       first_name?: string;
@@ -137,7 +142,7 @@ export const UsersList: React.FC = () => {
         filters.push({
           field: "id",
           operator: "eq",
-          value: { equals: id.value },
+          value: id.value,
         });
       }
 
@@ -234,7 +239,7 @@ export const UsersList: React.FC = () => {
     saveButtonProps,
     deleteButtonProps,
     id,
-  } = useDrawerForm<IUsers>({
+  } = useDrawerForm<UsersModel>({
     action: "edit",
     resource: "users",
     redirect: false,
@@ -257,27 +262,10 @@ export const UsersList: React.FC = () => {
         "doc_files",
         "order_start_date",
         "daily_garant_id",
-        {
-          users_terminals: [
-            {
-              terminals: ["id", "name"],
-            },
-          ],
-        },
-        {
-          users_work_schedules: [
-            {
-              work_schedules: ["id", "name"],
-            },
-          ],
-        },
-        {
-          users_roles_usersTousers_roles_user_id: [
-            {
-              roles: ["id", "name"],
-            },
-          ],
-        },
+        "work_schedules.id",
+        "work_schedules.name",
+        "terminals.id",
+        "roles.id",
       ],
       pluralize: true,
       updateInputName: "usersUncheckedUpdateInput",
@@ -295,7 +283,9 @@ export const UsersList: React.FC = () => {
         },
       },
     });
-    setTerminals(sortBy(terminals, (item) => item.name));
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
 
     const { data: workSchedules } =
       await apiClient.api.work_schedules.cached.get({
@@ -325,7 +315,10 @@ export const UsersList: React.FC = () => {
           },
         },
       });
-    setDailyGarant(cachedDailyGarant);
+
+    if (cachedDailyGarant && Array.isArray(cachedDailyGarant)) {
+      setDailyGarant(cachedDailyGarant);
+    }
 
     const { data: roles } = await apiClient.api.roles.cached.get({
       $fetch: {
@@ -334,22 +327,31 @@ export const UsersList: React.FC = () => {
         },
       },
     });
-    setRoles(roles);
+
+    if (roles && Array.isArray(roles)) {
+      setRoles(roles);
+    }
   };
   const fetchCourier = async (queryText: string) => {
     const { data: users } = await apiClient.api.couriers.search.get({
       $query: {
         search: queryText,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    // @ts-ignore
-    return (
-      users?.map((user) => ({
-        key: user.users.id,
-        value: user.users.id,
-        label: `${user.users.first_name} ${user.users.last_name} (${user.users.phone})`,
-      })) ?? []
-    );
+    if (users && Array.isArray(users)) {
+      return (
+        users?.map((user) => ({
+          key: user.id,
+          value: user.id,
+          label: `${user.first_name} ${user.last_name} (${user.phone})`,
+        })) ?? []
+      );
+    } else {
+      return [];
+    }
   };
 
   const tr = useTranslate();
@@ -376,7 +378,7 @@ export const UsersList: React.FC = () => {
             <Col span={6}>
               <Form.Item label="Роль" name="roles">
                 <Select>
-                  {roles.map((role: IRoles) => (
+                  {rolesList.map((role) => (
                     <Select.Option key={role.id} value={role.id}>
                       {role.name}
                     </Select.Option>
@@ -424,7 +426,7 @@ export const UsersList: React.FC = () => {
                   allowClear
                   mode="multiple"
                 >
-                  {terminals.map((terminal: any) => (
+                  {terminalsList.map((terminal: any) => (
                     <Select.Option key={terminal.id} value={terminal.id}>
                       {terminal.name}
                     </Select.Option>
@@ -487,12 +489,10 @@ export const UsersList: React.FC = () => {
           />
           {/* <Table.Column dataIndex="card_number" title="Номер карты" /> */}
           <Table.Column
-            dataIndex="users_work_schedules"
+            dataIndex="work_schedules"
             title="График работы"
             render={(val) => (
-              <div>
-                {val?.map((item: any) => item?.work_schedules.name).join(", ")}
-              </div>
+              <div>{val?.map((item: any) => item.name).join(", ")}</div>
             )}
           />
           {/* <Table.Column dataIndex="latitude" title="Широта" />
@@ -544,117 +544,64 @@ export const UsersList: React.FC = () => {
               onClick: async () => {
                 try {
                   let values: any = await formProps.form?.validateFields();
-                  let users_terminals = values.users_terminals;
-                  let work_schedules = values.users_work_schedules;
-                  let roles = values.users_roles_usersTousers_roles_user_id;
-                  delete values.users_terminals;
-                  delete values.users_work_schedules;
-                  delete values.users_roles_usersTousers_roles_user_id;
+                  let usersTerminals = values.terminals;
+                  let usersWorkSchedules = values.work_schedules;
+                  let roles = values.roles;
+                  delete values.terminals;
+                  delete values.roles;
+                  delete values.work_schedules;
 
-                  if (
-                    typeof work_schedules === "object" &&
-                    work_schedules.length > 0 &&
-                    work_schedules[0].work_schedules
-                  ) {
-                    work_schedules = work_schedules.map(
-                      (item: any) => item.work_schedules.id
+                  console.log("usersTerminals", usersTerminals);
+                  console.log("workSchedules", usersWorkSchedules);
+                  console.log("roles", roles);
+
+                  if (usersTerminals && Array.isArray(usersTerminals)) {
+                    usersTerminals = usersTerminals.map((item: any) =>
+                      typeof item == "string" ? item : item.id
                     );
                   }
 
-                  if (
-                    typeof users_terminals === "object" &&
-                    users_terminals.length > 0 &&
-                    users_terminals[0].terminals
-                  ) {
-                    users_terminals = users_terminals.map(
-                      (item: any) => item.terminals.id
+                  if (usersWorkSchedules && Array.isArray(usersWorkSchedules)) {
+                    usersWorkSchedules = usersWorkSchedules.map((item: any) =>
+                      typeof item == "string" ? item : item.id
                     );
                   }
 
-                  if (
-                    typeof roles === "object" &&
-                    roles.length > 0 &&
-                    roles[0].roles
-                  ) {
-                    roles = roles.map((item: any) => item.roles.id)[0];
+                  if (roles && "id" in roles) {
+                    roles = roles.id;
                   }
 
-                  let createQuery = gql`
-                    mutation (
-                      $data: usersUncheckedUpdateInput!
-                      $where: usersWhereUniqueInput!
-                    ) {
-                      updateUser(data: $data, where: $where) {
-                        id
-                      }
-                    }
-                  `;
-                  let { updateUser } = await client.request<{
-                    updateUser: IUsers;
-                  }>(
-                    createQuery,
-                    {
-                      data: values,
-                      where: { id },
-                    },
-                    { Authorization: `Bearer ${identity?.token.accessToken}` }
-                  );
-                  if (updateUser) {
-                    let { query, variables } = gqlb.mutation([
-                      {
-                        operation: "linkUserToRoles",
-                        variables: {
-                          userId: {
-                            value: updateUser.id,
-                            required: true,
-                          },
-                          roleId: {
-                            value: roles,
-                            required: true,
-                          },
-                        },
-                        fields: ["user_id"],
+                  try {
+                    const { data, status, error } = await apiClient.api.users[
+                      id!
+                    ].put({
+                      data: {
+                        ...values,
+                        usersTerminals,
+                        usersWorkSchedules,
+                        roles,
                       },
-                      {
-                        operation: "linkUserToWorkSchedules",
-                        variables: {
-                          userId: {
-                            value: updateUser.id,
-                            required: true,
-                          },
-                          workScheduleId: {
-                            value: work_schedules,
-                            type: "[String!]",
-                            required: true,
-                          },
-                        },
-                        fields: ["count"],
+                      fields: "id",
+                      $headers: {
+                        Authorization: `Bearer ${identity?.token.accessToken}`,
                       },
-                      {
-                        operation: "linkUserToTerminals",
-                        variables: {
-                          userId: {
-                            value: updateUser.id,
-                            required: true,
-                          },
-                          terminalId: {
-                            value: users_terminals,
-                            type: "[String!]",
-                            required: true,
-                          },
-                        },
-                        fields: ["count"],
-                      },
-                    ]);
-                    await client.request(query, variables, {
-                      Authorization: `Bearer ${identity?.token.accessToken}`,
                     });
-                    close();
-                    if (filters) {
-                      const localFilters = [...filters];
-                      setFilters([]);
-                      setFilters(localFilters);
+                    if (status != 200) {
+                      return open!({
+                        type: "error",
+                        message:
+                          data && data.message
+                            ? data.message
+                            : error?.message ??
+                              "Ошибка при создании пользователя",
+                      });
                     }
+                    close();
+                  } catch (e: any) {
+                    return open!({
+                      type: "error",
+                      message: e.message,
+                    });
                   }
                 } catch (error) {}
               },
@@ -687,7 +634,7 @@ export const UsersList: React.FC = () => {
                 <Col span={12}>
                   <Form.Item
                     label="Роль"
-                    name="users_roles_usersTousers_roles_user_id"
+                    name="roles"
                     rules={[
                       {
                         required: true,
@@ -695,15 +642,16 @@ export const UsersList: React.FC = () => {
                     ]}
                     getValueProps={(value) => {
                       return {
-                        value:
-                          typeof value == "object"
+                        value: value
+                          ? Array.isArray(value)
                             ? value?.map((item: any) => item.roles.id)
-                            : value,
+                            : value.id
+                          : "",
                       };
                     }}
                   >
                     <Select>
-                      {roles.map((role: IRoles) => (
+                      {rolesList.map((role) => (
                         <Select.Option key={role.id} value={role.id}>
                           {role.name}
                         </Select.Option>
@@ -762,17 +710,18 @@ export const UsersList: React.FC = () => {
                 <Col span={12}>
                   <Form.Item
                     label="Филиалы"
-                    name="users_terminals"
+                    name="terminals"
                     getValueProps={(value) => {
+                      console.log("terminals", value);
                       return {
                         value: value?.map((item: any) =>
-                          item.terminals ? item.terminals.id : item
+                          typeof item == "string" ? item : item.id
                         ),
                       };
                     }}
                   >
                     <Select mode="multiple">
-                      {terminals.map((terminal: any) => (
+                      {terminalsList.map((terminal) => (
                         <Select.Option key={terminal.id} value={terminal.id}>
                           {terminal.name}
                         </Select.Option>
@@ -783,31 +732,29 @@ export const UsersList: React.FC = () => {
                 <Col span={12}>
                   <Form.Item
                     label="Рабочие графики"
-                    name="users_work_schedules"
+                    name="work_schedules"
                     getValueProps={(value) => {
                       return {
                         value: value?.map((item: any) =>
-                          item.work_schedules ? item.work_schedules.id : item
+                          item.work_schedules ? item.work_schedules.id : item.id
                         ),
                       };
                     }}
                   >
                     <Select mode="multiple">
-                      {work_schedules.map((work_schedule: any) => (
+                      {work_schedulesList.map((work_schedule) => (
                         <Select.OptGroup
                           key={work_schedule.name}
                           label={work_schedule.name}
                         >
-                          {work_schedule.children.map(
-                            (work_schedule: IWorkSchedules) => (
-                              <Select.Option
-                                key={work_schedule.id}
-                                value={work_schedule.id}
-                              >
-                                {work_schedule.name}
-                              </Select.Option>
-                            )
-                          )}
+                          {work_schedule.children.map((work_schedule) => (
+                            <Select.Option
+                              key={work_schedule.id}
+                              value={work_schedule.id}
+                            >
+                              {work_schedule.name}
+                            </Select.Option>
+                          ))}
                         </Select.OptGroup>
                       ))}
                     </Select>
@@ -818,7 +765,7 @@ export const UsersList: React.FC = () => {
                 <Col span={12}>
                   <Form.Item label="Дневной гарант" name="daily_garant_id">
                     <Select allowClear>
-                      {daily_garant.map((daily_garant: any) => (
+                      {daily_garantList.map((daily_garant) => (
                         <Select.Option
                           key={daily_garant.id}
                           value={daily_garant.id}

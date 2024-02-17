@@ -2,18 +2,21 @@ import { useForm, Edit } from "@refinedev/antd";
 import { Form, Input, Switch, Select, Row, Col, InputNumber } from "antd";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
 import FileUploader from "@admin/src/components/file_uploader";
-import { IOrganization } from "@admin/src/interfaces";
 import {
   organization_payment_types,
   organization_system_type,
 } from "@admin/src/interfaces/enums";
+import { organization } from "@api/drizzle/schema";
+import { InferInsertModel } from "drizzle-orm";
 const { TextArea } = Input;
 
 export const OrganizationsEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps, id } = useForm<IOrganization>({
+  const { formProps, saveButtonProps, id } = useForm<
+    InferInsertModel<typeof organization>
+  >({
     meta: {
       fields: [
         "id",

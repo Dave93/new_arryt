@@ -11,6 +11,8 @@
     "@elysiajs/bearer": "^0.8.0",
     "@elysiajs/cors": "^0.8.0",
     "@elysiajs/eden": "^0.8.1",
+    "@elysiajs/server-timing": "^0.8.0",
+    "@evan/duckdb": "^0.1.5",
     "@prisma/client": "5.2.0",
     "bull": "^4.11.5",
     "bullmq": "^4.13.2",

@@ -1,11 +1,12 @@
 import { Create, useForm } from "@refinedev/antd";
 import { Col, Form, Input, InputNumber, Row, Select, Switch } from "antd";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
-import { IOrganization } from "@admin/src/interfaces";
 import {
   organization_payment_types,
   organization_system_type,
 } from "@admin/src/interfaces/enums";
+import { organization } from "@api/drizzle/schema";
+import { InferInsertModel } from "drizzle-orm";
 
 const { TextArea } = Input;
 
@@ -13,7 +14,9 @@ export const OrganizationsCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IOrganization>({
+  const { formProps, saveButtonProps } = useForm<
+    InferInsertModel<typeof organization>
+  >({
     meta: {
       fields: [
         "id",

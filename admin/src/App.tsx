@@ -80,7 +80,6 @@ import {
   TerminalsCreate,
   TerminalsEdit,
 } from "./pages/terminals";
-import { TerminalsCouriersListPage } from "./pages/terminals_couriers/list";
 import { UsersList, UsersCreate, UsersEdit } from "./pages/users";
 import CourierBalance from "./pages/users/courier_balance";
 import CourierEfficiency from "./pages/users/courier_efficiency";
@@ -292,14 +291,6 @@ function App() {
         list: "/where_courier",
         meta: {
           label: "Где курьер",
-          parent: "users-group",
-        },
-      },
-      {
-        name: "terminals_couriers",
-        list: "/terminals_couriers",
-        meta: {
-          label: "Курьеры по филиалам",
           parent: "users-group",
         },
       },
@@ -561,9 +552,6 @@ function App() {
                 </Route>
                 <Route path="/where_courier">
                   <Route index element={<WhereCourierList />} />
-                </Route>
-                <Route path="/terminals_couriers">
-                  <Route index element={<TerminalsCouriersListPage />} />
                 </Route>
                 <Route path="/organizations">
                   <Route index element={<OrganizationList />} />

@@ -6,6 +6,7 @@ import Redis from "ioredis";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { PgColumn, SelectedFields } from "drizzle-orm/pg-core";
 import { ctx } from "@api/src/context";
+import { OrderStatusWithRelations } from "./dto/list.dto";
 
 export const OrderStatusController = new Elysia({
   name: "@app/order_status",
@@ -13,7 +14,20 @@ export const OrderStatusController = new Elysia({
   .use(ctx)
   .get(
     "/order_status",
-    async ({ query: { limit, offset, sort, filter, fields }, drizzle }) => {
+    async ({ query: { limit, offset, sort, filter, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_status.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {
@@ -33,7 +47,7 @@ export const OrderStatusController = new Elysia({
         )
         .limit(+limit)
         .offset(+offset)
-        .execute();
+        .execute() as OrderStatusWithRelations[];
       return {
         total: orderStatusCount[0].count,
         data: orderStatusList,
@@ -59,7 +73,20 @@ export const OrderStatusController = new Elysia({
   )
   .get(
     "/order_status/cached",
-    async ({ redis, query: { organization_id } }) => {
+    async ({ redis, query: { organization_id }, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_status.list")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const res = await redis.get(
         `${process.env.PROJECT_PREFIX}_order_status`
       );
@@ -80,7 +107,20 @@ export const OrderStatusController = new Elysia({
   )
   .get(
     "/order_status/:id",
-    async ({ params: { id }, drizzle }) => {
+    async ({ params: { id }, drizzle, set, user }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_status.show")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       const orderStatus = await drizzle
         .select()
         .from(order_status)
@@ -98,7 +138,20 @@ export const OrderStatusController = new Elysia({
   )
   .post(
     "/order_status",
-    async ({ body: { data, fields }, drizzle }) => {
+    async ({ body: { data, fields }, drizzle, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_status.create")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {
@@ -136,7 +189,20 @@ export const OrderStatusController = new Elysia({
   )
   .put(
     "/order_status/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, set, user }) => {
+      if (!user) {
+        set.status = 401;
+        return {
+          message: "User not found",
+        };
+      }
+
+      if (!user.access.additionalPermissions.includes("order_status.edit")) {
+        set.status = 401;
+        return {
+          message: "You don't have permissions",
+        };
+      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {

@@ -5,6 +5,8 @@ import { Typography, Tag, Switch } from "antd";
 import { useEffect, useState } from "react";
 import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
+import { roles } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 const { Title, Text } = Typography;
 
@@ -13,7 +15,7 @@ export const RolesShow = () => {
     token: { accessToken: string };
   }>();
   const [chosenPermissions, setChosenPermissions] = useState<string[]>([]);
-  const { queryResult, showId } = useShow({
+  const { queryResult, showId } = useShow<InferSelectModel<typeof roles>>({
     meta: {
       fields: ["id", "name", "active", "created_at"],
       pluralize: true,

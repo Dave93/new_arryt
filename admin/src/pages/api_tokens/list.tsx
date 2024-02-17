@@ -2,10 +2,11 @@ import { List, useTable, EditButton, DeleteButton } from "@refinedev/antd";
 import { Table, Switch, Space, Button } from "antd";
 import { useCopyToClipboard } from "usehooks-ts";
 
-import Hashids from "hashids";
-
 import { IApiTokens } from "@admin/src/interfaces";
 import { useGetIdentity, useNotification } from "@refinedev/core";
+import { api_tokens } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
+import { ApiTokensWithRelations } from "@api/src/modules/api_tokens/dto/list.dto";
 
 export const ApiTokensList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
@@ -13,7 +14,7 @@ export const ApiTokensList: React.FC = () => {
   }>();
   const [value, copy] = useCopyToClipboard();
   const { open } = useNotification();
-  const { tableProps } = useTable<IApiTokens>({
+  const { tableProps } = useTable<ApiTokensWithRelations>({
     meta: {
       fields: ["id", "token", "active", "organization.id", "organization.name"],
       whereInputType: "api_tokensWhereInput!",
@@ -60,11 +61,11 @@ export const ApiTokensList: React.FC = () => {
           <Table.Column
             dataIndex="organization.name"
             title="Организация"
-            render={(value: any, record: IApiTokens) =>
+            render={(value: any, record: ApiTokensWithRelations) =>
               record.organization.name
             }
           />
-          <Table.Column<IApiTokens>
+          <Table.Column<ApiTokensWithRelations>
             title="Actions"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {
