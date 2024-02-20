@@ -12,10 +12,12 @@ import { Controller, useForm } from "react-hook-form";
 import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
 import { ExportOutlined } from "@ant-design/icons";
+import { UsersModel } from "@api/src/modules/user/dto/list.dto";
+import { apiClient } from "@admin/src/eden";
 
 const { RangePicker } = DatePicker;
 
-const CourierEffectiveness = ({ user }: { user: IUsers }) => {
+const CourierEffectiveness = ({ user }: { user: UsersModel }) => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -41,50 +43,73 @@ const CourierEffectiveness = ({ user }: { user: IUsers }) => {
     setIsLoading(true);
 
     const { created_at, per_hour } = getValues();
-    console.log("per_hour", per_hour);
+    console.log("created_at", created_at);
     let query = gql``;
     if (per_hour) {
-      query = gql`
-            query {
-                getCouriersEfficiencyByHour(
-                startDate: "${created_at[0].toISOString()}"
-                endDate: "${created_at[1].toISOString()}"
-                courierId: "${user.id}"
-                ) {
-                    courier_id
-                    order_day
-                    efficiency
-                    hour_period {
-                        period
-                        efficiency
-                    }
-                }
-            }
-        `;
-      const { getCouriersEfficiencyByHour } = await client.request<{
-        getCouriersEfficiencyByHour: ICourierEfficiencyReportPerDayItem[];
-      }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+      const { data } = await apiClient.api.couriers.efficiency.hour.post({
+        startDate: created_at[0].toISOString(),
+        endDate: created_at[1].toISOString(),
+        courierId: user.id,
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
 
-      setData(getCouriersEfficiencyByHour);
+      if (data && Array.isArray(data)) {
+        setData(data);
+      }
+
+      // query = gql`
+      //       query {
+      //           getCouriersEfficiencyByHour(
+      //           startDate: "${created_at[0].toISOString()}"
+      //           endDate: "${created_at[1].toISOString()}"
+      //           courierId: "${user.id}"
+      //           ) {
+      //               courier_id
+      //               order_day
+      //               efficiency
+      //               hour_period {
+      //                   period
+      //                   efficiency
+      //               }
+      //           }
+      //       }
+      //   `;
+      // const { getCouriersEfficiencyByHour } = await client.request<{
+      //   getCouriersEfficiencyByHour: ICourierEfficiencyReportPerDayItem[];
+      // }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
     } else {
-      query = gql`
-            query {
-                getCouriersEfficiencyByPeriod(
-                startDate: "${created_at[0].toISOString()}"
-                endDate: "${created_at[1].toISOString()}"
-                courierId: "${user.id}"
-                ) {
-                    courier_id
-                    order_day
-                    efficiency
-                }
-            }
-        `;
-      const { getCouriersEfficiencyByPeriod } = await client.request<{
-        getCouriersEfficiencyByPeriod: ICourierEfficiencyReportPerDayItem[];
-      }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+      const { data } = await apiClient.api.couriers.efficiency.period.post({
+        startDate: created_at[0].toISOString(),
+        endDate: created_at[1].toISOString(),
+        courierId: user.id,
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
 
-      setData(getCouriersEfficiencyByPeriod);
+      if (data && Array.isArray(data)) {
+        setData(data);
+      }
+      // query = gql`
+      //       query {
+      //           getCouriersEfficiencyByPeriod(
+      //           startDate: "${created_at[0].toISOString()}"
+      //           endDate: "${created_at[1].toISOString()}"
+      //           courierId: "${user.id}"
+      //           ) {
+      //               courier_id
+      //               order_day
+      //               efficiency
+      //           }
+      //       }
+      //   `;
+      // const { getCouriersEfficiencyByPeriod } = await client.request<{
+      //   getCouriersEfficiencyByPeriod: ICourierEfficiencyReportPerDayItem[];
+      // }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+
+      // setData(getCouriersEfficiencyByPeriod);
     }
 
     setIsLoading(false);

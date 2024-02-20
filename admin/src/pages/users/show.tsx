@@ -191,7 +191,7 @@ const UsersShow = () => {
           )}
         </Tabs.TabPane>
         <Tabs.TabPane tab="Эффективность" key="efficiency">
-          {/* {record && <CourierEffectiveness user={record} />} */}
+          {record && <CourierEffectiveness user={record} />}
         </Tabs.TabPane>
       </Tabs>
     </Show>

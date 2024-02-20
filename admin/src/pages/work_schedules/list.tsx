@@ -8,11 +8,9 @@ import {
 import { Table, Switch, Space, Tag } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import { IWorkSchedules } from "@admin/src/interfaces";
-import {
-  defaultDateTimeFormat,
-  defaultTimeFormat,
-} from "@admin/src/localConstants";
+import { defaultDateTimeFormat } from "@admin/src/localConstants";
+import { WorkScheduleWithRelations } from "@api/src/modules/work_schedules/dto/list.dto";
+import dayjs from "dayjs";
 
 const daysOfWeekRu = {
   "1": "Понедельник",
@@ -28,7 +26,7 @@ export const WorkSchedulesList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { tableProps } = useTable<IWorkSchedules>({
+  const { tableProps } = useTable<WorkScheduleWithRelations>({
     meta: {
       fields: [
         "id",
@@ -76,14 +74,14 @@ export const WorkSchedulesList: React.FC = () => {
           <Table.Column
             dataIndex="organization.name"
             title="Организация"
-            render={(value: any, record: IWorkSchedules) =>
+            render={(value: any, record: WorkScheduleWithRelations) =>
               record.organization.name
             }
           />
           <Table.Column
             dataIndex="days"
             title="Рабочие дни"
-            render={(value: any, record: IWorkSchedules) => (
+            render={(value: any, record: WorkScheduleWithRelations) => (
               <>
                 {(record.days as string[]).map((day: string) => (
                   <Tag key={day}>
@@ -96,35 +94,29 @@ export const WorkSchedulesList: React.FC = () => {
           <Table.Column
             dataIndex="start_time"
             title="Начало"
-            render={(value: any, record: IWorkSchedules) => (
-              <DateField
-                format={defaultTimeFormat}
-                value={value}
-                locales="ru"
-              />
-            )}
+            render={(value: any, record: WorkScheduleWithRelations) => {
+              return value
+                ? dayjs(value, "HH:mm:ss").add(5, "hour").format("HH:mm")
+                : "";
+            }}
           />
           <Table.Column
             dataIndex="end_time"
             title="Конец"
-            render={(value: any, record: IWorkSchedules) => (
-              <DateField
-                format={defaultTimeFormat}
-                value={value}
-                locales="ru"
-              />
-            )}
+            render={(value: any, record: WorkScheduleWithRelations) =>
+              value
+                ? dayjs(value, "HH:mm:ss").add(5, "hour").format("HH:mm")
+                : ""
+            }
           />
           <Table.Column
             dataIndex="max_start_time"
             title="Максимальное время начала"
-            render={(value: any, record: IWorkSchedules) => (
-              <DateField
-                format={defaultTimeFormat}
-                value={value}
-                locales="ru"
-              />
-            )}
+            render={(value: any, record: WorkScheduleWithRelations) =>
+              value
+                ? dayjs(value, "HH:mm:ss").add(5, "hour").format("HH:mm")
+                : ""
+            }
           />
           <Table.Column
             dataIndex="created_at"
@@ -137,7 +129,7 @@ export const WorkSchedulesList: React.FC = () => {
               />
             )}
           />
-          <Table.Column<IWorkSchedules>
+          <Table.Column<WorkScheduleWithRelations>
             title="Действия"
             dataIndex="actions"
             render={(_text, record): React.ReactNode => {

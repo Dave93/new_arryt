@@ -5,6 +5,7 @@ import { IUsers } from "@admin/src/interfaces";
 import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
 import { useGetIdentity } from "@refinedev/core";
+import { apiClient } from "@admin/src/eden";
 
 interface ChangeOrderProps {
   id?: string;
@@ -23,31 +24,16 @@ export const ChangeOrdersCouirer: FC<ChangeOrderProps> = ({
   const [couriers, setCouriers] = useState<IUsers[]>([]);
   const [selectedCourier, setSelectedCourier] = useState<string>();
 
-  const changeCourier = () => {
+  const changeCourier = async () => {
     setConfirmLoading(true);
-    const query = gql`
-      mutation changeOrderCourier($orderId: String!, $courierId: String!) {
-        changeOrderCourier(orderId: $orderId, courierId: $courierId) {
-          id
-        }
-      }
-    `;
-    client
-      .request(
-        query,
-        {
-          orderId: id,
-          courierId: selectedCourier,
-        },
-        {
-          Authorization: `Bearer ${identity?.token.accessToken}`,
-        }
-      )
-      .then(() => {
-        setIsModalOpen(false);
-        setConfirmLoading(false);
-        window.location.reload();
-      });
+
+    const data = await apiClient.api.orders[id].assign.post({
+      courier_id: selectedCourier,
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+    window.location.reload();
   };
 
   const handleCancel = () => {
@@ -55,19 +41,18 @@ export const ChangeOrdersCouirer: FC<ChangeOrderProps> = ({
   };
 
   const loadCouriers = async () => {
-    const query = gql`
-        query {
-            getCouriersForOrder(terminalId: "${terminal_id}") {
-                id
-                first_name
-                last_name
-            }
-        }
-    `;
-    const { getCouriersForOrder } = await client.request<{
-      getCouriersForOrder: IUsers[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setCouriers(getCouriersForOrder);
+    const { data } = await apiClient.api.couriers.for_terminal.get({
+      $query: {
+        terminal_id,
+      },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+
+    if (data && Array.isArray(data)) {
+      setCouriers(data);
+    }
   };
 
   const showModal = () => {

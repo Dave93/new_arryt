@@ -47,10 +47,10 @@ import { apiClient } from "@admin/src/eden";
 import { order_status, organization, terminals } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { OrdersWithRelations } from "@api/src/modules/orders/dtos/list.dto";
+import WeekDay from "dayjs/plugin/weekday";
 
-var weekday = require("dayjs/plugin/weekday");
 dayjs.locale("ru");
-dayjs.extend(weekday);
+dayjs.extend(WeekDay);
 dayjs.extend(duration);
 
 const { RangePicker } = DatePicker;

@@ -103,13 +103,14 @@ export const edenDataProvider: DataProvider = {
   },
 
   // @ts-ignore
-  create: async ({ resource, variables, metaData }) => {
+  create: async ({ resource, variables, meta }) => {
     const { data, error } = await apiFetch(
       // @ts-ignore
       `/api/${resource}`,
       {
         method: "POST",
-        body: { data: variables, fields: metaData?.fields },
+        body: { data: variables, fields: meta?.fields },
+        headers: meta?.requestHeaders,
       }
     );
     if (error) throw Error(error?.value);
@@ -125,13 +126,15 @@ export const edenDataProvider: DataProvider = {
   },
 
   // @ts-ignore
-  update: async ({ resource, id, variables, metaData }) => {
+  update: async ({ resource, id, variables, meta }) => {
     const { data, error } = await apiFetch(
       // @ts-ignore
       `/api/${resource}/${id}`,
       {
         method: "PUT",
-        body: { data: variables, fields: metaData?.fields },
+        body: { data: variables, fields: meta?.fields },
+        headers: meta?.requestHeaders,
+
       }
     );
     if (error) throw Error(error?.value);

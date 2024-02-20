@@ -36,7 +36,7 @@ import OrderDeliveryPricing from "@admin/src/components/orders/order_delivery_pr
 import OrderNotes from "@admin/src/components/orders/order_notes";
 import { chain, zipObjectDeep } from "lodash";
 import { OrdersWithRelations } from "@api/src/modules/orders/dtos/list.dto";
-import { order_status } from "@api/drizzle/schema";
+import { order_items, order_status } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { apiClient } from "@admin/src/eden";
 import { OrderActionsWithRelations } from "@api/src/modules/order_actions/dto/list.dto";
@@ -86,6 +86,9 @@ export const OrdersShow = () => {
   const [orderLocations, setOrderLocations] = useState<IGroupedLocations[]>([]);
   const [orderStatuses, setOrderStatuses] = useState<
     InferSelectModel<typeof order_status>[]
+  >([]);
+  const [productsData, setProductsData] = useState<
+    InferSelectModel<typeof order_items>[]
   >([]);
 
   const { show } = useNavigation();
@@ -182,30 +185,15 @@ export const OrdersShow = () => {
     },
     {
       title: "Сумма",
-      dataIndex: "sum",
-      key: "sum",
-      render: (text: string, record: any) => (
-        <div>{new Intl.NumberFormat("ru").format(+text)}</div>
+      dataIndex: "price",
+      key: "price",
+      render: (text: string, record: InferSelectModel<typeof order_items>) => (
+        <div>
+          {new Intl.NumberFormat("ru").format(record.price * record.quantity)}
+        </div>
       ),
     },
   ];
-
-  const productsData = useMemo(() => {
-    // let order_items = [];
-    // if (record?.order_items) {
-    //   try {
-    //     order_items = JSON.parse(record?.order_items);
-    //   } catch (error) {}
-    // }
-    // return order_items?.map((item: any) => ({
-    //   key: item.id,
-    //   name: item.name,
-    //   quantity: item.quantity,
-    //   price: item.price,
-    //   sum: item.price * item.quantity,
-    // }));
-    return [];
-  }, [record]);
 
   const onTabChange = async (key: string) => {
     if (key === "3") {
@@ -221,93 +209,89 @@ export const OrdersShow = () => {
               operator: "eq",
               value: showId,
             },
+            {
+              field: "order_created_at",
+              operator: "eq",
+              value: record?.created_at,
+            },
           ]),
         },
         $headers: {
           Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
+      if (data && data.data && Array.isArray(data.data)) {
+        setOrderActions(data.data);
+      }
+    }
+
+    if (key == "2") {
+      const { data } = await apiClient.api.orders[showId].items.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
       if (data && Array.isArray(data)) {
-        setOrderActions(data);
+        setProductsData(data);
       }
     }
   };
 
   const loadOrderLocations = async () => {
-    const query = gql`
-      query ($id: String!) {
-        locationsForOrder(orderId: $id) {
-          created_at
-          order_status_id
-          status_color
-          status_name
-          location {
-            lat
-            lon
-          }
-        }
-      }
-    `;
-    const { locationsForOrder } = await client.request<{
-      locationsForOrder: IOrderLocation[];
-    }>(
-      query,
-      { id: showId },
-      {
-        Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
-
-    const result = chain(locationsForOrder)
-      .groupBy(
-        (item) =>
-          `${item.order_status_id}_${item.status_color}_${item.status_name}`
-      )
-      .toPairs()
-      .map((currentItem) => {
-        return zipObjectDeep(["order_status", "location"], currentItem);
-      })
-      .value() as IGroupedLocations[];
-
-    setOrderLocations(result);
+    // const query = gql`
+    //   query ($id: String!) {
+    //     locationsForOrder(orderId: $id) {
+    //       created_at
+    //       order_status_id
+    //       status_color
+    //       status_name
+    //       location {
+    //         lat
+    //         lon
+    //       }
+    //     }
+    //   }
+    // `;
+    // const { locationsForOrder } = await client.request<{
+    //   locationsForOrder: IOrderLocation[];
+    // }>(
+    //   query,
+    //   { id: showId },
+    //   {
+    //     Authorization: `Bearer ${identity?.token.accessToken}`,
+    //   }
+    // );
+    // const result = chain(locationsForOrder)
+    //   .groupBy(
+    //     (item) =>
+    //       `${item.order_status_id}_${item.status_color}_${item.status_name}`
+    //   )
+    //   .toPairs()
+    //   .map((currentItem) => {
+    //     return zipObjectDeep(["order_status", "location"], currentItem);
+    //   })
+    //   .value() as IGroupedLocations[];
+    // setOrderLocations(result);
   };
 
   const updateOrderStatus = async (id: string) => {
-    const query = gql`
-      mutation ($id: String!, $status: String!) {
-        updateOrderStatus(orderId: $id, orderStatusId: $status) {
-          created_at
-        }
-      }
-    `;
-    await client.request(
-      query,
-      {
-        id: showId,
-        status: id,
-      },
-      {
+    const data = await apiClient.api.orders[showId].set_status.post({
+      $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
+      },
+      status_id: id,
+    });
+
     window.location.reload();
   };
 
   const clearCourier = async (id: string | undefined) => {
-    const query = gql`
-      mutation ($id: String!) {
-        clearCourier(orderId: $id) {
-          created_at
-        }
-      }
-    `;
-    await client.request(
-      query,
-      { id: showId },
-      {
+    const data = await apiClient.api.orders[showId].revoke.post({
+      $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
+      },
+    });
+
     window.location.reload();
   };
 
@@ -647,8 +631,8 @@ export const OrdersShow = () => {
             dataSource={productsData}
             summary={(pageData) => {
               let total = 0;
-              pageData.forEach(({ sum }: { sum: number }) => {
-                total += sum;
+              pageData.forEach((item) => {
+                total += item.price * item.quantity;
               });
               return (
                 <>

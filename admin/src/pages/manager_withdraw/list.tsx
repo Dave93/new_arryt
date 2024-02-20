@@ -19,10 +19,9 @@ import { apiClient } from "@admin/src/eden";
 import { organization } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { ManagerWithdrawWithRelations } from "@api/src/modules/manager_withdraw/dto/list.dto";
-
-var weekday = require("dayjs/plugin/weekday");
+import WeekDay from "dayjs/plugin/weekday";
 dayjs.locale("ru");
-dayjs.extend(weekday);
+dayjs.extend(WeekDay);
 dayjs.extend(duration);
 
 const { RangePicker } = DatePicker;

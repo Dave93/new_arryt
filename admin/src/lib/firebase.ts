@@ -26,7 +26,7 @@ export const messaging = getMessaging(app);
 export const getMessageToken = async () => {
   try {
     const token = await getToken(messaging, {
-      vapidKey: process.env.REACT_APP_FIREBASE_VALID_KEY,
+      vapidKey: process.env.VITE_FIREBASE_VALID_KEY,
     });
     return token;
   } catch (e) {

@@ -29,7 +29,7 @@ export const authProvider: AuthBindings = {
         });
         data!.token!.expirationMillis = expiration.toMillis();
         let credentials = JSON.stringify(data);
-        let password = process.env.REACT_APP_CRYPTO_KEY!;
+        let password = import.meta.env.VITE_CRYPTO_KEY!;
         const encrypted = AES.encrypt(credentials, password).toString();
 
         localStorage.setItem(TOKEN_KEY, encrypted);
@@ -61,7 +61,7 @@ export const authProvider: AuthBindings = {
   check: async () => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
-      let password = process.env.REACT_APP_CRYPTO_KEY!;
+      let password = import.meta.env.VITE_CRYPTO_KEY!;
       var bytes = AES.decrypt(token, password);
       var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
       if (decryptedData.token.accessTokenExpires) {
@@ -92,7 +92,7 @@ export const authProvider: AuthBindings = {
             decryptedData.token = data.refreshToken;
             decryptedData.token.expirationMillis = expiration.toMillis();
             let credentials = JSON.stringify(decryptedData);
-            let password = process.env.REACT_APP_CRYPTO_KEY!;
+            let password = import.meta.env.VITE_CRYPTO_KEY!;
             const encrypted = AES.encrypt(credentials, password).toString();
 
             localStorage.setItem(TOKEN_KEY, encrypted);
@@ -125,7 +125,7 @@ export const authProvider: AuthBindings = {
   getPermissions: () => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
-      let password = process.env.REACT_APP_CRYPTO_KEY!;
+      let password = import.meta.env.VITE_CRYPTO_KEY!;
       var bytes = AES.decrypt(token, password);
       var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
       return decryptedData.access;
@@ -138,7 +138,7 @@ export const authProvider: AuthBindings = {
       return null;
     }
 
-    let password = process.env.REACT_APP_CRYPTO_KEY!;
+    let password = import.meta.env.VITE_CRYPTO_KEY!;
     var bytes = AES.decrypt(token, password);
     var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
     return decryptedData;

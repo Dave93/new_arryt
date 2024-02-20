@@ -5,14 +5,14 @@ import "dayjs/locale/ru";
 import duration from "dayjs/plugin/duration";
 import { useTable } from "@refinedev/antd";
 import { IOrders } from "@admin/src/interfaces";
+import WeekDay from "dayjs/plugin/weekday";
 
 interface CustomerOrdersProps {
   customerId: string;
 }
 
-var weekday = require("dayjs/plugin/weekday");
 dayjs.locale("ru");
-dayjs.extend(weekday);
+dayjs.extend(WeekDay);
 dayjs.extend(duration);
 
 const CustomerOrders: FC<CustomerOrdersProps> = ({ customerId }) => {

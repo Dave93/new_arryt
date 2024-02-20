@@ -16,6 +16,9 @@ import timezone from "dayjs/plugin/timezone";
 import { useGetIdentity } from "@refinedev/core";
 import { apiClient } from "@admin/src/eden";
 import { useEffect, useState } from "react";
+import { WorkScheduleWithRelations } from "@api/src/modules/work_schedules/dto/list.dto";
+import { organization } from "@api/drizzle/schema";
+import { InferSelectModel } from "drizzle-orm";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -37,7 +40,7 @@ export const WorkSchedulesEdit: React.FC = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IWorkSchedules>({
+  const { formProps, saveButtonProps } = useForm<WorkScheduleWithRelations>({
     meta: {
       fields: [
         "id",
@@ -58,15 +61,15 @@ export const WorkSchedulesEdit: React.FC = () => {
     },
   });
 
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
 
   const fetchOrganizations = async () => {
     const { data: organizations } =
       await apiClient.api.organizations.cached.get({
-        $fetch: {
-          headers: {
-            Authorization: `Bearer ${identity?.token.accessToken}`,
-          },
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
     setOrganizations(organizations);
@@ -147,7 +150,7 @@ export const WorkSchedulesEdit: React.FC = () => {
                 },
               ]}
               getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
+                value: value ? dayjs(value, "HH:mm:ss").add(5, "hour") : "",
               })}
             >
               <TimePicker format={format} />
@@ -163,7 +166,7 @@ export const WorkSchedulesEdit: React.FC = () => {
                 },
               ]}
               getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
+                value: value ? dayjs(value, "HH:mm:ss").add(5, "hour") : "",
               })}
             >
               <TimePicker format={format} />
@@ -181,7 +184,7 @@ export const WorkSchedulesEdit: React.FC = () => {
                 },
               ]}
               getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
+                value: value ? dayjs(value, "HH:mm:ss").add(5, "hour") : "",
               })}
             >
               <TimePicker format={format} />

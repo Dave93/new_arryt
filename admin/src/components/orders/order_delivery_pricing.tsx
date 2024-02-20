@@ -24,6 +24,10 @@ import {
   Spin,
   TimePicker,
 } from "antd";
+import { apiClient } from "@admin/src/eden";
+import { organization, terminals } from "@api/drizzle/schema";
+import { sortBy } from "lodash";
+import { InferSelectModel } from "drizzle-orm";
 
 interface OrderDeliveryPricingProps {
   order: any;
@@ -52,65 +56,54 @@ const OrderDeliveryPricing: FC<OrderDeliveryPricingProps> = ({ order }) => {
 
   const tr = useTranslate();
 
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
-  const [terminals, setTerminals] = useState<ITerminals[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
+  const [terminalsList, setTerminals] = useState<
+    InferSelectModel<typeof terminals>[]
+  >([]);
 
   const fetchOrganizations = async () => {
-    const query = gql`
-      query {
-        cachedOrganizations {
-          id
-          name
-        }
-        cachedTerminals {
-          id
-          name
-        }
-      }
-    `;
-
-    const { cachedOrganizations, cachedTerminals } = await client.request<{
-      cachedOrganizations: IOrganization[];
-      cachedTerminals: ITerminals[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setOrganizations(cachedOrganizations);
-    setTerminals(cachedTerminals);
+    const { data: terminals } = await apiClient.api.terminals.cached.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
+    const { data: organizations } =
+      await apiClient.api.organizations.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
   const loadDeliveryPricing = async () => {
     setIsLoading(true);
     const deliveryPricingId = order.delivery_pricing_id;
-    const query = gql`
-      query {
-        deliveryPricing(id: "${deliveryPricingId}") {
-          id
-          name
-          active
-          created_at
-          default
-          drive_type
-          days
-          start_time
-          end_time
-          min_price
-          rules
-          price_per_km
-          organization_id
-          terminal_id
-          payment_type
-        }
-      }
-    `;
 
-    const { deliveryPricing: localDeliveryPrice } = await client.request<{
-      deliveryPricing: IDeliveryPricing;
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setIsLoading(false);
-    mainForm.setFieldsValue(localDeliveryPrice);
-    calculateForm.setFieldsValue({
-      distance: order.pre_distance,
+    const { data } = await apiClient.api.delivery_pricing[
+      deliveryPricingId
+    ].get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    setDeliveryPricing(localDeliveryPrice);
+
+    setIsLoading(false);
+
+    if (data.data && "id" in data.data) {
+      mainForm.setFieldsValue(data.data);
+      calculateForm.setFieldsValue({
+        distance: order.pre_distance,
+      });
+      setDeliveryPricing(data.data);
+    }
   };
 
   const aproximatePrice = useMemo(() => {
@@ -235,7 +228,7 @@ const OrderDeliveryPricing: FC<OrderDeliveryPricingProps> = ({ order }) => {
             <Col span={12}>
               <Form.Item label="Филиал" name="terminal_id">
                 <Select showSearch optionFilterProp="children">
-                  {terminals.map((terminal) => (
+                  {terminalsList.map((terminal) => (
                     <Select.Option key={terminal.id} value={terminal.id}>
                       {terminal.name}
                     </Select.Option>
@@ -282,7 +275,7 @@ const OrderDeliveryPricing: FC<OrderDeliveryPricingProps> = ({ order }) => {
                   },
                 ]}
                 getValueProps={(value) => ({
-                  value: value ? dayjs(value) : "",
+                  value: value ? dayjs(value, "HH:mm:ss").add(5, "hour") : "",
                 })}
               >
                 <TimePicker format={format} disabled />
@@ -298,7 +291,7 @@ const OrderDeliveryPricing: FC<OrderDeliveryPricingProps> = ({ order }) => {
                   },
                 ]}
                 getValueProps={(value) => ({
-                  value: value ? dayjs(value) : "",
+                  value: value ? dayjs(value, "HH:mm:ss").add(5, "hour") : "",
                 })}
               >
                 <TimePicker format={format} disabled />

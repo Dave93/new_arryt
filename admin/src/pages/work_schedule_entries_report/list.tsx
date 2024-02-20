@@ -8,9 +8,9 @@ import "dayjs/locale/ru";
 import duration from "dayjs/plugin/duration";
 import { useMemo } from "react";
 
-var weekday = require("dayjs/plugin/weekday");
+import WeekDay from "dayjs/plugin/weekday";
 dayjs.locale("ru");
-dayjs.extend(weekday);
+dayjs.extend(WeekDay);
 dayjs.extend(duration);
 
 const dateFormat = "DD.MM.YYYY";

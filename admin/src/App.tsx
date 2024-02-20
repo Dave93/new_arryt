@@ -1,3 +1,4 @@
+import { DevtoolsProvider, DevtoolsPanel } from "@refinedev/devtools";
 import { Authenticated, CanParams, Refine } from "@refinedev/core";
 import { notificationProvider, ErrorComponent } from "@refinedev/antd";
 
@@ -94,14 +95,15 @@ import {
 } from "./pages/work_schedules";
 import { ThemedLayoutV2 } from "@refinedev/antd";
 import { edenDataProvider } from "./dataprovider/edenDataProvider";
+import { App as AntdApp } from "antd";
 
 const httpLink = new HttpLink({
-  uri: `https://${process.env.REACT_APP_GRAPHQL_API_DOMAIN!}/graphql`,
+  uri: `https://${import.meta.env.VITE_GRAPHQL_API_DOMAIN!}/graphql`,
 });
 
 const wsLink = new GraphQLWsLink(
   createClient({
-    url: `wss://${process.env.REACT_APP_GRAPHQL_API_DOMAIN!}/ws`,
+    url: `wss://${import.meta.env.VITE_GRAPHQL_API_DOMAIN!}/ws`,
   })
 );
 
@@ -346,14 +348,14 @@ function App() {
         create: "/work_schedules/create",
         edit: "/work_schedules/edit/:id",
       },
-      {
-        name: "work_schedule_entries_report",
-        meta: {
-          label: "Отчёт по рабочим графикам",
-          parent: "time_management",
-        },
-        list: "/work_schedule_entries_report",
-      },
+      // {
+      //   name: "work_schedule_entries_report",
+      //   meta: {
+      //     label: "Отчёт по рабочим графикам",
+      //     parent: "time_management",
+      //   },
+      //   list: "/work_schedule_entries_report",
+      // },
       {
         name: "settings",
         options: {
@@ -379,7 +381,7 @@ function App() {
       },
     ];
 
-    if (process.env.REACT_APP_GRAPHQL_API_DOMAIN === "api.arryt.uz") {
+    if (import.meta.env.VITE_GRAPHQL_API_DOMAIN === "api.arryt.uz") {
       res.push({
         name: "brands",
         meta: {
@@ -410,233 +412,251 @@ function App() {
     };
   }, []);
 
+  console.log("app");
   return (
     <BrowserRouter>
       <RefineKbarProvider>
         <ApolloProvider client={gqlClient}>
-          <Refine
-            notificationProvider={notificationProvider}
-            options={{
-              syncWithLocation: true,
-              reactQuery: {
-                clientConfig: queryClient,
-              },
-            }}
-            accessControlProvider={{
-              can: async ({ action, params, resource }: CanParams) => {
-                if (
-                  action === "list" &&
-                  Object.values({ ...params }).length === 0
-                ) {
-                  return Promise.resolve({
-                    can: true,
-                  });
-                }
-                if (!params?.resource?.route) {
-                  return Promise.resolve({
-                    can: true,
-                  });
-                }
+          <AntdApp>
+            <DevtoolsProvider>
+              <Refine
+                notificationProvider={notificationProvider}
+                options={{
+                  syncWithLocation: true,
 
-                if (
-                  params?.resource?.children &&
-                  params?.resource?.children.length > 0 &&
-                  !params?.resource?.parentName
-                ) {
-                  return Promise.resolve({
-                    can: true,
-                  });
-                }
+                  reactQuery: {
+                    clientConfig: queryClient,
+                  },
 
-                if (resource === "dashboard") {
-                  return Promise.resolve({
-                    can: true,
-                  });
-                }
-                const token = localStorage.getItem(TOKEN_KEY);
-                if (token) {
-                  let password = process.env.REACT_APP_CRYPTO_KEY!;
-                  var bytes = AES.decrypt(token, password);
-                  var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
-                  const {
-                    access: { additionalPermissions },
-                  } = decryptedData;
-                  return Promise.resolve({
-                    can: additionalPermissions.includes(
-                      `${resource}.${action}`
-                    ),
-                    reason: additionalPermissions.includes(
-                      `${resource}.${action}`
-                    )
-                      ? undefined
-                      : "You are not allowed to do this",
-                  });
-                }
-                return Promise.resolve({
-                  can: true,
-                });
-              },
-            }}
-            routerProvider={routerProvider}
-            dataProvider={edenDataProvider}
-            authProvider={authProvider}
-            i18nProvider={i18nProvider}
-            // syncWithLocation={true}
-            resources={resources}
-          >
-            <RefineKbar />
-            <Routes>
-              <Route path="/privacy" element={<PrivacyPage />} />
-              <Route
-                element={
-                  <Authenticated fallback={<CatchAllNavigate to="/login" />}>
-                    <ThemedLayoutV2>
-                      <Outlet />
-                    </ThemedLayoutV2>
-                  </Authenticated>
-                }
+                  projectId: "7UjA0s-GtR2fw-90I5AE",
+                }}
+                accessControlProvider={{
+                  can: async ({ action, params, resource }: CanParams) => {
+                    if (
+                      action === "list" &&
+                      Object.values({ ...params }).length === 0
+                    ) {
+                      return Promise.resolve({
+                        can: true,
+                      });
+                    }
+                    if (!params?.resource?.route) {
+                      return Promise.resolve({
+                        can: true,
+                      });
+                    }
+
+                    if (
+                      params?.resource?.children &&
+                      params?.resource?.children.length > 0 &&
+                      !params?.resource?.parentName
+                    ) {
+                      return Promise.resolve({
+                        can: true,
+                      });
+                    }
+
+                    if (resource === "dashboard") {
+                      return Promise.resolve({
+                        can: true,
+                      });
+                    }
+                    const token = localStorage.getItem(TOKEN_KEY);
+                    if (token) {
+                      let password = import.meta.env.VITE_CRYPTO_KEY!;
+                      var bytes = AES.decrypt(token, password);
+                      var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
+                      const {
+                        access: { additionalPermissions },
+                      } = decryptedData;
+                      return Promise.resolve({
+                        can: additionalPermissions.includes(
+                          `${resource}.${action}`
+                        ),
+                        reason: additionalPermissions.includes(
+                          `${resource}.${action}`
+                        )
+                          ? undefined
+                          : "You are not allowed to do this",
+                      });
+                    }
+                    return Promise.resolve({
+                      can: true,
+                    });
+                  },
+                }}
+                routerProvider={routerProvider}
+                dataProvider={edenDataProvider}
+                authProvider={authProvider}
+                i18nProvider={i18nProvider}
+                // syncWithLocation={true}
+                resources={resources}
               >
-                <Route index element={<MainPage />} />
-                <Route path="/orders">
-                  <Route index element={<OrdersList />} />
-                  <Route path="show/:id" element={<OrdersShow />} />
-                </Route>
-                <Route path="/missed_orders">
-                  <Route index element={<MissedOrdersList />} />
-                </Route>
-                <Route
-                  path="/orders_garant_report"
-                  element={<OrdersGarantReport />}
-                />
-                <Route
-                  path="/yuriy_orders_garant_report"
-                  element={<YuriyOrdersGarantReport />}
-                />
-                <Route path="/manager_withdraw">
-                  <Route index element={<ManagerWithdrawList />} />
-                </Route>
-                <Route path="/users">
-                  <Route index element={<UsersList />} />
-                  <Route path="show/:id" element={<UsersShow />} />
-                  <Route path="create" element={<UsersCreate />} />
-                  <Route path="edit/:id" element={<UsersEdit />} />
-                </Route>
-                <Route path="/roll_call">
-                  <Route index element={<RollCallList />} />
-                </Route>
-                <Route path="/courier_balance">
-                  <Route index element={<CourierBalance />} />
-                </Route>
-                <Route path="/courier_efficiency">
-                  <Route index element={<CourierEfficiency />} />
-                </Route>
-                <Route path="/customers">
-                  <Route index element={<CustomersList />} />
-                  <Route path="show/:id" element={<CustomersShow />} />
-                </Route>
-                <Route path="/order_status">
-                  <Route index element={<OrderStatusList />} />
-                  <Route path="create" element={<OrderStatusCreate />} />
-                  <Route path="edit/:id" element={<OrderStatusEdit />} />
-                </Route>
-                <Route path="/roles">
-                  <Route index element={<RolesList />} />
-                  <Route path="create" element={<RolesCreate />} />
-                  <Route path="edit/:id" element={<RolesEdit />} />
-                  <Route path="show/:id" element={<RolesShow />} />
-                </Route>
-                <Route path="/permissions">
-                  <Route index element={<PermissionsList />} />
-                  <Route path="create" element={<PermissionsCreate />} />
-                  <Route path="edit/:id" element={<PermissionsEdit />} />
-                </Route>
-                <Route path="/where_courier">
-                  <Route index element={<WhereCourierList />} />
-                </Route>
-                <Route path="/organizations">
-                  <Route index element={<OrganizationList />} />
-                  <Route path="create" element={<OrganizationsCreate />} />
-                  <Route path="edit/:id" element={<OrganizationsEdit />} />
-                </Route>
-                <Route path="/terminals">
-                  <Route index element={<TerminalsList />} />
-                  <Route path="create" element={<TerminalsCreate />} />
-                  <Route path="edit/:id" element={<TerminalsEdit />} />
-                </Route>
-                <Route path="/delivery_pricing">
-                  <Route index element={<DeliveryPricingList />} />
-                  <Route path="create" element={<DeliveryPricingCreate />} />
-                  <Route path="edit/:id" element={<DeliveryPricingEdit />} />
-                </Route>
-                <Route path="/order_bonus_pricing">
-                  <Route index element={<OrderBonusPricingList />} />
-                  <Route path="create" element={<OrderBonusPricingCreate />} />
-                  <Route path="edit/:id" element={<OrderBonusPricingEdit />} />
-                </Route>
-                <Route path="/constructed_bonus_pricing">
-                  <Route index element={<ConstructedBonusPricingList />} />
+                <Routes>
+                  <Route path="/privacy" element={<PrivacyPage />} />
                   <Route
-                    path="create"
-                    element={<ConstructedBonusPricingCreate />}
-                  />
+                    element={
+                      <Authenticated
+                        key="authenticated-inner"
+                        fallback={<CatchAllNavigate to="/login" />}
+                      >
+                        <ThemedLayoutV2>
+                          <Outlet />
+                        </ThemedLayoutV2>
+                      </Authenticated>
+                    }
+                  >
+                    <Route index element={<MainPage />} />
+                    <Route path="/orders">
+                      <Route index element={<OrdersList />} />
+                      <Route path="show/:id" element={<OrdersShow />} />
+                    </Route>
+                    <Route path="/missed_orders">
+                      <Route index element={<MissedOrdersList />} />
+                    </Route>
+                    <Route
+                      path="/orders_garant_report"
+                      element={<OrdersGarantReport />}
+                    />
+                    <Route
+                      path="/yuriy_orders_garant_report"
+                      element={<YuriyOrdersGarantReport />}
+                    />
+                    <Route path="/manager_withdraw">
+                      <Route index element={<ManagerWithdrawList />} />
+                    </Route>
+                    <Route path="/users">
+                      <Route index element={<UsersList />} />
+                      <Route path="show/:id" element={<UsersShow />} />
+                      <Route path="create" element={<UsersCreate />} />
+                      <Route path="edit/:id" element={<UsersEdit />} />
+                    </Route>
+                    <Route path="/roll_call">
+                      <Route index element={<RollCallList />} />
+                    </Route>
+                    <Route path="/courier_balance">
+                      <Route index element={<CourierBalance />} />
+                    </Route>
+                    <Route path="/courier_efficiency">
+                      <Route index element={<CourierEfficiency />} />
+                    </Route>
+                    <Route path="/customers">
+                      <Route index element={<CustomersList />} />
+                      <Route path="show/:id" element={<CustomersShow />} />
+                    </Route>
+                    <Route path="/order_status">
+                      <Route index element={<OrderStatusList />} />
+                      <Route path="create" element={<OrderStatusCreate />} />
+                      <Route path="edit/:id" element={<OrderStatusEdit />} />
+                    </Route>
+                    <Route path="/roles">
+                      <Route index element={<RolesList />} />
+                      <Route path="create" element={<RolesCreate />} />
+                      <Route path="edit/:id" element={<RolesEdit />} />
+                      <Route path="show/:id" element={<RolesShow />} />
+                    </Route>
+                    <Route path="/permissions">
+                      <Route index element={<PermissionsList />} />
+                      <Route path="create" element={<PermissionsCreate />} />
+                      <Route path="edit/:id" element={<PermissionsEdit />} />
+                    </Route>
+                    <Route path="/where_courier">
+                      <Route index element={<WhereCourierList />} />
+                    </Route>
+                    <Route path="/organizations">
+                      <Route index element={<OrganizationList />} />
+                      <Route path="create" element={<OrganizationsCreate />} />
+                      <Route path="edit/:id" element={<OrganizationsEdit />} />
+                    </Route>
+                    <Route path="/terminals">
+                      <Route index element={<TerminalsList />} />
+                      <Route path="create" element={<TerminalsCreate />} />
+                      <Route path="edit/:id" element={<TerminalsEdit />} />
+                    </Route>
+                    <Route path="/delivery_pricing">
+                      <Route index element={<DeliveryPricingList />} />
+                      <Route
+                        path="create"
+                        element={<DeliveryPricingCreate />}
+                      />
+                      <Route
+                        path="edit/:id"
+                        element={<DeliveryPricingEdit />}
+                      />
+                    </Route>
+                    <Route path="/order_bonus_pricing">
+                      <Route index element={<OrderBonusPricingList />} />
+                      <Route
+                        path="create"
+                        element={<OrderBonusPricingCreate />}
+                      />
+                      <Route
+                        path="edit/:id"
+                        element={<OrderBonusPricingEdit />}
+                      />
+                    </Route>
+                    <Route path="/constructed_bonus_pricing">
+                      <Route index element={<ConstructedBonusPricingList />} />
+                      <Route
+                        path="create"
+                        element={<ConstructedBonusPricingCreate />}
+                      />
+                      <Route
+                        path="edit/:id"
+                        element={<ConstructedBonusPricingEdit />}
+                      />
+                    </Route>
+                    <Route path="/work_schedules">
+                      <Route index element={<WorkSchedulesList />} />
+                      <Route path="create" element={<WorkSchedulesCreate />} />
+                      <Route path="edit/:id" element={<WorkSchedulesEdit />} />
+                    </Route>
+                    <Route path="/work_schedule_entries_report">
+                      <Route index element={<WorkSchedulesReport />} />
+                    </Route>
+                    <Route path="/api_tokens">
+                      <Route index element={<ApiTokensList />} />
+                      <Route path="create" element={<ApiTokensCreate />} />
+                    </Route>
+                    <Route path="/system_configs">
+                      <Route index element={<SystemConfigsList />} />
+                    </Route>
+                    <Route path="/brands">
+                      <Route index element={<BrandsList />} />
+                      <Route path="create" element={<BrandsCreate />} />
+                      <Route path="edit/:id" element={<BrandsEdit />} />
+                    </Route>
+                    <Route path="/notifications">
+                      <Route index element={<NotificationsList />} />
+                      {/* <Route path="create" element={<NotificationsCreate />} />
+                    <Route path="edit/:id" element={<NotificationsEdit />} /> */}
+                    </Route>
+                    <Route path="/daily_garant">
+                      <Route index element={<DailyGarantList />} />
+                      <Route path="create" element={<DailyGarantCreate />} />
+                      <Route path="edit/:id" element={<DailyGarantEdit />} />
+                    </Route>
+                    <Route path="*" element={<ErrorComponent />} />
+                  </Route>
                   <Route
-                    path="edit/:id"
-                    element={<ConstructedBonusPricingEdit />}
-                  />
-                </Route>
-                <Route path="/work_schedules">
-                  <Route index element={<WorkSchedulesList />} />
-                  <Route path="create" element={<WorkSchedulesCreate />} />
-                  <Route path="edit/:id" element={<WorkSchedulesEdit />} />
-                </Route>
-                <Route path="/work_schedule_entries_report">
-                  <Route index element={<WorkSchedulesReport />} />
-                </Route>
-                <Route path="/api_tokens">
-                  <Route index element={<ApiTokensList />} />
-                  <Route path="create" element={<ApiTokensCreate />} />
-                </Route>
-                <Route path="/system_configs">
-                  <Route index element={<SystemConfigsList />} />
-                </Route>
-                <Route path="/brands">
-                  <Route index element={<BrandsList />} />
-                  <Route path="create" element={<BrandsCreate />} />
-                  <Route path="edit/:id" element={<BrandsEdit />} />
-                </Route>
-                <Route path="/notifications">
-                  <Route index element={<NotificationsList />} />
-                  {/* <Route path="create" element={<NotificationsCreate />} />
-                  <Route path="edit/:id" element={<NotificationsEdit />} /> */}
-                </Route>
-                <Route path="/daily_garant">
-                  <Route index element={<DailyGarantList />} />
-                  <Route path="create" element={<DailyGarantCreate />} />
-                  <Route path="edit/:id" element={<DailyGarantEdit />} />
-                </Route>
-              </Route>
-              <Route
-                element={
-                  <Authenticated fallback={<Outlet />}>
-                    <NavigateToResource resource="dashboard" />
-                  </Authenticated>
-                }
-              >
-                <Route path="/login" element={<Login />} />
-              </Route>
-              <Route
-                element={
-                  <Authenticated>
-                    <ThemedLayoutV2>
-                      <Outlet />
-                    </ThemedLayoutV2>
-                  </Authenticated>
-                }
-              >
-                <Route path="*" element={<ErrorComponent />} />
-              </Route>
-            </Routes>
-          </Refine>
+                    element={
+                      <Authenticated
+                        key="authenticated-outer"
+                        fallback={<Outlet />}
+                      >
+                        <NavigateToResource />
+                      </Authenticated>
+                    }
+                  >
+                    <Route path="/login" element={<Login />} />
+                  </Route>
+                </Routes>
+
+                <RefineKbar />
+              </Refine>
+              <DevtoolsPanel />
+            </DevtoolsProvider>
+          </AntdApp>
         </ApolloProvider>
       </RefineKbarProvider>
     </BrowserRouter>

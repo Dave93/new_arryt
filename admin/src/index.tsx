@@ -18,10 +18,11 @@ dayjs.extend(LocalizedFormat);
 const container = document.getElementById("root");
 // eslint-disable-next-line
 const root = createRoot(container!);
+
+console.log("davr");
+
 root.render(
   <React.StrictMode>
-    <React.Suspense fallback="loading">
-      <App />
-    </React.Suspense>
+    <App />
   </React.StrictMode>
 );

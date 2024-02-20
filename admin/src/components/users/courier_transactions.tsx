@@ -1,3 +1,4 @@
+import { block } from "million/react";
 import { CanAccess, useGetIdentity } from "@refinedev/core";
 import {
   Button,
@@ -279,133 +280,133 @@ const CourierTransactions = ({
     return () => {};
   }, []);
 
-  return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
-        <h1>Начисления</h1>
-        <Space>
-          <Button type="default" icon={<ExportOutlined />} onClick={exportData}>
-            Экспорт
-          </Button>
-          <CanAccess resource="order_transactions" action="create">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => createModalShow()}
-            >
-              Добавить
-            </Button>
-          </CanAccess>
-        </Space>
-      </div>
-      <Form onFinish={handleSubmit(onSubmit)}>
-        <Row gutter={16}>
-          <Col span={6}>
-            <Form.Item label="Дата">
-              <Controller
-                name="created_at"
-                control={control}
-                render={({ field }) => (
-                  <RangePicker
-                    {...field}
-                    showTime
-                    format="DD.MM.YYYY HH:mm"
-                    presets={rangePresets}
-                  />
-                )}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={6}>
-            <Form.Item label="Статус">
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} allowClear>
-                    <Select.Option value="success">Оплачено</Select.Option>
-                    <Select.Option value="pending">Не оплачено</Select.Option>
-                  </Select>
-                )}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Button type="primary" htmlType="submit" loading={isLoading}>
-              Фильтровать
-            </Button>
-          </Col>
-        </Row>
-      </Form>
-      <Table
-        dataSource={data}
-        rowKey="id"
-        bordered
-        size="small"
-        columns={columns}
-        pagination={{
-          pageSize: 200,
-        }}
-      />
-      <Modal {...createModalProps}>
-        <Form {...createFormProps} layout="vertical">
-          <Form.Item
-            label="Сумма"
-            name="amount"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
+  return <>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+      }}
+    >
+      <h1>Начисления</h1>
+      <Space>
+        <Button type="default" icon={<ExportOutlined />} onClick={exportData}>
+          Экспорт
+        </Button>
+        <CanAccess resource="order_transactions" action="create">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => createModalShow()}
           >
-            <InputNumber
-              style={{ width: "100%" }}
-              min={0}
-              formatter={(value: any) =>
-                new Intl.NumberFormat("ru-RU").format(+value)
-              }
-              parser={(value: any) => value?.toString().replace(/\s?/g, "")}
+            Добавить
+          </Button>
+        </CanAccess>
+      </Space>
+    </div>
+    <Form onFinish={handleSubmit(onSubmit)}>
+      <Row gutter={16}>
+        <Col span={6}>
+          <Form.Item label="Дата">
+            <Controller
+              name="created_at"
+              control={control}
+              render={({ field }) => (
+                <RangePicker
+                  {...field}
+                  showTime
+                  format="DD.MM.YYYY HH:mm"
+                  presets={rangePresets}
+                />
+              )}
             />
           </Form.Item>
-          <Form.Item
-            label="Филиал"
-            name="terminal_id"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
-          >
-            <Select>
-              {terminalsList.map((t) => (
-                <Select.Option key={t.id} value={t.id}>
-                  {t.name}
-                </Select.Option>
-              ))}
-            </Select>
+        </Col>
+        <Col span={6}>
+          <Form.Item label="Статус">
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select {...field} allowClear>
+                  <Select.Option value="success">Оплачено</Select.Option>
+                  <Select.Option value="pending">Не оплачено</Select.Option>
+                </Select>
+              )}
+            />
           </Form.Item>
-          <Form.Item
-            label="Комментарий"
-            name="comment"
-            rules={[
-              {
-                required: true,
-              },
-            ]}
-          >
-            <Input.TextArea />
-          </Form.Item>
-          <Form.Item name="courier_id" hidden></Form.Item>
-          <Form.Item name="transaction_type" hidden></Form.Item>
-          <Form.Item name="organization_id" hidden></Form.Item>
-        </Form>
-      </Modal>
-    </>
-  );
+        </Col>
+        <Col span={12}>
+          <Button type="primary" htmlType="submit" loading={isLoading}>
+            Фильтровать
+          </Button>
+        </Col>
+      </Row>
+    </Form>
+    <Table
+      dataSource={data}
+      rowKey="id"
+      bordered
+      size="small"
+      columns={columns}
+      pagination={{
+        pageSize: 200,
+      }}
+    />
+    <Modal {...createModalProps}>
+      <Form {...createFormProps} layout="vertical">
+        <Form.Item
+          label="Сумма"
+          name="amount"
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+        >
+          <InputNumber
+            style={{ width: "100%" }}
+            min={0}
+            formatter={(value: any) =>
+              new Intl.NumberFormat("ru-RU").format(+value)
+            }
+            parser={(value: any) => value?.toString().replace(/\s?/g, "")}
+          />
+        </Form.Item>
+        <Form.Item
+          label="Филиал"
+          name="terminal_id"
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+        >
+          <Select>
+            {terminalsList.map((t) => (
+              <Select.Option key={t.id} value={t.id}>
+                {t.name}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+        <Form.Item
+          label="Комментарий"
+          name="comment"
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+        >
+          <Input.TextArea />
+        </Form.Item>
+        <Form.Item name="courier_id" hidden></Form.Item>
+        <Form.Item name="transaction_type" hidden></Form.Item>
+        <Form.Item name="organization_id" hidden></Form.Item>
+      </Form>
+    </Modal>
+  </>;
 };
+
+// const CourierTransactionsBlock = block(CourierTransactions, { ssr: false });
 export default CourierTransactions;

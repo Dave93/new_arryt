@@ -16,6 +16,10 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { useGetIdentity } from "@refinedev/core";
 import { apiClient } from "@admin/src/eden";
+import { organization } from "@api/drizzle/schema";
+import { WorkScheduleWithRelations } from "@api/src/modules/work_schedules/dto/list.dto";
+import { InferSelectModel } from "drizzle-orm";
+
 let daysOfWeekRu = {
   "1": "Понедельник",
   "2": "Вторник",
@@ -32,7 +36,7 @@ export const WorkSchedulesCreate = () => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const { formProps, saveButtonProps } = useForm<IWorkSchedules>({
+  const { formProps, saveButtonProps } = useForm<WorkScheduleWithRelations>({
     meta: {
       fields: [
         "id",
@@ -53,15 +57,15 @@ export const WorkSchedulesCreate = () => {
     },
   });
 
-  const [organizations, setOrganizations] = useState<IOrganization[]>([]);
+  const [organizations, setOrganizations] = useState<
+    InferSelectModel<typeof organization>[]
+  >([]);
 
   const fetchOrganizations = async () => {
     const { data: organizations } =
       await apiClient.api.organizations.cached.get({
-        $fetch: {
-          headers: {
-            Authorization: `Bearer ${identity?.token.accessToken}`,
-          },
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
     setOrganizations(organizations);

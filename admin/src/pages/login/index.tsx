@@ -48,9 +48,11 @@ export const Login: React.FC = () => {
     setGsmNumber(`+${values.phone}`);
     let phone = `+${values.phone}`;
     try {
+      console.log("apiClient", apiClient.api);
       const res = await apiClient.api.users["send-otp"].post({
         phone,
       });
+      console.log("phone submit", res);
       res.data?.details && setOtpSecret(res.data.details);
       setLoading(false);
       setCurrent("code");
