@@ -97,13 +97,19 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
                           ),
                         ),
                         ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Colors.white,
+                            ),
                             onPressed: () async {
                               await DisableBatteryOptimization
                                   .showDisableBatteryOptimizationSettings();
                             },
-                            child: Text(AppLocalizations.of(context)!
-                                .turnOff
-                                .toUpperCase()))
+                            child: Text(
+                                AppLocalizations.of(context)!
+                                    .turnOff
+                                    .toUpperCase(),
+                                style: const TextStyle(fontSize: 12.0)))
                       ],
                     ),
                   ),
@@ -130,12 +136,18 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
                           ),
                         ),
                         ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Colors.white,
+                            ),
                             onPressed: () async {
                               openAppSettings();
                             },
-                            child: Text(AppLocalizations.of(context)!
-                                .allow
-                                .toUpperCase()))
+                            child: Text(
+                                AppLocalizations.of(context)!
+                                    .allow
+                                    .toUpperCase(),
+                                style: const TextStyle(fontSize: 12.0)))
                       ],
                     ),
                   ),
@@ -145,10 +157,10 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
                 if (_isAllPermissionsGranted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isAllPermissionsGranted
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey,
-              ),
+                  backgroundColor: _isAllPermissionsGranted
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey,
+                  foregroundColor: Colors.white),
               child: Text(
                   AppLocalizations.of(context)!.continueText.toUpperCase()),
             )

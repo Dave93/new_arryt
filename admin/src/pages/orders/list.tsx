@@ -20,6 +20,7 @@ import {
   HttpError,
   useCan,
   useGetIdentity,
+  useInvalidate,
   useNavigation,
   useTranslate,
 } from "@refinedev/core";
@@ -83,6 +84,7 @@ const IOrdersListPropsDuration: FC<IOrdersListProps> = ({
 };
 
 export const OrdersList: React.FC = () => {
+  const invalidate = useInvalidate();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -126,9 +128,9 @@ export const OrdersList: React.FC = () => {
       orders_couriers: string;
     }
   >({
-    queryOptions: {
-      queryKey: ["orders"],
-    },
+    // queryOptions: {
+    //   queryKey: ["orders"],
+    // },
 
     meta: {
       fields: [
@@ -167,7 +169,11 @@ export const OrdersList: React.FC = () => {
 
     onSearch: async (params) => {
       const localFilters: CrudFilters = [];
-      queryClient.invalidateQueries(["default", "orders", "list"]);
+      // queryClient.invalidateQueries({ queryKey: ["default", "orders"] });
+      invalidate({
+        resource: "orders",
+        invalidates: ["list"],
+      });
       // queryClient.invalidateQueries();
       const {
         organization_id,
@@ -237,7 +243,7 @@ export const OrdersList: React.FC = () => {
         localFilters.push({
           field: "courier_id",
           operator: "eq",
-          value: { equals: courier_id.value },
+          value: courier_id.value,
         });
       }
 

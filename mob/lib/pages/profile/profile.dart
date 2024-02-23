@@ -1,4 +1,8 @@
+import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/bloc/block_imports.dart';
+import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/main.dart';
+import 'package:arryt/models/user_data.dart';
 import 'package:arryt/widgets/profile/my_balance_by_terminal.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:currency_formatter/currency_formatter.dart';
@@ -41,6 +45,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
   int walletBalance = 0;
   int totalFuelBalance = 0;
   double rating = 0;
+  UserData? user = objectBox.getUserData();
 
   Future<void> _loadData() async {
     await _loadStatistics();
@@ -48,107 +53,115 @@ class _ProfilePageViewState extends State<ProfilePageView>
   }
 
   Future<void> _loadProfileNumbers() async {
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      query {
-        getMyProfileNumbers {
-            score
-        }
-      }
-    ''';
-    var ratingResult = await client.query(
-        QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache));
-    if (ratingResult.hasException) {
-      print(ratingResult.exception);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ratingResult.exception.toString()),
-        ),
-      );
-    } else {
+    ApiServer api = new ApiServer();
+
+    var response = await api.get('/api/couriers/my_profile_number', {});
+
+    if (response.statusCode != 200) {
+      return AnimatedSnackBar.material(
+        response.data['message'] ?? "Error",
+        type: AnimatedSnackBarType.error,
+      ).show(context);
+    } else if (response.data != null && response.data['score'] != null) {
       setState(() {
-        rating = (ratingResult.data?['getMyProfileNumbers']['score'] is int
-            ? ratingResult.data!['getMyProfileNumbers']['score'].toDouble()
-            : ratingResult.data?['getMyProfileNumbers']['score']);
+        rating = response.data['score'].toDouble();
+        walletBalance = response.data['not_paid_amount'];
+        totalFuelBalance = response.data['fuel'];
       });
-      var query = r'''
-        query {
-          getMyTotalBalance
-        }
-      ''';
-      var balanceResult = await client.query(
-          QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache));
-      if (balanceResult.hasException) {
-        print(balanceResult.exception);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(balanceResult.exception.toString()),
-          ),
-        );
-      } else {
-        setState(() {
-          walletBalance = balanceResult.data?['getMyTotalBalance'];
-        });
-
-        var query = r'''
-          query {
-            getMyTotalFuelBalance
-          }
-        ''';
-
-        var fuelBalanceResult = await client.query(QueryOptions(
-            document: gql(query), fetchPolicy: FetchPolicy.noCache));
-
-        if (fuelBalanceResult.hasException) {
-          print(fuelBalanceResult.exception);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(fuelBalanceResult.exception.toString()),
-            ),
-          );
-        } else {
-          setState(() {
-            totalFuelBalance = fuelBalanceResult.data?['getMyTotalFuelBalance'];
-          });
-        }
-      }
     }
   }
 
   Future<void> _loadStatistics() async {
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      query {
-        orderMobilePeriodStat {
-          failedCount
-          successCount
-          orderPrice
-          bonusPrice
-          fuelPrice
-          dailyGarantPrice
-          totalPrice
-          labelCode
-        }
-      }
-    ''';
-    var result = await client.query(
-        QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache));
-    if (result.hasException) {
-      print(result.exception);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.exception.toString()),
-        ),
-      );
-    } else {
+    ApiServer api = new ApiServer();
+
+    var response = await api.get('/api/couriers/mob_stat', {});
+
+    if (response.statusCode != 200) {
+      return AnimatedSnackBar.material(
+        response.data['message'] ?? "Error",
+        type: AnimatedSnackBarType.error,
+      ).show(context);
+    } else if (response.data != null && response.data['today'] != null) {
       List<OrderMobilePeriodStat> ordersStat = [];
-      result.data?['orderMobilePeriodStat'].forEach((e) {
-        ordersStat.add(OrderMobilePeriodStat.fromMap(e));
-      });
+      var todayData = response.data['today'];
+      OrderMobilePeriodStat today = OrderMobilePeriodStat(
+          successCount: todayData['finishedOrdersCount'],
+          failedCount: todayData['canceledOrdersCount'],
+          orderPrice: todayData['finishedOrdersAmount'],
+          bonusPrice: todayData['bonus'],
+          totalPrice: todayData['finishedOrdersAmount'] + todayData['bonus'],
+          fuelPrice: todayData['workScheduleBonus'],
+          labelCode: 'today');
+      ordersStat.add(today);
+      var yesterdayData = response.data['yesterday'];
+      OrderMobilePeriodStat yesterday = OrderMobilePeriodStat(
+          successCount: yesterdayData['finishedOrdersCount'],
+          failedCount: yesterdayData['canceledOrdersCount'],
+          orderPrice: yesterdayData['finishedOrdersAmount'],
+          bonusPrice: yesterdayData['bonus'],
+          totalPrice:
+              yesterdayData['finishedOrdersAmount'] + yesterdayData['bonus'],
+          fuelPrice: yesterdayData['workScheduleBonus'],
+          labelCode: 'yesterday');
+      ordersStat.add(yesterday);
+      var weekData = response.data['week'];
+      OrderMobilePeriodStat week = OrderMobilePeriodStat(
+          successCount: weekData['finishedOrdersCount'],
+          failedCount: weekData['canceledOrdersCount'],
+          orderPrice: weekData['finishedOrdersAmount'],
+          bonusPrice: weekData['bonus'],
+          totalPrice: weekData['finishedOrdersAmount'] + weekData['bonus'],
+          fuelPrice: weekData['workScheduleBonus'],
+          labelCode: 'week');
+      ordersStat.add(week);
+      var monthData = response.data['month'];
+      OrderMobilePeriodStat month = OrderMobilePeriodStat(
+          successCount: monthData['finishedOrdersCount'],
+          failedCount: monthData['canceledOrdersCount'],
+          orderPrice: monthData['finishedOrdersAmount'],
+          bonusPrice: monthData['bonus'],
+          totalPrice: monthData['finishedOrdersAmount'] + monthData['bonus'],
+          fuelPrice: monthData['workScheduleBonus'],
+          labelCode: 'month');
+      ordersStat.add(month);
       setState(() {
         _ordersStat = ordersStat;
       });
     }
+
+    // var client = GraphQLProvider.of(context).value;
+    // var query = r'''
+    //   query {
+    //     orderMobilePeriodStat {
+    //       failedCount
+    //       successCount
+    //       orderPrice
+    //       bonusPrice
+    //       fuelPrice
+    //       dailyGarantPrice
+    //       totalPrice
+    //       labelCode
+    //     }
+    //   }
+    // ''';
+    // var result = await client.query(
+    //     QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache));
+    // if (result.hasException) {
+    //   print(result.exception);
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text(result.exception.toString()),
+    //     ),
+    //   );
+    // } else {
+    //   List<OrderMobilePeriodStat> ordersStat = [];
+    //   result.data?['orderMobilePeriodStat'].forEach((e) {
+    //     ordersStat.add(OrderMobilePeriodStat.fromMap(e));
+    //   });
+    //   setState(() {
+    //     _ordersStat = ordersStat;
+    //   });
+    // }
   }
 
   String cardLabel(String code) {
@@ -217,40 +230,36 @@ class _ProfilePageViewState extends State<ProfilePageView>
             flexibleSpace: FlexibleSpaceBar(
                 // centerTitle: true,
                 collapseMode: CollapseMode.parallax,
-                title: BlocBuilder<UserDataBloc, UserDataState>(
-                  builder: (context, state) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        state.userProfile?.last_name != null
-                            ? AutoSizeText(
-                                "${state.userProfile?.last_name} ${state.userProfile?.first_name}",
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 25.0,
-                                    fontWeight: FontWeight.bold),
-                              )
-                            : const SizedBox(
-                                height: 0,
-                              ),
-                        state.userProfile?.phone != null
-                            ? AutoSizeText(
-                                state.userProfile?.phone ?? '',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.0,
-                                ),
-                              )
-                            : const SizedBox(
-                                height: 0,
-                              ),
-                      ],
-                    );
-                  },
+                title: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    user?.userProfile.target?.last_name != null
+                        ? AutoSizeText(
+                            "${user?.userProfile.target?.last_name} ${user?.userProfile.target?.first_name}",
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 25.0,
+                                fontWeight: FontWeight.bold),
+                          )
+                        : const SizedBox(
+                            height: 0,
+                          ),
+                    user?.userProfile.target?.phone != null
+                        ? AutoSizeText(
+                            user?.userProfile.target?.phone ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.0,
+                            ),
+                          )
+                        : const SizedBox(
+                            height: 0,
+                          ),
+                  ],
                 ),
                 background: Container(
                   color: Theme.of(context).primaryColor,

@@ -82,10 +82,10 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
         }
         orders.add(orderModel);
       });
-      await objectBox.clearCurrentOrders();
-      _controller.finishLoad(IndicatorResult.success);
-      objectBox.addCurrentOrders(orders);
     }
+    await objectBox.clearCurrentOrders();
+    _controller.finishLoad(IndicatorResult.success);
+    objectBox.addCurrentOrders(orders);
   }
 
   @override

@@ -1,7 +1,7 @@
 import UserNotifications
 import awesome_notifications_fcm
 
-@available(iOS 13.0, *)
+@available(iOS 10.0, *)
 class NotificationService: DartAwesomeServiceExtension {
 
 }
