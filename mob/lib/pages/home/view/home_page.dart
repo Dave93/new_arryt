@@ -23,7 +23,6 @@ import '../../../router.dart';
 import '../../../widgets/home/check_permissions.dart';
 import '../../../widgets/no_role_set.dart';
 import '../../../widgets/notifications_count.dart';
-import '../../garant/mygarant.dart';
 import '../../manager/couriers_list.dart';
 import '../../notifications/notifications.dart';
 import '../../orders_history/orders_history.dart';
@@ -281,16 +280,15 @@ class _HomeViewPageState extends State<HomeViewPage> {
   List<Widget> _buildScreens(Role role) {
     if (role.code == 'courier') {
       return [
-        ApiGraphqlProvider(child: const ProfilePageView()),
+        const ProfilePageView(),
         OrdersPage(),
         const OrdersHistory(),
         const NotificationPage(),
-        // const MyGarantPage(),
         const SettingsPage()
       ];
     } else if (role.code == 'manager') {
       return [
-        ApiGraphqlProvider(child: const ProfilePageView()),
+        const ProfilePageView(),
         const ManagerCouriersList(),
         const OrdersHistory(),
         const OrdersManagement(),

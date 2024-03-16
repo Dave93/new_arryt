@@ -34,7 +34,6 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
 
     // get brands from api
     Response response = await api.get('/api/brands/cached', {});
-    print(response.data['data']);
     // var brands = response.data['data']['brands'] as List<dynamic>;
     // create http graphql request to get brands
     // save brands to _brands
@@ -60,7 +59,7 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
 
     setState(() {
       isLoading = false;
-      _brands = (response.data['data'] as List<dynamic>)
+      _brands = (response.data as List<dynamic>)
           .map((e) => BrandsModel.fromMap(e as Map<String, dynamic>))
           .toList();
     });

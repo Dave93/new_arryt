@@ -2,7 +2,7 @@ import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:rounded_loading_button/rounded_loading_button.dart';
+import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../bloc/block_imports.dart';
@@ -63,11 +63,13 @@ class _ProfileLogoutButtonState extends State<ProfileLogoutButton> {
     return GestureDetector(
         child: RoundedLoadingButton(
             controller: _btnController,
-            color: Theme.of(context).errorColor,
+            color: Colors.red,
             onPressed: () {
               _logout(context);
             },
-            child:
-                Text(AppLocalizations.of(context)!.logout_btn.toUpperCase())));
+            child: Text(
+              AppLocalizations.of(context)!.logout_btn.toUpperCase(),
+              style: const TextStyle(color: Colors.white),
+            )));
   }
 }

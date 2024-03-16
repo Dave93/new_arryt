@@ -120,11 +120,9 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
       });
       return showCupertinoModalBottomSheet(
           context: context,
-          builder: (context) => ApiGraphqlProvider(
-                child: CancelOrderModal(
-                  orderId: widget.order.identity,
-                  orderStatusId: orderStatusId,
-                ),
+          builder: (context) => CancelOrderModal(
+                orderId: widget.order.identity,
+                orderStatusId: orderStatusId,
               ));
     }
 

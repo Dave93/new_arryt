@@ -1,4 +1,6 @@
+import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/couriers.dart';
 import 'package:arryt/models/order.dart';
 import 'package:flutter/material.dart';
@@ -14,8 +16,7 @@ class OrderChangeCourier extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(
-        child: OrderChangeCourierView(order: order, callback: callback));
+    return OrderChangeCourierView(order: order, callback: callback);
   }
 }
 
@@ -38,57 +39,54 @@ class _OrderChangeCourierViewState extends State<OrderChangeCourierView> {
     setState(() {
       isLoading = true;
     });
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      query {
-        myCouriers {
-          id
-          first_name
-          last_name
-        }
-      }
-    ''';
-    var result = await client.query(QueryOptions(
-        document: gql(query), fetchPolicy: FetchPolicy.cacheAndNetwork));
+    ApiServer api = ApiServer();
+
+    var response = await api.get('/api/couriers/my_couriers', {});
+
     setState(() {
       isLoading = false;
     });
-    if (result.hasException) {
-      print(result.exception);
-      return;
+    if (response.statusCode != 200) {
+      return AnimatedSnackBar.material(
+        response.data['message'] ?? "Error",
+        type: AnimatedSnackBarType.error,
+      ).show(context);
+    } else {
+      setState(() {
+        couriers = (response.data as List<dynamic>)
+            .map((e) => Couriers.fromMap(e))
+            .toList();
+      });
     }
-    var data = result.data!['myCouriers'] as List;
-    setState(() {
-      couriers = data.map((e) => Couriers.fromJson(e)).toList();
-    });
   }
 
   Future<void> _setCourier(String courierId) async {
     setState(() {
       isLoading = true;
     });
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      mutation($courierId: String!, $orderId: String!) {
-        assignOrderCourier(courierId: $courierId, orderId: $orderId) {
-          id
-        }
-      }
-    ''';
-    var result = await client.mutate(MutationOptions(
-        document: gql(query),
-        variables: {'courierId': courierId, 'orderId': widget.order.identity},
-        fetchPolicy: FetchPolicy.cacheAndNetwork));
-    setState(() {
-      isLoading = false;
-    });
-    if (result.hasException) {
-      print(result.exception);
-      return;
-    }
-    widget.callback();
 
-    Navigator.of(context).pop();
+    ApiServer api = ApiServer();
+
+    var response =
+        await api.post("/api/orders/${widget.order.identity}/assign", {
+      'courier_id': courierId,
+    });
+
+    if (response.statusCode != 200) {
+      setState(() {
+        isLoading = false;
+      });
+      return AnimatedSnackBar.material(
+        response.data['message'] ?? "Error",
+        type: AnimatedSnackBarType.error,
+      ).show(context);
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      widget.callback();
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -131,7 +129,8 @@ class _OrderChangeCourierViewState extends State<OrderChangeCourierView> {
                     itemCount: couriers.length,
                     itemBuilder: (context, index) {
                       return ListTile(
-                          title: Text('${couriers[index].firstName} ${couriers[index].lastName}'),
+                          title: Text(
+                              '${couriers[index].firstName} ${couriers[index].lastName}'),
                           onTap: () {
                             _setCourier(couriers[index].identity);
                           });

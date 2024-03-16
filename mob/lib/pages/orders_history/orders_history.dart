@@ -1,4 +1,6 @@
+import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/couriers.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -34,7 +36,7 @@ class OrdersHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(child: const OrdersHistoryView());
+    return const OrdersHistoryView();
   }
 }
 
@@ -68,139 +70,218 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
   String filterPhone = '';
 
   Future<void> _loadOrders(bool reload) async {
-    var client = GraphQLProvider.of(context).value;
+    // var client = GraphQLProvider.of(context).value;
     setState(() {
       _loading = true;
     });
-    var query = r'''
-      query myOrdersHistory($startDate: Date!, $endDate: Date!, $page: Int!, $limit: Int!) {
-        myOrdersHistory(startDate: $startDate, endDate: $endDate, page: $page, limit: $limit) {
-          orders {
-            id
-            to_lat
-            to_lon
-            from_lat
-            from_lon
-            pre_distance
-            order_number
-            order_price
-            delivery_price
-            delivery_address
-            delivery_comment
-            created_at
-            payment_type
-            orders_organization {
-              id
-              name
-              icon_url
-              active
-              external_id
-              support_chat_url
-            }
-            orders_customers {
-              id
-              name
-              phone
-            }
-            orders_terminals {
-              id
-              name
-            }
-            orders_order_status {
-              id
-              name
-              cancel
-              finish
-              on_way
-              in_terminal
-            }
-            orders_couriers {
-              id
-              first_name
-              last_name
-            }
-          }
-          totalCount
-        }
-      }
-    ''';
-
-    var data = await client.query(QueryOptions(
-        document: gql(query),
-        fetchPolicy: FetchPolicy.noCache,
-        variables: {
-          'startDate': _startDate.toString(),
-          'endDate': _endDate.toString(),
-          'page': _pageNumber,
-          'limit': _numberOfPostsPerRequest
-        }));
-
-    if (data.hasException) {
-      setState(() {
-        _error = true;
-        _loading = false;
-      });
+    ApiServer api = new ApiServer();
+    var response = await api.post('/api/orders/my_history', {
+      'startDate': _startDate.toString(),
+      'endDate': _endDate.toString(),
+      'page': _pageNumber,
+      'limit': _numberOfPostsPerRequest
+    });
+    setState(() {
+      _loading = false;
+    });
+    if (response.statusCode != 200) {
+      return AnimatedSnackBar.material(
+        response.data['message'] ?? "Error",
+        type: AnimatedSnackBarType.error,
+      ).show(context);
     } else {
-      var orders = data.data!['myOrdersHistory']['orders'] as List;
-      var totalCount = data.data!['myOrdersHistory']['totalCount'] as int;
-      if (_posts.length + orders.length >= totalCount) {
-        setState(() {
-          _isLastPage = true;
-        });
-      } else {
-        setState(() {
-          _isLastPage = false;
-        });
-      }
-      List<OrderModel> tempOrders = [];
-      for (var order in orders) {
-        OrderStatus orderStatus = OrderStatus(
-          identity: order['orders_order_status']['id'],
-          name: order['orders_order_status']['name'],
-          cancel: order['orders_order_status']['cancel'],
-          finish: order['orders_order_status']['finish'],
-        );
-        Terminals terminals = Terminals(
-          identity: order['orders_terminals']['id'],
-          name: order['orders_terminals']['name'],
-        );
-        Customer customer = Customer(
-          identity: order['orders_customers']['id'],
-          name: order['orders_customers']['name'],
-          phone: order['orders_customers']['phone'],
-        );
-        Couriers courier = Couriers(
-          identity: order['orders_couriers']['id'],
-          firstName: order['orders_couriers']['first_name'],
-          lastName: order['orders_couriers']['last_name'],
-        );
-        Organizations organizations = Organizations(
-            order['orders_organization']['id'],
-            order['orders_organization']['name'],
-            order['orders_organization']['active'],
-            order['orders_organization']['icon_url'],
-            order['orders_organization']['description'],
-            order['orders_organization']['max_distance'],
-            order['orders_organization']['max_active_orderCount'],
-            order['orders_organization']['max_order_close_distance'],
-            order['orders_organization']['support_chat_url']);
-        OrderModel orderModel = OrderModel.fromMap(order);
-        orderModel.customer.target = customer;
-        orderModel.terminal.target = terminals;
-        orderModel.orderStatus.target = orderStatus;
-        orderModel.organization.target = organizations;
-        orderModel.courier.target = courier;
-        tempOrders.add(orderModel);
-      }
-      setState(() {
-        if (reload) {
-          _posts = tempOrders;
+      if (response.data != null && response.data['totalCount'] != null) {
+        var orders = response.data['orders'] as List;
+        var totalCount = int.parse(response.data['totalCount']);
+        if (_posts.length + orders.length >= totalCount) {
+          setState(() {
+            _isLastPage = true;
+          });
         } else {
-          _posts.addAll(tempOrders);
+          setState(() {
+            _isLastPage = false;
+          });
         }
-        _loading = false;
-      });
+
+        List<OrderModel> tempOrders = [];
+        for (var order in orders) {
+          OrderStatus orderStatus = OrderStatus(
+            identity: order['orders_order_status']['id'],
+            name: order['orders_order_status']['name'],
+            cancel: order['orders_order_status']['cancel'],
+            finish: order['orders_order_status']['finish'],
+          );
+          Terminals terminals = Terminals(
+            identity: order['orders_terminals']['id'],
+            name: order['orders_terminals']['name'],
+          );
+          Customer customer = Customer(
+            identity: order['orders_customers']['id'],
+            name: order['orders_customers']['name'],
+            phone: order['orders_customers']['phone'],
+          );
+          Couriers courier = Couriers(
+            identity: order['orders_couriers']['id'],
+            firstName: order['orders_couriers']['first_name'],
+            lastName: order['orders_couriers']['last_name'],
+          );
+          Organizations organizations = Organizations(
+              order['orders_organization']['id'],
+              order['orders_organization']['name'],
+              order['orders_organization']['active'],
+              order['orders_organization']['icon_url'],
+              order['orders_organization']['description'],
+              order['orders_organization']['max_distance'],
+              order['orders_organization']['max_active_orderCount'],
+              order['orders_organization']['max_order_close_distance'],
+              order['orders_organization']['support_chat_url']);
+          OrderModel orderModel = OrderModel.fromMap(order);
+          orderModel.customer.target = customer;
+          orderModel.terminal.target = terminals;
+          orderModel.orderStatus.target = orderStatus;
+          orderModel.organization.target = organizations;
+          orderModel.courier.target = courier;
+          tempOrders.add(orderModel);
+        }
+        setState(() {
+          if (reload) {
+            _posts = tempOrders;
+          } else {
+            _posts.addAll(tempOrders);
+          }
+          _loading = false;
+        });
+      }
     }
+    // var query = r'''
+    //   query myOrdersHistory($startDate: Date!, $endDate: Date!, $page: Int!, $limit: Int!) {
+    //     myOrdersHistory(startDate: $startDate, endDate: $endDate, page: $page, limit: $limit) {
+    //       orders {
+    //         id
+    //         to_lat
+    //         to_lon
+    //         from_lat
+    //         from_lon
+    //         pre_distance
+    //         order_number
+    //         order_price
+    //         delivery_price
+    //         delivery_address
+    //         delivery_comment
+    //         created_at
+    //         payment_type
+    //         orders_organization {
+    //           id
+    //           name
+    //           icon_url
+    //           active
+    //           external_id
+    //           support_chat_url
+    //         }
+    //         orders_customers {
+    //           id
+    //           name
+    //           phone
+    //         }
+    //         orders_terminals {
+    //           id
+    //           name
+    //         }
+    //         orders_order_status {
+    //           id
+    //           name
+    //           cancel
+    //           finish
+    //           on_way
+    //           in_terminal
+    //         }
+    //         orders_couriers {
+    //           id
+    //           first_name
+    //           last_name
+    //         }
+    //       }
+    //       totalCount
+    //     }
+    //   }
+    // ''';
+
+    // var data = await client.query(QueryOptions(
+    //     document: gql(query),
+    //     fetchPolicy: FetchPolicy.noCache,
+    //     variables: {
+    //       'startDate': _startDate.toString(),
+    //       'endDate': _endDate.toString(),
+    //       'page': _pageNumber,
+    //       'limit': _numberOfPostsPerRequest
+    //     }));
+
+    // if (data.hasException) {
+    //   setState(() {
+    //     _error = true;
+    //     _loading = false;
+    //   });
+    // } else {
+    //   var orders = data.data!['myOrdersHistory']['orders'] as List;
+    //   var totalCount = data.data!['myOrdersHistory']['totalCount'] as int;
+    //   if (_posts.length + orders.length >= totalCount) {
+    //     setState(() {
+    //       _isLastPage = true;
+    //     });
+    //   } else {
+    //     setState(() {
+    //       _isLastPage = false;
+    //     });
+    //   }
+    //   List<OrderModel> tempOrders = [];
+    //   for (var order in orders) {
+    //     OrderStatus orderStatus = OrderStatus(
+    //       identity: order['orders_order_status']['id'],
+    //       name: order['orders_order_status']['name'],
+    //       cancel: order['orders_order_status']['cancel'],
+    //       finish: order['orders_order_status']['finish'],
+    //     );
+    //     Terminals terminals = Terminals(
+    //       identity: order['orders_terminals']['id'],
+    //       name: order['orders_terminals']['name'],
+    //     );
+    //     Customer customer = Customer(
+    //       identity: order['orders_customers']['id'],
+    //       name: order['orders_customers']['name'],
+    //       phone: order['orders_customers']['phone'],
+    //     );
+    //     Couriers courier = Couriers(
+    //       identity: order['orders_couriers']['id'],
+    //       firstName: order['orders_couriers']['first_name'],
+    //       lastName: order['orders_couriers']['last_name'],
+    //     );
+    //     Organizations organizations = Organizations(
+    //         order['orders_organization']['id'],
+    //         order['orders_organization']['name'],
+    //         order['orders_organization']['active'],
+    //         order['orders_organization']['icon_url'],
+    //         order['orders_organization']['description'],
+    //         order['orders_organization']['max_distance'],
+    //         order['orders_organization']['max_active_orderCount'],
+    //         order['orders_organization']['max_order_close_distance'],
+    //         order['orders_organization']['support_chat_url']);
+    //     OrderModel orderModel = OrderModel.fromMap(order);
+    //     orderModel.customer.target = customer;
+    //     orderModel.terminal.target = terminals;
+    //     orderModel.orderStatus.target = orderStatus;
+    //     orderModel.organization.target = organizations;
+    //     orderModel.courier.target = courier;
+    //     tempOrders.add(orderModel);
+    //   }
+    //   setState(() {
+    //     if (reload) {
+    //       _posts = tempOrders;
+    //     } else {
+    //       _posts.addAll(tempOrders);
+    //     }
+    //     _loading = false;
+    //   });
+    // }
   }
 
   /// Update the selected date for the date range picker based on the date selected,
@@ -252,7 +333,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
     _isLastPage = false;
     _loading = true;
     _error = false;
-    _numberOfPostsPerRequest = 30;
+    _numberOfPostsPerRequest = 200;
     _scrollController = ScrollController();
     // TODO: implement initState
     super.initState();
@@ -966,7 +1047,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                 },
                                                 child: Padding(
                                                   padding: const EdgeInsets
-                                                          .symmetric(
+                                                      .symmetric(
                                                       vertical: 15.0),
                                                   child: Text(
                                                     AppLocalizations.of(
@@ -1002,7 +1083,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                 },
                                                 child: Padding(
                                                   padding: const EdgeInsets
-                                                          .symmetric(
+                                                      .symmetric(
                                                       vertical: 15.0),
                                                   child: Text(
                                                       AppLocalizations.of(

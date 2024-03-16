@@ -6,6 +6,8 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 
 import 'package:http/http.dart' as http;
 
+import '../firebase_options.dart';
+
 class NotificationController with ChangeNotifier {
   /// *********************************************
   ///   SINGLETON PATTERN
@@ -83,7 +85,9 @@ class NotificationController with ChangeNotifier {
 
   static Future<void> initializeRemoteNotifications(
       {required bool debug}) async {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     await AwesomeNotificationsFcm().initialize(
         onFcmSilentDataHandle: NotificationController.mySilentDataHandle,
         onFcmTokenHandle: NotificationController.myFcmTokenHandle,

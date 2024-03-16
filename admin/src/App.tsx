@@ -96,6 +96,7 @@ import {
 import { ThemedLayoutV2 } from "@refinedev/antd";
 import { edenDataProvider } from "./dataprovider/edenDataProvider";
 import { App as AntdApp } from "antd";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 const httpLink = new HttpLink({
   uri: `https://${import.meta.env.VITE_GRAPHQL_API_DOMAIN!}/graphql`,
