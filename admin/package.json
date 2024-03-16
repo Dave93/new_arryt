@@ -11,6 +11,7 @@
     "@heroicons/react": "^2.0.15",
     "@material-ui/core": "^4.12.4",
     "@material-ui/icons": "^4.11.3",
+    "@million/lint": "0.0.55",
     "@pankod/refine-react-location": "3.36.2",
     "@pbe/react-yandex-maps": "^1.2.2",
     "@refinedev/antd": "^5.37.4",

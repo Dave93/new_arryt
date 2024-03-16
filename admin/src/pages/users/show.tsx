@@ -89,7 +89,7 @@ const UsersShow = () => {
   useEffect(() => {
     getAllFilterData();
     return () => {};
-  }, []);
+  }, [identity]);
   const { data, isLoading } = queryResult;
 
   const record = data?.data;

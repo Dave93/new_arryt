@@ -3,6 +3,7 @@ import 'package:arryt/helpers/api_server.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:currency_formatter/currency_formatter.dart';
+import 'package:dio/dio.dart';
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -143,12 +144,20 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
           widget.onUpdate();
         }
       }
+    } on DioException catch (e) {
+      setState(() {
+        loading = false;
+      });
+      return AnimatedSnackBar.material(
+        e.error.toString(),
+        type: AnimatedSnackBarType.error,
+      ).show(context);
     } catch (e) {
       setState(() {
         loading = false;
       });
       return AnimatedSnackBar.material(
-        AppLocalizations.of(context)!.error_getting_location,
+        e.toString() ?? 'Error',
         type: AnimatedSnackBarType.error,
       ).show(context);
     }
