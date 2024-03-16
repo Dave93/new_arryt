@@ -1791,3 +1791,289 @@ export const UsersController = new Elysia({
       status: t.Optional(t.Union([t.Literal('active'), t.Literal('inactive'), t.Literal('blocked')])),
     })
   })
+  .post('/couriers/efficiency/hour', async ({ body: { startDate, endDate, courierId }, drizzle, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("users.edit")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+
+
+    const usersTerminals = await drizzle.select({
+      user_id: users_terminals.user_id,
+      terminal_id: users_terminals.terminal_id,
+    }).from(users_terminals).where(
+      eq(users_terminals.user_id, courierId)
+    ).execute();
+
+    const hourEfficiencyResponse = await fetch(`${process.env.DUCK_API}/courier_efficiency/hour`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        startDate: dayjs(startDate).format('YYYY-MM-DD HH:mm:ss'),
+        endDate: dayjs(endDate).format('YYYY-MM-DD HH:mm:ss'),
+        terminalIds: usersTerminals.map((terminal) => terminal.terminal_id),
+        courierId
+      })
+    })
+
+    const data = await hourEfficiencyResponse.json();
+
+    return data;
+
+  }, {
+    body: t.Object({
+      startDate: t.String(),
+      endDate: t.String(),
+      courierId: t.String()
+    })
+  })
+  .post('/couriers/efficiency/period', async ({ body: { startDate, endDate, courierId }, drizzle, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("users.edit")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+
+
+    const usersTerminals = await drizzle.select({
+      user_id: users_terminals.user_id,
+      terminal_id: users_terminals.terminal_id,
+    }).from(users_terminals).where(
+      eq(users_terminals.user_id, courierId)
+    ).execute();
+
+    const hourEfficiencyResponse = await fetch(`${process.env.DUCK_API}/courier_efficiency/period`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        startDate: dayjs(startDate).format('YYYY-MM-DD HH:mm:ss'),
+        endDate: dayjs(endDate).format('YYYY-MM-DD HH:mm:ss'),
+        terminalIds: usersTerminals.map((terminal) => terminal.terminal_id),
+        courierId
+      })
+    })
+
+    const data = await hourEfficiencyResponse.json();
+
+    return data;
+
+  }, {
+    body: t.Object({
+      startDate: t.String(),
+      endDate: t.String(),
+      courierId: t.String()
+    })
+  })
+  .get('/couriers/for_terminal', async ({ query: { terminal_id }, drizzle, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("users.edit")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+
+    const usersTerminals = await drizzle.select({
+      user_id: users_terminals.user_id,
+      terminal_id: users_terminals.terminal_id,
+    }).from(users_terminals).where(
+      eq(users_terminals.terminal_id, terminal_id)
+    ).execute();
+
+    const userIds = usersTerminals.map((userTerminal) => userTerminal.user_id);
+
+    const couriers = await drizzle.select({
+      id: users.id,
+      first_name: users.first_name,
+      last_name: users.last_name,
+      phone: users.phone,
+      drive_type: users.drive_type,
+    })
+      .from(users)
+      .leftJoin(users_roles, eq(users.id, users_roles.user_id))
+      .leftJoin(roles, eq(users_roles.role_id, roles.id))
+      .where(and(
+        inArray(users.id, userIds),
+        eq(users.status, 'active'),
+        eq(roles.code, 'courier')
+      ))
+      .execute();
+
+    return couriers;
+  }, {
+    query: t.Object({
+      terminal_id: t.String()
+    })
+  })
+  .get('/couriers/my_profile_number', async ({ drizzle, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    const numbersResponse = await fetch(`${process.env.DUCK_API}/couriers/profile_numbers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        courierId: user.user.id
+      })
+    });
+
+    const numbers = await numbersResponse.json();
+
+    return numbers;
+  })
+  .get('/couriers/mob_stat', async ({ drizzle, user, set, redis, cacheControl }) => {
+
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+    let workStartHour = await getSetting(redis, "work_start_time");
+    workStartHour = new Date(workStartHour).getHours();
+
+    let workEndHour = await getSetting(redis, "work_end_time");
+    workEndHour = new Date(workEndHour).getHours();
+
+    const orderStatuses = await cacheControl.getOrderStatuses();
+
+    const finishedStatusIds = orderStatuses.filter((status) => status.finish).map((status) => status.id);
+    const canceledStatusIds = orderStatuses.filter((status) => status.cancel).map((status) => status.id);
+
+    const numbersResponse = await fetch(`${process.env.DUCK_API}/couriers/mobile_stats`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        courierId: user.user.id,
+        startHour: workStartHour,
+        endHour: workEndHour,
+        finishedStatusIds,
+        canceledStatusIds
+      })
+    });
+
+    const numbers = await numbersResponse.json();
+
+    return numbers;
+  })
+  .get('/couriers/my_couriers', async ({ drizzle, user, set, cacheControl }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    const managerRole = user.access.roles.find(role => role.code === "manager");
+
+    if (!managerRole) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+
+    const usersTerminals = await drizzle.select({
+      user_id: users_terminals.user_id,
+      terminal_id: users_terminals.terminal_id,
+    }).from(users_terminals).where(
+      eq(users_terminals.user_id, user.user.id)
+    ).execute();
+
+    const terminalIds = usersTerminals.map((userTerminal) => userTerminal.terminal_id);
+
+    const couriers = await drizzle.select({
+      id: users.id,
+      first_name: users.first_name,
+      last_name: users.last_name,
+      phone: users.phone,
+      drive_type: users.drive_type,
+    })
+      .from(users)
+      .leftJoin(users_roles, eq(users.id, users_roles.user_id))
+      .leftJoin(roles, eq(users_roles.role_id, roles.id))
+      .leftJoin(users_terminals, eq(users.id, users_terminals.user_id))
+      .where(and(
+        inArray(users_terminals.terminal_id, terminalIds),
+        eq(users.status, 'active'),
+        eq(roles.code, 'courier')
+      ))
+      .execute();
+
+    // remove duplicates, check by id field
+    const uniqueCouriers = couriers.filter((courier, index, self) =>
+      index === self.findIndex((c) => c.id === courier.id)
+    );
+
+    return uniqueCouriers;
+  })
+  .post('/couriers/store-location', async ({ body: { lat, lon, app_version }, drizzle, user, set, processCourierStoreLocationQueue }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.user.is_online) {
+      return {
+        success: true,
+      }
+    }
+
+    await processCourierStoreLocationQueue.add(`${lat}_${lon}_${new Date().getTime()}`, {
+      lat,
+      lon,
+      app_version,
+      user_id: user.user.id
+    }, {
+      attempts: 3, removeOnComplete: true
+
+    });
+
+    return {
+      message: "Location updated",
+      success: true
+    };
+  }, {
+    body: t.Object({
+      lat: t.String(),
+      lon: t.String(),
+      app_version: t.String()
+    })
+  })

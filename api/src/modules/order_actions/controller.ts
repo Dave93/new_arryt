@@ -2,7 +2,7 @@ import { order_actions, organization, order_status, customers, terminals, users,
 import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { sql, eq, SQLWrapper, and } from "drizzle-orm";
+import { sql, eq, SQLWrapper, and, desc } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { Elysia, t } from "elysia";
 import { OrderActionsWithRelations } from "./dto/list.dto";
@@ -54,6 +54,7 @@ export const OrderActionsController = new Elysia({
                 .where(and(...whereClause))
                 .limit(+limit)
                 .offset(+offset)
+                .orderBy(desc(order_actions.created_at))
                 .execute() as OrderActionsWithRelations[];
             return {
                 total: orderActionsCount[0].count,

@@ -12,6 +12,7 @@ export default async function processFromBasketToCouriers(db: DB, cacheControl: 
         terminal_id: orders.terminal_id,
         order_status_id: orders.order_status_id,
         order_number: orders.order_number,
+        created_at: orders.created_at,
     }).from(orders).where(eq(
         orders.id, orderId
     ));
@@ -29,7 +30,8 @@ export default async function processFromBasketToCouriers(db: DB, cacheControl: 
 
 
         await orderIndex.add(order.id, {
-            id: order.id
+            id: order.id,
+            created_at: order.created_at,
         }, {
             attempts: 3, removeOnComplete: true
         });

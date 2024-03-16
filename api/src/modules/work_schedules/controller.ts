@@ -193,15 +193,15 @@ export const WorkSchedulesController = new Elysia({
       }
 
       if (data.start_time) {
-        data.start_time = dayjs(data.start_time).format("HH:mm:ss");
+        data.start_time = dayjs(data.start_time, "HH:mm:ss").format("HH:mm:ss");
       }
 
       if (data.end_time) {
-        data.end_time = dayjs(data.end_time).format("HH:mm:ss");
+        data.end_time = dayjs(data.end_time, "HH:mm:ss").format("HH:mm:ss");
       }
 
       if (data.max_start_time) {
-        data.max_start_time = dayjs(data.max_start_time).format("HH:mm:ss");
+        data.max_start_time = dayjs(data.max_start_time, "HH:mm:ss").format("HH:mm:ss");
       }
       const result = await drizzle
         .update(work_schedules)
