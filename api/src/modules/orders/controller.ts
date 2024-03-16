@@ -1,11 +1,14 @@
 import {
     customers, delivery_pricing, order_actions, order_items,
+    order_locations,
     order_status,
     order_transactions,
     orders,
     organization,
+    roles,
     terminals,
     users,
+    users_roles,
     users_terminals,
 } from "@api/drizzle/schema";
 import { db } from "@api/src/lib/db";
@@ -20,6 +23,7 @@ import {
     asc,
     desc,
     eq,
+    getTableColumns,
     gte,
     inArray,
     lte,
@@ -425,7 +429,7 @@ export const OrdersController = new Elysia({
         console.timeEnd('ordersList');
         return ordersList;
     })
-    .post('/orders/approve', async ({ body: { order_id, latitude, longitude }, user, set, cacheControl, processOrderIndexQueue, drizzle }) => {
+    .post('/orders/approve', async ({ body: { order_id, latitude, longitude }, user, set, cacheControl, processOrderChangeCourierQueue, drizzle }) => {
         if (!user) {
             set.status = 400;
             return {
@@ -435,7 +439,7 @@ export const OrdersController = new Elysia({
 
         const fromDate = dayjs().subtract(2, 'days').format('YYYY-MM-DD HH:mm:ss');
         const toDate = dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss');
-
+        console.time('existingOrder');
         const existingOrder = await drizzle
             .select({
                 id: orders.id,
@@ -458,7 +462,7 @@ export const OrdersController = new Elysia({
                 )
             )
             .execute();
-
+        console.timeEnd('existingOrder');
         if (existingOrder.length === 0) {
             set.status = 400;
             return {
@@ -476,7 +480,7 @@ export const OrdersController = new Elysia({
         }
 
         const organization = await cacheControl.getOrganization(order.organization_id);
-
+        console.time('distance');
         const distance = getDistance(
             { latitude: order.orders_terminals!.latitude, longitude: order.orders_terminals!.longitude },
             { latitude, longitude },
@@ -488,9 +492,13 @@ export const OrdersController = new Elysia({
             };
         }
 
+        console.timeEnd('distance');
+
+        console.time('usersTerminals');
         const usersTerminalsList = await drizzle.select({
             terminal_id: users_terminals.terminal_id
         }).from(users_terminals).where(eq(users_terminals.user_id, user.user.id)).execute();
+        console.timeEnd('usersTerminals');
         const orderStatuses = await cacheControl.getOrderStatuses();
 
         const newOrderStatuses = orderStatuses.filter((orderStatus) => orderStatus.sort === 1);
@@ -503,10 +511,11 @@ export const OrdersController = new Elysia({
         const cacheOrganizations = await cacheControl.getOrganizations();
 
         const organizations = cacheOrganizations.filter((organization) => terminalsOrganizations.includes(organization.id));
-
+        console.time('userAdditionalData')
         const userAdditionalData = await drizzle.select({
             max_active_order_count: users.max_active_order_count,
         }).from(users).where(eq(users.id, user.user.id)).execute();
+        console.timeEnd('userAdditionalData');
 
         let maxActiveOrderCount = 0;
 
@@ -517,6 +526,7 @@ export const OrdersController = new Elysia({
             maxActiveOrderCount = Math.max(...organizations.map((organization) => organization.max_active_order_count));
         }
 
+        console.time('currentOrdersCount');
         const currentOrdersCount = await drizzle.select({
             count: sql<number>`count(*)`
         }).from(orders).where(and(
@@ -535,20 +545,30 @@ export const OrdersController = new Elysia({
                 message: "You can't take more orders",
             };
         }
+        console.timeEnd('currentOrdersCount');
 
         const organizationStatuses = orderStatuses.filter((orderStatus) => orderStatus.organization_id === order.organization_id);
         const sortedOrderStatuses = sort(organizationStatuses, (i) => +i.sort);
-        console.log('sortedOrderStatuses', sortedOrderStatuses);
+        // console.log('sortedOrderStatuses', sortedOrderStatuses);
 
         const currentStatusIndex = sortedOrderStatuses.findIndex((orderStatus) => orderStatus.id === order.order_status_id);
 
         const nextStatus = sortedOrderStatuses[currentStatusIndex + 1];
-
+        console.time('updateOrder');
         await drizzle.update(orders).set({
             courier_id: user.user.id,
             order_status_id: nextStatus.id,
         }).where(eq(orders.id, order_id)).execute();
+        console.timeEnd('updateOrder');
 
+        await processOrderChangeCourierQueue.add(order.id, {
+            order_id: order_id,
+            before_courier_id: order.courier_id,
+            after_courier_id: user.user.id,
+            user_id: user.user.id,
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
 
         return order;
     }, {
@@ -558,7 +578,7 @@ export const OrdersController = new Elysia({
             longitude: t.Numeric(),
         })
     })
-    .post('/orders/set_status', async ({ body: { order_id, status_id, latitude, longitude }, user, set, cacheControl, processOrderCompleteQueue, processOrderEcommerceWebhookQueue, drizzle }) => {
+    .post('/orders/set_status', async ({ body: { order_id, status_id, latitude, longitude }, user, set, cacheControl, processOrderCompleteQueue, processOrderEcommerceWebhookQueue, drizzle, processOrderChangeStatusQueue }) => {
         if (!user) {
             set.status = 400;
             return {
@@ -785,6 +805,15 @@ export const OrdersController = new Elysia({
             });
         }
 
+        await processOrderChangeStatusQueue.add(result[0].id, {
+            order_id: result[0].id,
+            before_status_id: result[0].order_status_id,
+            after_status_id: status_id,
+            user_id: user.user.id,
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
+
         await processOrderEcommerceWebhookQueue.add(result[0].id, result[0], {
             attempts: 3, removeOnComplete: true
         });
@@ -822,7 +851,6 @@ export const OrdersController = new Elysia({
         cacheControl,
         redis,
         newOrderNotify,
-        processOrderIndexQueue,
         processFromBasketToCouriers,
         processCheckAndSendYandex
         , request: {
@@ -1096,11 +1124,6 @@ export const OrdersController = new Elysia({
                         attempts: 3, removeOnComplete: true
                     });
 
-                    await processOrderIndexQueue.add(currentOrder.id, {
-                        id: currentOrder.id
-                    }, {
-                        attempts: 3, removeOnComplete: true
-                    });
 
                     if (['621c0913-93d0-4eeb-bf00-f0c6f578bcd1', '0ca018c8-22ff-40b4-bb0a-b4ba95068662'].includes(currentTerminal.id)) {
                         // Next and Eko and C5
@@ -2191,7 +2214,7 @@ export const OrdersController = new Elysia({
     )
     .get(
         "/orders/:id",
-        async ({ params: { id }, drizzle, set, user }) => {
+        async ({ params: { id }, query: { fields }, drizzle, set, user }) => {
             if (!user) {
                 set.status = 401;
                 return {
@@ -2205,11 +2228,27 @@ export const OrdersController = new Elysia({
                     message: "You don't have permissions",
                 };
             }
+            const couriers = alias(users, "couriers");
+            let selectFields: SelectedFields = {};
+            if (fields) {
+                selectFields = parseSelectFields(fields, orders, {
+                    organization,
+                    order_status,
+                    customers,
+                    terminals,
+                    couriers,
+                });
+            }
             const permissionsRecord = await drizzle
-                .select()
+                .select(selectFields)
                 .from(orders)
+                .leftJoin(organization, eq(orders.organization_id, organization.id))
+                .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+                .leftJoin(customers, eq(orders.customer_id, customers.id))
+                .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+                .leftJoin(couriers, eq(orders.courier_id, couriers.id))
                 .where(eq(orders.id, id))
-                .execute();
+                .execute() as OrdersWithRelations[];
             return {
                 data: permissionsRecord[0],
             };
@@ -2217,6 +2256,9 @@ export const OrdersController = new Elysia({
         {
             params: t.Object({
                 id: t.String(),
+            }),
+            query: t.Object({
+                fields: t.Optional(t.String()),
             }),
         }
     )
@@ -2296,3 +2338,620 @@ export const OrdersController = new Elysia({
             }),
         }
     )
+    .get('/order_transactions', async ({ drizzle, set, user, query: {
+        filters
+    } }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("order_transactions.list")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+
+        const transactionsResponse = await fetch(`${process.env.DUCK_API}/order_transactions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                filter: JSON.parse(filters)
+            })
+        });
+
+        const transactions = await transactionsResponse.json();
+
+        return transactions;
+    },
+        {
+            query: t.Object({
+                filters: t.String(),
+            }),
+        })
+    .post('/orders/:id/assign', async ({ params: { id }, body: { courier_id }, drizzle, set, user, processOrderChangeCourierQueue }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.edit")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+        const order = await drizzle
+            .select({
+                id: orders.id,
+                courier_id: orders.courier_id,
+            })
+            .from(orders)
+            .where(eq(orders.id, id))
+            .execute();
+
+        const result = await drizzle
+            .update(orders)
+            .set({
+                courier_id
+            })
+            .where(eq(orders.id, id))
+            .returning({
+                id: orders.id,
+                courier_id: orders.courier_id
+            });
+
+        await processOrderChangeCourierQueue.add(order[0].id, {
+            order_id: id,
+            before_courier_id: order[0].courier_id,
+            after_courier_id: courier_id,
+            user_id: user.user.id,
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
+
+        return {
+            data: result[0],
+        };
+    }, {
+        body: t.Object({
+            courier_id: t.String(),
+        }),
+        params: t.Object({
+            id: t.String(),
+        }),
+    })
+    .post('/orders/:id/revoke', async ({ params: { id }, drizzle, set, user, processClearCourierQueue }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.edit")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+        const order = await drizzle
+            .select({
+                id: orders.id,
+                courier_id: orders.courier_id,
+            })
+            .from(orders)
+            .where(eq(orders.id, id))
+            .execute();
+
+        const result = await drizzle
+            .update(orders)
+            .set({
+                courier_id: null
+            })
+            .where(eq(orders.id, id))
+            .returning({
+                id: orders.id,
+                courier_id: orders.courier_id
+            });
+
+        await processClearCourierQueue.add(order[0].id, {
+            order_id: id,
+            courier_id: order[0].courier_id,
+            user_id: user.user.id,
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
+
+        return {
+            data: result[0],
+        };
+    }, {
+        params: t.Object({
+            id: t.String(),
+        }),
+    })
+    .post('/orders/:id/set_status', async ({ params: { id }, body: { status_id, created_at }, drizzle, set, user, processOrderChangeStatusQueue }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.edit")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+        console.log('order query', drizzle
+            .select({
+                id: orders.id,
+                order_status_id: orders.order_status_id,
+            })
+            .from(orders)
+            .where(and(
+                eq(orders.id, id),
+                created_at ? eq(orders.created_at, created_at) : sql`true`
+            )).toSQL().sql)
+
+        const order = await drizzle
+            .select({
+                id: orders.id,
+                order_status_id: orders.order_status_id,
+            })
+            .from(orders)
+            .where(and(
+                eq(orders.id, id),
+                gte(orders.created_at, dayjs(created_at).subtract(2, 'hours').format("YYYY-MM-DD HH:mm:ss")),
+                lte(orders.created_at, dayjs(created_at).add(2, 'hours').format("YYYY-MM-DD HH:mm:ss"))
+            ))
+            .execute();
+
+        const result = await drizzle
+            .update(orders)
+            .set({
+                order_status_id: status_id
+            })
+            .where(eq(orders.id, id))
+            .returning({
+                id: orders.id,
+                order_status_id: orders.order_status_id
+            });
+
+        await processOrderChangeStatusQueue.add(order[0].id, {
+            order_id: id,
+            before_status_id: order[0].order_status_id,
+            after_status_id: status_id,
+            user_id: user.user.id,
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
+
+        return {
+            data: result[0],
+        };
+    }, {
+        body: t.Object({
+            status_id: t.String(),
+            created_at: t.Optional(t.String()),
+        }),
+        params: t.Object({
+            id: t.String(),
+        }),
+    })
+    .get('/orders/:id/items', async ({ params: { id }, drizzle, set, user }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.show")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+        const items = await drizzle
+            .select()
+            .from(order_items)
+            .where(eq(order_items.order_id, id))
+            .execute() as InferSelectModel<typeof order_items>[];
+
+        return items
+    }, {
+        params: t.Object({
+            id: t.String(),
+        }),
+    })
+    .post('/orders/my_history', async ({ drizzle, set, user, cacheControl, body: {
+        startDate,
+        endDate,
+        limit,
+        page
+    } }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.show")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+        const courierIds: string[] = [];
+        const courierRole = user.access.roles.find(role => role.code === "courier");
+
+        const managerRole = user.access.roles.find(role => role.code === "manager");
+
+        if (courierRole) {
+            courierIds.push(user.user.id);
+        } else if (managerRole) {
+            const userTerminalsList = await drizzle
+                .select({
+                    terminal_id: users_terminals.terminal_id
+                })
+                .from(users_terminals)
+                .where(eq(users_terminals.user_id, user.user.id))
+                .execute() as InferSelectModel<typeof users_terminals>[];
+
+            const terminalIds = userTerminalsList.map(item => item.terminal_id);
+
+            const couriersList = await drizzle
+                .select({
+                    id: users.id
+                })
+                .from(users)
+                .leftJoin(users_terminals, eq(users.id, users_terminals.user_id))
+                .leftJoin(users_roles, eq(users.id, users_roles.user_id))
+                .leftJoin(roles, eq(users_roles.role_id, roles.id))
+                .where(and(
+                    inArray(users_terminals.terminal_id, terminalIds),
+                    eq(roles.code, "courier"),
+                    eq(users.status, "active")
+                ))
+                .execute() as InferSelectModel<typeof users>[];
+            courierIds.push(...couriersList.filter(courier => courier.id).map(courier => courier.id));
+        } else {
+            return [];
+        }
+
+        const orderStatuses = await cacheControl.getOrderStatuses();
+
+        const finishedOrderStatuses = orderStatuses
+            .filter((orderStatus) => orderStatus.finish || orderStatus.cancel)
+            .map((orderStatus) => orderStatus.id);
+
+        startDate = dayjs(startDate).format("YYYY-MM-DD") + " 00:00:00";
+        endDate = dayjs(endDate).format("YYYY-MM-DD") + " 23:59:59";
+
+        const offset = (page - 1) * limit;
+        const couriers = alias(users, "couriers");
+
+        const ordersCount = await drizzle.select({
+            count: sql<number>`count(*)`
+        }).from(orders).where(and(
+            inArray(orders.courier_id, courierIds),
+            inArray(orders.order_status_id, finishedOrderStatuses),
+            gte(orders.created_at, startDate),
+            lte(orders.created_at, endDate)
+        )).execute();
+
+        const ordersList = await drizzle
+            .select({
+                ...getTableColumns(orders),
+                orders_organization: {
+                    id: organization.id,
+                    name: organization.name,
+                    icon_url: organization.icon_url,
+                    active: organization.active,
+                    external_id: organization.external_id,
+                    support_chat_url: organization.support_chat_url,
+                },
+                orders_customers: {
+                    id: customers.id,
+                    name: customers.name,
+                    phone: customers.phone,
+                },
+                orders_order_status: {
+                    id: order_status.id,
+                    name: order_status.name,
+                    finish: order_status.finish,
+                    cancel: order_status.cancel,
+                    on_way: order_status.on_way,
+                    in_terminal: order_status.in_terminal
+                },
+                orders_terminals: {
+                    id: terminals.id,
+                    name: terminals.name
+                },
+                orders_couriers: {
+                    id: couriers.id,
+                    first_name: couriers.first_name,
+                    last_name: couriers.last_name,
+                },
+            })
+            .from(orders)
+            .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+            .leftJoin(couriers, eq(orders.courier_id, couriers.id))
+            .leftJoin(organization, eq(orders.organization_id, organization.id))
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+            .leftJoin(customers, eq(orders.customer_id, customers.id))
+            .where(and(
+                inArray(orders.courier_id, courierIds),
+                inArray(orders.order_status_id, finishedOrderStatuses),
+                gte(orders.created_at, startDate),
+                lte(orders.created_at, endDate)
+            ))
+            .orderBy(desc(orders.created_at))
+            .limit(limit)
+            .offset(offset)
+            .execute();
+
+        return {
+            orders: ordersList,
+            totalCount: ordersCount[0].count,
+        };
+    }, {
+        body: t.Object({
+            startDate: t.String(),
+            endDate: t.String(),
+            limit: t.Number(),
+            page: t.Number(),
+        }),
+    })
+    .post('/orders/management', async ({
+        drizzle, set, user, cacheControl, body: {
+            page,
+            limit,
+        }
+    }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.show")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+
+        const managerRole = user.access.roles.find(role => role.code === "manager");
+
+        if (!managerRole) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+        const usersTerminals = await drizzle.select({
+            terminal_id: users_terminals.terminal_id
+        }).from(users_terminals).where(eq(users_terminals.user_id, user.user.id)).execute();
+
+        const orderStatuses = await cacheControl.getOrderStatuses();
+
+        const pendingStatusIds: string[] = [];
+
+        const organizations = await cacheControl.getOrganizations();
+
+        for (const organization of organizations) {
+            const onWayStatus = orderStatuses.find(orderStatus => orderStatus.on_way && orderStatus.organization_id === organization.id);
+
+            if (onWayStatus) {
+                pendingStatusIds.push(...orderStatuses.filter(orderStatus => orderStatus.organization_id === organization.id && orderStatus.sort < onWayStatus.sort).map(orderStatus => orderStatus.id));
+            }
+
+        }
+
+        const startDate = dayjs().subtract(2, 'days').format("YYYY-MM-DD HH:mm:ss");
+        const endDate = dayjs().format("YYYY-MM-DD HH:mm:ss");
+
+        if (pendingStatusIds.length == 0) {
+            return {
+                orders: [],
+                totalCount: 0,
+            };
+        }
+
+        const offset = (page - 1) * limit;
+        const couriers = alias(users, "couriers");
+
+        const ordersCount = await drizzle.select({
+            count: sql<number>`count(*)`
+        }).from(orders).where(and(
+            inArray(orders.order_status_id, pendingStatusIds),
+            inArray(orders.terminal_id, usersTerminals.map(item => item.terminal_id)),
+            gte(orders.created_at, startDate),
+            lte(orders.created_at, endDate)
+        )).execute();
+
+        const ordersList = await drizzle
+            .select({
+                ...getTableColumns(orders),
+                orders_organization: {
+                    id: organization.id,
+                    name: organization.name,
+                    icon_url: organization.icon_url,
+                    active: organization.active,
+                    external_id: organization.external_id,
+                    support_chat_url: organization.support_chat_url,
+                },
+                orders_customers: {
+                    id: customers.id,
+                    name: customers.name,
+                    phone: customers.phone,
+                },
+                orders_order_status: {
+                    id: order_status.id,
+                    name: order_status.name,
+                    finish: order_status.finish,
+                    cancel: order_status.cancel,
+                    on_way: order_status.on_way,
+                    in_terminal: order_status.in_terminal
+                },
+                orders_terminals: {
+                    id: terminals.id,
+                    name: terminals.name
+                },
+                orders_couriers: {
+                    id: couriers.id,
+                    first_name: couriers.first_name,
+                    last_name: couriers.last_name,
+                },
+            })
+            .from(orders)
+            .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+            .leftJoin(couriers, eq(orders.courier_id, couriers.id))
+            .leftJoin(organization, eq(orders.organization_id, organization.id))
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+            .leftJoin(customers, eq(orders.customer_id, customers.id))
+            .where(and(
+                inArray(orders.order_status_id, pendingStatusIds),
+                inArray(orders.terminal_id, usersTerminals.map(item => item.terminal_id)),
+                gte(orders.created_at, startDate),
+                lte(orders.created_at, endDate)
+            ))
+            .orderBy(desc(orders.created_at))
+            .limit(limit)
+            .offset(offset)
+            .execute();
+
+        return {
+            orders: ordersList,
+            totalCount: ordersCount[0].count,
+        };
+
+    }, {
+        body: t.Object({
+            page: t.Number(),
+            limit: t.Number(),
+        }),
+    })
+    .post('/orders/:id/cancel', async ({ params: { id }, body: { text }, drizzle, cacheControl, set, user, processOrderChangeStatusQueue }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        const order = await drizzle
+            .select({
+                id: orders.id,
+                organization_id: orders.organization_id,
+                order_status_id: orders.order_status_id,
+                created_at: orders.created_at
+            })
+            .from(orders)
+            .where(eq(orders.id, id))
+            .execute();
+
+        const organizationId = order[0].organization_id;
+
+        const orderStatuses = await cacheControl.getOrderStatuses();
+
+        const canceledOrderStatus = orderStatuses.find(orderStatus => orderStatus.cancel && orderStatus.organization_id === organizationId);
+
+        const result = await drizzle
+            .update(orders)
+            .set({
+                order_status_id: canceledOrderStatus!.id,
+                cancel_reason: text
+            })
+            .where(eq(orders.id, id))
+            .returning({
+                id: orders.id,
+                order_status_id: orders.order_status_id
+            });
+
+        await processOrderChangeStatusQueue.add(`${order[0].id}${new Date().getTime()}`, {
+            order_id: id,
+            before_status_id: order[0].order_status_id,
+            after_status_id: canceledOrderStatus!.id,
+            user_id: user.user.id
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
+
+        return {
+            data: result[0],
+        };
+    }, {
+        body: t.Object({
+            text: t.String(),
+        }),
+        params: t.Object({
+            id: t.String(),
+        }),
+    })
+    .post('/orders/:id/locations', async ({ params: { id }, body: { created_at }, drizzle, set, user }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.show")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+        console.time('locationsGetting');
+        const locations = await drizzle
+            .select({
+                ...getTableColumns(order_locations),
+                order_status: {
+                    id: order_status.id,
+                    name: order_status.name,
+                    color: order_status.color,
+                }
+            })
+            .from(order_locations)
+            .leftJoin(order_status, eq(order_locations.order_status_id, order_status.id))
+            .where(and(
+                eq(order_locations.order_id, id),
+                lte(order_locations.order_created_at, dayjs(created_at).add(2, 'hours').format("YYYY-MM-DD HH:mm:ss")),
+                gte(order_locations.order_created_at, dayjs(created_at).subtract(2, 'hours').format("YYYY-MM-DD HH:mm:ss"))
+            ))
+            .orderBy(asc(order_locations.created_at))
+            .execute() as InferSelectModel<typeof order_locations>[];
+
+        console.timeEnd('locationsGetting');
+
+        return locations;
+    }, {
+        params: t.Object({
+            id: t.String(),
+        }),
+        body: t.Object({
+            created_at: t.String(),
+        }),
+    })

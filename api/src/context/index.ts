@@ -8,7 +8,6 @@ import { Queue } from "bullmq";
 import { verifyJwt } from "../utils/bcrypt";
 import { SearchService } from "../services/search/service";
 import { UserResponseDto } from "../modules/user/users.dto";
-import { duckdb } from "../lib/duck";
 
 export const client = new Redis({
   port: 6379, // Redis port
@@ -58,12 +57,6 @@ const newOrderNotify = new Queue(
   }
 );
 
-const processOrderIndexQueue = new Queue(
-  `${process.env.TASKS_PREFIX}_process_order_index`,
-  {
-    connection: client,
-  }
-);
 
 const processFromBasketToCouriers = new Queue(
   `${process.env.TASKS_PREFIX}_from_basket_to_couriers`,
@@ -100,20 +93,50 @@ const processOrderEcommerceWebhookQueue = new Queue(
   }
 );
 
+const processOrderChangeStatusQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_order_change_status`,
+  {
+    connection: client,
+  }
+);
+
+const processClearCourierQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_order_clear_courier`,
+  {
+    connection: client,
+  }
+);
+
+const processOrderChangeCourierQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_order_change_courier`,
+  {
+    connection: client,
+  }
+);
+
+const processCourierStoreLocationQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_courier_store_location`,
+  {
+    connection: client,
+  }
+);
+
 export const ctx = new Elysia({
   name: "@app/ctx",
 })
   .decorate("redis", client)
   .decorate("drizzle", db)
-  .decorate("duckdb", duckdb)
   .decorate("cacheControl", cacheControlService)
   .decorate("searchService", searchService)
   .decorate("newOrderNotify", newOrderNotify)
-  .decorate("processOrderIndexQueue", processOrderIndexQueue)
   .decorate("processFromBasketToCouriers", processFromBasketToCouriers)
   .decorate("processCheckAndSendYandex", processCheckAndSendYandex)
   .decorate("processUpdateUserCache", processUpdateUserCache)
   .decorate("processOrderCompleteQueue", processOrderCompleteQueue)
+  .decorate("processOrderChangeStatusQueue", processOrderChangeStatusQueue)
+  .decorate("processClearCourierQueue", processClearCourierQueue)
+  .decorate("processOrderChangeCourierQueue", processOrderChangeCourierQueue)
+  .decorate("processCourierStoreLocationQueue", processCourierStoreLocationQueue)
   .decorate(
     "processOrderEcommerceWebhookQueue",
     processOrderEcommerceWebhookQueue

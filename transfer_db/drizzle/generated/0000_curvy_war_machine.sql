@@ -654,7 +654,7 @@ CREATE INDEX IF NOT EXISTS "manager_withdraw_terminal_id_idx" ON "manager_withdr
 CREATE INDEX IF NOT EXISTS "manager_withdraw_organization_id_idx" ON "manager_withdraw" ("organization_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "fki_FK_order_bonus_pricing_created_by" ON "order_bonus_pricing" ("created_by");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "fki_FK_order_bonus_pricing_updated_by" ON "order_bonus_pricing" ("updated_by");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "order_locations_id_key" ON "order_locations" ("id");--> statement-breakpoint
+
 CREATE INDEX IF NOT EXISTS "order_transactions_terminal_id_idx" ON "order_transactions" ("terminal_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "order_transactions_order_id_idx" ON "order_transactions" ("order_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "order_transactions_courier_id_idx" ON "order_transactions" ("courier_id");--> statement-breakpoint
@@ -860,25 +860,6 @@ DO $$ BEGIN
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "order_locations" ADD CONSTRAINT "order_locations_terminal_id_terminals_id_fk" FOREIGN KEY ("terminal_id") REFERENCES "terminals"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "order_locations" ADD CONSTRAINT "order_locations_courier_id_users_id_fk" FOREIGN KEY ("courier_id") REFERENCES "users"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "order_locations" ADD CONSTRAINT "order_locations_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE cascade;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "order_status" ADD CONSTRAINT "order_status_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE no action ON UPDATE cascade;
 EXCEPTION
@@ -1250,3 +1231,14 @@ ALTER TABLE order_actions SET (
     );
 
 SELECT add_compression_policy('order_actions', INTERVAL '1 month');
+
+
+SELECT create_hypertable('order_locations', by_range('order_created_at'));
+
+ALTER TABLE order_locations SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'order_id',
+    timescaledb.compress_orderby = 'order_created_at'
+    );
+
+SELECT add_compression_policy('order_locations', INTERVAL '7 days');

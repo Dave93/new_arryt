@@ -225,7 +225,8 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         }
 
         await processOrderIndex.add(order.id, {
-            id: order.id
+            id: order.id,
+            created_at: order.created_at,
         }, {
             attempts: 3, removeOnComplete: true
         });
