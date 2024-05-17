@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { uniq } from "lodash";
 import { Kafka } from "kafkajs";
+import { syncDuck } from "./sync_duck";
 
 
 dotenv.config();
@@ -15,11 +16,12 @@ dotenv.config();
   const db = await Database.create(process.env.DUCK_PATH!);
   const app = new Hono();
 
+  await syncDuck(db);
+
   const kafka = new Kafka({
     clientId: "arryy-duckdb",
     brokers: ["127.0.0.1:9092"],
   });
-
 
   const consumer = kafka.consumer({
     groupId: process.env.KAFKA_GROUP_ID || "test-group",
@@ -41,20 +43,20 @@ dotenv.config();
         } = object;
 
         if (!before) {
-          const existingRecord = await db.all(`SELECT id FROM duckdb_${table} WHERE id = '${after.id}'`);
+          const existingRecord = await db.all(`SELECT id FROM ${table} WHERE id = '${after.id}'`);
           if (existingRecord.length === 0) {
             db.all(`
-          INSERT INTO duckdb_${table} (${Object.keys(after).join(", ")}) VALUES (${Object.values(after).map((val) => (typeof val === "string" ? `'${val}'` : val)).join(", ")})
+          INSERT INTO ${table} (${Object.keys(after).join(", ")}) VALUES (${Object.values(after).map((val) => (typeof val === "string" ? `'${val}'` : val)).join(", ")})
           `)
           } else {
             db.all(`
-          UPDATE duckdb_${table} SET ${Object.keys(after).map((key) => `${key} = ${typeof after[key] === "string" ? `'${after[key]}'` : after[key]}`).join(", ")} WHERE id = '${after.id}'
+          UPDATE ${table} SET ${Object.keys(after).map((key) => `${key} = ${typeof after[key] === "string" ? `'${after[key]}'` : after[key]}`).join(", ")} WHERE id = '${after.id}'
           `)
           }
 
         } else if (!after) {
           db.all(`
-        DELETE FROM duckdb_${table} WHERE id = '${before.id}'
+        DELETE FROM ${table} WHERE id = '${before.id}'
         `)
         }
       }
@@ -70,18 +72,18 @@ dotenv.config();
   app.get("/manager_withdraw/:id/transactions", async (c) => {
     const { id } = c.req.param();
     const transactions = await db.all(`
-    select "duckdb_manager_withdraw_transactions"."id" as "withdraw_id",
-       "duckdb_manager_withdraw_transactions"."amount" as "withdraw_amount",
-       "duckdb_manager_withdraw_transactions"."created_at" as "withdraw_created_at",
-       "duckdb_order_transactions"."id" as "transaction_id",
-       "duckdb_order_transactions"."created_at" as "transaction_created_at",
-       "duckdb_orders"."delivery_price" as "order_delivery_price",
-       "duckdb_orders"."order_number" as "order_number",
-       "duckdb_orders"."created_at" as "order_created_at"
-from "duckdb_manager_withdraw_transactions"
-         left join "duckdb_order_transactions" on "duckdb_manager_withdraw_transactions"."transaction_id" = "duckdb_order_transactions"."id"
-         left join "duckdb_orders" on "duckdb_order_transactions"."order_id" = "duckdb_orders"."id"
-where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
+    select "manager_withdraw_transactions"."id" as "withdraw_id",
+       "manager_withdraw_transactions"."amount" as "withdraw_amount",
+       "manager_withdraw_transactions"."created_at" as "withdraw_created_at",
+       "order_transactions"."id" as "transaction_id",
+       "order_transactions"."created_at" as "transaction_created_at",
+       "orders"."delivery_price" as "order_delivery_price",
+       "orders"."order_number" as "order_number",
+       "orders"."created_at" as "order_created_at"
+from "manager_withdraw_transactions"
+         left join "order_transactions" on "manager_withdraw_transactions"."transaction_id" = "order_transactions"."id"
+         left join "orders" on "order_transactions"."order_id" = "orders"."id"
+where "manager_withdraw_transactions"."withdraw_id" = '${id}'
     `);
 
     return c.json(transactions);
@@ -133,26 +135,26 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlQuery = `
       SELECT
-          "duckdb_order_transactions"."id",
-          "duckdb_order_transactions"."order_id",
-          "duckdb_order_transactions"."created_at",
-          "duckdb_order_transactions"."amount",
-          "duckdb_order_transactions"."status",
-          "duckdb_order_transactions"."balance_before",
-          "duckdb_order_transactions"."balance_after",
-          "duckdb_order_transactions"."comment",
-          "duckdb_order_transactions"."not_paid_amount",
-          "duckdb_order_transactions"."transaction_type",
-          "duckdb_orders"."order_number" as "order_number",
-          "duckdb_terminals"."name" as "terminal_name",
-          "duckdb_users"."first_name" as "first_name",
-          "duckdb_users"."last_name" as "last_name"
-      FROM duckdb_order_transactions
-      LEFT JOIN duckdb_terminals ON duckdb_terminals.id = duckdb_order_transactions.terminal_id
-      LEFT JOIN duckdb_orders ON duckdb_orders.id = duckdb_order_transactions.order_id
-      LEFT JOIN duckdb_users ON duckdb_users.id = duckdb_order_transactions.created_by
+          "order_transactions"."id",
+          "order_transactions"."order_id",
+          "order_transactions"."created_at",
+          "order_transactions"."amount",
+          "order_transactions"."status",
+          "order_transactions"."balance_before",
+          "order_transactions"."balance_after",
+          "order_transactions"."comment",
+          "order_transactions"."not_paid_amount",
+          "order_transactions"."transaction_type",
+          "orders"."order_number" as "order_number",
+          "terminals"."name" as "terminal_name",
+          "users"."first_name" as "first_name",
+          "users"."last_name" as "last_name"
+      FROM order_transactions
+      LEFT JOIN terminals ON terminals.id = order_transactions.terminal_id
+      LEFT JOIN orders ON orders.id = order_transactions.order_id
+      LEFT JOIN users ON users.id = order_transactions.created_by
       ${where}
-      ORDER BY duckdb_order_transactions.created_at DESC;
+      ORDER BY order_transactions.created_at DESC;
     `;
 
       const data = await db.all(sqlQuery);
@@ -181,7 +183,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
             extract(hour from created_at) + 5 AS order_hour,
             array_agg(courier_id) AS courier_ids,
             count(*) AS total_count
-     FROM duckdb_orders
+     FROM orders
      WHERE created_at BETWEEN '${startDate}' AND '${endDate}' AND terminal_id IN ('${terminalIds.join(
         "','"
       )}')
@@ -191,7 +193,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
             date_trunc('day', created_at) AS order_day,
             extract(hour from created_at) + 5 AS order_hour,
             count(*) AS courier_count
-     FROM duckdb_orders
+     FROM orders
      WHERE created_at BETWEEN '${startDate}' AND '${endDate}'
        AND courier_id = '${courierId}'
        AND terminal_id IN ('${terminalIds.join("','")}')
@@ -234,7 +236,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
                 END) AS hour_period,
             array_agg(courier_id) AS courier_ids,
             count(*) AS total_count
-     FROM duckdb_orders
+     FROM orders
      WHERE created_at BETWEEN '${startDate}' AND '${endDate}' AND terminal_id IN ('${terminalIds.join(
         "','"
       )}')
@@ -248,7 +250,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
                  ELSE '22:00-03:00'
                 END) AS hour_period,
             count(*) AS courier_count
-     FROM duckdb_orders
+     FROM orders
      WHERE created_at BETWEEN '${startDate}' AND '${endDate}'
        AND courier_id = '${courierId}'
        AND terminal_id IN ('${terminalIds.join("','")}')
@@ -332,7 +334,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       try {
         console.log("courierId", courierId);
         const sqlScoreQuery = `
-      FROM duckdb_orders
+      FROM orders
       SELECT avg(score) as avg_score
       WHERE courier_id = '${courierId}' and score is not null and created_at >= '${dayjs()
             .startOf("month")
@@ -345,13 +347,13 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
         const sqlTotalBalanceQuery = `
       SELECT sum(not_paid_amount) as not_paid_amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and transaction_type != 'work_schedule_bonus' and status = 'pending';
     `;
 
         const sqlTotalFuelQuery = `
       SELECT sum(not_paid_amount) as not_paid_amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and transaction_type = 'work_schedule_bonus' and status = 'pending';
     `;
 
@@ -409,7 +411,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlTodayFinishedOrdersCountQuery = `
       SELECT count(*) as count
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${fromDate
           .startOf("day")
           .hour(startHour)
@@ -424,7 +426,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlTodayCanceledOrdersCountQuery = `
       SELECT count(*) as count
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${fromDate
           .startOf("day")
           .hour(startHour)
@@ -439,7 +441,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlTodayFinishedOrdersAmountQuery = `
       SELECT sum(delivery_price) as amount
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${fromDate
           .startOf("day")
           .hour(startHour)
@@ -463,7 +465,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlYesterdayFinishedOrdersCountQuery = `
       SELECT count(*) as count
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${yesterdayFromDate
           .startOf("day")
           .hour(startHour)
@@ -478,7 +480,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlYesterdayCanceledOrdersCountQuery = `
       SELECT count(*) as count
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${yesterdayFromDate
           .startOf("day")
           .hour(startHour)
@@ -493,7 +495,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlYesterdayFinishedOrdersAmountQuery = `
       SELECT sum(delivery_price) as amount
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${yesterdayFromDate
           .startOf("day")
           .hour(startHour)
@@ -512,7 +514,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlWeekFinishedOrdersCountQuery = `
       SELECT count(*) as count
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${startOfWeek.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -523,7 +525,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlWeekCanceledOrdersCountQuery = `
       SELECT count(*) as count
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${startOfWeek.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -534,7 +536,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlWeekFinishedOrdersAmountQuery = `
       SELECT sum(delivery_price) as amount
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${startOfWeek.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -549,7 +551,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlMonthFinishedOrdersCountQuery = `
       SELECT count(*) as count
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${startOfMonth.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -560,7 +562,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlMonthCanceledOrdersCountQuery = `
       SELECT count(*) as count
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${startOfMonth.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -571,7 +573,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const sqlMonthFinishedOrdersAmountQuery = `
       SELECT sum(delivery_price) as amount
-      FROM duckdb_orders
+      FROM orders
       WHERE courier_id = '${courierId}' and created_at >= '${startOfMonth.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -583,7 +585,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // today bonus queries
       const sqlTodayBonusQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${fromDate
           .startOf("day")
           .hour(startHour)
@@ -597,7 +599,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // yesterday bonus queries
       const sqlYesterdayBonusQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${yesterdayFromDate
           .startOf("day")
           .hour(startHour)
@@ -611,7 +613,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // this week bonus queries
       const sqlWeekBonusQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${startOfWeek.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -623,7 +625,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // this month bonus queries
       const sqlMonthBonusQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${startOfMonth.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -635,7 +637,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // today daily_garant queries
       const sqlTodayDailyGarantQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${fromDate
           .startOf("day")
           .hour(startHour)
@@ -649,7 +651,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // yesterday daily_garant queries
       const sqlYesterdayDailyGarantQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${yesterdayFromDate
           .startOf("day")
           .hour(startHour)
@@ -663,7 +665,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // this week daily_garant queries
       const sqlWeekDailyGarantQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${startOfWeek.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -675,7 +677,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // this month daily_garant queries
       const sqlMonthDailyGarantQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${startOfMonth.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -687,7 +689,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // today work_schedule_bonus queries
       const sqlTodayWorkScheduleBonusQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${fromDate
           .startOf("day")
           .hour(startHour)
@@ -703,7 +705,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // yesterday work_schedule_bonus queries
       const sqlYesterdayWorkScheduleBonusQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${yesterdayFromDate
           .startOf("day")
           .hour(startHour)
@@ -719,7 +721,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // this week work_schedule_bonus queries
       const sqlWeekWorkScheduleBonusQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${startOfWeek.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
@@ -731,7 +733,7 @@ where "duckdb_manager_withdraw_transactions"."withdraw_id" = '${id}'
       // this month work_schedule_bonus queries
       const sqlMonthWorkScheduleBonusQuery = `
       SELECT sum(amount) as amount
-      FROM duckdb_order_transactions
+      FROM order_transactions
       WHERE courier_id = '${courierId}' and created_at >= '${startOfMonth.format(
         "YYYY-MM-DD HH:mm:ss"
       )}'
