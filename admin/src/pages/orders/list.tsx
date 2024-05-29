@@ -170,10 +170,6 @@ export const OrdersList: React.FC = () => {
     onSearch: async (params) => {
       const localFilters: CrudFilters = [];
       // queryClient.invalidateQueries({ queryKey: ["default", "orders"] });
-      invalidate({
-        resource: "orders",
-        invalidates: ["list"],
-      });
       // queryClient.invalidateQueries();
       const {
         organization_id,
@@ -262,6 +258,10 @@ export const OrdersList: React.FC = () => {
           },
         });
       }
+      invalidate({
+        resource: "orders",
+        invalidates: ["list"],
+      });
       return localFilters;
     },
 
@@ -690,31 +690,35 @@ export const OrdersList: React.FC = () => {
   });
 
   const getAllFilterData = async () => {
-    const { data: terminals } = await apiClient.api.terminals.cached.get({
-      $headers: {
-        Authorization: `Bearer ${identity?.token.accessToken}`,
-      },
-    });
-    if (terminals && Array.isArray(terminals)) {
-      setTerminals(sortBy(terminals, (item) => item.name));
-    }
-    const { data: organizations } =
-      await apiClient.api.organizations.cached.get({
+    const [
+      { data: terminals },
+      { data: organizations },
+      { data: orderStatuses },
+    ] = await Promise.all([
+      apiClient.api.terminals.cached.get({
         $headers: {
           Authorization: `Bearer ${identity?.token.accessToken}`,
         },
-      });
-    if (organizations && Array.isArray(organizations)) {
-      setOrganizations(organizations);
-    }
-    const { data: orderStatuses } = await apiClient.api.order_status.cached.get(
-      {
+      }),
+      apiClient.api.organizations.cached.get({
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      }),
+      apiClient.api.order_status.cached.get({
         $headers: {
           Authorization: `Bearer ${identity?.token.accessToken}`,
         },
         $query: {},
-      }
-    );
+      }),
+    ]);
+
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
+    if (terminals && Array.isArray(terminals)) {
+      setTerminals(sortBy(terminals, (item) => item.name));
+    }
     if (orderStatuses && Array.isArray(orderStatuses)) {
       setOrderStatuses(sortBy(orderStatuses, (item) => item.sort));
     }
@@ -841,7 +845,7 @@ export const OrdersList: React.FC = () => {
 
   useEffect(() => {
     getAllFilterData();
-  }, []);
+  }, [identity]);
 
   return (
     <>

@@ -453,7 +453,8 @@ export class IOrderLocation {
 
   created_at: Date;
 
-  location: any;
+  lat: number;
+  lon: number;
 
   order_status_id: string;
 

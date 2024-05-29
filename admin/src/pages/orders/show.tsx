@@ -238,40 +238,29 @@ export const OrdersShow = () => {
   };
 
   const loadOrderLocations = async () => {
-    // const query = gql`
-    //   query ($id: String!) {
-    //     locationsForOrder(orderId: $id) {
-    //       created_at
-    //       order_status_id
-    //       status_color
-    //       status_name
-    //       location {
-    //         lat
-    //         lon
-    //       }
-    //     }
-    //   }
-    // `;
-    // const { locationsForOrder } = await client.request<{
-    //   locationsForOrder: IOrderLocation[];
-    // }>(
-    //   query,
-    //   { id: showId },
-    //   {
-    //     Authorization: `Bearer ${identity?.token.accessToken}`,
-    //   }
-    // );
-    // const result = chain(locationsForOrder)
-    //   .groupBy(
-    //     (item) =>
-    //       `${item.order_status_id}_${item.status_color}_${item.status_name}`
-    //   )
-    //   .toPairs()
-    //   .map((currentItem) => {
-    //     return zipObjectDeep(["order_status", "location"], currentItem);
-    //   })
-    //   .value() as IGroupedLocations[];
-    // setOrderLocations(result);
+    if (record) {
+      const { data } = await apiClient.api.orders[showId].locations.post({
+        created_at: record.created_at,
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      });
+
+      if (data && Array.isArray(data)) {
+        const result = chain(data)
+          .groupBy(
+            (item) =>
+              `${item.order_status_id}_${item.order_status.color}_${item.order_status.name}`
+          )
+          .toPairs()
+          .map((currentItem) => {
+            return zipObjectDeep(["order_status", "location"], currentItem);
+          })
+          .value() as IGroupedLocations[];
+        console.log("result", result);
+        setOrderLocations(result);
+      }
+    }
   };
 
   const updateOrderStatus = async (id: string) => {
@@ -280,6 +269,7 @@ export const OrdersShow = () => {
         Authorization: `Bearer ${identity?.token.accessToken}`,
       },
       status_id: id,
+      created_at: record?.created_at,
     });
 
     window.location.reload();
@@ -563,15 +553,12 @@ export const OrdersShow = () => {
                         const status_name = location.order_status.split("_")[2];
 
                         location.location.map((point) => {
-                          mapPoints.push([
-                            point.location.lat,
-                            point.location.lon,
-                          ]);
+                          mapPoints.push([point.lat, point.lon]);
                         });
                         if (orderLocations[index + 1]) {
                           mapPoints.push([
-                            orderLocations[index + 1].location[0].location.lat,
-                            orderLocations[index + 1].location[0].location.lon,
+                            orderLocations[index + 1].location[0].lat,
+                            orderLocations[index + 1].location[0].lon,
                           ]);
                         }
                         var polyline = new ymaps.Polyline(

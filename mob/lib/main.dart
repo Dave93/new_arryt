@@ -4,6 +4,8 @@ import 'dart:ui';
 
 // import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:arryt/bloc/block_imports.dart';
+import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/models/user_data.dart';
 import 'package:arryt/router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -156,131 +158,97 @@ Future<void> initializeService() async {
   Timer myTimer;
 
   myTimer = Timer.periodic(const Duration(seconds: 8), (timer) async {
-    HydratedBloc.storage = await HydratedStorage.build(
-      storageDirectory: kIsWeb
-          ? HydratedStorage.webStorageDirectory
-          : await getApplicationDocumentsDirectory(),
-    );
+    UserData? user = objectBox.getUserData();
 
     String? _error;
     try {
-      var userBlocData = await HydratedBloc.storage.read('UserDataBloc');
-      var apiClientBlocData = await HydratedBloc.storage.read('ApiClientsBloc');
-      if (userBlocData['value'] == null) {
+      if (user == null) {
         return;
       }
-      print(userBlocData);
-      UserDataState userBloc = UserDataInitial.fromJson(userBlocData['value']);
-      // ApiClientsState apiClientBloc =
-      //     ApiClientsInitial.fromJson(apiClientBlocData['value']);
-      List<ApiClients> apiClients = List<ApiClients>.from(
-          jsonDecode(apiClientBlocData['value'])
-              .map((e) => ApiClients.fromJson(e))
-              .toList());
-      print(apiClientBlocData);
-      print("isOnline: ${userBloc.is_online}");
 
-      // if (userBloc.is_online) {
-      final apiClient = apiClients.firstWhere(
-          (element) => element.isServiceDefault == true,
-          orElse: () => apiClients.first);
-      // final _locationResult = await getLocation(
-      //   settings: LocationSettings(
-      //       ignoreLastKnownPosition: true, useGooglePlayServices: false),
-      // );
-      if (apiClient != null) {
-        bool serviceEnabled;
-        LocationPermission permission;
+      ApiServer api = ApiServer();
 
-        // Test if location services are enabled.
-        serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (!serviceEnabled) {
-          // Location services are not enabled don't continue
-          // accessing the position and request users of the
-          // App to enable the location services.
-          return;
-        }
+      bool serviceEnabled;
+      LocationPermission permission;
 
-        permission = await Geolocator.checkPermission();
+      // Test if location services are enabled.
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        // Location services are not enabled don't continue
+        // accessing the position and request users of the
+        // App to enable the location services.
+        return;
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-          if (permission == LocationPermission.denied) {
-            // Permissions are denied, next time you could try
-            // requesting permissions again (this is also where
-            // Android's shouldShowRequestPermissionRationale
-            // returned true. According to Android guidelines
-            // your App should show an explanatory UI now.
-            return;
-          }
-        }
-
-        if (permission == LocationPermission.deniedForever) {
-          // Permissions are denied forever, handle appropriately.
+          // Permissions are denied, next time you could try
+          // requesting permissions again (this is also where
+          // Android's shouldShowRequestPermissionRationale
+          // returned true. According to Android guidelines
+          // your App should show an explanatory UI now.
           return;
         }
+      }
 
-        if (positionStream == null) {
-          print('start stream');
-          timer.cancel();
-          late LocationSettings locationSettings;
+      if (permission == LocationPermission.deniedForever) {
+        // Permissions are denied forever, handle appropriately.
+        return;
+      }
 
-          if (defaultTargetPlatform == TargetPlatform.android) {
-            locationSettings = AndroidSettings(
-                accuracy: LocationAccuracy.bestForNavigation,
-                distanceFilter: 2,
-                forceLocationManager: true,
-                // intervalDuration: const Duration(seconds: 2),
-                //(Optional) Set foreground notification config to keep the app alive
-                //when going to the background
-                foregroundNotificationConfig:
-                    const ForegroundNotificationConfig(
-                  notificationText:
-                      "Example app will continue to receive your location even when you aren't using it",
-                  notificationTitle: "Running in Background",
-                  enableWakeLock: true,
-                  enableWifiLock: true,
-                ));
-          } else if (defaultTargetPlatform == TargetPlatform.iOS ||
-              defaultTargetPlatform == TargetPlatform.macOS) {
-            locationSettings = AppleSettings(
-              accuracy: LocationAccuracy.bestForNavigation,
-              activityType: ActivityType.fitness,
-              distanceFilter: 2,
-              pauseLocationUpdatesAutomatically: true,
-              // Only set to true if our app will be started up in the background.
-              showBackgroundLocationIndicator: false,
-            );
-          } else {
-            locationSettings = const LocationSettings(
+      if (positionStream == null) {
+        print('start stream');
+        timer.cancel();
+        late LocationSettings locationSettings;
+
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          locationSettings = AndroidSettings(
               accuracy: LocationAccuracy.bestForNavigation,
               distanceFilter: 2,
-            );
-          }
-
-          positionStream =
-              Geolocator.getPositionStream(locationSettings: locationSettings)
-                  .listen((Position? _locationResult) async {
-            print(_locationResult);
-            if (_locationResult != null) {
-              PackageInfo packageInfo = await PackageInfo.fromPlatform();
-              var accessToken = userBloc.refreshToken;
-
-              var response = await http.post(
-                Uri.parse(
-                    "https://${apiClient.apiUrl}/api/external/store-location"),
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer $accessToken'
-                },
-                body: json.encode({
-                  "latitude": "${_locationResult.latitude}",
-                  "longitude": "${_locationResult.longitude}",
-                  "appVersion": "${packageInfo.version}"
-                }),
-              );
-            }
-          });
+              forceLocationManager: true,
+              // intervalDuration: const Duration(seconds: 2),
+              //(Optional) Set foreground notification config to keep the app alive
+              //when going to the background
+              foregroundNotificationConfig: const ForegroundNotificationConfig(
+                notificationText:
+                    "Example app will continue to receive your location even when you aren't using it",
+                notificationTitle: "Running in Background",
+                enableWakeLock: true,
+                enableWifiLock: true,
+              ));
+        } else if (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS) {
+          locationSettings = AppleSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+            activityType: ActivityType.fitness,
+            distanceFilter: 2,
+            pauseLocationUpdatesAutomatically: true,
+            // Only set to true if our app will be started up in the background.
+            showBackgroundLocationIndicator: false,
+          );
+        } else {
+          locationSettings = const LocationSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+            distanceFilter: 2,
+          );
         }
+
+        positionStream =
+            Geolocator.getPositionStream(locationSettings: locationSettings)
+                .listen((Position? _locationResult) async {
+          print(_locationResult);
+          if (_locationResult != null) {
+            PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+            await api.post("/api/couriers/store-location", {
+              "lat": "${_locationResult.latitude}",
+              "lon": "${_locationResult.longitude}",
+              "app_version": "${packageInfo.version}"
+            });
+          }
+        });
       }
     } catch (e) {
       print(e);
