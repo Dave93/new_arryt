@@ -521,6 +521,7 @@ CREATE TABLE IF NOT EXISTS "terminals" (
 	"fuel_bonus" boolean DEFAULT false NOT NULL,
 	"linked_terminal_id" uuid,
 	"time_to_yandex" integer DEFAULT 0 NOT NULL,
+	"allow_yandex" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL
 );

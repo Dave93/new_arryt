@@ -26,38 +26,55 @@ dotenv.config();
   const consumer = kafka.consumer({
     groupId: process.env.KAFKA_GROUP_ID || "test-group",
 
+
   });
 
   await consumer.connect();
   await consumer.subscribe({
-    topics: [/arryt\.public.*/]
+    topics: [/arryt\.public\..*/, /arryt_db\.public\..*/]
   });
 
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
+      console.log('topic', topic)
       const object = JSON.parse(message.value?.toString() || "{}");
-      console.log("debezium event", object);
+      // console.log("debezium event", object);
       if ('payload' in object) {
         const {
           payload: { before, after, source, op, ts_ms, source: { table } },
         } = object;
-
-        if (!before) {
-          const existingRecord = await db.all(`SELECT id FROM ${table} WHERE id = '${after.id}'`);
-          if (existingRecord.length === 0) {
-            db.all(`
-          INSERT INTO ${table} (${Object.keys(after).join(", ")}) VALUES (${Object.values(after).map((val) => (typeof val === "string" ? `'${val}'` : val)).join(", ")})
+        console.log('table ', table)
+        try {
+          if (!before) {
+            const existingRecord = await db.all(`SELECT id FROM ${table} WHERE id = '${after.id}'`);
+            if (existingRecord.length === 0) {
+              console.log(`
+          INSERT INTO ${table} (${Object.keys(after).join(", ")}) VALUES (${Object.values(after).map((val) => (typeof val === "string" ? `'${val.replace(/'/g, "''")}'` : val)).join(", ")})
           `)
-          } else {
-            db.all(`
-          UPDATE ${table} SET ${Object.keys(after).map((key) => `${key} = ${typeof after[key] === "string" ? `'${after[key]}'` : after[key]}`).join(", ")} WHERE id = '${after.id}'
+              db.all(`
+          INSERT INTO ${table} (${Object.keys(after).join(", ")}) VALUES (${Object.values(after).map((val) => (typeof val === "string" ? `'${val.replace(/'/g, "''")}'` : val)).join(", ")})
           `)
-          }
+            } else {
+              console.log('update record', after.id);
+              //     console.log(`
+              // UPDATE ${table} SET ${Object.keys(after).map((key) => `${key} = ${typeof after[key] === "string" ? `'${after[key].replace(/'/g, "''")}'` : after[key]}`).join(", ")} WHERE id = '${after.id}'
+              // `)
+              //     db.all(`
+              // UPDATE ${table} SET ${Object.keys(after).map((key) => `${key} = ${typeof after[key] === "string" ? `'${after[key].replace(/'/g, "''")}'` : after[key]}`).join(", ")} WHERE id = '${after.id}'
+              // `)
+            }
 
-        } else if (!after) {
-          db.all(`
+          } else if (!after) {
+            console.log(`
         DELETE FROM ${table} WHERE id = '${before.id}'
         `)
+            db.all(`
+        DELETE FROM ${table} WHERE id = '${before.id}'
+        `)
+          }
+
+        } catch (e) {
+          console.log('error', e)
         }
       }
 

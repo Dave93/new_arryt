@@ -527,6 +527,7 @@ export const terminals = pgTable(
         fuel_bonus: boolean("fuel_bonus").default(false).notNull(),
         linked_terminal_id: uuid("linked_terminal_id"),
         time_to_yandex: integer("time_to_yandex").default(0).notNull(),
+        allow_yandex: boolean("allow_yandex").default(true).notNull(),
         created_at: timestamp("created_at", {
             precision: 5,
             withTimezone: true,
