@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package arryt;
+
+message WithdrawTransaction {
+    string withdraw_id = 1;
+    int32 withdraw_amount = 2;
+    string withdraw_created_at = 3;
+    string transaction_id = 4;
+    string transaction_created_at = 5;
+    int32 order_delivery_price = 6;
+    string order_number = 7;
+    string order_created_at = 8;
+}
+
+message WithdrawTransactionsRequest {
+    string withdraw_id = 1;
+}
+
+message WithdrawTransactionsResponse {
+    repeated WithdrawTransaction transactions = 1;
+}
+
+service Transactions {
+    rpc getWithdrawTransactions(WithdrawTransactionsRequest) returns (WithdrawTransactionsResponse) {};
+}

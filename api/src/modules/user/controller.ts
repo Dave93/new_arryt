@@ -393,7 +393,11 @@ export const UsersController = new Elysia({
           message: "You don't have permissions",
         };
       }
-
+      console.log('ff', JSON.stringify({
+        terminal_id: terminal_id,
+        courier_id: courier_id,
+        status: status,
+      }))
       const result = (await drizzle
         .select({
           id: courier_terminal_balance.id,
@@ -421,17 +425,16 @@ export const UsersController = new Elysia({
         .where(
           and(
             gt(courier_terminal_balance.balance, 0),
-            terminal_id
+            terminal_id && terminal_id.length
               ? inArray(courier_terminal_balance.terminal_id, terminal_id)
               : undefined,
-            courier_id
+            courier_id && courier_id.length
               ? inArray(courier_terminal_balance.courier_id, courier_id)
               : undefined,
             status ? inArray(users.status, status) : undefined
           )
         )
         .execute()) as WalletStatus[];
-
       return result;
     },
     {

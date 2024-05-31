@@ -1350,7 +1350,7 @@ export const OrdersController = new Elysia({
                 .format("YYYY-MM-DD HH:mm:ss");
 
             const sqlWalletEndDate = walletEndDate
-                ? dayjs(walletEndDate.toISOString().split("T")[0])
+                ? dayjs(walletEndDate.split("T")[0])
                     .add(2, "day")
                     .toISOString()
                     .split("T")[0]
@@ -1385,49 +1385,22 @@ export const OrdersController = new Elysia({
                 terminalsRes || "[]"
             ) as InferSelectModel<typeof terminals>[];
 
-            const prevMonthOrders = await drizzle.execute<{
+            const prevMonthResponse = await fetch(`${process.env.DUCK_API}/garant/prev_month_orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sqlPrevStartDate: sqlPrevStartDate,
+                    sqlPrevEndDate: sqlPrevEndDate,
+                    courierId: courierId,
+                }),
+            });
+
+            const prevMonthOrders: {
                 courier_id: string;
                 total_orders: number;
-            }>(
-                sql.raw(`select o.courier_id,
-                                    count(o.courier_id) as total_orders
-                             from orders o
-                                      inner join order_status os on o.order_status_id = os.id and os.finish = true
-                                      inner join users u on o.courier_id = u.id
-                             where o.created_at >= '${sqlPrevStartDate} 00:00:00'
-                               and o.created_at <= '${sqlPrevEndDate} 04:00:00'
-                               and u.phone not in ('+998908251218', '+998908249891') ${courierId
-                        ? `and o.courier_id in (${courierId
-                            .map((id) => `'${id}'`)
-                            .join(",")})`
-                        : ""
-                    }
-                             group by o.courier_id
-                             order by o.courier_id;`)
-            );
-
-            console.log('query', `select min(o.created_at)                                              as begin_date,
-                                    max(o.created_at)                                              as last_order_date,
-                                    sum(o.delivery_price)                                          as delivery_price,
-                                    concat(u.first_name, ' ', u.last_name)                         as courier,
-                                    count(o.id)                                                    as orders_count,
-                                    AVG(EXTRACT(EPOCH FROM (o.finished_date - o.created_at)) / 60) as avg_delivery_time,
-                                    array_agg(o.created_at)                                        as orders_dates,
-                                    o.courier_id
-                             from orders o
-                                      left join order_status os on o.order_status_id = os.id
-                                      left join users u on o.courier_id = u.id
-                             where o.created_at >= '${sqlStartDate}'
-                               and o.created_at <= '${sqlEndDate}'
-                               and os.finish = true
-                               and u.phone not in ('+998908251218', '+998908249891') ${courierId
-                    ? `and o.courier_id in (${courierId
-                        .map((id) => `'${id}'`)
-                        .join(",")})`
-                    : ""
-                }
-                             group by o.courier_id, u.first_name, u.last_name
-                             order by courier;`)
+            }[] = await prevMonthResponse.json();
 
             let query = await drizzle.execute<GarantReportItem>(
                 sql.raw(`select min(o.created_at)                                              as begin_date,
@@ -1454,16 +1427,21 @@ export const OrdersController = new Elysia({
                              order by courier;`)
             );
 
-            let bonusQuery = await drizzle.execute<{
-                courier_id: string;
+            const bonusQueryResponse = await fetch(`${process.env.DUCK_API}/garant/bonus_query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sqlStartDate: sqlStartDate,
+                    sqlEndDate: sqlEndDate,
+                }),
+            });
+
+            let bonusQuery: {
                 total_amount: number;
-            }>(
-                sql.raw(`select sum(amount) as total_amount, courier_id
-                             from order_transactions
-                             where status = 'success'
-                               and transaction_type != 'order' and created_at >= '${sqlStartDate}' and created_at <= '${sqlEndDate}'
-                             group by courier_id;`)
-            );
+                courier_id: string;
+            }[] = await bonusQueryResponse.json();
 
             const couriersByTerminalById: Record<
                 string,
@@ -1473,29 +1451,22 @@ export const OrdersController = new Elysia({
                     children: ReportCouriersByTerminal[];
                 }[]
             > = {};
-            const couriersByTerminal = await drizzle.execute<ReportCouriersByTerminal>(
-                sql.raw(`select sum(o.delivery_price)                  as delivery_price,
-                                    concat(u.first_name, ' ', u.last_name) as courier,
-                                    o.courier_id,
-                                    o.courier_id,
-                                    o.organization_id,
-                                    o.terminal_id
-                             from orders o
-                                      left join order_status os on o.order_status_id = os.id
-                                      left join users u on o.courier_id = u.id
-                             where o.created_at >= '${sqlStartDate}'
-                               and o.created_at <= '${sqlEndDate}'
-                               and os.finish = true ${courierId
-                        ? `and o.courier_id in (${courierId
-                            .map((id) => `'${id}'`)
-                            .join(",")})`
-                        : ""
-                    }
-                             group by o.courier_id, o.terminal_id, o.organization_id, u.first_name, u.last_name
-                             order by courier;`)
-            );
 
-            // console.log(couriersByTerminal);
+
+            const couriersByTerminalResponse = await fetch(`${process.env.DUCK_API}/garant/couriers_by_terminal`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sqlStartDate: sqlStartDate,
+                    sqlEndDate: sqlEndDate,
+                    courierId: courierId,
+                }),
+            });
+
+            const couriersByTerminal: ReportCouriersByTerminal[] = await couriersByTerminalResponse.json();
+
 
             couriersByTerminal.forEach((item) => {
                 if (!couriersByTerminalById[item.courier_id]) {
@@ -1637,7 +1608,7 @@ export const OrdersController = new Elysia({
                                        SUM(o.delivery_price)                                               AS delivery_price,
                                        CONCAT(u.first_name, ' ', u.last_name)                              AS courier,
                                        COUNT(o.id)                                                         AS orders_count,
-                                       AVG(extract_duration('minute', age(o.finished_date, o.created_at))) AS avg_delivery_time,
+                                       AVG(EXTRACT(EPOCH FROM (o.finished_date - o.created_at)) / 60) AS avg_delivery_time,
                                        array_agg(date_trunc('day', o.created_at))                          AS orders_dates,
                                        o.courier_id
                                 FROM orders o
@@ -1813,28 +1784,28 @@ export const OrdersController = new Elysia({
                 total_amount: number;
                 courier_id: string;
             }[] = [];
-            if (walletEndDate) {
-                walletQuery = await drizzle.execute<{
-                    total_amount: number;
-                    courier_id: string;
-                }>(
-                    sql.raw(`select sum(amount) as total_amount, courier_id
-                                 from order_transactions
-                                 where status = 'pending'
-                                   and created_at <= '${sqlWalletEndDate} 04:00:00'
-                                     ${courierId
-                            ? `and courier_id in (${courierId
-                                .map((id) => `'${id}'`)
-                                .join(",")})`
-                            : courierIds.length
-                                ? `and courier_id in (${courierIds
-                                    .map((id) => `'${id}'`)
-                                    .join(",")})`
-                                : ""
-                        }
-                                 group by courier_id`)
-                );
-            }
+            // if (walletEndDate) {
+            //     walletQuery = await drizzle.execute<{
+            //         total_amount: number;
+            //         courier_id: string;
+            //     }>(
+            //         sql.raw(`select sum(amount) as total_amount, courier_id
+            //                      from order_transactions
+            //                      where status = 'pending'
+            //                        and created_at <= '${sqlWalletEndDate} 04:00:00'
+            //                          ${courierId
+            //                 ? `and courier_id in (${courierId
+            //                     .map((id) => `'${id}'`)
+            //                     .join(",")})`
+            //                 : courierIds.length
+            //                     ? `and courier_id in (${courierIds
+            //                         .map((id) => `'${id}'`)
+            //                         .join(",")})`
+            //                     : ""
+            //             }
+            //                      group by courier_id`)
+            //     );
+            // }
 
             // get couriers terminalIds
             const terminalIds = await drizzle
@@ -1877,22 +1848,27 @@ export const OrdersController = new Elysia({
             let workStartHour = await getSetting(redis, "work_start_time");
             workStartHour = new Date(workStartHour).getHours();
             // console.log('workStartHour', workStartHour);
-            const balanceQuery = await drizzle.execute<{
+
+            console.time('balanceQueryDuck');
+
+            const balanceQueryResponse = await fetch(`${process.env.DUCK_API}/garant/balance_query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sqlStartDate: sqlStartDate,
+                    sqlEndDate: sqlEndDate,
+                    courierIds: courierIds,
+                }),
+            });
+
+            const balanceQuery: {
                 courier_id: string;
                 balance: number;
-            }>(
-                sql.raw(`select courier_id, sum(amount) as balance
-                             from order_transactions
-                             where courier_id in (${courierIds
-                        .map((id) => `'${id}'`)
-                        .join(
-                            ","
-                        )})
-                               and status = 'pending'
-                               and created_at >= '${sqlStartDate}'
-                               and created_at <= '${sqlEndDate}'
-                             group by courier_id`)
-            );
+            }[] = await balanceQueryResponse.json();
+
+            console.timeEnd('balanceQueryDuck');
 
             const balanceById: {
                 [key: string]: number;
@@ -2207,7 +2183,7 @@ export const OrdersController = new Elysia({
                     endDate: t.String(),
                     courierId: t.Optional(t.Array(t.String())),
                     filteredTerminalIds: t.Optional(t.Array(t.String())),
-                    walletEndDate: t.Optional(t.Date()),
+                    walletEndDate: t.Optional(t.Nullable(t.String())),
                 }),
             }),
         }

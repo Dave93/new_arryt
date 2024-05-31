@@ -13,6 +13,7 @@ import { SQLWrapper, and, desc, eq, sql } from "drizzle-orm";
 import { SelectedFields, alias } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 import { ManagerWithdrawTransactionsWithRelations, ManagerWithdrawWithRelations } from "./dto/list.dto";
+import { ServiceError } from "@grpc/grpc-js";
 
 export const ManagerWithdrawController = new Elysia({
   name: "@app/manager_withdraw",
@@ -87,7 +88,7 @@ export const ManagerWithdrawController = new Elysia({
     }
   )
   .get('/manager_withdraw/:id/transactions', async ({ params: { id }, drizzle, set, user }) => {
-
+    console.time('manager_withdraw_transactions')
     if (!user) {
       set.status = 401;
       return {
@@ -101,11 +102,14 @@ export const ManagerWithdrawController = new Elysia({
         message: "You don't have permissions",
       };
     }
-
+    console.time('transactionsClient')
     const transactionsResponse = await fetch(`${process.env.DUCK_API}/manager_withdraw/${id}/transactions`);
 
+    console.timeEnd('transactionsClient')
 
     const items = await transactionsResponse.json() as ManagerWithdrawTransactionsWithRelations[];
+
+    console.timeEnd('manager_withdraw_transactions')
     return items;
   }, {
     params: t.Object({

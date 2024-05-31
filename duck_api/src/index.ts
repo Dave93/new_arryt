@@ -1,93 +1,183 @@
 const dotenv = require("dotenv");
+import { LogicalReplicationService, PgoutputPlugin, Pgoutput } from 'pg-logical-replication'
 import { serve } from "@hono/node-server";
 import { zValidator } from "@hono/zod-validator";
 import dayjs = require("dayjs");
 import { Database } from "duckdb-async";
 import { Hono } from "hono";
 import { z } from "zod";
+import { Client } from 'pg'
 import { uniq } from "lodash";
-import { Kafka } from "kafkajs";
+import { loadPackageDefinition, Server, ServerCredentials } from '@grpc/grpc-js'
 import { syncDuck } from "./sync_duck";
+import path = require('path');
+import { loadSync } from '@grpc/proto-loader';
+import Elysia, { t } from 'elysia';
+// import transactionsProto from '@protos/arryt.proto'
 
 
 dotenv.config();
 
-(async () => {
-  const db = await Database.create(process.env.DUCK_PATH!);
-  const app = new Hono();
+const tableByChunk: {
+  [key: string]: string;
+} = {};
 
-  await syncDuck(db);
+const getTableNamesByChunk = async () => {
+  const client = new Client({
+    user: process.env.PG_DB_USER,
+    password: process.env.PG_DB_PASSWORD,
+    host: process.env.PG_DB_HOST,
+    port: +process.env.PG_DB_PORT!,
+    database: process.env.PG_DB_NAME,
+  })
+  await client.connect()
 
-  const kafka = new Kafka({
-    clientId: "arryy-duckdb",
-    brokers: ["127.0.0.1:9092"],
-  });
+  const res = await client.query('select hypertable_name,chunk_name FROM timescaledb_information.chunks;')
+  res.rows.forEach((row) => {
+    tableByChunk[row.chunk_name] = row.hypertable_name
+  })
+  await client.end();
+  console.log('chunkNames updated');
+}
 
-  const consumer = kafka.consumer({
-    groupId: process.env.KAFKA_GROUP_ID || "test-group",
+const extractColumnData = (value: any): any => {
 
+  if (typeof value === "string") {
+    return `'${value.replace(/'/g, "''")}'`;
+  } else if (typeof value === "number") {
+    return value;
+  } else if (typeof value === "boolean") {
+    return value;
+  } else if (value instanceof Date) {
+    return `'${value.toISOString()}'`;
+  } else if (Array.isArray(value)) {
+    return `'${JSON.stringify(value)}'`;
+  } else if (typeof value === "object") {
+    if (value === null) {
+      return 'NULL';
+    }
+    const result = [];
+    for (const key in value) {
+      result.push(`${key}: ${extractColumnData(value[key])}`);
+    }
+    return `{${result.join(", ")}}`;
+  }
+  return value;
+}
 
-  });
+// (async () => {
+const db = await Database.create(process.env.DUCK_PATH!);
 
-  await consumer.connect();
-  await consumer.subscribe({
-    topics: [/arryt\.public\..*/, /arryt_db\.public\..*/]
-  });
+await syncDuck(db);
 
-  await consumer.run({
-    eachMessage: async ({ topic, partition, message }) => {
-      console.log('topic', topic)
-      const object = JSON.parse(message.value?.toString() || "{}");
-      // console.log("debezium event", object);
-      if ('payload' in object) {
-        const {
-          payload: { before, after, source, op, ts_ms, source: { table } },
-        } = object;
-        console.log('table ', table)
-        try {
-          if (!before) {
-            const existingRecord = await db.all(`SELECT id FROM ${table} WHERE id = '${after.id}'`);
-            if (existingRecord.length === 0) {
-              console.log(`
-          INSERT INTO ${table} (${Object.keys(after).join(", ")}) VALUES (${Object.values(after).map((val) => (typeof val === "string" ? `'${val.replace(/'/g, "''")}'` : val)).join(", ")})
-          `)
-              db.all(`
-          INSERT INTO ${table} (${Object.keys(after).join(", ")}) VALUES (${Object.values(after).map((val) => (typeof val === "string" ? `'${val.replace(/'/g, "''")}'` : val)).join(", ")})
-          `)
-            } else {
-              console.log('update record', after.id);
-              //     console.log(`
-              // UPDATE ${table} SET ${Object.keys(after).map((key) => `${key} = ${typeof after[key] === "string" ? `'${after[key].replace(/'/g, "''")}'` : after[key]}`).join(", ")} WHERE id = '${after.id}'
-              // `)
-              //     db.all(`
-              // UPDATE ${table} SET ${Object.keys(after).map((key) => `${key} = ${typeof after[key] === "string" ? `'${after[key].replace(/'/g, "''")}'` : after[key]}`).join(", ")} WHERE id = '${after.id}'
-              // `)
-            }
+await getTableNamesByChunk();
 
-          } else if (!after) {
-            console.log(`
-        DELETE FROM ${table} WHERE id = '${before.id}'
+// run getTableNamesByChunk every 10 minutes
+(() => {
+  const interval = setInterval(getTableNamesByChunk, 1000 * 60 * 10)
+  return () => clearInterval(interval)
+})();
+
+const slotName = 'arryt_to_duck';
+
+const service = new LogicalReplicationService(
+  /**
+   * node-postgres Client options for connection
+   * https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/pg/index.d.ts#L16
+   */
+  {
+    database: process.env.PG_DB_NAME,
+    user: process.env.PG_DB_USER,
+    password: process.env.PG_DB_PASSWORD,
+    host: process.env.PG_DB_HOST,
+    port: +process.env.PG_DB_PORT!,
+    application_name: 'arryt_duck',
+    // ...
+  },
+  /**
+   * Logical replication service config
+   * https://github.com/kibae/pg-logical-replication/blob/main/src/logical-replication-service.ts#L9
+   */
+  {
+    acknowledge: {
+      auto: true,
+      timeoutSeconds: 10
+    }
+  }
+)
+
+const plugin = new PgoutputPlugin({
+  protoVersion: 2,
+  publicationNames: ['arryt'],
+});
+
+/**
+ * Wal2Json.Output
+ * https://github.com/kibae/pg-logical-replication/blob/ts-main/src/output-plugins/wal2json/wal2json-plugin-output.type.ts
+ */
+service.on('data', async (lsn: string, log: Pgoutput.Message) => {
+  // console.log('lsn', lsn)
+  // console.log('log', log)
+
+  switch (log.tag) {
+    case 'insert': {
+      const table = tableByChunk[log.relation.name] || log.relation.name;
+      // console.log(`
+      //   INSERT INTO ${table} (${Object.keys(log.new).join(", ")}) VALUES (${Object.values(log.new).map((val) => extractColumnData(val)).join(", ")})
+      // `)
+      await db.all(`
+          INSERT INTO ${table} (${Object.keys(log.new).join(", ")}) VALUES (${Object.values(log.new).map((val) => extractColumnData(val)).join(", ")});
         `)
-            db.all(`
-        DELETE FROM ${table} WHERE id = '${before.id}'
-        `)
-          }
+      break;
+    }
 
-        } catch (e) {
-          console.log('error', e)
-        }
+    case 'update': {
+      const table = tableByChunk[log.relation.name] || log.relation.name;
+      // console.log(`
+      //     UPDATE ${table} SET ${Object.keys(log.new).map((key) => `${key} = ${extractColumnData(log.new[key])}`).join(", ")} WHERE id = '${log.new.id}'
+      //   `)
+      await db.all(`
+            UPDATE ${table} SET ${Object.keys(log.new).map((key) => `${key} = ${extractColumnData(log.new[key])}`).join(", ")} WHERE id = '${log.new.id}'
+          `)
+      break;
+    }
+
+    case 'delete': {
+      const table = tableByChunk[log.relation.name] || log.relation.name;
+      if (log.key?.id) {
+        //   console.log(`
+        //   DELETE FROM ${table} WHERE id = '${log.key?.id}'
+        // `)
+        await db.all(`
+          DELETE FROM ${table} WHERE id = '${log.key?.id}'
+        `)
+
       }
+      break;
+    }
+  }
 
-    },
-  });
+  // Do something what you want.
+  // log.change.filter((change) => change.kind === 'insert').length;
+});
 
-  app.get("/", (c) => {
-    return c.text("Hello Hono!");
-  });
+// (function proc() {
+service.subscribe(plugin, slotName)
+//     .catch((e) => {
+//       console.error(e);
+//     })
+//     .then(() => {
+//       setTimeout(proc, 100);
+//     });
+// })();
 
+const app = new Elysia()
+  .decorate('db', db)
+  .get("/", () => {
+    return "Hello Hono!";
+  })
   // Вывыод всех транзакций по выводу средств
-  app.get("/manager_withdraw/:id/transactions", async (c) => {
-    const { id } = c.req.param();
+  .get("/manager_withdraw/:id/transactions", async ({ params: { id } }) => {
     const transactions = await db.all(`
     select "manager_withdraw_transactions"."id" as "withdraw_id",
        "manager_withdraw_transactions"."amount" as "withdraw_amount",
@@ -103,27 +193,16 @@ from "manager_withdraw_transactions"
 where "manager_withdraw_transactions"."withdraw_id" = '${id}'
     `);
 
-    return c.json(transactions);
-  });
-
+    return transactions;
+  }, {
+    params: t.Object({
+      id: t.String(),
+    }),
+  })
   // Вывод всех транзакций по начислению средств
-
-  app.post(
+  .post(
     "/order_transactions",
-    zValidator(
-      "json",
-      z.object({
-        filter: z.array(
-          z.object({
-            field: z.string(),
-            operator: z.string(),
-            value: z.string(),
-          })
-        ),
-      })
-    ),
-    async (c) => {
-      const { filter } = await c.req.json();
+    async ({ body: { filter } }) => {
 
       let where = "";
 
@@ -176,23 +255,23 @@ where "manager_withdraw_transactions"."withdraw_id" = '${id}'
 
       const data = await db.all(sqlQuery);
 
-      return c.json(data);
-    }
-  );
-
-  app.post(
+      return data;
+    }, {
+    body: t.Object({
+      filter: t.Array(
+        t.Object({
+          field: t.String(),
+          operator: t.String(),
+          value: t.String(),
+        })
+      ),
+    }),
+  }
+  ).post(
     "/courier_efficiency/hour",
-    zValidator(
-      "json",
-      z.object({
-        startDate: z.string(),
-        endDate: z.string(),
-        courierId: z.string(),
-        terminalIds: z.array(z.string()),
-      })
-    ),
-    async (c) => {
-      const { startDate, endDate, courierId, terminalIds } = await c.req.json();
+    async ({
+      body: { startDate, endDate, courierId, terminalIds },
+    }) => {
 
       const data = await db.all(`WITH total_orders AS (
      SELECT terminal_id,
@@ -226,23 +305,20 @@ where "manager_withdraw_transactions"."withdraw_id" = '${id}'
                    AND total_orders.order_hour = courier_orders.order_hour
  ORDER BY courier_orders.terminal_id, courier_orders.order_day, courier_orders.order_hour`);
 
-      return c.json(data);
-    }
-  );
-
-  app.post(
+      return data;
+    }, {
+    body: t.Object({
+      startDate: t.String(),
+      endDate: t.String(),
+      courierId: t.String(),
+      terminalIds: t.Array(t.String()),
+    }),
+  }
+  ).post(
     "/courier_efficiency/period",
-    zValidator(
-      "json",
-      z.object({
-        startDate: z.string(),
-        endDate: z.string(),
-        courierId: z.string(),
-        terminalIds: z.array(z.string()),
-      })
-    ),
-    async (c) => {
-      const { startDate, endDate, courierId, terminalIds } = await c.req.json();
+    async ({
+      body: { startDate, endDate, courierId, terminalIds },
+    }) => {
       const data = await db.all(`WITH total_orders AS (
      SELECT terminal_id,
             date_trunc('day', created_at) AS order_day,
@@ -334,20 +410,20 @@ where "manager_withdraw_transactions"."withdraw_id" = '${id}'
           }, 0) / resultData[key].hour_period.length
         ).toFixed(1);
       });
-      return c.json(Object.values(resultData));
-    }
-  );
-
-  app.post(
+      return Object.values(resultData);
+    }, {
+    body: t.Object({
+      startDate: t.String(),
+      endDate: t.String(),
+      courierId: t.String(),
+      terminalIds: t.Array(t.String()),
+    }),
+  }
+  ).post(
     "/couriers/profile_numbers",
-    zValidator(
-      "json",
-      z.object({
-        courierId: z.string(),
-      })
-    ),
-    async (c) => {
-      const { courierId } = await c.req.json();
+    async ({
+      body: { courierId },
+    }) => {
       try {
         console.log("courierId", courierId);
         const sqlScoreQuery = `
@@ -383,37 +459,30 @@ where "manager_withdraw_transactions"."withdraw_id" = '${id}'
           not_paid_amount: not_paid_amount[0]?.not_paid_amount ?? 0,
           fuel: fuel[0]?.not_paid_amount ?? 0,
         });
-        return c.json({
+        return {
           score: score[0]?.avg_score ?? 0,
           not_paid_amount: not_paid_amount[0]?.not_paid_amount ?? 0,
           fuel: fuel[0]?.not_paid_amount ?? 0,
-        });
+        };
       } catch (e) {
         console.log("error", e);
       }
-    }
-  );
-
-  app.post(
+    }, {
+    body: t.Object({
+      courierId: t.String(),
+    }),
+  }
+  ).post(
     "/couriers/mobile_stats",
-    zValidator(
-      "json",
-      z.object({
-        courierId: z.string(),
-        startHour: z.number(),
-        endHour: z.number(),
-        finishedStatusIds: z.array(z.string()),
-        canceledStatusIds: z.array(z.string()),
-      })
-    ),
-    async (c) => {
-      const {
+    async ({
+      body: {
         courierId,
         startHour,
         endHour,
         finishedStatusIds,
         canceledStatusIds,
-      } = await c.req.json();
+      },
+    }) => {
 
       const currentHour = dayjs().hour();
 
@@ -817,7 +886,7 @@ where "manager_withdraw_transactions"."withdraw_id" = '${id}'
         sqlMonthWorkScheduleBonusQuery
       );
 
-      return c.json({
+      return {
         today: {
           finishedOrdersCount: todayFinishedOrdersCount[0]?.count
             ? Number(todayFinishedOrdersCount[0]?.count)
@@ -892,16 +961,179 @@ where "manager_withdraw_transactions"."withdraw_id" = '${id}'
             ? Number(monthWorkScheduleBonus[0]?.amount)
             : 0,
         },
-      });
-    }
-  );
+      };
+    }, {
+    body: t.Object({
+      courierId: t.String(),
+      startHour: t.Number(),
+      endHour: t.Number(),
+      finishedStatusIds: t.Array(t.String()),
+      canceledStatusIds: t.Array(t.String()),
+    }),
+  }
+  )
+  .post('/garant/prev_month_orders', async ({ body: { sqlPrevStartDate, sqlPrevEndDate, courierId }, db }) => {
 
+    const sql = `select o.courier_id,
+                                    count(o.courier_id) as total_orders
+                             from orders o
+                                      inner join order_status os on o.order_status_id = os.id and os.finish = true
+                                      inner join users u on o.courier_id = u.id
+                             where o.created_at >= '${sqlPrevStartDate} 00:00:00'
+                               and o.created_at <= '${sqlPrevEndDate} 04:00:00'
+                               and u.phone not in ('+998908251218', '+998908249891') ${courierId
+        ? `and o.courier_id in (${courierId
+          .map((id) => `'${id}'`)
+          .join(",")})`
+        : ""
+      }
+                             group by o.courier_id
+                             order by o.courier_id;`;
 
-  const port = 9797;
-  console.log(`Server is running on port ${port}`);
+    const data = await db.all(sql);
 
-  serve({
-    fetch: app.fetch,
-    port,
-  });
-})();
+    return [...data].map((item) => {
+      if (item.total_orders) {
+        return {
+          ...item,
+          total_orders: Number(item.total_orders),
+        };
+      }
+      return item;
+    });
+  }, {
+    body: t.Object({
+      sqlPrevStartDate: t.String(),
+      sqlPrevEndDate: t.String(),
+      courierId: t.Optional(t.Array(t.String())),
+    }),
+  })
+  .post('/garant/bonus_query', async ({ body: { sqlStartDate, sqlEndDate }, db }) => {
+    const sql = `select sum(amount) as total_amount, courier_id
+                             from order_transactions
+                             where status = 'success'
+                               and transaction_type != 'order' and created_at >= '${sqlStartDate}' and created_at <= '${sqlEndDate}'
+                             group by courier_id;`;
+
+    const data = await db.all(sql);
+
+    return [...data];
+  }, {
+    body: t.Object({
+      sqlStartDate: t.String(),
+      sqlEndDate: t.String(),
+    }),
+  })
+  .post('/garant/couriers_by_terminal', async ({ body: { sqlStartDate, sqlEndDate, courierId }, db }) => {
+    const sql = `select sum(o.delivery_price)                  as delivery_price,
+                                    concat(u.first_name, ' ', u.last_name) as courier,
+                                    o.courier_id,
+                                    o.courier_id,
+                                    o.organization_id,
+                                    o.terminal_id
+                             from orders o
+                                      left join order_status os on o.order_status_id = os.id
+                                      left join users u on o.courier_id = u.id
+                             where o.created_at >= '${sqlStartDate}'
+                               and o.created_at <= '${sqlEndDate}'
+                               and os.finish = true ${courierId
+        ? `and o.courier_id in (${courierId
+          .map((id) => `'${id}'`)
+          .join(",")})`
+        : ""
+      }
+                             group by o.courier_id, o.terminal_id, o.organization_id, u.first_name, u.last_name
+                             order by courier;`;
+
+    const data = await db.all(sql);
+
+    return [...data];
+  }, {
+    body: t.Object({
+      sqlStartDate: t.String(),
+      sqlEndDate: t.String(),
+      courierId: t.Optional(t.Array(t.String())),
+    }),
+  })
+  .post('/garant/custom_date_query', async ({ body: { order_start_date, courier_id, sqlEndDate }, db }) => {
+    const sql = `
+                                SELECT MIN(o.created_at)                                                   AS begin_date,
+                                       MAX(o.created_at)                                                   AS last_order_date,
+                                       SUM(o.delivery_price)                                               AS delivery_price,
+                                       CONCAT(u.first_name, ' ', u.last_name)                              AS courier,
+                                       COUNT(o.id)                                                         AS orders_count,
+                                       AVG(EXTRACT(EPOCH FROM (o.finished_date - o.created_at)) / 60) AS avg_delivery_time,
+                                       array_agg(date_trunc('day', o.created_at))                          AS orders_dates,
+                                       o.courier_id
+                                FROM orders o
+                                         LEFT JOIN order_status os ON o.order_status_id = os.id
+                                         LEFT JOIN users u ON o.courier_id = u.id
+                                WHERE o.created_at >= '${order_start_date}'
+                                  AND o.created_at <= '${sqlEndDate}'
+                                  AND os.finish = true
+                                  AND o.courier_id = '${courier_id}'
+                                GROUP BY o.courier_id, u.first_name, u.last_name
+                                ORDER BY courier;
+                            `;
+
+    const data = await db.all(sql);
+
+    return [...data];
+  }, {
+    body: t.Object({
+      order_start_date: t.String(),
+      courier_id: t.String(),
+      sqlEndDate: t.String(),
+    }),
+  })
+  .post('/garant/balance_query', async ({ body: { sqlStartDate, sqlEndDate, courierIds }, db }) => {
+    const sql = `select courier_id, sum(amount) as balance
+                             from order_transactions
+                             where courier_id in (${courierIds
+        .map((id) => `'${id}'`)
+        .join(
+          ","
+        )})
+                               and status = 'pending'
+                               and created_at >= '${sqlStartDate}'
+                               and created_at <= '${sqlEndDate}'
+                             group by courier_id`;
+    const data = await db.all(sql);
+
+    return [...data];
+  }, {
+    body: t.Object({
+      sqlStartDate: t.String(),
+      sqlEndDate: t.String(),
+      courierIds: t.Array(t.String()),
+    }),
+  })
+  .listen(9797);
+// const transactionProtoPath = path.resolve(__dirname, '../../protos', 'arryt.proto');
+// console.log('proto path', transactionProtoPath);
+// const transactionProtoDefinitionLoader = loadSync(transactionProtoPath, {
+//   keepCase: true,
+//   longs: String,
+//   enums: String,
+//   defaults: true,
+//   oneofs: true,
+// });
+// const transactionsProto = loadPackageDefinition(transactionProtoDefinitionLoader).arryt;
+// console.log('transactionsProto', transactionsProto);
+// console.log('transactionsProto.Transactions.service', transactionsProto.Transactions.service);
+// const server = new Server();
+// server.addService(transactionsProto.Transactions.service, {
+//   getWithdrawTransactions: async (call: any, callback: any) => {
+//     const { withdraw_id } = call.request;
+//     console.log('withdraw_id', withdraw_id)
+//     callback(null, {});
+//   }
+// });
+// server.bindAsync(`0.0.0.0:${port}`, ServerCredentials.createInsecure(), (err) => {
+//   if (err) {
+//     console.error('Failed to bind to port', err);
+//   }
+//   server.start();
+//   console.log(`Server is running on port ${port}`);
+// });
+// })();

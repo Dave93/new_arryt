@@ -89,7 +89,7 @@ export async function syncDuck(db: Database) {
     await db.exec(`CREATE TABLE IF NOT EXISTS orders AS FROM db.orders;`);
     console.timeEnd("orders");
     console.time('order_items')
-    await db.exec(`CREATE TABLE IF NOT EXISTS order_items AS FROM db.orders;`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS order_items AS FROM db.order_items;`);
     console.timeEnd("order_items");
     console.time('missed_orders')
     await db.exec(`CREATE TABLE IF NOT EXISTS missed_orders AS FROM db.missed_orders;`);

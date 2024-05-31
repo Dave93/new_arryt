@@ -17,7 +17,8 @@
       "@api/*": ["./api/*"],
       "@admin/*": ["./admin/*"],
       "@queue/*": ["./queue/*"],
-      "@crons/*": ["./crons/*"]
+      "@crons/*": ["./crons/*"],
+      "@protos/*": ["./protos/*"]
     }
   }
 }
