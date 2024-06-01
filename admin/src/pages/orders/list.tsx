@@ -258,10 +258,10 @@ export const OrdersList: React.FC = () => {
           },
         });
       }
-      invalidate({
-        resource: "orders",
-        invalidates: ["list"],
-      });
+      // invalidate({
+      //   resource: "orders",
+      //   invalidates: ["list"],
+      // });
       return localFilters;
     },
 

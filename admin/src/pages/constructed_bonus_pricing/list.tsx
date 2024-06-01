@@ -8,13 +8,10 @@ import {
 import { Table, Space } from "antd";
 import { useGetIdentity } from "@refinedev/core";
 
-import {
-  IConstructedBonusPricing,
-  IDeliveryPricing,
-} from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
 import { constructed_bonus_pricing } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
+import { ConstructedBonusPricingListWithRelations } from "@api/src/modules/constructed_bonus_pricing/dtos/list.dto";
 
 export const ConstructedBonusPricingList: React.FC = () => {
   const { data: identity } = useGetIdentity<{
@@ -52,9 +49,10 @@ export const ConstructedBonusPricingList: React.FC = () => {
           <Table.Column
             dataIndex="organization.name"
             title="Организация"
-            render={(value: any, record: IConstructedBonusPricing) =>
-              record?.constructed_bonus_pricing_organization?.name
-            }
+            render={(
+              value: any,
+              record: ConstructedBonusPricingListWithRelations
+            ) => record?.organization?.name}
           />
           <Table.Column
             dataIndex="created_at"

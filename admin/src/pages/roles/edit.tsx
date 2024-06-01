@@ -6,6 +6,7 @@ import { gql } from "graphql-request";
 import { useEffect, useState } from "react";
 import { permissions, roles } from "@api/drizzle/schema";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { apiClient } from "@admin/src/eden";
 
 const { Option } = Select;
 
@@ -31,44 +32,48 @@ export const RolesEdit: React.FC = () => {
   });
 
   const loadPermissions = async () => {
-    let query = gql`
-      query {
-        permissions {
-          id
-          slug
-          description
-        }
-      }
-    `;
-
-    const permissionsData = await client.request(
-      query,
-      {},
-      {
+    const { data } = await apiClient.api.permissions.cached.get({
+      $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
-
-    query = gql`
-      query ($id: String) {
-        manyRolePermissions(where: { role_id: { equals: $id } }) {
-          permission_id
-        }
-      }
-    `;
-    const variables = {
-      id,
-    };
-    const chosenPermissionsData = await client.request(query, variables, {
-      Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
-    setChosenPermissions(
-      chosenPermissionsData.manyRolePermissions.map(
-        (item: any) => item.permission_id
-      )
-    );
 
-    setPermissions(permissionsData.permissions);
+    if (data && Array.isArray(data)) {
+      setPermissions(data);
+    }
+
+    const { data: permissionsData } = await apiClient.api.roles[
+      id
+    ].permissions.get({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+
+    if (permissionsData.data && Array.isArray(permissionsData.data)) {
+      setChosenPermissions(
+        permissionsData.data.map((item: any) => item.permission_id)
+      );
+    }
+
+    // query = gql`
+    //   query ($id: String) {
+    //     manyRolePermissions(where: { role_id: { equals: $id } }) {
+    //       permission_id
+    //     }
+    //   }
+    // `;
+    // const variables = {
+    //   id,
+    // };
+    // const chosenPermissionsData = await client.request(query, variables, {
+    //   Authorization: `Bearer ${identity?.token.accessToken}`,
+    // });
+    // setChosenPermissions(
+    //   chosenPermissionsData.manyRolePermissions.map(
+    //     (item: any) => item.permission_id
+    //   )
+    // );
   };
 
   const beforeSave = async (data: any) => {

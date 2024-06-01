@@ -93,7 +93,7 @@ const OrdersGarantReport = () => {
         startDate: startDate!,
         endDate: endDate!,
         // courier_id: courier_id,
-        // wallet_period: walletPeriod,
+        walletEndDate: walletPeriod,
         // terminal_id: terminal_id,
       },
       $headers: {
@@ -325,7 +325,7 @@ const OrdersGarantReport = () => {
     loadData();
 
     return () => {};
-  }, []);
+  }, [identity]);
 
   return (
     <div>

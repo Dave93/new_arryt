@@ -199,7 +199,7 @@ Future<void> initializeService() async {
       }
 
       if (positionStream == null) {
-        print('start stream');
+        // print('start stream');
         timer.cancel();
         late LocationSettings locationSettings;
 
@@ -234,7 +234,7 @@ Future<void> initializeService() async {
             distanceFilter: 2,
           );
         }
-
+        print("start stream");
         positionStream =
             Geolocator.getPositionStream(locationSettings: locationSettings)
                 .listen((Position? _locationResult) async {

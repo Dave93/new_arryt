@@ -162,8 +162,10 @@ function App() {
         name: "yuriy_orders_garant_report",
         meta: {
           label: "Гарант",
+          resource: "orders_garant_report",
         },
         list: "/yuriy_orders_garant_report",
+        // identifier: 'orders_garant_report',
       },
       {
         name: "users",
@@ -470,12 +472,14 @@ function App() {
                       const {
                         access: { additionalPermissions },
                       } = decryptedData;
+                      let resourceName =
+                        params?.resource?.meta?.resource ?? resource;
                       return Promise.resolve({
                         can: additionalPermissions.includes(
-                          `${resource}.${action}`
+                          `${resourceName}.${action}`
                         ),
                         reason: additionalPermissions.includes(
-                          `${resource}.${action}`
+                          `${resourceName}.${action}`
                         )
                           ? undefined
                           : "You are not allowed to do this",
@@ -653,6 +657,7 @@ function App() {
                   </Route>
                 </Routes>
 
+                <ReactQueryDevtools initialIsOpen={false} />
                 <RefineKbar />
               </Refine>
               <DevtoolsPanel />

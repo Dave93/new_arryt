@@ -81,6 +81,9 @@ const YuriyOrdersGarantReport = () => {
         // wallet_period: walletPeriod,
         // terminal_id: terminal_id,
       },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
     });
 
     if (data && Array.isArray(data)) {
@@ -373,13 +376,12 @@ const YuriyOrdersGarantReport = () => {
       .value();
     return result;
   }, [filteredData]);
-  console.log("resultData", resultData);
   useEffect(() => {
     fetchAllData();
     loadData();
 
     return () => {};
-  }, []);
+  }, [identity]);
 
   return (
     <div>
