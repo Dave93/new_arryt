@@ -132,8 +132,9 @@ export class CacheControlService {
         });
       userData.access.roles = Object.values(rolesList);
 
-      await this.redis.set(
-        `${process.env.PROJECT_PREFIX}_user:${user.id}`,
+      await this.redis.hset(
+        `${process.env.PROJECT_PREFIX}_user`,
+        user.id,
         JSON.stringify(userData)
       );
     }
@@ -234,8 +235,9 @@ export class CacheControlService {
     });
     userData.access.roles = Object.values(rolesList);
 
-    await this.redis.set(
-      `${process.env.PROJECT_PREFIX}_user:${user.id}`,
+    await this.redis.hset(
+      `${process.env.PROJECT_PREFIX}_user`,
+      user.id,
       JSON.stringify(userData)
     );
   }
@@ -396,8 +398,9 @@ export class CacheControlService {
   }
 
   async getUser(id: string) {
-    const user = await this.redis.get(
-      `${process.env.PROJECT_PREFIX}_user:${id}`
+    const user = await this.redis.hget(
+      `${process.env.PROJECT_PREFIX}_user`,
+      id
     );
     return JSON.parse(user || "{}") as {
       user: UserResponseDto;

@@ -3044,38 +3044,4 @@ export class SearchService {
         return await resultJson.json();
     }
 
-    async getUsersByIds(userIds: string[]) {
-        const indexName = `${process.env.PROJECT_SEARCH_PREFIX}_user_current_location`;
-        const body = {
-            size: 10000,
-            query: {
-                bool: {
-                    must: [
-                        {
-                            terms: {
-                                _id: userIds,
-                            },
-                        },
-                    ],
-                },
-            },
-        };
-
-        const resultJson = await fetch(`${process.env.ELASTICSEARCH_HOST}/${indexName}/_search`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Basic ${btoa(process.env.ELASTIC_AUTH!)}`,
-            },
-            body: JSON.stringify(body),
-        });
-
-        const res = await resultJson.json();
-        if (res.hits.hits.length > 0) {
-            // @ts-ignore
-            return res.hits.hits.map((hit) => ({ ...hit._source, id: hit._id }));
-        } else {
-            return [];
-        }
-    }
 }

@@ -165,8 +165,9 @@ export const ctx = new Elysia({
     }
     try {
       let jwtResult = await verifyJwt(token);
-      let userData = await redis.get(
-        `${process.env.PROJECT_PREFIX}_user:${jwtResult.payload.id as string}`
+      let userData = await redis.hget(
+        `${process.env.PROJECT_PREFIX}_user`,
+        jwtResult.payload.id as string
       );
       let userRes = null as {
         user: UserResponseDto;
