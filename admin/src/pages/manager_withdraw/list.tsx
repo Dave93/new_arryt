@@ -1,7 +1,12 @@
 import { List, useTable, ExportButton } from "@refinedev/antd";
 import { Table, Button, Form, Select, Col, Row, DatePicker } from "antd";
 
-import { CrudFilters, HttpError, useGetIdentity } from "@refinedev/core";
+import {
+  CrudFilters,
+  HttpError,
+  useGetIdentity,
+  useInvalidate,
+} from "@refinedev/core";
 
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -27,6 +32,7 @@ dayjs.extend(duration);
 const { RangePicker } = DatePicker;
 
 export const ManagerWithdrawList: React.FC = () => {
+  const invalidate = useInvalidate();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -34,8 +40,6 @@ export const ManagerWithdrawList: React.FC = () => {
     InferSelectModel<typeof organization>[]
   >([]);
   const [terminals, setTerminals] = useState<any[]>([]);
-
-  const queryClient = useQueryClient();
 
   const {
     tableProps,
@@ -53,9 +57,9 @@ export const ManagerWithdrawList: React.FC = () => {
       orders_couriers: string;
     }
   >({
-    queryOptions: {
-      queryKey: ["orders"],
-    },
+    // queryOptions: {
+    //   queryKey: ["manager_withdraw"],
+    // },
 
     meta: {
       fields: [
@@ -81,7 +85,6 @@ export const ManagerWithdrawList: React.FC = () => {
 
     onSearch: async (params) => {
       const localFilters: CrudFilters = [];
-      queryClient.invalidateQueries(["default", "manager_withdraw", "list"]);
       // queryClient.invalidateQueries();
       const {
         organization_id,
@@ -143,6 +146,10 @@ export const ManagerWithdrawList: React.FC = () => {
           },
         });
       }
+      // invalidate({
+      //   resource: "manager_withdraw",
+      //   invalidates: ["list"],
+      // });
       return localFilters;
     },
 

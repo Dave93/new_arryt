@@ -6,6 +6,7 @@ import { Map, Placemark, YMaps } from "@pbe/react-yandex-maps";
 
 import useSWR from "swr";
 import { Button, Card, Select, Space } from "antd";
+import { apiClient } from "@admin/src/eden";
 
 const WhereCourierList = () => {
   const { data: identity } = useGetIdentity<{
@@ -40,28 +41,35 @@ const WhereCourierListView: FC<IWhereCourierListViewProps> = (props) => {
   };
 
   const getCouriers = async () => {
-    const query = gql`
-      query {
-        couriersLocation {
-          id
-          last_name
-          first_name
-          short_name
-          phone
-          is_online
-          latitude
-          longitude
-        }
-      }
-    `;
-    const response = await client.request(
-      query,
-      {},
-      {
+    // const query = gql`
+    //   query {
+    //     couriersLocation {
+    //       id
+    //       last_name
+    //       first_name
+    //       short_name
+    //       phone
+    //       is_online
+    //       latitude
+    //       longitude
+    //     }
+    //   }
+    // `;
+    // const response = await client.request(
+    //   query,
+    //   {},
+    //   {
+    //     Authorization: `Bearer ${props.token}`,
+    //   }
+    // );
+
+    const { data } = await apiClient.api.couriers.locations.get({
+      $headers: {
         Authorization: `Bearer ${props.token}`,
-      }
-    );
-    return response.couriersLocation;
+      },
+    });
+
+    return data;
   };
 
   const { data, error, isLoading, mutate } = useSWR(

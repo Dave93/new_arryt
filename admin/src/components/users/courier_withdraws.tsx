@@ -140,7 +140,7 @@ const CourierWithdraws = ({ user }: { user: UsersModel }) => {
     loadData();
 
     return () => {};
-  }, []);
+  }, [identity]);
   return (
     <>
       <div
@@ -186,9 +186,9 @@ const CourierWithdraws = ({ user }: { user: UsersModel }) => {
         size="small"
         columns={columns}
         expandable={{
-          expandedRowRender: (record: ManagerWithdrawWithRelations) => (
-            <ManagerWithdrawTransactions record={record} />
-          ),
+          expandedRowRender: (record: ManagerWithdrawWithRelations) => {
+            return <ManagerWithdrawTransactions record={record} />;
+          },
         }}
         pagination={{
           pageSize: 200,
