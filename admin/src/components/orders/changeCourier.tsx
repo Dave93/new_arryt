@@ -6,6 +6,7 @@ import { gql } from "graphql-request";
 import { client } from "@admin/src/graphConnect";
 import { useGetIdentity } from "@refinedev/core";
 import { apiClient } from "@admin/src/eden";
+import { UsersModel } from "@api/src/modules/user/dto/list.dto";
 
 interface ChangeOrderProps {
   id?: string;
@@ -21,14 +22,14 @@ export const ChangeOrdersCouirer: FC<ChangeOrderProps> = ({
   }>();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [couriers, setCouriers] = useState<IUsers[]>([]);
+  const [couriers, setCouriers] = useState<UsersModel[]>([]);
   const [selectedCourier, setSelectedCourier] = useState<string>();
 
   const changeCourier = async () => {
     setConfirmLoading(true);
 
     const data = await apiClient.api.orders[id!].assign.post({
-      courier_id: selectedCourier,
+      courier_id: selectedCourier!,
       $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
       },
@@ -43,7 +44,7 @@ export const ChangeOrdersCouirer: FC<ChangeOrderProps> = ({
   const loadCouriers = async () => {
     const { data } = await apiClient.api.couriers.for_terminal.get({
       $query: {
-        terminal_id,
+        terminal_id: terminal_id!,
       },
       $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
@@ -51,6 +52,7 @@ export const ChangeOrdersCouirer: FC<ChangeOrderProps> = ({
     });
 
     if (data && Array.isArray(data)) {
+      // @ts-ignore
       setCouriers(data);
     }
   };

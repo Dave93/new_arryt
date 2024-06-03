@@ -32,14 +32,6 @@ const WhereCourierListView: FC<IWhereCourierListViewProps> = (props) => {
   const [center, setCenter] = useState([41.311151, 69.279737]);
   const mapState = useMemo(() => ({ center: center, zoom }), [zoom, center]);
 
-  const onSelectCourier = (id: string) => {
-    const courier = data?.find((courier: any) => courier.id === id);
-    if (courier) {
-      setZoom(18);
-      setCenter([courier.latitude, courier.longitude]);
-    }
-  };
-
   const getCouriers = async () => {
     // const query = gql`
     //   query {
@@ -79,6 +71,17 @@ const WhereCourierListView: FC<IWhereCourierListViewProps> = (props) => {
       refreshInterval: 30000,
     }
   );
+
+  const onSelectCourier = (id: string) => {
+    if (data && Array.isArray(data)) {
+      const courier = data?.find((courier: any) => courier.id === id);
+      if (courier) {
+        setZoom(18);
+        setCenter([courier.latitude, courier.longitude]);
+      }
+    }
+  };
+
   return (
     <div
       style={{
@@ -117,10 +120,14 @@ const WhereCourierListView: FC<IWhereCourierListViewProps> = (props) => {
                     .toLowerCase()
                     .includes(input.toLowerCase())
                 }
-                options={data?.map((courier: any) => ({
-                  label: `${courier.last_name} ${courier.first_name}`,
-                  value: courier.id,
-                }))}
+                options={
+                  data && Array.isArray(data)
+                    ? data?.map((courier: any) => ({
+                        label: `${courier.last_name} ${courier.first_name}`,
+                        value: courier.id,
+                      }))
+                    : []
+                }
               />
 
               <Button type="primary" onClick={() => mutate()}>
@@ -146,23 +153,25 @@ const WhereCourierListView: FC<IWhereCourierListViewProps> = (props) => {
         >
           {!isLoading && !error && data && (
             <>
-              {data.map((courier: any) => (
-                <Placemark
-                  key={courier.id}
-                  geometry={[courier.latitude, courier.longitude]}
-                  properties={{
-                    hintContent: courier.first_name + " " + courier.last_name,
-                    iconCaption: courier.short_name,
-                    // iconContent: courier.short_name,
-                  }}
-                  options={{
-                    preset: courier.is_online
-                      ? "islands#darkGreenCircleDotIcon"
-                      : "islands#redCircleDotIcon",
-                  }}
-                  modules={["geoObject.addon.hint"]}
-                />
-              ))}
+              {data &&
+                Array.isArray(data) &&
+                data.map((courier: any) => (
+                  <Placemark
+                    key={courier.id}
+                    geometry={[courier.latitude, courier.longitude]}
+                    properties={{
+                      hintContent: courier.first_name + " " + courier.last_name,
+                      iconCaption: courier.short_name,
+                      // iconContent: courier.short_name,
+                    }}
+                    options={{
+                      preset: courier.is_online
+                        ? "islands#darkGreenCircleDotIcon"
+                        : "islands#redCircleDotIcon",
+                    }}
+                    modules={["geoObject.addon.hint"]}
+                  />
+                ))}
             </>
           )}
         </Map>

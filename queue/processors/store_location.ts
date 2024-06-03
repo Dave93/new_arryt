@@ -19,7 +19,17 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
         const orderStatuses = await cacheControl.getOrderStatuses();
 
         const terminalsList = await cacheControl.getTerminals();
-
+        try {
+            console.log('key', `${process.env.PROJECT_PREFIX}_user_location`)
+            await redis.hset(`${process.env.PROJECT_PREFIX}_user_location`, data.user_id, JSON.stringify({
+                user_id: data.user_id,
+                lat: data.lat,
+                lon: data.lon,
+                app_version: data.app_version,
+            }));
+        } catch (e) {
+            console.log('redis error', e);
+        }
         const orderStatusesNotOnWay = orderStatuses.filter((status) => status.in_terminal);
         console.log('store location line', 22);
         const ordersNotOnWay = await db.select({

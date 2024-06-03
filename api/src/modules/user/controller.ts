@@ -274,8 +274,9 @@ export const UsersController = new Elysia({
                 .where(eq(otpTable.id, otp_instance.id))
                 .execute();
 
-              let userData = await redis.get(
-                `${process.env.PROJECT_PREFIX}_user:${otp_instance.user_id}`
+              let userData = await redis.hget(
+                `${process.env.PROJECT_PREFIX}_user`,
+                otp_instance.user_id
               );
 
               if (!userData) {
@@ -491,6 +492,7 @@ export const UsersController = new Elysia({
       processUpdateUserCache,
       drizzle,
       request,
+      redis
     }) => {
       if (!user) {
         set.status = 400;
@@ -566,6 +568,8 @@ export const UsersController = new Elysia({
         })
         .where(eq(work_schedule_entries.id, openedTimeEntry.id))
         .execute();
+
+      redis.hdel(`${process.env.PROJECT_PREFIX}_user_location`, user.user.id);
 
       return openedTimeEntry;
     },
@@ -1049,8 +1053,9 @@ export const UsersController = new Elysia({
       }
 
       for (let i = 0; i < resCouriers.length; i++) {
-        let userData = await redis.get(
-          `${process.env.PROJECT_PREFIX}_user:${resCouriers[0].id}`
+        let userData = await redis.hget(
+          `${process.env.PROJECT_PREFIX}_user`,
+          resCouriers[0].id
         );
         if (userData) {
           try {
@@ -1606,6 +1611,7 @@ export const UsersController = new Elysia({
           car_model: t.Optional(t.Nullable(t.String())),
           car_number: t.Optional(t.Nullable(t.String())),
           order_start_date: t.Optional(t.Nullable(t.String())),
+          doc_files: t.Optional(t.Array(t.String())),
         }),
         fields: t.Optional(t.String()),
       }),
@@ -2079,4 +2085,52 @@ export const UsersController = new Elysia({
       lon: t.String(),
       app_version: t.String()
     })
+  })
+  .get('/couriers/locations', async ({ user, redis }) => {
+    if (!user) {
+      return {
+        message: "User not found",
+      };
+    }
+
+    const locations = await redis.hgetall(
+      `${process.env.PROJECT_PREFIX}_user_location`
+    );
+    console.log('locations', locations);
+
+    const users = await redis.hgetall(
+      `${process.env.PROJECT_PREFIX}_user`
+    );
+
+    let res: {
+      id: string;
+      last_name: string;
+      first_name: string;
+      phone: string;
+      short_name: string;
+      is_online: boolean;
+      latitude: number;
+      longitude: number;
+    }[] = [];
+
+    for (let key in locations) {
+      const user = JSON.parse(users[key]);
+      const location = JSON.parse(locations[key]);
+      console.log('user', user);
+      console.log('location', location);
+      if (user) {
+        res.push({
+          id: user.user.id,
+          last_name: user.user.last_name,
+          first_name: user.user.first_name,
+          phone: user.user.phone,
+          short_name: `${user.user.first_name[0]}. ${user.user.last_name[0]}.`,
+          is_online: user.user.is_online,
+          latitude: location.lat,
+          longitude: location.lon,
+        });
+      }
+    }
+
+    return res;
   })

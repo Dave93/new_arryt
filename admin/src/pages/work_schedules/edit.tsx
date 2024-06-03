@@ -72,7 +72,9 @@ export const WorkSchedulesEdit: React.FC = () => {
           Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
-    setOrganizations(organizations);
+    if (organizations && Array.isArray(organizations)) {
+      setOrganizations(organizations);
+    }
   };
 
   useEffect(() => {

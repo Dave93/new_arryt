@@ -43,14 +43,18 @@ export const RolesEdit: React.FC = () => {
     }
 
     const { data: permissionsData } = await apiClient.api.roles[
-      id
+      id!
     ].permissions.get({
       $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
       },
     });
 
-    if (permissionsData.data && Array.isArray(permissionsData.data)) {
+    if (
+      permissionsData &&
+      permissionsData.data &&
+      Array.isArray(permissionsData.data)
+    ) {
       setChosenPermissions(
         permissionsData.data.map((item: any) => item.permission_id)
       );

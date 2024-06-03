@@ -147,49 +147,51 @@ export const ctx = new Elysia({
     })
   )
   .use(bearer())
-  .derive(async ({ bearer, redis, cacheControl }) => {
-    const token = bearer;
-    if (!token) {
-      return {
-        user: null,
-      };
-    }
-
-    const apiTokens = await cacheControl.getApiTokens();
-    const apiToken = apiTokens.find((apiToken) => apiToken.token === token);
-
-    if (apiToken) {
-      return {
-        user: null,
-      };
-    }
-    try {
-      let jwtResult = await verifyJwt(token);
-      let userData = await redis.get(
-        `${process.env.PROJECT_PREFIX}_user:${jwtResult.payload.id as string}`
-      );
-      let userRes = null as {
-        user: UserResponseDto;
-        access: {
-          additionalPermissions: string[];
-          roles: {
-            name: string;
-            code: string;
-            active: boolean;
-          }[];
+  .derive(
+    { as: "global" }, async ({ bearer, redis, cacheControl }) => {
+      const token = bearer;
+      if (!token) {
+        return {
+          user: null,
         };
-      } | null;
-      if (userData) {
-        userRes = JSON.parse(userData);
       }
-      return {
-        user: userRes,
-      };
-    } catch (error) {
-      console.log("error", error);
-      return {
-        user: null,
-      };
-    }
-  });
+
+      const apiTokens = await cacheControl.getApiTokens();
+      const apiToken = apiTokens.find((apiToken) => apiToken.token === token);
+
+      if (apiToken) {
+        return {
+          user: null,
+        };
+      }
+      try {
+        let jwtResult = await verifyJwt(token);
+        let userData = await redis.hget(
+          `${process.env.PROJECT_PREFIX}_user`,
+          jwtResult.payload.id as string
+        );
+        let userRes = null as {
+          user: UserResponseDto;
+          access: {
+            additionalPermissions: string[];
+            roles: {
+              name: string;
+              code: string;
+              active: boolean;
+            }[];
+          };
+        } | null;
+        if (userData) {
+          userRes = JSON.parse(userData);
+        }
+        return {
+          user: userRes,
+        };
+      } catch (error) {
+        console.log("error", error);
+        return {
+          user: null,
+        };
+      }
+    });
 

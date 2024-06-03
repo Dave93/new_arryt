@@ -226,7 +226,7 @@ export const OrdersShow = () => {
     }
 
     if (key == "2") {
-      const { data } = await apiClient.api.orders[showId].items.get({
+      const { data } = await apiClient.api.orders[showId!].items.get({
         $headers: {
           Authorization: `Bearer ${identity?.token.accessToken}`,
         },
@@ -239,7 +239,7 @@ export const OrdersShow = () => {
 
   const loadOrderLocations = async () => {
     if (record) {
-      const { data } = await apiClient.api.orders[showId].locations.post({
+      const { data } = await apiClient.api.orders[showId!].locations.post({
         created_at: record.created_at,
         $headers: {
           Authorization: `Bearer ${identity?.token.accessToken}`,
@@ -264,7 +264,7 @@ export const OrdersShow = () => {
   };
 
   const updateOrderStatus = async (id: string) => {
-    const data = await apiClient.api.orders[showId].set_status.post({
+    const data = await apiClient.api.orders[showId!].set_status.post({
       $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
       },
@@ -276,7 +276,7 @@ export const OrdersShow = () => {
   };
 
   const clearCourier = async (id: string | undefined) => {
-    const data = await apiClient.api.orders[showId].revoke.post({
+    const data = await apiClient.api.orders[showId!].revoke.post({
       $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
       },

@@ -46,7 +46,7 @@ import { max, sort } from "radash";
 import { prepareOrdersNextButton } from '@api/src/lib/orders';
 import { getDistance } from "geolib";
 import { ctx } from "@api/src/context";
-import { OrdersWithRelations } from "./dtos/list.dto";
+import { OrderLocationsWithRelations, OrdersWithRelations } from "./dtos/list.dto";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -2238,82 +2238,88 @@ export const OrdersController = new Elysia({
             }),
         }
     )
-    .post(
-        "/orders",
-        async ({ body: { data, fields }, drizzle, user, set }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
+    // .post(
+    //     "/orders",
+    //     async ({ body: { data, fields }, drizzle, user, set }) => {
+    //         if (!user) {
+    //             set.status = 401;
+    //             return {
+    //                 message: "User not found",
+    //             };
+    //         }
 
-            if (!user.access.additionalPermissions.includes("orders.create")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
-            let selectFields = {};
-            if (fields) {
-                selectFields = parseSelectFields(fields, orders, {});
-            }
-            const result = await drizzle
-                .insert(orders)
-                .values(data)
-                .returning(selectFields);
+    //         if (!user.access.additionalPermissions.includes("orders.create")) {
+    //             set.status = 401;
+    //             return {
+    //                 message: "You don't have permissions",
+    //             };
+    //         }
+    //         let selectFields = {};
+    //         if (fields) {
+    //             selectFields = parseSelectFields(fields, orders, {});
+    //         }
+    //         const result = await drizzle
+    //             .insert(orders)
+    //             .values(data)
+    //             .returning(selectFields);
 
-            return {
-                data: result[0],
-            };
-        },
-        {
-            body: t.Object({
-                data: createInsertSchema(orders) as any,
-                fields: t.Optional(t.Array(t.String())),
-            }),
-        }
-    )
-    .put(
-        "/orders/:id",
-        async ({ params: { id }, body: { data, fields }, drizzle, set, user }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
+    //         return {
+    //             data: result[0],
+    //         };
+    //     },
+    //     {
+    //         body: t.Object({
+    //             data: t.Object({
+    //                 customer_id: t.String(),
+    //                 courier_id: t.String(),
+    //                 terminal_id: t.String(),
+    //                 created_at: t.String(),
+    //                 updated_at: t.String(),
+    //             }),
+    //             fields: t.Optional(t.Array(t.String())),
+    //         }),
+    //     }
+    // )
+    // .put(
+    //     "/orders/:id",
+    //     async ({ params: { id }, body: { data, fields }, drizzle, set, user }) => {
+    //         if (!user) {
+    //             set.status = 401;
+    //             return {
+    //                 message: "User not found",
+    //             };
+    //         }
 
-            if (!user.access.additionalPermissions.includes("orders.edit")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
-            let selectFields = {};
-            if (fields) {
-                selectFields = parseSelectFields(fields, orders, {});
-            }
-            const result = await drizzle
-                .update(orders)
-                .set(data)
-                .where(eq(orders.id, id))
-                .returning(selectFields);
+    //         if (!user.access.additionalPermissions.includes("orders.edit")) {
+    //             set.status = 401;
+    //             return {
+    //                 message: "You don't have permissions",
+    //             };
+    //         }
+    //         let selectFields = {};
+    //         if (fields) {
+    //             selectFields = parseSelectFields(fields, orders, {});
+    //         }
+    //         const result = await drizzle
+    //             .update(orders)
+    //             .set(data)
+    //             .where(eq(orders.id, id))
+    //             .returning(selectFields);
 
-            return {
-                data: result[0],
-            };
-        },
-        {
-            params: t.Object({
-                id: t.String(),
-            }),
-            body: t.Object({
-                data: createInsertSchema(orders) as any,
-                fields: t.Optional(t.Array(t.String())),
-            }),
-        }
-    )
+    //         return {
+    //             data: result[0],
+    //         };
+    //     },
+    //     {
+    //         params: t.Object({
+    //             id: t.String(),
+    //         }),
+    //         body: t.Object({
+    //             data: createInsertSchema(orders) as any,
+    //             fields: t.Optional(t.Array(t.String())),
+    //         }),
+    //     }
+    // )
     .get('/order_transactions', async ({ drizzle, set, user, query: {
         filters
     } }) => {
@@ -2901,7 +2907,7 @@ export const OrdersController = new Elysia({
             };
         }
         console.time('locationsGetting');
-        const locations = await drizzle
+        const locations = (await drizzle
             .select({
                 ...getTableColumns(order_locations),
                 order_status: {
@@ -2918,7 +2924,7 @@ export const OrdersController = new Elysia({
                 gte(order_locations.order_created_at, dayjs(created_at).subtract(2, 'hours').format("YYYY-MM-DD HH:mm:ss"))
             ))
             .orderBy(asc(order_locations.created_at))
-            .execute() as InferSelectModel<typeof order_locations>[];
+            .execute()) as OrderLocationsWithRelations[];
 
         console.timeEnd('locationsGetting');
 

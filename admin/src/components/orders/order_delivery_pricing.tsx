@@ -25,7 +25,7 @@ import {
   TimePicker,
 } from "antd";
 import { apiClient } from "@admin/src/eden";
-import { organization, terminals } from "@api/drizzle/schema";
+import { delivery_pricing, organization, terminals } from "@api/drizzle/schema";
 import { sortBy } from "lodash";
 import { InferSelectModel } from "drizzle-orm";
 
@@ -48,8 +48,9 @@ const OrderDeliveryPricing: FC<OrderDeliveryPricingProps> = ({ order }) => {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
-  const [deliveryPricing, setDeliveryPricing] =
-    useState<IDeliveryPricing | null>(null);
+  const [deliveryPricing, setDeliveryPricing] = useState<InferSelectModel<
+    typeof delivery_pricing
+  > | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [mainForm] = Form.useForm();
   const [calculateForm] = Form.useForm();
@@ -97,7 +98,7 @@ const OrderDeliveryPricing: FC<OrderDeliveryPricingProps> = ({ order }) => {
 
     setIsLoading(false);
 
-    if (data.data && "id" in data.data) {
+    if (data && data.data && "id" in data.data) {
       mainForm.setFieldsValue(data.data);
       calculateForm.setFieldsValue({
         distance: order.pre_distance,

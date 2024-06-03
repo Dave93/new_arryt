@@ -69,3 +69,121 @@ export const constructedBonusPricingController = new Elysia({
             })
         }
     )
+    .get('/constructed_bonus_pricing/:id', async ({ params: { id }, drizzle, user, set }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("constructed_bonus_pricing.show")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+        const permissionsRecord = await drizzle
+            .select()
+            .from(constructed_bonus_pricing)
+            .where(eq(constructed_bonus_pricing.id, id))
+            .execute();
+        return {
+            data: permissionsRecord[0],
+        };
+    }, {
+        params: t.Object({
+            id: t.String(),
+        }),
+    })
+    .post('/constructed_bonus_pricing', async ({ body: { data }, drizzle, user, set, cacheControl }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("constructed_bonus_pricing.create")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+        const result = await drizzle
+            .insert(constructed_bonus_pricing)
+            .values(data)
+            .returning();
+        await cacheControl.cacheConstructedBonusPricing();
+        return {
+            data: result[0],
+        };
+    }, {
+        body: t.Object({
+            data: t.Object({
+                name: t.String(),
+                organization_id: t.String(),
+                pricing: t.Array(t.Object({
+                    rules: t.Array(
+                        t.Object({
+                            time_from: t.Number(),
+                            time_to: t.Number(),
+                            distance_from: t.Number(),
+                            distance_to: t.Number(),
+                            price: t.Number(),
+                        })
+                    ),
+                }),
+                ),
+            }),
+            fields: t.Optional(t.Array(t.String())),
+        }),
+    })
+    .put('/constructed_bonus_pricing/:id', async ({ params: { id }, body: { data }, drizzle, user, set, cacheControl }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("constructed_bonus_pricing.edit")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+        const result = await drizzle
+            .update(constructed_bonus_pricing)
+            .set(data)
+            .where(eq(constructed_bonus_pricing.id, id))
+            .returning();
+
+        await cacheControl.cacheConstructedBonusPricing();
+        return {
+            data: result[0],
+        };
+    }, {
+        params: t.Object({
+            id: t.String(),
+        }),
+        body: t.Object({
+            data: t.Object({
+                name: t.String(),
+                organization_id: t.String(),
+                pricing: t.Array(t.Object({
+                    rules: t.Array(
+                        t.Object({
+                            time_from: t.Number(),
+                            time_to: t.Number(),
+                            distance_from: t.Number(),
+                            distance_to: t.Number(),
+                            price: t.Number(),
+                        })
+                    ),
+                }),
+                ),
+            }),
+            fields: t.Optional(t.Array(t.String())),
+        }),
+    });

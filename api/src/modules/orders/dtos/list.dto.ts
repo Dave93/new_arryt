@@ -1,4 +1,4 @@
-import { customers, order_status, orders, organization, terminals, users } from "@api/drizzle/schema";
+import { customers, order_locations, order_status, orders, organization, terminals, users } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
 export type OrdersWithRelations = InferSelectModel<typeof orders> & {
@@ -8,4 +8,8 @@ export type OrdersWithRelations = InferSelectModel<typeof orders> & {
     terminals: InferSelectModel<typeof terminals>;
     couriers: InferSelectModel<typeof users>;
     bonus: number
+};
+
+export type OrderLocationsWithRelations = InferSelectModel<typeof order_locations> & {
+    order_status: InferSelectModel<typeof order_status>;
 };

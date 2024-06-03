@@ -34,8 +34,9 @@ export const checkRestPermission = async ({
       return `Unauthorized`;
     }
 
-    let userData = await redis.get(
-      `${process.env.PROJECT_PREFIX}_user:${jwtResult.payload.id as string}`
+    let userData = await redis.hget(
+      `${process.env.PROJECT_PREFIX}_user`,
+      jwtResult.payload.id as string
     );
     // let user = await usersService.findOne({
     //   where: {
@@ -59,9 +60,6 @@ export const checkRestPermission = async ({
 
       return `Unauthorized`;
     }
-    console.log(
-      `${process.env.PROJECT_PREFIX}_user:${jwtResult.payload.id as string}`
-    );
     console.log(jwtResult.payload.id);
     const permissions = userData?.access?.additionalPermissions ?? [];
     console.log(permissions);

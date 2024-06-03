@@ -1,4 +1,4 @@
-import { roles } from "@api/drizzle/schema";
+import { roles, roles_permissions } from "@api/drizzle/schema";
 import { InferSelectModel, eq, sql } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
@@ -78,6 +78,35 @@ export const RolesController = new Elysia({
     }
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_roles`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof roles>[];
+  })
+  .get('/roles/:id/permissions', async ({ params: { id }, drizzle, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("roles.show")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+    const permissionsList = await drizzle
+      .select({
+        permission_id: roles_permissions.permission_id,
+      })
+      .from(roles_permissions)
+      .where(eq(roles_permissions.role_id, id))
+      .execute();
+    return {
+      data: permissionsList,
+    };
+  }, {
+    params: t.Object({
+      id: t.String(),
+    }),
   })
   .get(
     "/roles/:id",
