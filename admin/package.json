@@ -101,7 +101,7 @@
   "scripts": {
     "dev": "refine dev --port 4000",
     "build": "tsc && refine build",
-    "preview": "refine start",
+    "preview": "refine start --port 4000",
     "refine": "refine"
   },
   "eslintConfig": {
