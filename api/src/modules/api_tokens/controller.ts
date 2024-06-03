@@ -4,7 +4,6 @@ import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 import { ApiTokensWithRelations } from "./dto/list.dto";
 
@@ -150,7 +149,11 @@ export const ApiTokensController = new Elysia({
     },
     {
       body: t.Object({
-        data: createInsertSchema(api_tokens) as any,
+        data: t.Object({
+          active: t.Boolean(),
+          token: t.String(),
+          organization_id: t.String(),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
@@ -190,7 +193,11 @@ export const ApiTokensController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(api_tokens) as any,
+        data: t.Object({
+          active: t.Boolean(),
+          token: t.String(),
+          organization_id: t.String(),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }

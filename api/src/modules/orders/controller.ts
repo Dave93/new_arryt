@@ -14,7 +14,6 @@ import {
 import { db } from "@api/src/lib/db";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { checkRestPermission } from "@api/src/utils/check_rest_permissions";
 import dayjs from "dayjs";
 import {
     InferSelectModel,
@@ -30,7 +29,6 @@ import {
     sql,
 } from "drizzle-orm";
 import { SelectedFields, alias } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 import { GarantReportItem } from "./dtos/reposts.dto";
 import postgres from "postgres";

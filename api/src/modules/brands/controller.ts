@@ -4,7 +4,6 @@ import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 
 export const BrandsController = new Elysia({
@@ -115,7 +114,11 @@ export const BrandsController = new Elysia({
     },
     {
       body: t.Object({
-        data: createInsertSchema(brands) as any,
+        data: t.Object({
+          name: t.String(),
+          api_url: t.String(),
+          logo_path: t.Optional(t.String()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
@@ -155,7 +158,11 @@ export const BrandsController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(brands) as any,
+        data: t.Object({
+          name: t.String(),
+          api_url: t.String(),
+          logo_path: t.Optional(t.String()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }

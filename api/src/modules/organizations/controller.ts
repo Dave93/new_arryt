@@ -3,7 +3,6 @@ import { ctx } from "@api/src/context";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { InferSelectModel, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 
 export const OrganizationsController = new Elysia({
@@ -144,7 +143,27 @@ export const OrganizationsController = new Elysia({
     },
     {
       body: t.Object({
-        data: createInsertSchema(organization) as any,
+        data: t.Object({
+          name: t.String(),
+          description: t.String(),
+          active: t.Boolean(),
+          system_type: t.Union([t.Literal("jowi"), t.Literal("r_keeper"), t.Literal("iiko")]),
+          phone: t.String(),
+          iiko_login: t.Optional(t.String()),
+          webhook: t.Optional(t.String()),
+          group_id: t.Optional(t.String()),
+          apelsin_login: t.Optional(t.String()),
+          apelsin_password: t.Optional(t.String()),
+          sender_name: t.Optional(t.String()),
+          sender_number: t.Optional(t.String()),
+          max_distance: t.Optional(t.Number()),
+          max_active_order_count: t.Optional(t.Number()),
+          max_order_close_distance: t.Optional(t.Number()),
+          payment_type: t.Union([t.Literal("cash"), t.Literal("card"), t.Literal("client")]),
+          support_chat_url: t.Optional(t.String()),
+          icon_url: t.Optional(t.String()),
+          allow_yandex_delivery: t.Optional(t.Boolean())
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
@@ -184,7 +203,27 @@ export const OrganizationsController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(organization) as any,
+        data: t.Object({
+          name: t.String(),
+          description: t.String(),
+          active: t.Boolean(),
+          system_type: t.Union([t.Literal("jowi"), t.Literal("r_keeper"), t.Literal("iiko")]),
+          phone: t.String(),
+          iiko_login: t.Optional(t.String()),
+          webhook: t.Optional(t.String()),
+          group_id: t.Optional(t.String()),
+          apelsin_login: t.Optional(t.String()),
+          apelsin_password: t.Optional(t.String()),
+          sender_name: t.Optional(t.String()),
+          sender_number: t.Optional(t.String()),
+          max_distance: t.Optional(t.Number()),
+          max_active_order_count: t.Optional(t.Number()),
+          max_order_close_distance: t.Optional(t.Number()),
+          payment_type: t.Union([t.Literal("cash"), t.Literal("card"), t.Literal("client")]),
+          support_chat_url: t.Optional(t.String()),
+          icon_url: t.Optional(t.String()),
+          allow_yandex_delivery: t.Optional(t.Boolean())
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }

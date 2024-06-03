@@ -39,9 +39,9 @@ import { generateAuthToken, verifyJwt } from "@api/src/utils/bcrypt";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
+import { createSelectSchema } from "drizzle-typebox";
 import { getDistance } from "geolib";
-import { List, sortBy, uniq } from "lodash";
+import { sortBy, uniq } from "lodash";
 import { getSetting } from "@api/src/utils/settings";
 
 import customParseFormat from "dayjs/plugin/customParseFormat";

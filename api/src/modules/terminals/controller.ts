@@ -5,9 +5,8 @@ import {
 import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
+import { SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 import { TerminalsWithRelations } from "./dto/list.dto";
 
@@ -153,7 +152,21 @@ export const TerminalsController = new Elysia({
     },
     {
       body: t.Object({
-        data: createInsertSchema(terminals) as any,
+        data: t.Object({
+          name: t.String(),
+          active: t.Optional(t.Boolean()),
+          phone: t.Optional(t.String()),
+          address: t.Optional(t.String()),
+          latitude: t.Number(),
+          longitude: t.Number(),
+          external_id: t.String(),
+          organization_id: t.String(),
+          manager_name: t.Optional(t.String()),
+          fuel_bonus: t.Optional(t.Boolean()),
+          linked_terminal_id: t.Optional(t.String()),
+          time_to_yandex: t.Optional(t.Number()),
+          allow_yandex: t.Optional(t.Boolean()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
@@ -193,7 +206,21 @@ export const TerminalsController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(terminals) as any,
+        data: t.Object({
+          name: t.String(),
+          active: t.Optional(t.Boolean()),
+          phone: t.Optional(t.String()),
+          address: t.Optional(t.String()),
+          latitude: t.Number(),
+          longitude: t.Number(),
+          external_id: t.String(),
+          organization_id: t.String(),
+          manager_name: t.Optional(t.String()),
+          fuel_bonus: t.Optional(t.Boolean()),
+          linked_terminal_id: t.Optional(t.String()),
+          time_to_yandex: t.Optional(t.Number()),
+          allow_yandex: t.Optional(t.Boolean()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }

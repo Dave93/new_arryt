@@ -6,9 +6,8 @@ import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import dayjs from "dayjs";
-import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
+import { SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 import { WorkScheduleWithRelations } from "./dto/list.dto";
 
@@ -166,7 +165,16 @@ export const WorkSchedulesController = new Elysia({
     },
     {
       body: t.Object({
-        data: createInsertSchema(work_schedules) as any,
+        data: t.Object({
+          name: t.String(),
+          active: t.Boolean(),
+          organization_id: t.String(),
+          days: t.Array(t.String()),
+          start_time: t.String(),
+          end_time: t.String(),
+          max_start_time: t.String(),
+          bonus_price: t.Optional(t.Number()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
@@ -219,7 +227,16 @@ export const WorkSchedulesController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(work_schedules) as any,
+        data: t.Object({
+          name: t.String(),
+          active: t.Boolean(),
+          organization_id: t.String(),
+          days: t.Array(t.String()),
+          start_time: t.String(),
+          end_time: t.String(),
+          max_start_time: t.String(),
+          bonus_price: t.Optional(t.Number()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }

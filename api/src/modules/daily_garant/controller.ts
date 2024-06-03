@@ -5,9 +5,8 @@ import {
 import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
+import { SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 
 export const DailyGarantController = new Elysia({
@@ -145,7 +144,12 @@ export const DailyGarantController = new Elysia({
     },
     {
       body: t.Object({
-        data: createInsertSchema(daily_garant) as any,
+        data: t.Object({
+          name: t.String(),
+          date: t.String(),
+          amount: t.Number(),
+          late_minus_sum: t.Number(),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
@@ -185,7 +189,12 @@ export const DailyGarantController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(daily_garant) as any,
+        data: t.Object({
+          name: t.String(),
+          date: t.String(),
+          amount: t.Number(),
+          late_minus_sum: t.Number(),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }

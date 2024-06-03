@@ -8,7 +8,6 @@ import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import dayjs from "dayjs";
 import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 import { DeliveryPricingWithRelations } from "./dto/list.dto";
 
@@ -156,7 +155,32 @@ export const DeliveryPricingController = new Elysia({
     },
     {
       body: t.Object({
-        data: createInsertSchema(delivery_pricing) as any,
+        data: t.Object({
+          active: t.Boolean(),
+          default: t.Boolean(),
+          name: t.String(),
+          drive_type: t.Union([t.Literal("bycicle"), t.Literal("foot"), t.Literal("bike"), t.Literal("car")]),
+          days: t.Array(t.String()),
+          start_time: t.String(),
+          end_time: t.String(),
+          min_price: t.Number(),
+          rules: t.Array(t.Object({
+            from: t.Number(),
+            price: t.Number(),
+            to: t.Number(),
+          })),
+          price_per_km: t.Number(),
+          customer_rules: t.Array(t.Object({
+            from: t.Number(),
+            price: t.Number(),
+            to: t.Number(),
+          })),
+          customer_price_per_km: t.Number(),
+          min_distance_km: t.Number(),
+          organization_id: t.String(),
+          terminal_id: t.String(),
+          payment_type: t.Union([t.Literal("client"), t.Literal("card"), t.Literal("cash")]),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
@@ -205,7 +229,32 @@ export const DeliveryPricingController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(delivery_pricing) as any,
+        data: t.Object({
+          active: t.Boolean(),
+          default: t.Boolean(),
+          name: t.String(),
+          drive_type: t.Union([t.Literal("bycicle"), t.Literal("foot"), t.Literal("bike"), t.Literal("car")]),
+          days: t.Array(t.String()),
+          start_time: t.String(),
+          end_time: t.String(),
+          min_price: t.Number(),
+          rules: t.Array(t.Object({
+            from: t.Number(),
+            price: t.Number(),
+            to: t.Number(),
+          })),
+          price_per_km: t.Number(),
+          customer_rules: t.Array(t.Object({
+            from: t.Number(),
+            price: t.Number(),
+            to: t.Number(),
+          })),
+          customer_price_per_km: t.Number(),
+          min_distance_km: t.Number(),
+          organization_id: t.String(),
+          terminal_id: t.String(),
+          payment_type: t.Union([t.Literal("client"), t.Literal("card"), t.Literal("cash")]),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }

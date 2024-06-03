@@ -1,22 +1,13 @@
 import {
-  api_tokens,
-  daily_garant,
-  delivery_pricing,
   order_bonus_pricing,
-  organization,
-  organization_system_type,
-  terminals,
-  work_schedules,
+  organization, terminals
 } from "@api/drizzle/schema";
 import { ctx } from "@api/src/context";
-import { db } from "@api/src/lib/db";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
-import Redis from "ioredis";
 import { OrderBonusPricingWithRelations } from "./dto/list.dto";
 
 export const OrderBonusPricingController = new Elysia({
@@ -169,7 +160,17 @@ export const OrderBonusPricingController = new Elysia({
     },
     {
       body: t.Object({
-        data: createInsertSchema(order_bonus_pricing) as any,
+        data: t.Object({
+          active: t.Optional(t.Boolean()),
+          name: t.String(),
+          max_order_time: t.Optional(t.Number()),
+          rules: t.Array(t.Object({})),
+          max_distance_km: t.Optional(t.Number()),
+          organization_id: t.String(),
+          terminal_id: t.String(),
+          terminal_ids: t.Optional(t.Array(t.String())),
+          courier_id: t.Optional(t.String()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
@@ -209,7 +210,17 @@ export const OrderBonusPricingController = new Elysia({
         id: t.String(),
       }),
       body: t.Object({
-        data: createInsertSchema(order_bonus_pricing) as any,
+        data: t.Object({
+          active: t.Optional(t.Boolean()),
+          name: t.String(),
+          max_order_time: t.Optional(t.Number()),
+          rules: t.Array(t.Object({})),
+          max_distance_km: t.Optional(t.Number()),
+          organization_id: t.String(),
+          terminal_id: t.String(),
+          terminal_ids: t.Optional(t.Array(t.String())),
+          courier_id: t.Optional(t.String()),
+        }),
         fields: t.Optional(t.Array(t.String())),
       }),
     }
