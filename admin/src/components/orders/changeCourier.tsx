@@ -27,7 +27,7 @@ export const ChangeOrdersCouirer: FC<ChangeOrderProps> = ({
   const changeCourier = async () => {
     setConfirmLoading(true);
 
-    const data = await apiClient.api.orders[id].assign.post({
+    const data = await apiClient.api.orders[id!].assign.post({
       courier_id: selectedCourier,
       $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,

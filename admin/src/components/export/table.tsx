@@ -7,15 +7,15 @@ import {
 import {
   ResourceRouterParams,
   BaseRecord,
-  MapDataFn,
   CrudSorting,
   CrudFilters,
   MetaDataQuery,
 } from "@refinedev/core";
 import { userFriendlyResourceName } from "@refinedev/core";
-import { Options } from "export-to-csv-fix-source-map";
 import { Excel } from "./src";
 import { TableColumnType } from "antd";
+import { MapDataFn } from "@refinedev/core/dist/hooks/export/types";
+import { ConfigOptions } from "export-to-csv";
 
 type UseExportOptionsType<
   TData extends BaseRecord = BaseRecord,
@@ -27,7 +27,7 @@ type UseExportOptionsType<
   filters?: CrudFilters;
   maxItemCount?: number;
   pageSize?: number;
-  exportOptions?: Options;
+  exportOptions?: ConfigOptions;
   metaData?: MetaDataQuery;
   dataProviderName?: string;
   columns?: TableColumnType<TData>[];
