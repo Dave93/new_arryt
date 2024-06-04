@@ -1,7 +1,8 @@
 import type { AuthBindings } from "@refinedev/core";
 import { gql } from "graphql-request";
 import { client } from "./graphConnect";
-import { AES, enc } from "crypto-js";
+import * as openpgp from 'openpgp';
+
 
 import ms from "ms";
 import { DateTime } from "luxon";
@@ -30,7 +31,12 @@ export const authProvider: AuthBindings = {
         data!.token!.expirationMillis = expiration.toMillis();
         let credentials = JSON.stringify(data);
         let password = import.meta.env.VITE_CRYPTO_KEY!;
-        const encrypted = AES.encrypt(enc.Utf8.parse(credentials), password).toString();
+        const message = await openpgp.createMessage({ text: credentials });
+        const encrypted = await openpgp.encrypt({
+          message, // input as Message object
+          passwords: [password], // multiple passwords possible
+          format: 'armored' // don't ASCII armor (for Uint8Array output)
+        });
 
         localStorage.setItem(TOKEN_KEY, encrypted);
         return { success: true, redirectTo: "/" };
@@ -62,8 +68,19 @@ export const authProvider: AuthBindings = {
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
       let password = import.meta.env.VITE_CRYPTO_KEY!;
-      var bytes = AES.decrypt(token, password);
-      var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
+      const encryptedMessage = await openpgp.readMessage({
+        armoredMessage: token
+      });
+      const { data: decrypted } = await openpgp.decrypt({
+        message: encryptedMessage,
+        passwords: [password], // decrypt with password
+        format: 'binary' // output as Uint8Array
+      });
+
+      // binary to string
+      const decryptedString = new TextDecoder().decode(decrypted);
+
+      var decryptedData = JSON.parse(decryptedString);
       if (decryptedData.token.accessTokenExpires) {
         let expiration = DateTime.fromMillis(
           decryptedData.token.expirationMillis
@@ -93,7 +110,12 @@ export const authProvider: AuthBindings = {
             decryptedData.token.expirationMillis = expiration.toMillis();
             let credentials = JSON.stringify(decryptedData);
             let password = import.meta.env.VITE_CRYPTO_KEY!;
-            const encrypted = AES.encrypt(credentials, password).toString();
+            const message = await openpgp.createMessage({ text: credentials });
+            const encrypted = await openpgp.encrypt({
+              message, // input as Message object
+              passwords: [password], // multiple passwords possible
+              format: 'armored' // don't ASCII armor (for Uint8Array output)
+            });
 
             localStorage.setItem(TOKEN_KEY, encrypted);
             return {
@@ -122,12 +144,23 @@ export const authProvider: AuthBindings = {
       redirectTo: "/login",
     };
   },
-  getPermissions: () => {
+  getPermissions: async () => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
       let password = import.meta.env.VITE_CRYPTO_KEY!;
-      var bytes = AES.decrypt(token, password);
-      var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
+      const encryptedMessage = await openpgp.readMessage({
+        armoredMessage: token
+      });
+      const { data: decrypted } = await openpgp.decrypt({
+        message: encryptedMessage,
+        passwords: [password], // decrypt with password
+        format: 'binary' // output as Uint8Array
+      });
+
+      // binary to string
+      const decryptedString = new TextDecoder().decode(decrypted);
+
+      var decryptedData = JSON.parse(decryptedString);
       return decryptedData.access;
     }
     return null;
@@ -139,8 +172,19 @@ export const authProvider: AuthBindings = {
     }
 
     let password = import.meta.env.VITE_CRYPTO_KEY!;
-    var bytes = AES.decrypt(token, password);
-    var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
+    const encryptedMessage = await openpgp.readMessage({
+      armoredMessage: token
+    });
+    const { data: decrypted } = await openpgp.decrypt({
+      message: encryptedMessage,
+      passwords: [password], // decrypt with password
+      format: 'binary' // output as Uint8Array
+    });
+
+    // binary to string
+    const decryptedString = new TextDecoder().decode(decrypted);
+
+    var decryptedData = JSON.parse(decryptedString);
     return decryptedData;
   },
 };
