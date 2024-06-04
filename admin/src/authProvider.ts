@@ -30,7 +30,7 @@ export const authProvider: AuthBindings = {
         data!.token!.expirationMillis = expiration.toMillis();
         let credentials = JSON.stringify(data);
         let password = import.meta.env.VITE_CRYPTO_KEY!;
-        const encrypted = AES.encrypt(credentials, password).toString();
+        const encrypted = AES.encrypt(enc.Utf8.parse(credentials), password).toString();
 
         localStorage.setItem(TOKEN_KEY, encrypted);
         return { success: true, redirectTo: "/" };
