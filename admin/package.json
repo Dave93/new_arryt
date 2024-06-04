@@ -101,8 +101,9 @@
   "scripts": {
     "dev": "refine dev --port 4000",
     "build": "tsc && refine build",
-    "preview": "refine start --port 4000",
-    "refine": "refine"
+    "preview": "refine start --port 4000 --host=0.0.0.0",
+    "refine": "refine",
+    "serve": "bunx --bun vite preview --port 4000 --host=0.0.0.0"
   },
   "eslintConfig": {
     "extends": [
