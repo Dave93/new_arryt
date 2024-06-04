@@ -73,6 +73,7 @@ export const edenDataProvider: DataProvider = {
       } | null;
       error?: any;
     };
+    console.log('error', error);
     if (error) throw Error(error?.value);
     return {
       data: data?.data ?? [],
