@@ -20,7 +20,7 @@ import {
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { getMessageToken } from "@admin/src/lib/firebase";
-import { apiClient } from "@admin/src/eden";
+import { apiClient, apiFetch } from "@admin/src/eden";
 
 const { NumberOutlined } = Icons;
 export interface ILoginForm {
@@ -52,11 +52,18 @@ export const Login: React.FC = () => {
     console.log("values", values);
     try {
       console.log("apiClient", apiClient.api);
-      const res = await apiClient.api.users["send-otp"].post({
-        phone,
-      });
-      console.log("phone submit", res);
-      res.data?.details && setOtpSecret(res.data.details);
+      // const res = await apiClient.api.users["send-otp"].post({
+      //   phone,
+      // });
+      const { data, error } = await apiFetch(
+        // @ts-ignore
+        `/api/users/send-otp`,
+        {
+          method: "POST",
+          body: { phone },
+        }
+      );
+      data?.details && setOtpSecret(data?.details);
       setLoading(false);
       setCurrent("code");
       // const tempDeviceToken = await getMessageToken();
