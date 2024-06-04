@@ -24,7 +24,6 @@ import {
   ApiTokensList,
   OrderStatusEdit,
 } from "@admin/src/pages/api_tokens";
-import { AES, enc } from "crypto-js";
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { createClient } from "graphql-ws";
 import { useEffect, useMemo } from "react";
@@ -97,6 +96,7 @@ import { ThemedLayoutV2 } from "@refinedev/antd";
 import { edenDataProvider } from "./dataprovider/edenDataProvider";
 import { App as AntdApp } from "antd";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import * as openpgp from "openpgp";
 
 const httpLink = new HttpLink({
   uri: `https://${import.meta.env.VITE_GRAPHQL_API_DOMAIN!}/graphql`,
@@ -467,8 +467,21 @@ function App() {
                     const token = localStorage.getItem(TOKEN_KEY);
                     if (token) {
                       let password = import.meta.env.VITE_CRYPTO_KEY!;
-                      var bytes = AES.decrypt(token, password);
-                      var decryptedData = JSON.parse(bytes.toString(enc.Utf8));
+                      const encryptedMessage = await openpgp.readMessage({
+                        armoredMessage: token,
+                      });
+                      const { data: decrypted } = await openpgp.decrypt({
+                        message: encryptedMessage,
+                        passwords: [password], // decrypt with password
+                        format: "binary", // output as Uint8Array
+                      });
+
+                      // binary to string
+                      const decryptedString = new TextDecoder().decode(
+                        decrypted
+                      );
+
+                      var decryptedData = JSON.parse(decryptedString);
                       const {
                         access: { additionalPermissions },
                       } = decryptedData;
