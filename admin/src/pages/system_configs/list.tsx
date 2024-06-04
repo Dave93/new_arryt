@@ -86,65 +86,61 @@ export const SystemConfigsList: React.FC = () => {
 
   const loadDefaultData = async () => {
     setIsLoading(true);
-    const { query } = gql.query({
-      operation: "systemConfigs",
-      fields: ["id", "name", "value"],
-    });
-    const data = await client.request(
-      query,
-      {},
-      {
+    const { data } = await apiClient.api.system_configs.cached.get({
+      $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
+      },
+    });
     setIsLoading(false);
-    data.systemConfigs.forEach((item: any) => {
-      if (
-        item.name.indexOf("time") !== -1 &&
-        !["late_order_time", "yandex_courier_wait_time"].includes(item.name)
-      ) {
-        setValue(item.name, dayjs(item.value));
-      } else {
-        if (item.name == "close_dates") {
-          try {
-            let closeDates = JSON.parse(item.value);
-            closeDates = closeDates.map((item: any) => {
-              return {
-                date: dayjs(item.date),
-                reason: item.reason,
-              };
-            });
-            setValue(item.name, closeDates);
-          } catch (error) {
-            console.log(error);
-          }
-        } else if (["garant_prices", "yandex_courier_id"].includes(item.name)) {
-          try {
-            let closeDates = JSON.parse(item.value);
-            setValue(item.name, closeDates);
-          } catch (error) {
-            console.log(error);
-          }
-        } else if (item.name === "terminal_close_days") {
-          try {
-            let terminalCloseDays = JSON.parse(item.value);
-            terminalCloseDays = terminalCloseDays.map((item: any) => {
-              return {
-                date: dayjs(item.date),
-                terminal_id: item.terminal_id,
-              };
-            });
-            setValue(item.name, terminalCloseDays);
-          } catch (error) {
-            console.log(error);
-          }
-        } else if (item.name === "yandex_delivery_payment_types") {
-          setValue(item.name, item.value.split(","));
+    if (data && Object.entries(data).length) {
+      for (const [key, value] of Object.entries(data)) {
+        if (
+          key.indexOf("time") !== -1 &&
+          !["late_order_time", "yandex_courier_wait_time"].includes(key)
+        ) {
+          setValue(key, dayjs(value));
         } else {
-          setValue(item.name, item.value);
+          if (key == "close_dates") {
+            try {
+              let closeDates = JSON.parse(value);
+              closeDates = closeDates.map((item: any) => {
+                return {
+                  date: dayjs(item.date),
+                  reason: item.reason,
+                };
+              });
+              setValue(key, closeDates);
+            } catch (error) {
+              console.log(error);
+            }
+          } else if (["garant_prices", "yandex_courier_id"].includes(key)) {
+            try {
+              let closeDates = JSON.parse(value);
+              setValue(key, closeDates);
+            } catch (error) {
+              console.log(error);
+            }
+          } else if (key === "terminal_close_days") {
+            try {
+              let terminalCloseDays = JSON.parse(value);
+              terminalCloseDays = terminalCloseDays.map((item: any) => {
+                return {
+                  date: dayjs(item.date),
+                  terminal_id: item.terminal_id,
+                };
+              });
+              setValue(key, terminalCloseDays);
+            } catch (error) {
+              console.log(error);
+            }
+          } else if (key === "yandex_delivery_payment_types") {
+            setValue(key, value.split(","));
+          } else {
+            setValue(key, value);
+          }
         }
       }
-    });
+    }
   };
 
   const onSubmit = async (data: any) => {
@@ -178,20 +174,31 @@ export const SystemConfigsList: React.FC = () => {
       }
     }
 
-    const { query, variables } = gql.mutation({
-      operation: "createSystemConfig",
-      variables: {
-        data: {
-          value: { items: formData },
-          type: "CreateSystemConfigInput",
-          required: true,
-        },
+    await apiClient.api.system_configs.set_multiple.post(
+      {
+        data: formData,
       },
-      fields: ["name", "value"],
-    });
-    const response = await client.request(query, variables, {
-      Authorization: `Bearer ${identity?.token.accessToken}`,
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
+        },
+      }
+    );
+
+    // const { query, variables } = gql.mutation({
+    //   operation: "createSystemConfig",
+    //   variables: {
+    //     data: {
+    //       value: { items: formData },
+    //       type: "CreateSystemConfigInput",
+    //       required: true,
+    //     },
+    //   },
+    //   fields: ["name", "value"],
+    // });
+    // const response = await client.request(query, variables, {
+    //   Authorization: `Bearer ${identity?.token.accessToken}`,
+    // });
 
     setIsLoading(false);
   };
@@ -232,7 +239,7 @@ export const SystemConfigsList: React.FC = () => {
   useEffect(() => {
     loadDefaultData();
     fetchAllData();
-  }, []);
+  }, [identity]);
 
   return (
     <div>
