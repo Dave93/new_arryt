@@ -5,7 +5,6 @@ import {
 } from "@api/drizzle/schema";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { checkRestPermission } from "@api/src/utils/check_rest_permissions";
 import dayjs from "dayjs";
 import {
     SQLWrapper,

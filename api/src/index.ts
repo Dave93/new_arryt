@@ -7,7 +7,7 @@ const app = new Elysia()
   .get("/check_service", () => ({
     result: "ok",
   }))
-  .use(serverTiming())
+  // .use(serverTiming())
   .use(apiController)
   .listen(process.env.API_PORT || 3000);
 

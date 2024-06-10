@@ -1,11 +1,12 @@
-import { Cron } from "croner";
-import { getSetting } from "@api/src/utils/settings";
+import { scheduled_reports, scheduled_reports_subscription, users, work_schedule_entries, work_schedule_entry_status } from "@api/drizzle/schema";
 import { db } from "@api/src/lib/db";
 import { CacheControlService } from "@api/src/modules/cache/service";
-import Redis from 'ioredis'
-import { missed_orders, orders, roles, users, users_roles } from "@api/drizzle/schema";
-import { and, inArray, isNull, lte, gte, eq, isNotNull } from "drizzle-orm";
+import Cron from "croner";
 import dayjs from "dayjs";
+import { and, eq, sql, isNotNull, inArray } from "drizzle-orm";
+import Redis from 'ioredis';
+import _ from 'lodash';
+import { sendCourierWithdrawsReport } from "./send_courier_withdraws_report";
 
 
 export const redisClient = new Redis({
@@ -16,124 +17,184 @@ export const redisClient = new Redis({
 
 const cacheControl = new CacheControlService(db, redisClient);
 
-const operatorsStatement = db.select({
-    id: users.id,
-    fcm_token: users.fcm_token,
-})
-    .from(users)
-    .leftJoin(users_roles, eq(users.id, users_roles.user_id))
-    .leftJoin(roles, eq(users_roles.role_id, roles.id))
-    .where(
-        and(
-            inArray(roles.code, ['operator', 'admin', 'super_admin']),
-            isNotNull(users.fcm_token)
-        )
-    ).prepare('fcm_operators');
+const userByPhone = db.query.users
+    .findFirst({
+        where: (users, { eq }) => eq(users.phone, sql.placeholder("phone")),
+    })
+    .prepare("userByPhone");
 
-const job = Cron('0 */2 * * * *', {
-    name: 'register_missed_orders'
+const balanceReportSendJob = Cron('30 10 * * *', {
+    name: 'balance_report_send'
 }, async () => {
-    const laterMinutes = await getSetting(redisClient, 'late_order_time');
-    console.log('laterMinutes', laterMinutes);
-    console.log('typeof laterMinutes', typeof laterMinutes);
-    const terminals = await cacheControl.getTerminals();
-    const activeTerminalIds = terminals.filter((terminal) => terminal.active).map(t => t.id);
 
-    const ordersList = await db.select({
-        id: orders.id,
-        created_at: orders.created_at,
-    }).from(orders).where(
-        and(
-            gte(orders.created_at, dayjs().subtract(2, 'hour').minute(0).second(0).format('YYYY-MM-DD HH:mm:ss')),
-            lte(orders.created_at, dayjs().subtract(laterMinutes, 'minute').format('YYYY-MM-DD HH:mm:ss')),
-            inArray(orders.terminal_id, activeTerminalIds),
-            isNull(orders.courier_id)
-        )
-    );
+    const courierTerminalBalance = await db.execute<{
+        id: string;
+        balance: number;
+        courier_id: string;
+        terminal_id: string;
+        last_name: string;
+        first_name: string;
+        name: string;
+    }>(sql.raw(`select ctb.id, ctb.balance, ctb.courier_id, ctb.terminal_id, u.last_name, u.first_name, t.name
+        from courier_terminal_balance ctb
+        left join users u on ctb.courier_id = u.id
+        left join terminals t on ctb.terminal_id = t.id
+        where ctb.balance > 0 and u.status = 'active' and u.phone != '+998908251218'
+        order by ctb.balance desc`));
 
-    if (ordersList.length > 0) {
+    // group by terminal name using lodash
+    const groupedByTerminal = _.groupBy(courierTerminalBalance, 'terminal_id');
 
-        // await db.insert(missed_orders).values(ordersList.map((order) => ({
-        //     order_id: order.id,
-        //     order_created_at: order.created_at,
-        //     system_minutes_config: laterMinutes,
-        // }))).execute();
-
-        const orderStatuses = await cacheControl.getOrderStatuses();
-        // order status where order = 1
-        const newOrderStatuses = orderStatuses.filter((status) => status.sort == 1);
-
-        // start of day using Date
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-
-        // end of day using Date
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 59, 999);
-
-        const serverKey = process.env.FCM_SERVER_KEY;
-
-        const operators = await operatorsStatement.execute();
-        const message = {
-            notification: {
-                title: 'Курьеры не приняли заказы',
-                body: `Курьеры не приняли ${ordersList.length} заказов`,
-                data: {
-                    url: `/orders?pageSize=200&current=1&sorter[0][field]=created_at&sorter[0][order]=desc&filters[0][field]=created_at&filters[0][operator]=gte&filters[0][value]=${startOfDay.toISOString()}&filters[1][field]=created_at&filters[1][operator]=lte&filters[1][value]=${endOfDay.toISOString()}&filters[2][field]=order_status_id&filters[2][operator]=in&filters[2][value][0]=${newOrderStatuses[0].id
-                        }&filters[2][value][1]=${newOrderStatuses[1].id}`,
-                },
-            },
-            // data: {
-            //   title: payload.notification.title,
-            //   body: payload.notification.body,
-            //   ...payload.data,
-            // },
-            priority: 'high',
-            android: {
-                priority: 'high',
-            },
-            mutable_content: true,
-            apns: {
-                payload: {
-                    aps: {
-                        sound: 'default',
-                    },
-                },
-            },
-            to: '',
-            content: {
-                channelKey: 'new_order',
-            },
-        };
-
-        let deviceIds = operators.map((user) => user.fcm_token);
-        console.log('deviceIds', deviceIds)
-        if (deviceIds.length > 0) {
-            for (const deviceId of deviceIds) {
-                message.to = deviceId!;
-                try {
-                    const responseJson = await fetch('https://fcm.googleapis.com/fcm/send', {
-                        method: 'POST',
-                        body: JSON.stringify(message),
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `key=${serverKey}`,
-                        }
-                    });
-
-                    const response = await responseJson.json();
-                    console.log('response', response);
-                    return {
-                        // @ts-ignore
-                        failureCount: response.failure,
-
-                        // @ts-ignore
-                        successCount: response.success,
-                    };
-                } catch (e) {
-                    console.log(e);
-                }
+    let html = `<b>Список курьеров с положительным балансом</b>`;
+    // loop through each terminal
+    for (const terminal_id in groupedByTerminal) {
+        if (groupedByTerminal.hasOwnProperty(terminal_id)) {
+            const terminal = groupedByTerminal[terminal_id];
+            html += `\n\n<b>${terminal[0].name}</b>\n`;
+            // loop through each courier
+            for (const courier of terminal) {
+                html += `${courier.first_name} ${courier.last_name
+                    } -- ${Intl.NumberFormat('ru-RU', {
+                        style: 'currency',
+                        currency: 'UZS',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                    }).format(courier.balance)}\n`;
             }
         }
     }
+
+    const apiToken = process.env.BOT_API_TOKEN;
+
+    const buff = Buffer.from(`${apiToken}`);
+    const base64data = buff.toString('base64');
+    // random string with 6 characters
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const hexBuffer = Buffer.from(`${randomString}${base64data}`);
+    const hex = hexBuffer.toString('hex');
+
+    const chatIds = process.env.BALANCE_REPORT_GROUPS?.split(',') ?? [];
+    for (const chatId of chatIds) {
+        await fetch(`https://order-tg.choparpizza.uz/message`, {
+            method: 'POST',
+            headers: {
+                'Accept-Language': 'ru',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${hex}`,
+            },
+            body: JSON.stringify({
+                chat_id: +chatId,
+                text: html,
+            }),
+        });
+    }
+});
+
+const closeOpenedTimesJob = Cron('0 5 * * *', {
+    name: 'close_opened_times'
+}, async () => {
+
+    const openTimeEntries = await db.select({
+        id: work_schedule_entries.id,
+        date_start: work_schedule_entries.date_start,
+        user_id: work_schedule_entries.user_id,
+    })
+        .from(work_schedule_entries)
+        .where(
+            eq(work_schedule_entries.current_status, "open")
+        );
+
+    for (const openTimeEntry of openTimeEntries) {
+        try {
+            const dateStart = new Date(openTimeEntry.date_start);
+            const dateEnd = new Date();
+            // get duration in seconds
+            const duration = Math.floor((dateEnd.getTime() - dateStart.getTime()) / 1000);
+            await db.update(work_schedule_entries).set({
+                ip_close: '127.0.0.1',
+                current_status: "closed",
+                duration,
+                date_finish: new Date().toISOString(),
+            }).where(eq(work_schedule_entries.id, openTimeEntry.id));
+            // await this.prismaService.work_schedule_entries.update({
+            //     where: {
+            //         id: openTimeEntry.id,
+            //     },
+            //     data: {
+            //         ip_close: '127.0.0.1',
+            //         current_status: work_schedule_entry_status.closed,
+            //         duration,
+            //         date_finish: new Date(),
+            //     },
+            // });
+
+            await db.update(users).set({
+                is_online: false,
+            }).where(eq(users.id, openTimeEntry.user_id));
+
+            redisClient.hdel(`${process.env.PROJECT_PREFIX}_user_location`, openTimeEntry.user_id);
+        } catch (e) { }
+    }
+});
+
+const sendBalanceReportBotJob = Cron('*/10 * * * *', {
+    name: 'send_balance_report_bot'
+}, async () => {
+    const reportSubscribers = await db.select({
+        user_id: scheduled_reports_subscription.user_id,
+        scheduled_reports: {
+            code: scheduled_reports.code,
+        },
+    })
+        .from(scheduled_reports_subscription)
+        .leftJoin(scheduled_reports, eq(scheduled_reports_subscription.report_id, scheduled_reports.id))
+        .execute();
+
+    const subscribersUserIds = reportSubscribers
+        .map((subscriber) => subscriber.user_id)
+        .filter((value, index, self) => self.indexOf(value) === index);
+
+    const usersList = await db.select({
+        id: users.id,
+        tg_id: users.tg_id,
+    })
+        .from(users)
+        .where(
+            and(
+                eq(users.status, 'active'),
+                isNotNull(users.tg_id),
+                inArray(users.id, subscribersUserIds)
+            )
+        )
+        .execute();
+
+    const activeUserIds = usersList.map((user) => user.id);
+
+    const tgIdByUserId: Record<string, string> = usersList.reduce((acc, user) => ({
+        ...acc,
+        [user.id]: user.tg_id,
+    }), {});
+
+    const activeSubscribers = reportSubscribers.filter((subscriber) => activeUserIds.includes(subscriber.user_id));
+
+    const reportCodes: Record<string, string[]> = {};
+
+    activeSubscribers.forEach((subscriber) => {
+        if (!reportCodes[subscriber.scheduled_reports!.code]) {
+            reportCodes[subscriber.scheduled_reports!.code] = [];
+        }
+        reportCodes[subscriber.scheduled_reports!.code].push(tgIdByUserId[subscriber.user_id]);
+    });
+
+    Object.keys(reportCodes).forEach((reportCode) => {
+        switch (reportCode) {
+            case 'courier_withdraws':
+                sendCourierWithdrawsReport(reportCodes[reportCode], cacheControl);
+                break;
+            default:
+                break;
+        }
+    });
+
+    return true;
 });

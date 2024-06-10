@@ -1,12 +1,11 @@
-import { customers, order_status, organization } from "@api/drizzle/schema";
-import { db } from "@api/src/lib/db";
-import { eq, sql, getTableColumns, SelectedFieldsFlat, InferSelectModel } from "drizzle-orm";
+import { order_status, organization } from "@api/drizzle/schema";
+import { eq, sql, InferSelectModel, SQLWrapper } from "drizzle-orm";
 import Elysia, { t } from "elysia";
-import Redis from "ioredis";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { PgColumn, SelectedFields } from "drizzle-orm/pg-core";
+import { SelectedFields } from "drizzle-orm/pg-core";
 import { ctx } from "@api/src/context";
 import { OrderStatusWithRelations } from "./dto/list.dto";
+import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 
 export const OrderStatusController = new Elysia({
   name: "@app/order_status",
@@ -14,7 +13,7 @@ export const OrderStatusController = new Elysia({
   .use(ctx)
   .get(
     "/order_status",
-    async ({ query: { limit, offset, sort, filter, fields }, drizzle, user, set }) => {
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
       if (!user) {
         set.status = 401;
         return {
@@ -31,6 +30,12 @@ export const OrderStatusController = new Elysia({
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {
+          organization,
+        });
+      }
+      let whereClause: (SQLWrapper | undefined)[] = [];
+      if (filters) {
+        whereClause = parseFilterFields(filters, order_status, {
           organization,
         });
       }
@@ -58,15 +63,8 @@ export const OrderStatusController = new Elysia({
         limit: t.String(),
         offset: t.String(),
         sort: t.Optional(t.String()),
-        filter: t.Optional(
-          t.Object({
-            id: t.Number(),
-            name: t.String(),
-            email: t.String(),
-            address: t.String(),
-            phone: t.String(),
-          })
-        ),
+
+        filters: t.Optional(t.String()),
         fields: t.Optional(t.String()),
       }),
     }

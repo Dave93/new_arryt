@@ -1,9 +1,10 @@
 import { permissions } from "@api/drizzle/schema";
-import { InferSelectModel, eq, sql } from "drizzle-orm";
+import { InferSelectModel, SQLWrapper, eq, sql } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { ctx } from "@api/src/context";
+import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 
 export const PermissionsController = new Elysia({
   name: "@app/permissions",
@@ -11,7 +12,7 @@ export const PermissionsController = new Elysia({
   .use(ctx)
   .get(
     "/permissions",
-    async ({ query: { limit, offset, sort, filter, fields }, drizzle, set, user }) => {
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle, set, user }) => {
       if (!user) {
         set.status = 401;
         return {
@@ -28,6 +29,10 @@ export const PermissionsController = new Elysia({
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});
+      }
+      let whereClause: (SQLWrapper | undefined)[] = [];
+      if (filters) {
+        whereClause = parseFilterFields(filters, permissions, {});
       }
       const rolesCount = await drizzle
         .select({ count: sql<number>`count(*)` })
@@ -49,15 +54,7 @@ export const PermissionsController = new Elysia({
         limit: t.String(),
         offset: t.String(),
         sort: t.Optional(t.String()),
-        filter: t.Optional(
-          t.Object({
-            id: t.Number(),
-            name: t.String(),
-            email: t.String(),
-            address: t.String(),
-            phone: t.String(),
-          })
-        ),
+        filters: t.Optional(t.String()),
         fields: t.Optional(t.String()),
       }),
     }

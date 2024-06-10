@@ -121,6 +121,20 @@ const processCourierStoreLocationQueue = new Queue(
   }
 );
 
+const processYandexCallbackQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_yandex_callback`,
+  {
+    connection: client,
+  }
+);
+
+const processSendNotificationQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_send_notification`,
+  {
+    connection: client,
+  }
+);
+
 export const ctx = new Elysia({
   name: "@app/ctx",
 })
@@ -137,6 +151,8 @@ export const ctx = new Elysia({
   .decorate("processClearCourierQueue", processClearCourierQueue)
   .decorate("processOrderChangeCourierQueue", processOrderChangeCourierQueue)
   .decorate("processCourierStoreLocationQueue", processCourierStoreLocationQueue)
+  .decorate("processYandexCallbackQueue", processYandexCallbackQueue)
+  .decorate("processSendNotificationQueue", processSendNotificationQueue)
   .decorate(
     "processOrderEcommerceWebhookQueue",
     processOrderEcommerceWebhookQueue

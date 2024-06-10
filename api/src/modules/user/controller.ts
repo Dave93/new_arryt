@@ -113,7 +113,7 @@ const userById = db.query.users
   .findFirst({
     where: (users, { eq }) => eq(users.id, sql.placeholder("id")),
   })
-  .prepare("userByPhone");
+  .prepare("userById");
 
 const otpById = db.query.otp
   .findFirst({

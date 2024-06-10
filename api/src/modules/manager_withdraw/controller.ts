@@ -1,10 +1,6 @@
 import {
-  manager_withdraw,
-  manager_withdraw_transactions,
-  order_transactions,
-  orders,
-  terminals,
-  users,
+  manager_withdraw, terminals,
+  users
 } from "@api/drizzle/schema";
 import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
@@ -13,7 +9,6 @@ import { SQLWrapper, and, desc, eq, sql } from "drizzle-orm";
 import { SelectedFields, alias } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 import { ManagerWithdrawTransactionsWithRelations, ManagerWithdrawWithRelations } from "./dto/list.dto";
-import { ServiceError } from "@grpc/grpc-js";
 
 export const ManagerWithdrawController = new Elysia({
   name: "@app/manager_withdraw",

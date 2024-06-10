@@ -388,6 +388,30 @@ export class CacheControlService {
     >[];
   }
 
+  async getSetting(key: string) {
+    const configs = await this.redis.get(
+      `${process.env.PROJECT_PREFIX}_system_configs`
+    );
+    const res = JSON.parse(configs || "[]") as any;
+    return res[key];
+  }
+
+  async getSettingsByRegex(regex: string) {
+    const configs = await this.redis.get(
+      `${process.env.PROJECT_PREFIX}_system_configs`
+    );
+    const res = JSON.parse(configs || "[]") as any;
+    const result: {
+      [key: string]: any;
+    } = {};
+    for (const key in res) {
+      if (key.match(regex)) {
+        result[key] = res[key];
+      }
+    }
+    return result;
+  }
+
   async getOrderStatuses() {
     const orderStatuses = await this.redis.get(
       `${process.env.PROJECT_PREFIX}_order_status`

@@ -12,6 +12,8 @@ import processChangeStatus from "./processors/change_status";
 import processClearCourier from "./processors/clear_courier";
 import processChangeCourier from "./processors/change_courier";
 import processStoreLocation from "./processors/store_location";
+import processYandexCallback from "./processors/yandex_callback";
+import { processSendNotification } from "./processors/send_notification";
 
 export const redisClient = new Redis({
     maxRetriesPerRequest: null,
@@ -157,6 +159,30 @@ const courierStoreLocationWorker = new Worker(
         console.log('courier_store_location', job.data);
         await processStoreLocation(redisClient, db, cacheControl, job.data);
         return 'courier_store_location';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+const yandexCallbackWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_yandex_callback`,
+    async (job) => {
+        console.log('yandex_callback', job.data);
+        await processYandexCallback(redisClient, db, cacheControl, job.data);
+        return 'yandex_callback';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+const sendNotificationWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_send_notification`,
+    async (job) => {
+        console.log('send_notification', job.data);
+        await processSendNotification(redisClient, db, cacheControl, job.data);
+        return 'send_notification';
     },
     {
         connection: redisClient,

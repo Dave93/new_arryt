@@ -1,7 +1,8 @@
 import { organization } from "@api/drizzle/schema";
 import { ctx } from "@api/src/context";
+import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { InferSelectModel, eq, sql } from "drizzle-orm";
+import { InferSelectModel, SQLWrapper, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 
@@ -11,7 +12,7 @@ export const OrganizationsController = new Elysia({
   .use(ctx)
   .get(
     "/organization",
-    async ({ query: { limit, offset, sort, filter, fields }, drizzle, user, set }) => {
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
       if (!user) {
         set.status = 401;
         return {
@@ -28,6 +29,10 @@ export const OrganizationsController = new Elysia({
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, organization, {});
+      }
+      let whereClause: (SQLWrapper | undefined)[] = [];
+      if (filters) {
+        whereClause = parseFilterFields(filters, organization, {});
       }
       const rolesCount = await drizzle
         .select({ count: sql<number>`count(*)` })
@@ -49,15 +54,7 @@ export const OrganizationsController = new Elysia({
         limit: t.String(),
         offset: t.String(),
         sort: t.Optional(t.String()),
-        filter: t.Optional(
-          t.Object({
-            id: t.Number(),
-            name: t.String(),
-            email: t.String(),
-            address: t.String(),
-            phone: t.String(),
-          })
-        ),
+        filters: t.Optional(t.String()),
         fields: t.Optional(t.String()),
       }),
     }

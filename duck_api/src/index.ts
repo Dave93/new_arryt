@@ -22,6 +22,28 @@ const tableByChunk: {
   [key: string]: string;
 } = {};
 
+let tableNames: string[] = [];
+
+const getTableNames = async () => {
+  const client = new Client({
+    user: process.env.PG_DB_USER,
+    password: process.env.PG_DB_PASSWORD,
+    host: process.env.PG_DB_HOST,
+    port: +process.env.PG_DB_PORT!,
+    database: process.env.PG_DB_NAME,
+  })
+  await client.connect()
+
+  const res = await client.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
+  tableNames = [];
+
+  res.rows.forEach((row) => {
+    tableNames.push(row.table_name);
+  })
+  await client.end();
+  console.log('tableNames updated');
+}
+
 const getTableNamesByChunk = async () => {
   const client = new Client({
     user: process.env.PG_DB_USER,
@@ -72,9 +94,14 @@ await syncDuck(db);
 
 await getTableNamesByChunk();
 
+await getTableNames();
+
 // run getTableNamesByChunk every 10 minutes
 (() => {
-  const interval = setInterval(getTableNamesByChunk, 1000 * 60 * 10)
+  const interval = setInterval(async () => {
+    await getTableNames();
+    await getTableNamesByChunk();
+  }, 1000 * 60 * 10)
   return () => clearInterval(interval)
 })();
 
@@ -122,6 +149,9 @@ service.on('data', async (lsn: string, log: Pgoutput.Message) => {
   switch (log.tag) {
     case 'insert': {
       const table = tableByChunk[log.relation.name] || log.relation.name;
+      if (!tableNames.includes(table)) {
+        return;
+      }
       // console.log(`
       //   INSERT INTO ${table} (${Object.keys(log.new).join(", ")}) VALUES (${Object.values(log.new).map((val) => extractColumnData(val)).join(", ")})
       // `)
@@ -133,6 +163,9 @@ service.on('data', async (lsn: string, log: Pgoutput.Message) => {
 
     case 'update': {
       const table = tableByChunk[log.relation.name] || log.relation.name;
+      if (!tableNames.includes(table)) {
+        return;
+      }
       // console.log(`
       //     UPDATE ${table} SET ${Object.keys(log.new).map((key) => `${key} = ${extractColumnData(log.new[key])}`).join(", ")} WHERE id = '${log.new.id}'
       //   `)
@@ -144,8 +177,11 @@ service.on('data', async (lsn: string, log: Pgoutput.Message) => {
 
     case 'delete': {
       const table = tableByChunk[log.relation.name] || log.relation.name;
+      if (!tableNames.includes(table)) {
+        return;
+      }
       if (log.key?.id) {
-        //   console.log(`
+        // console.log(`
         //   DELETE FROM ${table} WHERE id = '${log.key?.id}'
         // `)
         await db.all(`

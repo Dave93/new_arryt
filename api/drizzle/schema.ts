@@ -1480,6 +1480,7 @@ export const orders = pgTable(
         flat: text("flat"),
         entrance: text("entrance"),
         yandex_pincode: text("yandex_pincode"),
+        yandex_id: text("yandex_id"),
         created_at: timestamp("created_at", {
             precision: 5,
             withTimezone: true,
