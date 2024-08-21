@@ -1,14 +1,19 @@
 import * as p from "@clack/prompts";
 import color from "picocolors";
-import fs from "fs";
 import path from "path";
 import { orderBy, sortBy } from "lodash";
+import fs from 'fs';
+import pgCopyStreams from 'pg-copy-streams';
 
 import { drizzle, PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { pipeline } from 'stream/promises';
 import * as schema from "./drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
+const useCsvExport = process.env.CSV_EXPORT === "true";
+
+const csvPostgresClient = postgres(process.env.DATABASE_URL!);
 // for query purposes
 const queryClient = postgres(process.env.DATABASE_URL!);
 export const db = drizzle(queryClient, {
@@ -70,88 +75,66 @@ if (project.part) {
   let managerWithdrawById = {};
   let orderTransactionsById = {};
   if (project.part === "base") {
-    s.start("Checking permissions json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/permissions.json")
-      )
-    ) {
-      s.stop("permissions.json not found");
+
+    s.start("Checking permissions csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/permissions.csv")
+    )) {
+      s.stop("permissions.csv not found");
       process.exit(0);
     } else {
-      s.message("permissions.json found");
-      filePath = path.join(import.meta.dir, project.path, "/permissions.json");
-      file = Bun.file(filePath);
+      s.message("permissions.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/permissions.csv");
+      const copyStream = await csvPostgresClient`COPY permissions FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.permissions).values(permission);
-        s.message(`Inserted ${i}/${contents.length} permissions`);
-      }
-      s.stop(`Inserted ${contents.length} permissions`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted  permissions`);
     }
 
-    s.start("Checking roles json file");
-    if (
-      !fs.existsSync(path.join(import.meta.dir, project.path, "/roles.json"))
-    ) {
-      s.stop("roles.json not found");
+    s.start("Checking roles csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/roles.csv")
+    )) {
+      s.stop("roles.csv not found");
       process.exit(0);
     } else {
-      s.message("roles.json found");
-      filePath = path.join(import.meta.dir, project.path, "/roles.json");
-      file = Bun.file(filePath);
+      s.message("roles.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/roles.csv");
+      const copyStream = await csvPostgresClient`COPY roles FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.roles).values(permission);
-        s.message(`Inserted ${i}/${contents.length} roles`);
-      }
-      s.stop(`Inserted ${contents.length} roles`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted  roles`);
     }
 
-    s.start("Checking roles permissions json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/roles_permissions.json")
-      )
-    ) {
-      s.stop("roles_permissions.json not found");
+    s.start("Checking roles permissions csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/roles_permissions.csv")
+    )) {
+      s.stop("roles_permissions.csv not found");
       process.exit(0);
     } else {
-      s.message("roles_permissions.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/roles_permissions.json"
-      );
-      file = Bun.file(filePath);
+      s.message("roles_permissions.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/roles_permissions.csv");
+      const copyStream = await csvPostgresClient`COPY roles_permissions FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.roles_permissions).values(permission);
-        s.message(`Inserted ${i}/${contents.length} roles_permissions`);
-      }
-      s.stop(`Inserted ${contents.length} roles_permissions`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted roles permissions`);
     }
 
     s.start("Checking organizations json file");
     if (
       !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/organization.json")
+        path.join(import.meta.dir, project.path, "/json/organization.json")
       )
     ) {
       s.stop("organization.json not found");
       process.exit(0);
     } else {
       s.message("organization.json found");
-      filePath = path.join(import.meta.dir, project.path, "/organization.json");
+      filePath = path.join(import.meta.dir, project.path, "/json/organization.json");
       file = Bun.file(filePath);
 
       contents = await file.json();
@@ -167,14 +150,14 @@ if (project.part) {
     s.start("Checking terminals json file");
     if (
       !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/terminals.json")
+        path.join(import.meta.dir, project.path, "/json/terminals.json")
       )
     ) {
       s.stop("terminals.json not found");
       process.exit(0);
     } else {
       s.message("terminals.json found");
-      filePath = path.join(import.meta.dir, project.path, "/terminals.json");
+      filePath = path.join(import.meta.dir, project.path, "/json/terminals.json");
       file = Bun.file(filePath);
 
       contents = await file.json();
@@ -204,14 +187,14 @@ if (project.part) {
     s.start("Checking daily_garant json file");
     if (
       !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/daily_garant.json")
+        path.join(import.meta.dir, project.path, "/json/daily_garant.json")
       )
     ) {
       s.stop("daily_garant.json not found");
       process.exit(0);
     } else {
       s.message("daily_garant.json found");
-      filePath = path.join(import.meta.dir, project.path, "/daily_garant.json");
+      filePath = path.join(import.meta.dir, project.path, "/json/daily_garant.json");
       file = Bun.file(filePath);
 
       contents = await file.json();
@@ -226,13 +209,13 @@ if (project.part) {
 
     s.start("Checking users json file");
     if (
-      !fs.existsSync(path.join(import.meta.dir, project.path, "/users.json"))
+      !fs.existsSync(path.join(import.meta.dir, project.path, "/json/users.json"))
     ) {
       s.stop("users.json not found");
       process.exit(0);
     } else {
       s.message("users.json found");
-      filePath = path.join(import.meta.dir, project.path, "/users.json");
+      filePath = path.join(import.meta.dir, project.path, "/json/users.json");
       file = Bun.file(filePath);
 
       contents = await file.json();
@@ -243,347 +226,236 @@ if (project.part) {
           await db.insert(schema.users).values(permission);
           s.message(`Inserted ${i}/${contents.length} users`);
         } catch (e) {
-          p.note("Could not insert user: " + JSON.stringify(permission));
+          p.note("Could not insert user: " + JSON.stringify(permission) + " " + e);
           process.exit(0);
         }
       }
       s.stop(`Inserted ${contents.length} users`);
     }
 
-    s.start("Checking users terminals json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/users_terminals.json")
-      )
-    ) {
-      s.stop("users_terminals.json not found");
+
+    s.start("Checking users_terminals csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/users_terminals.csv")
+    )) {
+      s.stop("users_terminals.csv not found");
       process.exit(0);
     } else {
-      s.message("users_terminals.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/users_terminals.json"
-      );
-      file = Bun.file(filePath);
+      s.message("users_terminals.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/users_terminals.csv");
+      const copyStream = await csvPostgresClient`COPY users_terminals FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.users_terminals).values(permission);
-        s.message(`Inserted ${i}/${contents.length} users_terminals`);
-      }
-      s.stop(`Inserted ${contents.length} users_terminals`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted users_terminals`);
     }
 
-    s.start("Checking users roles json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/users_roles.json")
-      )
-    ) {
-      s.stop("users_roles.json not found");
+
+    s.start("Checking users_roles csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/users_roles.csv")
+    )) {
+      s.stop("users_roles.csv not found");
       process.exit(0);
     } else {
-      s.message("users_roles.json found");
-      filePath = path.join(import.meta.dir, project.path, "/users_roles.json");
-      file = Bun.file(filePath);
+      s.message("users_roles.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/users_roles.csv");
+      const copyStream = await csvPostgresClient`COPY users_roles FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.users_roles).values(permission);
-        s.message(`Inserted ${i}/${contents.length} users_roles`);
-      }
-      s.stop(`Inserted ${contents.length} users_roles`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted users_roles`);
     }
 
-    s.start("Checking work_schedules json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/work_schedules.json")
-      )
-    ) {
-      s.stop("work_schedules.json not found");
+
+    s.start("Checking work_schedules csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/work_schedules.csv")
+    )) {
+      s.stop("work_schedules.csv not found");
       process.exit(0);
     } else {
-      s.message("work_schedules.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/work_schedules.json"
-      );
-      file = Bun.file(filePath);
+      s.message("work_schedules.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/work_schedules.csv");
+      const copyStream = await csvPostgresClient`COPY work_schedules FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.work_schedules).values(permission);
-        s.message(`Inserted ${i}/${contents.length} work_schedules`);
-      }
-      s.stop(`Inserted ${contents.length} work_schedules`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted work_schedules`);
     }
 
-    s.start("Checking users_work_schedules json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/users_work_schedules.json")
-      )
-    ) {
-      s.stop("users_work_schedules.json not found");
+
+    s.start("Checking users_work_schedules csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/users_work_schedules.csv")
+    )) {
+      s.stop("users_work_schedules.csv not found");
       process.exit(0);
     } else {
-      s.message("users_work_schedules.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/users_work_schedules.json"
-      );
-      file = Bun.file(filePath);
+      s.message("users_work_schedules.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/users_work_schedules.csv");
+      const copyStream = await csvPostgresClient`COPY users_work_schedules FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        try {
-          await db.insert(schema.users_work_schedules).values(permission);
-          s.message(`Inserted ${i}/${contents.length} users_work_schedules`);
-        } catch (e) {
-          p.note(
-            "Could not insert users_work_schedules: " +
-              JSON.stringify(permission)
-          );
-          process.exit(0);
-        }
-      }
-      s.stop(`Inserted ${contents.length} users_work_schedules`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted users_work_schedules`);
     }
 
-    s.start("Checking work_schedule_entries json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/work_schedule_entries.json")
-      )
-    ) {
-      s.stop("work_schedule_entries.json not found");
+
+    s.start("Checking work_schedule_entries csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/work_schedule_entries.csv")
+    )) {
+      s.stop("work_schedule_entries.csv not found");
       process.exit(0);
     } else {
-      s.message("work_schedule_entries.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/work_schedule_entries.json"
-      );
-      file = Bun.file(filePath);
+      s.message("work_schedule_entries.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/work_schedule_entries.csv");
+      const copyStream = await csvPostgresClient`COPY work_schedule_entries FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.work_schedule_entries).values(permission);
-        s.message(`Inserted ${i}/${contents.length} work_schedule_entries`);
-      }
-      s.stop(`Inserted ${contents.length} work_schedule_entries`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted work_schedule_entries`);
     }
 
-    s.start("Checking timesheet file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/timesheet.json")
-      )
-    ) {
-      s.stop("timesheet.json not found");
+
+    s.start("Checking timesheet csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/timesheet.csv")
+    )) {
+      s.stop("timesheet.csv not found");
       process.exit(0);
     } else {
-      s.message("timesheet.json found");
-      filePath = path.join(import.meta.dir, project.path, "/timesheet.json");
-      file = Bun.file(filePath);
+      s.message("timesheet.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/timesheet.csv");
+      const copyStream = await csvPostgresClient`COPY timesheet FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.timesheet).values(permission);
-        s.message(`Inserted ${i}/${contents.length} timesheet`);
-      }
-      s.stop(`Inserted ${contents.length} timesheet`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted timesheet`);
     }
 
-    s.start("Checking system_configs json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/system_configs.json")
-      )
-    ) {
-      s.stop("system_configs.json not found");
+
+
+    s.start("Checking system_configs csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/system_configs.csv")
+    )) {
+      s.stop("system_configs.csv not found");
       process.exit(0);
     } else {
-      s.message("system_configs.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/system_configs.json"
-      );
-      file = Bun.file(filePath);
+      s.message("system_configs.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/system_configs.csv");
+      const copyStream = await csvPostgresClient`COPY system_configs FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.system_configs).values(permission);
-        s.message(`Inserted ${i}/${contents.length} system_configs`);
-      }
-      s.stop(`Inserted ${contents.length} system_configs`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted system_configs`);
     }
 
-    s.start("Checking scheduled_reports json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/scheduled_reports.json")
-      )
-    ) {
-      s.stop("scheduled_reports.json not found");
+
+    s.start("Checking scheduled_reports csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/scheduled_reports.csv")
+    )) {
+      s.stop("scheduled_reports.csv not found");
       process.exit(0);
     } else {
-      s.message("scheduled_reports.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/scheduled_reports.json"
-      );
-      file = Bun.file(filePath);
+      s.message("scheduled_reports.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/scheduled_reports.csv");
+      const copyStream = await csvPostgresClient`COPY scheduled_reports FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.scheduled_reports).values(permission);
-        s.message(`Inserted ${i}/${contents.length} scheduled_reports`);
-      }
-      s.stop(`Inserted ${contents.length} scheduled_reports`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted scheduled_reports`);
     }
 
-    s.start("Checking scheduled_reports_subscription json file");
-    if (
-      !fs.existsSync(
-        path.join(
-          import.meta.dir,
-          project.path,
-          "/scheduled_reports_subscription.json"
-        )
-      )
-    ) {
-      s.stop("scheduled_reports_subscription.json not found");
+
+    s.start("Checking scheduled_reports_subscription csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/scheduled_reports_subscription.csv")
+    )) {
+      s.stop("scheduled_reports_subscription.csv not found");
       process.exit(0);
     } else {
-      s.message("scheduled_reports_subscription.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/scheduled_reports_subscription.json"
-      );
-      file = Bun.file(filePath);
+      s.message("scheduled_reports_subscription.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/scheduled_reports_subscription.csv");
+      const copyStream = await csvPostgresClient`COPY scheduled_reports_subscription FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db
-          .insert(schema.scheduled_reports_subscription)
-          .values(permission);
-        s.message(
-          `Inserted ${i}/${contents.length} scheduled_reports_subscription`
-        );
-      }
-      s.stop(`Inserted ${contents.length} scheduled_reports_subscription`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted scheduled_reports_subscription`);
     }
 
-    s.start("Checking otp json file");
-    if (!fs.existsSync(path.join(import.meta.dir, project.path, "/otp.json"))) {
-      s.stop("otp.json not found");
+
+    s.start("Checking otp csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/otp.csv")
+    )) {
+      s.stop("otp.csv not found");
       process.exit(0);
     } else {
-      s.message("otp.json found");
-      filePath = path.join(import.meta.dir, project.path, "/otp.json");
-      file = Bun.file(filePath);
+      s.message("otp.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/otp.csv");
+      const copyStream = await csvPostgresClient`COPY otp FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.otp).values(permission);
-        s.message(`Inserted ${i}/${contents.length} otp`);
-      }
-      s.stop(`Inserted ${contents.length} otp`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted otp`);
     }
 
-    s.start("Checking api_tokens json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/api_tokens.json")
-      )
-    ) {
-      s.stop("api_tokens.json not found");
+
+    s.start("Checking api_tokens csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/api_tokens.csv")
+    )) {
+      s.stop("api_tokens.csv not found");
       process.exit(0);
     } else {
-      s.message("api_tokens.json found");
-      filePath = path.join(import.meta.dir, project.path, "/api_tokens.json");
-      file = Bun.file(filePath);
+      s.message("api_tokens.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/api_tokens.csv");
+      const copyStream = await csvPostgresClient`COPY api_tokens FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.api_tokens).values(permission);
-        s.message(`Inserted ${i}/${contents.length} api_tokens`);
-      }
-      s.stop(`Inserted ${contents.length} api_tokens`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted api_tokens`);
     }
 
-    s.start("Checking assets json file");
-    if (
-      !fs.existsSync(path.join(import.meta.dir, project.path, "/assets.json"))
-    ) {
-      s.stop("assets.json not found");
+
+
+    s.start("Checking assets csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/assets.csv")
+    )) {
+      s.stop("assets.csv not found");
       process.exit(0);
     } else {
-      s.message("assets.json found");
-      filePath = path.join(import.meta.dir, project.path, "/assets.json");
-      file = Bun.file(filePath);
+      s.message("assets.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/assets.csv");
+      const copyStream = await csvPostgresClient`COPY assets FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.assets).values(permission);
-        s.message(`Inserted ${i}/${contents.length} assets`);
-      }
-      s.stop(`Inserted ${contents.length} assets`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted assets`);
     }
 
-    s.start("Checking brands json file");
-    if (
-      !fs.existsSync(path.join(import.meta.dir, project.path, "/brands.json"))
-    ) {
-      s.stop("brands.json not found");
+
+    s.start("Checking brands csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/brands.csv")
+    )) {
+      s.stop("brands.csv not found");
       process.exit(0);
     } else {
-      s.message("brands.json found");
-      filePath = path.join(import.meta.dir, project.path, "/brands.json");
-      file = Bun.file(filePath);
+      s.message("brands.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/brands.csv");
+      const copyStream = await csvPostgresClient`COPY brands FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.brands).values(permission);
-        s.message(`Inserted ${i}/${contents.length} brands`);
-      }
-      s.stop(`Inserted ${contents.length} brands`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted brands`);
     }
+
 
     //   s.start("Checking constructed_bonus_pricing json file");
     //   if (
@@ -616,173 +488,117 @@ if (project.part) {
     //     s.stop(`Inserted ${contents.length} constructed_bonus_pricing`);
     //   }
 
-    s.start("Checking customers json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/customers.json")
-      )
-    ) {
-      s.stop("customers.json not found");
+    s.start("Checking customers csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/customers.csv")
+    )) {
+      s.stop("customers.csv not found");
       process.exit(0);
     } else {
-      s.message("customers.json found");
-      filePath = path.join(import.meta.dir, project.path, "/customers.json");
-      file = Bun.file(filePath);
+      s.message("customers.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/customers.csv");
+      const copyStream = await csvPostgresClient`COPY customers FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.customers).values(permission);
-        s.message(`Inserted ${i}/${contents.length} customers`);
-      }
-      s.stop(`Inserted ${contents.length} customers`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted  customers`);
     }
 
-    s.start("Checking customers_comments json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/customers_comments.json")
-      )
-    ) {
-      s.stop("customers_comments.json not found");
+
+    s.start("Checking customers_comments csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/customers_comments.csv")
+    )) {
+      s.stop("customers_comments.csv not found");
       process.exit(0);
     } else {
-      s.message("customers_comments.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/customers_comments.json"
-      );
-      file = Bun.file(filePath);
+      s.message("customers_comments.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/customers_comments.csv");
+      const copyStream = await csvPostgresClient`COPY customers_comments FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.customers_comments).values(permission);
-        s.message(`Inserted ${i}/${contents.length} customers_comments`);
-      }
-      s.stop(`Inserted ${contents.length} customers_comments`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted  customers_comments`);
     }
 
-    s.start("Checking daily_garant_tasks json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/daily_garant_tasks.json")
-      )
-    ) {
-      s.stop("daily_garant_tasks.json not found");
+
+    s.start("Checking daily_garant_tasks csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/daily_garant_tasks.csv")
+    )) {
+      s.stop("daily_garant_tasks.csv not found");
       process.exit(0);
     } else {
-      s.message("daily_garant_tasks.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/daily_garant_tasks.json"
-      );
-      file = Bun.file(filePath);
+      s.message("daily_garant_tasks.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/daily_garant_tasks.csv");
+      const copyStream = await csvPostgresClient`COPY daily_garant_tasks FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.daily_garant_tasks).values(permission);
-        s.message(`Inserted ${i}/${contents.length} daily_garant_tasks`);
-      }
-      s.stop(`Inserted ${contents.length} daily_garant_tasks`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted  daily_garant_tasks`);
     }
 
-    s.start("Checking delivery_pricing json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/delivery_pricing.json")
-      )
-    ) {
-      s.stop("delivery_pricing.json not found");
+
+    s.start("Checking delivery_pricing csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/delivery_pricing.csv")
+    )) {
+      s.stop("delivery_pricing.csv not found");
       process.exit(0);
     } else {
-      s.message("delivery_pricing.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/delivery_pricing.json"
-      );
-      file = Bun.file(filePath);
+      s.message("delivery_pricing.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/delivery_pricing.csv");
+      const copyStream = await csvPostgresClient`COPY delivery_pricing FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.delivery_pricing).values(permission);
-        s.message(`Inserted ${i}/${contents.length} delivery_pricing`);
-      }
-      s.stop(`Inserted ${contents.length} delivery_pricing`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted  delivery_pricing`);
     }
 
-    s.start("Checking order_status json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/order_status.json")
-      )
-    ) {
-      s.stop("order_status.json not found");
+
+    s.start("Checking order_status csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/order_status.csv")
+    )) {
+      s.stop("order_status.csv not found");
       process.exit(0);
     } else {
-      s.message("order_status.json found");
-      filePath = path.join(import.meta.dir, project.path, "/order_status.json");
-      file = Bun.file(filePath);
+      s.message("order_status.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/order_status.csv");
+      const copyStream = await csvPostgresClient`COPY order_status FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.order_status).values(permission);
-        s.message(`Inserted ${i}/${contents.length} order_status`);
-      }
-      s.stop(`Inserted ${contents.length} order_status`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted  order_status`);
     }
 
-    s.start("Checking order_bonus_pricing json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/order_bonus_pricing.json")
-      )
-    ) {
-      s.stop("order_bonus_pricing.json not found");
+    s.start("Checking order_bonus_pricing csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/order_bonus_pricing.csv")
+    )) {
+      s.stop("order_bonus_pricing.csv not found");
       process.exit(0);
     } else {
-      s.message("order_bonus_pricing.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/order_bonus_pricing.json"
-      );
-      file = Bun.file(filePath);
+      s.message("order_bonus_pricing.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/order_bonus_pricing.csv");
+      const copyStream = await csvPostgresClient`COPY order_bonus_pricing FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.order_bonus_pricing).values({
-          ...permission,
-        });
-        s.message(`Inserted ${i}/${contents.length} order_bonus_pricing`);
-      }
-      s.stop(`Inserted ${contents.length} order_bonus_pricing`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted  order_bonus_pricing`);
     }
   }
 
   if (project.part === "orders") {
     s.start("Checking orders json file");
     if (
-      !fs.existsSync(path.join(import.meta.dir, project.path, "/orders.json"))
+      !fs.existsSync(path.join(import.meta.dir, project.path, "/json/orders.json"))
     ) {
       s.stop("orders.json not found");
       process.exit(0);
     } else {
       s.message("orders.json found");
-      filePath = path.join(import.meta.dir, project.path, "/orders.json");
+      filePath = path.join(import.meta.dir, project.path, "/json/orders.json");
       file = Bun.file(filePath);
 
       contents = await file.json();
@@ -839,48 +655,26 @@ if (project.part) {
       s.stop(`Inserted ${contents.length} orders`);
     }
 
-    s.start("Checking order_transactions json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/order_transactions.json")
-      )
-    ) {
-      s.stop("order_transactions.json not found");
+    s.start("Checking order_transactions csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/order_transactions.csv")
+    )) {
+      s.stop("order_transactions.csv not found");
       process.exit(0);
     } else {
-      s.message("order_transactions.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/order_transactions.json"
-      );
-      file = Bun.file(filePath);
+      s.message("order_transactions.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/order_transactions.csv");
+      const copyStream = await csvPostgresClient`COPY order_transactions FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        let order = ordersById[permission.order_id];
-        try {
-          await db.insert(schema.order_transactions).values({
-            ...permission,
-          });
-        } catch (e) {
-          console.log("adding data", {
-            ...permission,
-          });
-          console.log(e);
-          process.exit(0);
-        }
-        s.message(`Inserted ${i}/${contents.length} order_transactions`);
-      }
-      s.stop(`Inserted ${contents.length} order_transactions`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted order_transactions`);
     }
 
     s.start("Checking order_actions json file");
     if (
       !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/order_actions.json")
+        path.join(import.meta.dir, project.path, "/json/order_actions.json")
       )
     ) {
       s.stop("order_actions.json not found");
@@ -890,7 +684,7 @@ if (project.part) {
       filePath = path.join(
         import.meta.dir,
         project.path,
-        "/order_actions.json"
+        "/json/order_actions.json"
       );
       file = Bun.file(filePath);
 
@@ -910,67 +704,37 @@ if (project.part) {
   }
 
   if (project.part === "withdraws") {
-    s.start("Checking courier_terminal_balance json file");
-    if (
-      !fs.existsSync(
-        path.join(
-          import.meta.dir,
-          project.path,
-          "/courier_terminal_balance.json"
-        )
-      )
-    ) {
-      s.stop("courier_terminal_balance.json not found");
-      process.exit(0);
-    } else {
-      s.message("courier_terminal_balance.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/courier_terminal_balance.json"
-      );
-      file = Bun.file(filePath);
+    // s.start("Checking courier_terminal_balance csv file");
 
-      contents = await file.json();
+    // if (!fs.existsSync(
+    //   path.join(import.meta.dir, project.path, "/csv/courier_terminal_balance.csv")
+    // )) {
+    //   s.stop("courier_terminal_balance.csv not found");
+    //   process.exit(0);
+    // } else {
+    //   s.message("courier_terminal_balance.csv found");
+    //   filePath = path.join(import.meta.dir, project.path, "/csv/courier_terminal_balance.csv");
+    //   const copyStream = await csvPostgresClient`COPY courier_terminal_balance FROM STDIN WITH CSV HEADER`.writable();
 
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.courier_terminal_balance).values({
-          ...permission,
-        });
-        s.message(`Inserted ${i}/${contents.length} courier_terminal_balance`);
-      }
-      s.stop(`Inserted ${contents.length} courier_terminal_balance`);
-    }
+    //   await pipeline(fs.createReadStream(filePath), copyStream);
+    //   s.stop(`Inserted courier_terminal_balance`);
+    // }
 
-    s.start("Checking manager_withdraw json file");
-    if (
-      !fs.existsSync(
-        path.join(import.meta.dir, project.path, "/manager_withdraw.json")
-      )
-    ) {
-      s.stop("manager_withdraw.json not found");
-      process.exit(0);
-    } else {
-      s.message("manager_withdraw.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/manager_withdraw.json"
-      );
-      file = Bun.file(filePath);
+    // s.start("Checking manager_withdraw csv file");
 
-      contents = await file.json();
+    // if (!fs.existsSync(
+    //   path.join(import.meta.dir, project.path, "/csv/manager_withdraw.csv")
+    // )) {
+    //   s.stop("manager_withdraw.csv not found");
+    //   process.exit(0);
+    // } else {
+    //   s.message("manager_withdraw.csv found");
+    //   filePath = path.join(import.meta.dir, project.path, "/csv/manager_withdraw.csv");
+    //   const copyStream = await csvPostgresClient`COPY manager_withdraw FROM STDIN WITH CSV HEADER`.writable();
 
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        await db.insert(schema.manager_withdraw).values({
-          ...permission,
-        });
-        s.message(`Inserted ${i}/${contents.length} manager_withdraw`);
-      }
-      s.stop(`Inserted ${contents.length} manager_withdraw`);
-    }
+    //   await pipeline(fs.createReadStream(filePath), copyStream);
+    //   s.stop(`Inserted manager_withdraw`);
+    // }
 
     s.start("Checking manager_withdraw_transactions json file");
     if (
@@ -978,7 +742,7 @@ if (project.part) {
         path.join(
           import.meta.dir,
           project.path,
-          "/manager_withdraw_transactions.json"
+          "/json/manager_withdraw_transactions.json"
         )
       )
     ) {
@@ -989,16 +753,16 @@ if (project.part) {
       filePath = path.join(
         import.meta.dir,
         project.path,
-        "/manager_withdraw_transactions.json"
+        "/json/manager_withdraw_transactions.json"
       );
       file = Bun.file(filePath);
 
       contents = await file.json();
 
       let orderTransactionFilePath = path.join(
-          import.meta.dir,
-          project.path,
-          "/order_transactions.json"
+        import.meta.dir,
+        project.path,
+        "/json/order_transactions.json"
       );
       let orderTransactionFile = Bun.file(orderTransactionFilePath);
 
@@ -1006,10 +770,10 @@ if (project.part) {
 
       let orderTransactionsById = {};
 
-        for (let i = 0; i < orderTransactionContents.length; i++) {
-            let permission = orderTransactionContents[i];
-            orderTransactionsById[permission.id] = permission;
-        }
+      for (let i = 0; i < orderTransactionContents.length; i++) {
+        let permission = orderTransactionContents[i];
+        orderTransactionsById[permission.id] = permission;
+      }
 
       for (let i = 0; i < contents.length; i++) {
         let permission = contents[i];

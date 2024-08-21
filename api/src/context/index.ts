@@ -17,38 +17,6 @@ export const client = new Redis({
 export const cacheControlService = new CacheControlService(db, client);
 
 const searchService = new SearchService(cacheControlService, db, client);
-// const permissionExtension = new Elysia({
-//   name: "permission_extension",
-// }).macro(({ onBeforeHandle }) => {
-//   return {
-//     permission(permission: string) {
-//       onBeforeHandle(({ user, set }) => {
-//         console.log("user", user);
-//         if (!user) {
-//           console.log("set.status");
-//           return new Response(
-//             JSON.stringify({
-//               error: "User not found",
-//             }),
-//             {
-//               status: 401,
-//             }
-//           );
-//           return (set.status = 401);
-//           return error(401, "User not found");
-//         }
-
-//         if (!user.permissions) {
-//           return error(403, "You don't have permissions");
-//         }
-
-//         if (!user.permissions.includes(permission)) {
-//           return error(403, "You don't have permissions");
-//         }
-//       });
-//     },
-//   };
-// });
 
 const newOrderNotify = new Queue(
   `${process.env.TASKS_PREFIX}_new_order_notify`,
@@ -136,8 +104,14 @@ const processSendNotificationQueue = new Queue(
 );
 
 export const ctx = new Elysia({
-  name: "@app/ctx",
+  name: "@app/ctx"
 })
+  .use(
+    cors({
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    })
+  )
+  .use(bearer())
   .decorate("redis", client)
   .decorate("drizzle", db)
   .decorate("cacheControl", cacheControlService)
@@ -157,57 +131,50 @@ export const ctx = new Elysia({
     "processOrderEcommerceWebhookQueue",
     processOrderEcommerceWebhookQueue
   )
-  .use(
-    cors({
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    })
-  )
-  .use(bearer())
-  .derive(
-    { as: "global" }, async ({ bearer, redis, cacheControl }) => {
-      const token = bearer;
-      if (!token) {
-        return {
-          user: null,
-        };
-      }
+  .derive({ as: 'global' }, async ({ bearer, redis, cacheControl }): Promise<{ user: UserResponseDto | null }> => {
+    const token = bearer;
+    if (!token) {
+      return {
+        user: null,
+      };
+    }
 
-      const apiTokens = await cacheControl.getApiTokens();
-      const apiToken = apiTokens.find((apiToken) => apiToken.token === token);
+    const apiTokens = await cacheControl.getApiTokens();
+    const apiToken = apiTokens.find((apiToken) => apiToken.token === token);
 
-      if (apiToken) {
-        return {
-          user: null,
+    if (apiToken) {
+      return {
+        user: null,
+      };
+    }
+    try {
+      let jwtResult = await verifyJwt(token);
+      let userData = await redis.hget(
+        `${process.env.PROJECT_PREFIX}_user`,
+        jwtResult.payload.id as string
+      );
+      let userRes = null as {
+        user: UserResponseDto;
+        access: {
+          additionalPermissions: string[];
+          roles: {
+            name: string;
+            code: string;
+            active: boolean;
+          }[];
         };
+      } | null;
+      if (userData) {
+        userRes = JSON.parse(userData);
       }
-      try {
-        let jwtResult = await verifyJwt(token);
-        let userData = await redis.hget(
-          `${process.env.PROJECT_PREFIX}_user`,
-          jwtResult.payload.id as string
-        );
-        let userRes = null as {
-          user: UserResponseDto;
-          access: {
-            additionalPermissions: string[];
-            roles: {
-              name: string;
-              code: string;
-              active: boolean;
-            }[];
-          };
-        } | null;
-        if (userData) {
-          userRes = JSON.parse(userData);
-        }
-        return {
-          user: userRes,
-        };
-      } catch (error) {
-        console.log("error", error);
-        return {
-          user: null,
-        };
-      }
-    });
+      return {
+        user: userRes,
+      };
+    } catch (error) {
+      console.log("error", error);
+      return {
+        user: null,
+      };
+    }
+  });
 

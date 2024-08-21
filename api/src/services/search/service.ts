@@ -29,7 +29,6 @@ export class SearchService {
                 Authorization: `Basic ${btoa(process.env.ELASTIC_AUTH!)}`,
             },
         });
-        console.log("response", response);
         return response.status == 200;
     }
 
@@ -315,7 +314,6 @@ export class SearchService {
             },
             body: bulk.join("\n") + "\n",
         });
-        console.log("response", response);
     }
 
     async search(indexName: string, query: any) {
@@ -376,7 +374,6 @@ export class SearchService {
             },
             body: JSON.stringify(order),
         });
-        console.log("response", response);
     }
 
     async findOrderLocations(orderId: string) {

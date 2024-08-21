@@ -287,7 +287,6 @@ export const UsersController = new Elysia({
               }
 
               const userParsed = JSON.parse(userData);
-              console.log(userParsed);
               const user = userParsed.user;
 
               if (user!.status == "blocked") {
@@ -394,11 +393,6 @@ export const UsersController = new Elysia({
           message: "You don't have permissions",
         };
       }
-      console.log('ff', JSON.stringify({
-        terminal_id: terminal_id,
-        courier_id: courier_id,
-        status: status,
-      }))
       const result = (await drizzle
         .select({
           id: courier_terminal_balance.id,
@@ -2096,7 +2090,6 @@ export const UsersController = new Elysia({
     const locations = await redis.hgetall(
       `${process.env.PROJECT_PREFIX}_user_location`
     );
-    console.log('locations', locations);
 
     const users = await redis.hgetall(
       `${process.env.PROJECT_PREFIX}_user`
@@ -2116,8 +2109,6 @@ export const UsersController = new Elysia({
     for (let key in locations) {
       const user = JSON.parse(users[key]);
       const location = JSON.parse(locations[key]);
-      console.log('user', user);
-      console.log('location', location);
       if (user) {
         res.push({
           id: user.user.id,

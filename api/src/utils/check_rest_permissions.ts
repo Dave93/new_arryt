@@ -60,10 +60,7 @@ export const checkRestPermission = async ({
 
       return `Unauthorized`;
     }
-    console.log(jwtResult.payload.id);
     const permissions = userData?.access?.additionalPermissions ?? [];
-    console.log(permissions);
-    console.log("permission", permission);
     if (permissions.length === 0) {
       set.status = 403;
 

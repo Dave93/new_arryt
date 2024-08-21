@@ -68,11 +68,11 @@ CREATE TABLE IF NOT EXISTS "api_tokens" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"active" boolean DEFAULT false NOT NULL,
 	"token" text NOT NULL,
-	"organization_id" uuid NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
-	"updated_by" uuid
+	"updated_by" uuid,
+	"organization_id" uuid NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "assets" (
@@ -87,9 +87,9 @@ CREATE TABLE IF NOT EXISTS "brands" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"api_url" text NOT NULL,
-	"logo_path" text,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
+	"logo_path" text
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "city" (
@@ -106,10 +106,10 @@ CREATE TABLE IF NOT EXISTS "courier_terminal_balance" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"courier_id" uuid NOT NULL,
 	"terminal_id" uuid NOT NULL,
-	"organization_id" uuid NOT NULL,
 	"balance" double precision NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
-	"created_by" uuid
+	"created_by" uuid,
+	"organization_id" uuid NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "customers" (
@@ -122,10 +122,10 @@ CREATE TABLE IF NOT EXISTS "customers_comments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"customer_id" uuid NOT NULL,
 	"comment" text,
-	"voice_id" uuid,
-	"image_id" uuid,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
-	"created_by" uuid
+	"created_by" uuid,
+	"image_id" uuid,
+	"voice_id" uuid
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "daily_garant" (
@@ -142,13 +142,13 @@ CREATE TABLE IF NOT EXISTS "daily_garant_tasks" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"daily_garant_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
-	"timesheet_id" uuid NOT NULL,
 	"status" text NOT NULL,
 	"amount" double precision NOT NULL,
-	"late_minus_sum" double precision NOT NULL,
-	"calculated_sum" double precision NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
+	"timesheet_id" uuid NOT NULL,
+	"calculated_sum" double precision NOT NULL,
+	"late_minus_sum" double precision NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "delivery_pricing" (
@@ -158,21 +158,21 @@ CREATE TABLE IF NOT EXISTS "delivery_pricing" (
 	"name" text NOT NULL,
 	"drive_type" "drive_type" DEFAULT 'car' NOT NULL,
 	"days" text[],
-	"start_time" time NOT NULL,
-	"end_time" time NOT NULL,
 	"min_price" integer,
 	"rules" jsonb NOT NULL,
 	"price_per_km" integer DEFAULT 0 NOT NULL,
-	"customer_rules" jsonb,
-	"customer_price_per_km" integer DEFAULT 0 NOT NULL,
-	"min_distance_km" integer DEFAULT 0 NOT NULL,
 	"organization_id" uuid NOT NULL,
-	"terminal_id" uuid,
-	"payment_type" "organization_payment_types" DEFAULT 'client',
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
-	"updated_by" uuid
+	"updated_by" uuid,
+	"start_time" time NOT NULL,
+	"end_time" time NOT NULL,
+	"terminal_id" uuid,
+	"payment_type" "organization_payment_types" DEFAULT 'client',
+	"min_distance_km" integer DEFAULT 0 NOT NULL,
+	"customer_price_per_km" integer DEFAULT 0 NOT NULL,
+	"customer_rules" jsonb
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "manager_withdraw" (
@@ -185,8 +185,8 @@ CREATE TABLE IF NOT EXISTS "manager_withdraw" (
 	"amount_before" double precision NOT NULL,
 	"amount_after" double precision NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
-	"payed_date" timestamp(5) with time zone DEFAULT now(),
 	"created_by" uuid,
+	"payed_date" timestamp(5) with time zone DEFAULT now(),
 	CONSTRAINT manager_withdraw_id_created_at PRIMARY KEY("id","created_at")
 );
 --> statement-breakpoint
@@ -232,17 +232,17 @@ CREATE TABLE IF NOT EXISTS "order_bonus_pricing" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"active" boolean DEFAULT true NOT NULL,
 	"name" text NOT NULL,
-	"max_order_time" integer DEFAULT 20 NOT NULL,
 	"rules" jsonb NOT NULL,
 	"min_distance_km" integer DEFAULT 0 NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"terminal_id" uuid,
-	"terminal_ids" text[],
 	"courier_id" uuid,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
-	"updated_by" uuid
+	"updated_by" uuid,
+	"max_order_time" integer DEFAULT 20 NOT NULL,
+	"terminal_ids" text[]
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "order_items" (
@@ -276,16 +276,16 @@ CREATE TABLE IF NOT EXISTS "order_status" (
 	"sort" integer DEFAULT 0 NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"color" text,
-	"code" text,
-	"status_change_text" text,
 	"finish" boolean DEFAULT false NOT NULL,
 	"cancel" boolean DEFAULT false NOT NULL,
 	"waiting" boolean DEFAULT false NOT NULL,
 	"need_location" boolean DEFAULT false NOT NULL,
-	"on_way" boolean DEFAULT false NOT NULL,
 	"in_terminal" boolean DEFAULT false NOT NULL,
+	"on_way" boolean DEFAULT false NOT NULL,
 	"should_pay" boolean DEFAULT false NOT NULL,
-	"yandex_delivery_statuses" text
+	"yandex_delivery_statuses" text,
+	"code" text,
+	"status_change_text" text
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "order_transactions" (
@@ -293,19 +293,19 @@ CREATE TABLE IF NOT EXISTS "order_transactions" (
 	"order_id" uuid,
 	"terminal_id" uuid NOT NULL,
 	"courier_id" uuid NOT NULL,
-	"organization_id" uuid NOT NULL,
 	"card_number" text,
 	"amount" double precision NOT NULL,
-	"balance_before" double precision NOT NULL,
-	"balance_after" double precision NOT NULL,
-	"not_paid_amount" double precision NOT NULL,
 	"status" "order_transaction_status" DEFAULT 'pending' NOT NULL,
-	"transaction_payment_type" "order_transaction_payment_type" DEFAULT 'cash' NOT NULL,
-	"transaction_type" text NOT NULL,
-	"comment" text,
 	"error_text" text,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
+	"organization_id" uuid NOT NULL,
+	"comment" text,
+	"transaction_payment_type" "order_transaction_payment_type" DEFAULT 'cash' NOT NULL,
+	"transaction_type" text NOT NULL,
+	"not_paid_amount" double precision NOT NULL,
+	"balance_after" double precision NOT NULL,
+	"balance_before" double precision NOT NULL,
 	CONSTRAINT order_transactions_id_created_at PRIMARY KEY("id","created_at")
 );
 --> statement-breakpoint
@@ -529,11 +529,11 @@ CREATE TABLE IF NOT EXISTS "terminals" (
 CREATE TABLE IF NOT EXISTS "timesheet" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
-	"is_late" boolean DEFAULT false NOT NULL,
 	"date" timestamp(5) with time zone NOT NULL,
-	"late_minutes" integer,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
+	"is_late" boolean DEFAULT false NOT NULL,
+	"late_minutes" integer
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "typeorm_metadata" (
@@ -633,11 +633,11 @@ CREATE TABLE IF NOT EXISTS "work_schedules" (
 	"start_time" time NOT NULL,
 	"end_time" time NOT NULL,
 	"max_start_time" time NOT NULL,
-	"bonus_price" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
-	"updated_by" uuid
+	"updated_by" uuid,
+	"bonus_price" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "api_tokens_id_key" ON "api_tokens" ("id");--> statement-breakpoint
@@ -1217,22 +1217,6 @@ SELECT create_hypertable(
                'order_created_at',
                chunk_time_interval => INTERVAL '1 month'
        );
-
-ALTER TABLE orders SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'terminal_id'
-    );
-
-SELECT add_compression_policy('orders', INTERVAL '1 month');
-
-
-ALTER TABLE order_actions SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'order_id'
-    );
-
-SELECT add_compression_policy('order_actions', INTERVAL '1 month');
-
 
 SELECT create_hypertable('order_locations', by_range('order_created_at'));
 

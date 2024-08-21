@@ -17,7 +17,6 @@ export const addMinutesToDate = (date: Date, minutes: number) => {
 
 export const getHours = (str: string) => {
     const time = str.split(':');
-    console.log('time', time)
     if (isNaN(+time[0])) {
         return dayjs(str).hour();
     } else {

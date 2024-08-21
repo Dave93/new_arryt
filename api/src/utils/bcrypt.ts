@@ -54,7 +54,6 @@ async function signJwt(payload: any, expiresIn: string = "1h") {
 async function verifyJwt(token: string) {
   const alg = "HS256";
   const jwtSecret = new TextEncoder().encode(process.env.JWT_SECRET);
-  console.log('jwtSecret', jwtSecret)
   return jwtVerify(token, jwtSecret, {
     issuer: process.env.JWT_ISSUER,
     audience: process.env.JWT_AUDIENCE,

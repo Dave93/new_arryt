@@ -110,7 +110,6 @@ export const OrdersController = new Elysia({
                 };
             }
             const couriers = alias(users, "couriers");
-            console.log('rolesCount');
             let selectFields: SelectedFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, orders, {
@@ -292,7 +291,6 @@ export const OrdersController = new Elysia({
                 lte(orders.created_at, dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')),
             ))
             .orderBy(asc(orders.created_at)).execute();
-        console.log('current Orders', ordersList);
         return await prepareOrdersNextButton(ordersList, cacheControl);
     })
     .get('/orders/my_new_orders', async ({ user, set, redis, cacheControl, drizzle }) => {
@@ -547,7 +545,6 @@ export const OrdersController = new Elysia({
 
         const organizationStatuses = orderStatuses.filter((orderStatus) => orderStatus.organization_id === order.organization_id);
         const sortedOrderStatuses = sort(organizationStatuses, (i) => +i.sort);
-        // console.log('sortedOrderStatuses', sortedOrderStatuses);
 
         const currentStatusIndex = sortedOrderStatuses.findIndex((orderStatus) => orderStatus.id === order.order_status_id);
 
@@ -671,8 +668,6 @@ export const OrdersController = new Elysia({
                 { latitude: latitude!, longitude: longitude! },
             );
             console.timeEnd('waitingLocation');
-            console.log('distance', distance);
-            console.log('organization.max_order_close_distance', organization.max_order_close_distance)
             if (distance > organization.max_order_close_distance) {
                 set.status = 400;
                 return {
@@ -1566,8 +1561,6 @@ export const OrdersController = new Elysia({
 
             const couriers = Object.values(couriersObject);
 
-            // console.log("couriers", couriers);
-
             const customDateCouriers: {
                 courier_id: string;
                 order_start_date: string | null;
@@ -1674,8 +1667,6 @@ export const OrdersController = new Elysia({
 
                 await Promise.all(byTerminalTransaction);
 
-                // console.log(customDateQueries);
-
                 if (customTerminalQueries.length) {
                     // customTerminalQueries.forEach((item) => {
                     //   query.push(...item);
@@ -1737,8 +1728,6 @@ export const OrdersController = new Elysia({
                     });
 
                     await Promise.all(bonusTransaction);
-
-                    // console.log(customDateQueries);
 
                     if (customDateBonusQueries.length) {
                         // @ts-ignore
@@ -1845,7 +1834,6 @@ export const OrdersController = new Elysia({
 
             let workStartHour = await getSetting(redis, "work_start_time");
             workStartHour = new Date(workStartHour).getHours();
-            // console.log('workStartHour', workStartHour);
 
             console.time('balanceQueryDuck');
 
@@ -2476,16 +2464,6 @@ export const OrdersController = new Elysia({
             };
         }
 
-        console.log('order query', drizzle
-            .select({
-                id: orders.id,
-                order_status_id: orders.order_status_id,
-            })
-            .from(orders)
-            .where(and(
-                eq(orders.id, id),
-                created_at ? eq(orders.created_at, created_at) : sql`true`
-            )).toSQL().sql)
 
         const order = await drizzle
             .select({

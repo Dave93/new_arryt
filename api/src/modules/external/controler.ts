@@ -608,8 +608,6 @@ export const externalControler = new Elysia({
             minDeliveryPricing = activeDeliveryPricingSorted[0];
         }
 
-        console.log('minDeliveryPricing', minDeliveryPricing);
-        console.log('minDistance', minDistance);
 
         let price = 0;
         minDistance = minDistance / 1000;

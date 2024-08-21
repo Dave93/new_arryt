@@ -21,6 +21,7 @@ export const ApiTokensController = new Elysia({
         };
       }
 
+
       if (!user.access.additionalPermissions.includes("api_tokens.list")) {
         set.status = 401;
         return {

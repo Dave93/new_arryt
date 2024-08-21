@@ -5,7 +5,6 @@ import { loadSync } from '@grpc/proto-loader'
 import path from 'path'
 
 const transactionProtoPath = path.resolve(__dirname, '../../../protos', 'arryt.proto');
-console.log('proto path', transactionProtoPath);
 const transactionProtoDefinitionLoader = loadSync(transactionProtoPath, {
     keepCase: true,
     longs: String,
