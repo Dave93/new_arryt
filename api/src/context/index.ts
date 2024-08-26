@@ -106,11 +106,6 @@ const processSendNotificationQueue = new Queue(
 export const ctx = new Elysia({
   name: "@app/ctx"
 })
-  .use(
-    cors({
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    })
-  )
   .use(bearer())
   .decorate("redis", client)
   .decorate("drizzle", db)
@@ -176,5 +171,5 @@ export const ctx = new Elysia({
         user: null,
       };
     }
-  });
+  }).as('global');
 

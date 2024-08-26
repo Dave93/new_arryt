@@ -2,7 +2,7 @@ import { Elysia } from 'elysia';
 import { logger } from './logger';
 
 export const loggingMiddleware = new Elysia()
-    .onRequest(({ request }) => {
+    .onRequest(({ request, set }) => {
         const startTime = performance.now();
         logger.info({
             label: 'Incoming request',

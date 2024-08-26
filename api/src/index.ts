@@ -8,9 +8,15 @@ import { opentelemetry } from '@elysiajs/opentelemetry'
 
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
+import { cors } from "@elysiajs/cors";
 
 
 const app = new Elysia()
+  .use(
+    cors({
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    })
+  )
   .use(loggingMiddleware)
   // .use(
   //   opentelemetry({

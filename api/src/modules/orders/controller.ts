@@ -1926,9 +1926,9 @@ export const OrdersController = new Elysia({
                         }
                     }
                 });
-
+                console.log('timesByDate', timesByDate);
                 resultItem.orders_dates = Object.values(timesByDate).sort(
-                    (a, b) => a.getTime() - b.getTime()
+                    (a, b) => new Date(a).getTime() - new Date(b).getTime()
                 );
                 let order_dates = [...resultItem.orders_dates];
                 resultItem.delivery_price_orgs =
