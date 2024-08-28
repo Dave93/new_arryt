@@ -103,6 +103,10 @@ const processSendNotificationQueue = new Queue(
   }
 );
 
+type DeriveUserResponse = {
+  user: UserResponseDto | null;
+};
+
 export const ctx = new Elysia({
   name: "@app/ctx"
 })
@@ -126,7 +130,8 @@ export const ctx = new Elysia({
     "processOrderEcommerceWebhookQueue",
     processOrderEcommerceWebhookQueue
   )
-  .derive({ as: 'global' }, async ({ bearer, redis, cacheControl }): Promise<{ user: UserResponseDto | null }> => {
+  // @ts-ignore
+  .derive({ as: 'global' }, async ({ bearer, redis, cacheControl }): Promise<DeriveUserResponse> => {
     const token = bearer;
     if (!token) {
       return {

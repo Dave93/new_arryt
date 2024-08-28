@@ -2350,7 +2350,8 @@ export const OrdersController = new Elysia({
             .leftJoin(orders, eq(order_transactions.order_id, orders.id))
             .leftJoin(terminals, eq(order_transactions.terminal_id, terminals.id))
             .leftJoin(users, eq(order_transactions.created_by, users.id))
-            .where(and(...whereClause)).execute();
+            .where(and(...whereClause))
+            .execute();
         console.timeEnd('orderTransactionsQuery');
 
         // const transactionsResponse = await fetch(`${process.env.DUCK_API}/order_transactions`, {

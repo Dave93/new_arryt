@@ -1,5 +1,5 @@
 import { edenTreaty, edenFetch } from "@elysiajs/eden";
-import type { BackendApp } from "@api/src/index";
+import type { BackendApp } from "@api/src/app";
 
 console.log('api url', import.meta.env.VITE_API_URL!)
 

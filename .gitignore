@@ -7,3 +7,4 @@ dist/
 transfer_db/data
 *.duckdb
 api/app
+api/arryt_api
