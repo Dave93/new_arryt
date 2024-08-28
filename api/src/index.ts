@@ -1,43 +1,33 @@
-import { Elysia } from "elysia";
-import { apiController } from "./modules/controllers";
-import { serverTiming } from '@elysiajs/server-timing'
-import { loggingMiddleware } from "./loggingMiddleware";
-import { logger } from "./logger";
-import otelMiddleware from "./otelMiddleware";
-import { opentelemetry } from '@elysiajs/opentelemetry'
 
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
-import { cors } from "@elysiajs/cors";
+import cluster from "node:cluster";
+import { cpus } from "node:os";
+import process from "node:process";
+import app from "./app";
 
+if (process.env.NODE_ENV === "development") {
+  app.listen(process.env.API_PORT || 3000);
+  console.log(
+    `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+  );
+} else {
+  if (cluster.isPrimary) {
+    console.log(`Primary ${process.pid} is running`);
 
-const app = new Elysia()
-  .use(
-    cors({
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    })
-  )
-  .use(loggingMiddleware)
-  // .use(
-  //   opentelemetry({
-  //     spanProcessors: [
-  //       new BatchSpanProcessor(
-  //         new OTLPTraceExporter()
-  //       )
-  //     ]
-  //   })
-  // )
-  .get("/", () => "Hello Davr")
-  .get("/check_service", () => ({
-    result: "ok",
-  }))
-  // .use(serverTiming())
-  .use(apiController)
-  .listen(process.env.API_PORT || 3000);
+    // Start N workers for the number of CPUs
+    for (let i = 0; i < 4; i++) {
+      cluster.fork();
+    }
 
+    cluster.on("exit", (worker, code, signal) => {
+      console.log(`Worker ${worker.process.pid} exited`);
+    });
+  } else {
 
-export type BackendApp = typeof app;
+    app.listen(process.env.API_PORT || 3000);
 
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+    console.log(
+      `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+    );
+  }
+
+}

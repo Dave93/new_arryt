@@ -704,90 +704,90 @@ if (project.part) {
   }
 
   if (project.part === "withdraws") {
-    // s.start("Checking courier_terminal_balance csv file");
+    s.start("Checking courier_terminal_balance csv file");
 
-    // if (!fs.existsSync(
-    //   path.join(import.meta.dir, project.path, "/csv/courier_terminal_balance.csv")
-    // )) {
-    //   s.stop("courier_terminal_balance.csv not found");
-    //   process.exit(0);
-    // } else {
-    //   s.message("courier_terminal_balance.csv found");
-    //   filePath = path.join(import.meta.dir, project.path, "/csv/courier_terminal_balance.csv");
-    //   const copyStream = await csvPostgresClient`COPY courier_terminal_balance FROM STDIN WITH CSV HEADER`.writable();
-
-    //   await pipeline(fs.createReadStream(filePath), copyStream);
-    //   s.stop(`Inserted courier_terminal_balance`);
-    // }
-
-    // s.start("Checking manager_withdraw csv file");
-
-    // if (!fs.existsSync(
-    //   path.join(import.meta.dir, project.path, "/csv/manager_withdraw.csv")
-    // )) {
-    //   s.stop("manager_withdraw.csv not found");
-    //   process.exit(0);
-    // } else {
-    //   s.message("manager_withdraw.csv found");
-    //   filePath = path.join(import.meta.dir, project.path, "/csv/manager_withdraw.csv");
-    //   const copyStream = await csvPostgresClient`COPY manager_withdraw FROM STDIN WITH CSV HEADER`.writable();
-
-    //   await pipeline(fs.createReadStream(filePath), copyStream);
-    //   s.stop(`Inserted manager_withdraw`);
-    // }
-
-    s.start("Checking manager_withdraw_transactions json file");
-    if (
-      !fs.existsSync(
-        path.join(
-          import.meta.dir,
-          project.path,
-          "/json/manager_withdraw_transactions.json"
-        )
-      )
-    ) {
-      s.stop("manager_withdraw_transactions.json not found");
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/courier_terminal_balance.csv")
+    )) {
+      s.stop("courier_terminal_balance.csv not found");
       process.exit(0);
     } else {
-      s.message("manager_withdraw_transactions.json found");
-      filePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/json/manager_withdraw_transactions.json"
-      );
-      file = Bun.file(filePath);
+      s.message("courier_terminal_balance.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/courier_terminal_balance.csv");
+      const copyStream = await csvPostgresClient`COPY courier_terminal_balance FROM STDIN WITH CSV HEADER`.writable();
 
-      contents = await file.json();
-
-      let orderTransactionFilePath = path.join(
-        import.meta.dir,
-        project.path,
-        "/json/order_transactions.json"
-      );
-      let orderTransactionFile = Bun.file(orderTransactionFilePath);
-
-      let orderTransactionContents = await orderTransactionFile.json();
-
-      let orderTransactionsById = {};
-
-      for (let i = 0; i < orderTransactionContents.length; i++) {
-        let permission = orderTransactionContents[i];
-        orderTransactionsById[permission.id] = permission;
-      }
-
-      for (let i = 0; i < contents.length; i++) {
-        let permission = contents[i];
-        let orderTransaction = orderTransactionsById[permission.transaction_id];
-        await db.insert(schema.manager_withdraw_transactions).values({
-          ...permission,
-          transaction_created_at: orderTransaction.created_at,
-        });
-        s.message(
-          `Inserted ${i}/${contents.length} manager_withdraw_transactions`
-        );
-      }
-      s.stop(`Inserted ${contents.length} manager_withdraw_transactions`);
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted courier_terminal_balance`);
     }
+
+    s.start("Checking manager_withdraw csv file");
+
+    if (!fs.existsSync(
+      path.join(import.meta.dir, project.path, "/csv/manager_withdraw.csv")
+    )) {
+      s.stop("manager_withdraw.csv not found");
+      process.exit(0);
+    } else {
+      s.message("manager_withdraw.csv found");
+      filePath = path.join(import.meta.dir, project.path, "/csv/manager_withdraw.csv");
+      const copyStream = await csvPostgresClient`COPY manager_withdraw FROM STDIN WITH CSV HEADER`.writable();
+
+      await pipeline(fs.createReadStream(filePath), copyStream);
+      s.stop(`Inserted manager_withdraw`);
+    }
+
+    // s.start("Checking manager_withdraw_transactions json file");
+    // if (
+    //   !fs.existsSync(
+    //     path.join(
+    //       import.meta.dir,
+    //       project.path,
+    //       "/json/manager_withdraw_transactions.json"
+    //     )
+    //   )
+    // ) {
+    //   s.stop("manager_withdraw_transactions.json not found");
+    //   process.exit(0);
+    // } else {
+    //   s.message("manager_withdraw_transactions.json found");
+    //   filePath = path.join(
+    //     import.meta.dir,
+    //     project.path,
+    //     "/json/manager_withdraw_transactions.json"
+    //   );
+    //   file = Bun.file(filePath);
+
+    //   contents = await file.json();
+
+    //   let orderTransactionFilePath = path.join(
+    //     import.meta.dir,
+    //     project.path,
+    //     "/json/order_transactions.json"
+    //   );
+    //   let orderTransactionFile = Bun.file(orderTransactionFilePath);
+
+    //   let orderTransactionContents = await orderTransactionFile.json();
+
+    //   let orderTransactionsById = {};
+
+    //   for (let i = 0; i < orderTransactionContents.length; i++) {
+    //     let permission = orderTransactionContents[i];
+    //     orderTransactionsById[permission.id] = permission;
+    //   }
+
+    //   for (let i = 0; i < contents.length; i++) {
+    //     let permission = contents[i];
+    //     let orderTransaction = orderTransactionsById[permission.transaction_id];
+    //     await db.insert(schema.manager_withdraw_transactions).values({
+    //       ...permission,
+    //       transaction_created_at: orderTransaction.created_at,
+    //     });
+    //     s.message(
+    //       `Inserted ${i}/${contents.length} manager_withdraw_transactions`
+    //     );
+    //   }
+    //   s.stop(`Inserted ${contents.length} manager_withdraw_transactions`);
+    // }
   }
 
   //   queryClient.END;

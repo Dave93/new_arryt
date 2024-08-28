@@ -13,8 +13,11 @@ import { syncDuck } from "./sync_duck";
 import path = require('path');
 import { loadSync } from '@grpc/proto-loader';
 import Elysia, { t } from 'elysia';
+
+import postgres from 'postgres';
 // import transactionsProto from '@protos/arryt.proto'
 
+const publicationName = 'arryt';
 
 dotenv.config();
 
@@ -62,6 +65,79 @@ const getTableNamesByChunk = async () => {
   console.log('chunkNames updated');
 }
 
+const checkReplicationPublication = async () => {
+  const client = new Client({
+    user: process.env.PG_DB_USER,
+    password: process.env.PG_DB_PASSWORD,
+    host: process.env.PG_DB_HOST,
+    port: +process.env.PG_DB_PORT!,
+    database: process.env.PG_DB_NAME,
+  })
+  await client.connect()
+
+  let res = await client.query('SELECT current_user;')
+  console.log('current_user', res.rows);
+
+  res = await client.query("SELECT has_database_privilege(current_user, current_database(), 'CREATE');")
+
+  console.log('has_database_privilege', res.rows);
+
+  res = await client.query("SELECT has_table_privilege(current_user, 'pg_publication', 'SELECT');")
+
+  console.log('has_table_privilege', res.rows);
+
+  res = await client.query("SELECT * FROM pg_publication;")
+
+  console.log('pg_publication', res.rows);
+
+  await client.end();
+}
+
+
+const createSlotIfNotExists = async () => {
+  const client = new Client({
+    user: process.env.PG_DB_USER,
+    password: process.env.PG_DB_PASSWORD,
+    host: process.env.PG_DB_HOST,
+    port: +process.env.PG_DB_PORT!,
+    database: process.env.PG_DB_NAME,
+  });
+  await client.connect();
+  try {
+    const res = await client.query("SELECT * FROM pg_replication_slots WHERE slot_name = $1", ['arryt_to_duck']);
+    if (res.rows.length === 0) {
+      await client.query("SELECT pg_create_logical_replication_slot($1, 'pgoutput')", ['arryt_to_duck']);
+      console.log("Created replication slot: arryt_to_duck");
+    }
+  } catch (error) {
+    console.error('Error creating slot:', error);
+  } finally {
+    await client.end();
+  }
+};
+
+const createPublicationIfNotExists = async () => {
+  const client = new Client({
+    user: process.env.PG_DB_USER,
+    password: process.env.PG_DB_PASSWORD,
+    host: process.env.PG_DB_HOST,
+    port: +process.env.PG_DB_PORT!,
+    database: process.env.PG_DB_NAME,
+  });
+  await client.connect();
+  try {
+    const res = await client.query("SELECT * FROM pg_publication WHERE pubname = $1", [publicationName]);
+    if (res.rows.length === 0) {
+      await client.query("CREATE PUBLICATION arryt FOR ALL TABLES");
+      console.log("Created publication: arryt");
+    }
+  } catch (error) {
+    console.error('Error creating publication:', error);
+  } finally {
+    await client.end();
+  }
+};
+
 const extractColumnData = (value: any): any => {
 
   if (typeof value === "string") {
@@ -96,6 +172,8 @@ await getTableNamesByChunk();
 
 await getTableNames();
 
+await checkReplicationPublication();
+
 // run getTableNamesByChunk every 10 minutes
 (() => {
   const interval = setInterval(async () => {
@@ -107,17 +185,17 @@ await getTableNames();
 
 const slotName = 'arryt_to_duck';
 
+await createSlotIfNotExists();
+
+await createPublicationIfNotExists();
+
 const service = new LogicalReplicationService(
   /**
    * node-postgres Client options for connection
    * https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/pg/index.d.ts#L16
    */
   {
-    database: process.env.PG_DB_NAME,
-    user: process.env.PG_DB_USER,
-    password: process.env.PG_DB_PASSWORD,
-    host: process.env.PG_DB_HOST,
-    port: +process.env.PG_DB_PORT!,
+    connectionString: process.env.DATABASE_URL,
     application_name: 'arryt_duck',
     // ...
   },
@@ -135,8 +213,38 @@ const service = new LogicalReplicationService(
 
 const plugin = new PgoutputPlugin({
   protoVersion: 2,
-  publicationNames: ['arryt'],
+  publicationNames: [publicationName],
 });
+
+// const sql = postgres({
+//   host: process.env.PG_DB_HOST,
+//   port: process.env.PG_DB_PORT,
+//   database: process.env.PG_DB_NAME,
+//   user: process.env.PG_DB_USER,
+//   password: process.env.PG_DB_PASSWORD,
+//   debug: true,
+//   publications: 'arryt'
+// });
+// const eventPattern = 'update:orders'
+// const { unsubscribe } = await sql.subscribe(
+//   eventPattern,
+//   (row, { command, relation, key, old }) => {
+//     console.log({
+//       command,
+//       row
+//     })
+//   },
+
+//   function onConnect() {
+//     // Callback on initial connect and potential reconnects
+//     console.log('Connected to the publication')
+//   }
+// )
+
+// process.on('SIGINT', async () => {
+//   await unsubscribe()
+//   process.exit()
+// })
 
 /**
  * Wal2Json.Output
@@ -199,9 +307,9 @@ service.on('data', async (lsn: string, log: Pgoutput.Message) => {
 
 // (function proc() {
 service.subscribe(plugin, slotName)
-//     .catch((e) => {
-//       console.error(e);
-//     })
+  .catch((e) => {
+    console.error(e);
+  })
 //     .then(() => {
 //       setTimeout(proc, 100);
 //     });
