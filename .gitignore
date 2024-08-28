@@ -6,3 +6,4 @@ dist/
 **/node_modules/**
 transfer_db/data
 *.duckdb
+api/arryt_api

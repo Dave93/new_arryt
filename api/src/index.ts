@@ -9,34 +9,14 @@ import { opentelemetry } from '@elysiajs/opentelemetry'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
 import { cors } from "@elysiajs/cors";
+import app from "./app";
 
 
-const app = new Elysia()
-  .use(
-    cors({
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    })
-  )
-  .use(loggingMiddleware)
-  // .use(
-  //   opentelemetry({
-  //     spanProcessors: [
-  //       new BatchSpanProcessor(
-  //         new OTLPTraceExporter()
-  //       )
-  //     ]
-  //   })
-  // )
-  .get("/", () => "Hello Davr")
-  .get("/check_service", () => ({
-    result: "ok",
-  }))
-  // .use(serverTiming())
-  .use(apiController)
-  .listen(process.env.API_PORT || 3000);
+
+app.listen(process.env.API_PORT || 3000);
 
 
-export type BackendApp = typeof app;
+
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`

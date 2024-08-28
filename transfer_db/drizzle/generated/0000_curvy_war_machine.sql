@@ -639,6 +639,16 @@ CREATE TABLE IF NOT EXISTS "work_schedules" (
 	"updated_by" uuid,
 	"bonus_price" integer DEFAULT 0 NOT NULL
 );
+
+create table constructed_bonus_pricing (
+	id uuid default gen_random_uuid() not null primary key,
+	name text,
+	organization_id uuid constraint constructed_bonus_pricing_organization_id_fk references organization,
+	pricing jsonb,
+	created_at timestamp with time zone,
+	updated_at timestamp with time zone
+);
+
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "api_tokens_id_key" ON "api_tokens" ("id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "api_tokens_token_key" ON "api_tokens" ("token");--> statement-breakpoint

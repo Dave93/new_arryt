@@ -92,17 +92,17 @@ const CourierTransactions = ({
 
     const filters = [
       {
-        field: "order_transactions.created_at",
+        field: "created_at",
         operator: "gte",
         value: created_at[0].toISOString(),
       },
       {
-        field: "order_transactions.created_at",
+        field: "created_at",
         operator: "lte",
         value: created_at[1].toISOString(),
       },
       {
-        field: "order_transactions.courier_id",
+        field: "courier_id",
         operator: "eq",
         value: user.id,
       },
@@ -110,7 +110,7 @@ const CourierTransactions = ({
 
     if (status) {
       filters.push({
-        field: "order_transactions.status",
+        field: "status",
         operator: "eq",
         value: status,
       });

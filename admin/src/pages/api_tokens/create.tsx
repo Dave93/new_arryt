@@ -12,7 +12,7 @@ export const ApiTokensCreate = () => {
     token: { accessToken: string };
   }>();
   const { formProps, saveButtonProps } = useForm<
-    InferInsertModel<typeof api_tokens>
+    typeof api_tokens.$inferSelect
   >({
     meta: {
       fields: ["id", "active", "token", "organization_id"],
@@ -24,7 +24,7 @@ export const ApiTokensCreate = () => {
   });
 
   const [organizations, setOrganizations] = useState<
-    InferSelectModel<typeof organization>[]
+    (typeof organization.$inferSelect)[]
   >([]);
 
   const fetchOrganizations = async () => {
