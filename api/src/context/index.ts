@@ -107,8 +107,8 @@ type DeriveUserResponse = {
   user: UserResponseDto | null;
 };
 
-export const ctx = new Elysia({
-  name: "@app/ctx"
+const decorateApp = new Elysia({
+  name: "@app/decorate",
 })
   .use(bearer())
   .decorate("redis", client)
@@ -129,8 +129,12 @@ export const ctx = new Elysia({
   .decorate(
     "processOrderEcommerceWebhookQueue",
     processOrderEcommerceWebhookQueue
-  )
-  // @ts-ignore
+  ).as('global');
+
+export const ctx = new Elysia({
+  name: "@app/ctx"
+})
+  .use(decorateApp)
   .derive({ as: 'global' }, async ({ bearer, redis, cacheControl }): Promise<DeriveUserResponse> => {
     const token = bearer;
     if (!token) {
