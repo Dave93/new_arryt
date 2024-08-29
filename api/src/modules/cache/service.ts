@@ -472,7 +472,7 @@ export class CacheControlService {
     );
     return JSON.parse(deliveryPricing || "[]").filter(
       (pricing: any) => pricing.organization_id === organizationId
-    ) as InferSelectModel<typeof delivery_pricing>[];
+    ) as (typeof delivery_pricing.$inferSelect)[];
   }
 
   async getOrganization(organizationId: string) {

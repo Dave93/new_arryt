@@ -13,6 +13,7 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "maxNodeModuleJsDepth": 0,
     "paths": {
       "@api/*": ["./api/*"],
       "@admin/*": ["./admin/*"],

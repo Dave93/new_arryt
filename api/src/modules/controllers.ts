@@ -20,6 +20,7 @@ import { externalControler } from "./external/controler";
 import { constructedBonusPricingController } from "./constructed_bonus_pricing/controller";
 import { systemConfigsController } from "./system_configs/controller";
 
+// @ts-ignore
 export const apiController = new Elysia({
   prefix: "/api",
   name: "api",

@@ -45,6 +45,8 @@ import { prepareOrdersNextButton } from '@api/src/lib/orders';
 import { getDistance } from "geolib";
 import { ctx } from "@api/src/context";
 import { OrderLocationsWithRelations, OrdersWithRelations } from "./dtos/list.dto";
+import { newOrderNotify, processOrderEcommerceWebhookQueue } from "@api/src/context/queues";
+import { DeliveryPricingRulesDto } from "@api/src/modules/delivery_pricing/dto/rules.dto";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -573,7 +575,7 @@ export const OrdersController = new Elysia({
             longitude: t.Numeric(),
         })
     })
-    .post('/orders/set_status', async ({ body: { order_id, status_id, latitude, longitude }, user, set, cacheControl, processOrderCompleteQueue, processOrderEcommerceWebhookQueue, drizzle, processOrderChangeStatusQueue }) => {
+    .post('/orders/set_status', async ({ body: { order_id, status_id, latitude, longitude }, user, set, cacheControl, processOrderCompleteQueue, drizzle, processOrderChangeStatusQueue }) => {
         if (!user) {
             set.status = 400;
             return {
@@ -843,7 +845,6 @@ export const OrdersController = new Elysia({
         },
         cacheControl,
         redis,
-        newOrderNotify,
         processFromBasketToCouriers,
         processCheckAndSendYandex
         , request: {
@@ -945,7 +946,8 @@ export const OrdersController = new Elysia({
                             );
                             const data = await responseJson.json();
                             if (d.price_per_km == 0 && d.rules) {
-                                const maxDistance: any = max(d.rules, (i: any) => +i.to);
+                                const rules = d.rules as DeliveryPricingRulesDto[];
+                                const maxDistance: any = max(rules, (i: any) => +i.to);
                                 const tempDistance = data.routes[0].distance + 100; // add 100 meters
                                 if (tempDistance / 1000 > maxDistance.to) {
                                     continue;
@@ -986,8 +988,9 @@ export const OrdersController = new Elysia({
                     let customerPrice = 0;
                     minDistance = minDistance / 1000;
                     let distance = minDistance;
-                    if (minDeliveryPricing?.rules) {
-                        minDeliveryPricing!.rules!.forEach((r: any) => {
+                    const minDeliveryPricingRules = minDeliveryPricing?.rules as DeliveryPricingRulesDto[] | undefined;
+                    if (minDeliveryPricingRules) {
+                        minDeliveryPricingRules.forEach((r: any) => {
                             const { from, to, price: rulePrice } = r;
                             if (distance >= 0) {
                                 distance -= +to - +from;
@@ -1012,8 +1015,9 @@ export const OrdersController = new Elysia({
                     }
 
                     distance = minDistance;
-                    if (minDeliveryPricing?.customer_rules) {
-                        minDeliveryPricing!.customer_rules.forEach((r: any) => {
+                    const minDeliveryPricingCustomerRules = minDeliveryPricing?.customer_rules as DeliveryPricingRulesDto[] | undefined;
+                    if (minDeliveryPricingCustomerRules) {
+                        minDeliveryPricingCustomerRules.forEach((r: any) => {
                             const { from, to, price: rulePrice } = r;
                             if (distance >= 0) {
                                 distance -= +to - +from;
@@ -1388,10 +1392,10 @@ export const OrdersController = new Elysia({
                 : sql``;
             const sqlPrevStartDateTime = sql.raw(`${sqlPrevStartDate} 00:00:00`);
             const sqlPrevEndDateTime = sql.raw(`${sqlPrevEndDate} 04:00:00`);
-            const prevMonthOrders = (await drizzle.execute(sql<{
+            const prevMonthOrders = (await drizzle.execute<{
                 courier_id: string;
                 total_orders: number;
-            }>`select o.courier_id,
+            }>(sql`select o.courier_id,
                                     count(o.courier_id) as total_orders
                              from orders o
                                       inner join order_status os on o.order_status_id = os.id and os.finish = true
@@ -1404,8 +1408,8 @@ export const OrdersController = new Elysia({
             console.timeEnd('prev_month');
 
 
-            let query = (await drizzle.execute(
-                sql<GarantReportItem>`select min(o.created_at)                                              as begin_date,
+            let query = (await drizzle.execute<GarantReportItem>(
+                sql`select min(o.created_at)                                              as begin_date,
                                     max(o.created_at)                                              as last_order_date,
                                     sum(o.delivery_price)                                          as delivery_price,
                                     concat(u.first_name, ' ', u.last_name)                         as courier,
@@ -1424,10 +1428,10 @@ export const OrdersController = new Elysia({
                              order by courier;`
             )).rows;
             console.time('bonusQuery');
-            let bonusQuery = (await drizzle.execute(sql<{
+            let bonusQuery = (await drizzle.execute<{
                 total_amount: number;
                 courier_id: string;
-            }>`select sum(amount) as total_amount, courier_id
+            }>(sql`select sum(amount) as total_amount, courier_id
                              from order_transactions
                              where status = 'success'
                                and transaction_type != 'order' and created_at >= '${drizzleSqlStartDate}' and created_at <= '${drizzleSqlEndDate}'
@@ -1444,7 +1448,7 @@ export const OrdersController = new Elysia({
                 }[]
             > = {};
             console.time('couriersByTerminal');
-            const couriersByTerminal = (await drizzle.execute(sql<ReportCouriersByTerminal>`select sum(o.delivery_price)                  as delivery_price,
+            const couriersByTerminal = (await drizzle.execute<ReportCouriersByTerminal>(sql`select sum(o.delivery_price)                  as delivery_price,
                                     concat(u.first_name, ' ', u.last_name) as courier,
                                     o.courier_id,
                                     o.courier_id,
@@ -1498,7 +1502,7 @@ export const OrdersController = new Elysia({
 
             let courierIds = query
                 .filter((item) => item.courier_id != null)
-                .map((item) => item.courier_id);
+                .map((item) => item.courier_id) as string[];
 
             if (courierIds.length == 0) {
                 return [];
@@ -1598,8 +1602,8 @@ export const OrdersController = new Elysia({
                         "YYYY-MM-DD"
                     )} 04:00:00`);
                     const customCouierId = sql.raw(item.courier_id);
-                    const customDateQuery = (await drizzle.execute(
-                        sql<GarantReportItem>`
+                    const customDateQuery = (await drizzle.execute<GarantReportItem>(
+                        sql`
                                 SELECT MIN(o.created_at)                                                   AS begin_date,
                                        MAX(o.created_at)                                                   AS last_order_date,
                                        SUM(o.delivery_price)                                               AS delivery_price,
@@ -1841,10 +1845,10 @@ export const OrdersController = new Elysia({
 
             console.time('balanceQueryDuck');
             const courierSqlMap = sql.raw(courierIds.map((id) => `'${id}'`).join(","));
-            const balanceQuery = (await drizzle.execute(sql<{
+            const balanceQuery = (await drizzle.execute<{
                 courier_id: string;
                 balance: number;
-            }>`select courier_id, sum(amount) as balance
+            }>(sql`select courier_id, sum(amount) as balance
                              from order_transactions
                              where courier_id in (${courierSqlMap})
                                and status = 'pending'
@@ -1857,8 +1861,7 @@ export const OrdersController = new Elysia({
 
             const balanceById: {
                 [key: string]: number;
-            } = balanceQuery.reduce((acc, item) => {
-                // @ts-ignore
+            } = balanceQuery.reduce((acc: { [key: string]: number }, item) => {
                 acc[item.courier_id] = item.balance;
                 return acc;
             }, {});
@@ -1944,10 +1947,9 @@ export const OrdersController = new Elysia({
                     }
                 }
 
-                // @ts-ignore
-                couriersById[item.courier_id].created_at = new Date(
+                couriersById[item.courier_id].created_at = new Date(new Date(
                     couriersById[item.courier_id].created_at
-                ).setHours(0, 0, 0, 0);
+                ).setHours(0, 0, 0, 0)).toISOString();
                 resultItem.created_at = new Date(
                     couriersById[item.courier_id].created_at
                 );

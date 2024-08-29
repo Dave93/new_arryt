@@ -92,6 +92,7 @@ const YuriyOrdersGarantReport = () => {
         data = data.filter((item) => item.status === status);
       }
       if (driveType) {
+        // @ts-ignore
         data = data.filter((item) => driveType.includes(item.drive_type));
       }
 

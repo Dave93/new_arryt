@@ -1,10 +1,12 @@
 import { delivery_pricing, order_locations, order_status, orders, users } from "@api/drizzle/schema";
+import { processSendNotificationQueue, processYandexCallbackQueue } from "@api/src/context/queues";
 import { ctx } from "@api/src/context";
 import { getMinutes, getMinutesNow } from "@api/src/lib/dates";
 import dayjs from "dayjs";
 import { InferSelectModel, and, desc, eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { max, sort } from "radash";
+import { DeliveryPricingRulesDto } from "../delivery_pricing/dto/rules.dto";
 
 export const externalControler = new Elysia({
     name: "@app/external",
@@ -168,7 +170,8 @@ export const externalControler = new Elysia({
 
                                 const data = await responseJson.json();
                                 if (d.price_per_km == 0 && d.rules) {
-                                    const maxDistance: any = max(d.rules, (i: any) => +i.to);
+                                    const rules = d.rules as DeliveryPricingRulesDto[];
+                                    const maxDistance: any = max(rules, (i: any) => +i.to);
                                     const tempDistance = data.routes[0].distance + 100; // add 100 meters
                                     if (tempDistance / 1000 > maxDistance.to) {
                                         continue;
@@ -209,8 +212,9 @@ export const externalControler = new Elysia({
                         let price = 0;
                         minDistance = minDistance / 1000;
                         let distance = minDistance;
-                        if (minDeliveryPricing?.rules) {
-                            minDeliveryPricing!.rules!.forEach((r: any) => {
+                        const minDeliveryPricingRules = minDeliveryPricing!.rules as DeliveryPricingRulesDto[] | undefined;
+                        if (minDeliveryPricingRules) {
+                            minDeliveryPricingRules.forEach((r: any) => {
                                 const { from, to, price: rulePrice } = r;
                                 if (distance >= 0) {
                                     distance -= +to - +from;
@@ -373,7 +377,8 @@ export const externalControler = new Elysia({
 
                                 const data = await responseJson.json();
                                 if (d.price_per_km == 0 && d.rules) {
-                                    const maxDistance: any = max(d.rules, (i: any) => +i.to);
+                                    const rules = d.rules as DeliveryPricingRulesDto[];
+                                    const maxDistance: any = max(rules, (i: any) => +i.to);
                                     const tempDistance = data.routes[0].distance + 100; // add 100 meters
                                     if (tempDistance / 1000 > maxDistance.to) {
                                         continue;
@@ -414,8 +419,9 @@ export const externalControler = new Elysia({
                         let price = 0;
                         minDistance = minDistance / 1000;
                         let distance = minDistance;
-                        if (minDeliveryPricing?.rules) {
-                            minDeliveryPricing!.rules!.forEach((r: any) => {
+                        const minDeliveryPricingRules = minDeliveryPricing!.rules as DeliveryPricingRulesDto[] | undefined;
+                        if (minDeliveryPricingRules) {
+                            minDeliveryPricingRules.forEach((r: any) => {
                                 const { from, to, price: rulePrice } = r;
                                 if (distance >= 0) {
                                     distance -= +to - +from;
@@ -563,7 +569,8 @@ export const externalControler = new Elysia({
                 );
                 const data = await responseJson.json();
                 if (d.price_per_km == 0 && d.rules) {
-                    const maxDistance: any = max(d.rules, (i: any) => +i.to);
+                    const rules = d.rules as DeliveryPricingRulesDto[];
+                    const maxDistance: any = max(rules, (i: any) => +i.to);
                     const tempDistance = data.routes[0].distance + 100; // add 100 meters
 
                     if (tempDistance / 1000 > maxDistance.to) {
@@ -612,8 +619,9 @@ export const externalControler = new Elysia({
         let price = 0;
         minDistance = minDistance / 1000;
         let distance = minDistance;
-        if (minDeliveryPricing!.customer_rules) {
-            minDeliveryPricing!.customer_rules.forEach((r: any) => {
+        const customerRules = minDeliveryPricing!.customer_rules as DeliveryPricingRulesDto[] | undefined;
+        if (customerRules) {
+            customerRules.forEach((r: any) => {
                 const { from, to, price: rulePrice } = r;
                 if (distance >= 0) {
                     distance -= +to - +from;
@@ -761,7 +769,7 @@ export const externalControler = new Elysia({
             id: t.String(),
         })
     })
-    .get('/external/cooked_time/:id', async ({ params: { id }, set, cacheControl, request: { headers }, drizzle, query: { date }, processSendNotificationQueue }) => {
+    .get('/external/cooked_time/:id', async ({ params: { id }, set, cacheControl, request: { headers }, drizzle, query: { date } }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
@@ -907,7 +915,7 @@ export const externalControler = new Elysia({
             date: t.String(),
         }),
     })
-    .post('/external/yandex-callback', async ({ body, set, processYandexCallbackQueue }) => {
+    .post('/external/yandex-callback', async ({ body, set }) => {
         console.log('body', body);
         if (body?.claim_id) {
             await processYandexCallbackQueue.add(`${body.claim_id}_${(new Date()).getTime()}`, body, {
@@ -919,4 +927,8 @@ export const externalControler = new Elysia({
         return {
             success: true,
         };
+    }, {
+        body: t.Object({
+            claim_id: t.Optional(t.String()),
+        }),
     })

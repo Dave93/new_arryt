@@ -47,10 +47,10 @@ const OrdersGarantReport = () => {
   const [garantData, setGarantData] = useState<GarantReportItem[]>([]);
   const [filteredData, setFilteredData] = useState<GarantReportItem[]>([]);
   const [couriersList, setCouriersList] = useState<
-    InferSelectModel<typeof users>[]
+    (typeof users.$inferSelect)[]
   >([]);
   const [terminalsList, setTerminals] = useState<
-    InferSelectModel<typeof terminals>[]
+    (typeof terminals.$inferSelect)[]
   >([]);
   const [orderField, setOrderField] = useState<string | undefined>();
   const [direction, setDirection] = useState<"asc" | "desc" | undefined>();
@@ -107,6 +107,7 @@ const OrdersGarantReport = () => {
         data = data.filter((item) => item.status === status);
       }
       if (driveType) {
+        // @ts-ignore
         data = data.filter((item) => driveType.includes(item.drive_type));
       }
 
@@ -123,7 +124,7 @@ const OrdersGarantReport = () => {
     saveButtonProps,
     deleteButtonProps,
     id,
-  } = useDrawerForm<InferInsertModel<typeof users>>({
+  } = useDrawerForm<typeof users.$inferSelect>({
     action: "edit",
     resource: "users",
     redirect: false,

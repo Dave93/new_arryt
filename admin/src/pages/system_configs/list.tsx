@@ -40,7 +40,7 @@ export const SystemConfigsList: React.FC = () => {
   }>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [terminalsList, setTerminals] = useState<
-    InferSelectModel<typeof terminals>[]
+    (typeof terminals.$inferSelect)[]
   >([]);
   const tr = useTranslate();
 
@@ -98,10 +98,12 @@ export const SystemConfigsList: React.FC = () => {
           key.indexOf("time") !== -1 &&
           !["late_order_time", "yandex_courier_wait_time"].includes(key)
         ) {
+          // @ts-ignore
           setValue(key, dayjs(value));
         } else {
           if (key == "close_dates") {
             try {
+              // @ts-ignore
               let closeDates = JSON.parse(value);
               closeDates = closeDates.map((item: any) => {
                 return {
@@ -115,6 +117,7 @@ export const SystemConfigsList: React.FC = () => {
             }
           } else if (["garant_prices", "yandex_courier_id"].includes(key)) {
             try {
+              // @ts-ignore
               let closeDates = JSON.parse(value);
               setValue(key, closeDates);
             } catch (error) {
@@ -122,6 +125,7 @@ export const SystemConfigsList: React.FC = () => {
             }
           } else if (key === "terminal_close_days") {
             try {
+              // @ts-ignore
               let terminalCloseDays = JSON.parse(value);
               terminalCloseDays = terminalCloseDays.map((item: any) => {
                 return {
@@ -134,6 +138,7 @@ export const SystemConfigsList: React.FC = () => {
               console.log(error);
             }
           } else if (key === "yandex_delivery_payment_types") {
+            // @ts-ignore
             setValue(key, value.split(","));
           } else {
             setValue(key, value);

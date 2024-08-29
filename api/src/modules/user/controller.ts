@@ -136,6 +136,7 @@ export const UsersController = new Elysia({
             phone,
             is_super_user: false,
             status: "active",
+            wallet_balance: 0,
           })
           .returning();
       }
@@ -1436,7 +1437,6 @@ export const UsersController = new Elysia({
         // @ts-ignore
         selectFields = parseSelectFields(fields, users, {});
       }
-
       const {
         roles,
         usersTerminals,
@@ -1446,7 +1446,10 @@ export const UsersController = new Elysia({
 
       const result = await drizzle
         .insert(users)
-        .values(fieldValues)
+        .values({
+          ...fieldValues,
+          wallet_balance: 0,
+        })
         .returning(selectFields);
 
       const createdUser = result[0];
@@ -1674,6 +1677,7 @@ export const UsersController = new Elysia({
     const res: CourierEfficiencyReportItem[] = [];
     const courierIds: string[] = [];
     const terminalIds: string[] = [];
+    // @ts-ignore
     query.forEach((item) => {
       if (!courierIds.includes(item.courier_id)) {
         courierIds.push(item.courier_id);
@@ -1734,6 +1738,7 @@ export const UsersController = new Elysia({
         courier_percentage: number;
       }[];
     }> = {};
+    // @ts-ignore
     query.forEach((item) => {
       const courier = courierData[item.courier_id];
       const terminal = terminalData[item.terminal_id];
@@ -2045,7 +2050,7 @@ export const UsersController = new Elysia({
 
     return uniqueCouriers;
   })
-  .post('/couriers/store-location', async ({ body: { lat, lon, app_version }, drizzle, user, set, processCourierStoreLocationQueue }) => {
+  .post('/couriers/store-location', async ({ body: { lat, lon, app_version }, drizzle, user, set, processStoreLocationQueue }) => {
     if (!user) {
       set.status = 401;
       return {
@@ -2059,7 +2064,7 @@ export const UsersController = new Elysia({
       }
     }
 
-    await processCourierStoreLocationQueue.add(`${lat}_${lon}_${new Date().getTime()}`, {
+    await processStoreLocationQueue.add(`${lat}_${lon}_${new Date().getTime()}`, {
       lat,
       lon,
       app_version,

@@ -135,7 +135,7 @@ export const ManagerWithdrawController = new Elysia({
       id,
       gte_created_at: dayjs(withdraw[0].created_at).subtract(8, 'hour').toISOString(),
       lte_created_at: dayjs(withdraw[0].created_at).add(8, 'hour').toISOString()
-    }) as ManagerWithdrawTransactionsWithRelations[];
+    });
     return items;
   }, {
     params: t.Object({
