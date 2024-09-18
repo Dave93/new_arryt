@@ -707,46 +707,32 @@ export const OrdersController = new Elysia({
 
         console.time('updateOrder');
         if (currentStatus?.finish || currentStatus?.cancel) {
-            const updateOrderStatusFinishPrepare = drizzle.update(orders).set({
-                order_status_id: sql.placeholder('status_id'),
-                finished_date: sql.placeholder('finished_date'),
+            const updateOrderStatusFinish = drizzle.update(orders).set({
+                order_status_id: status_id,
+                finished_date: dayjs().format('YYYY-MM-DD HH:mm:ss'),
             })
                 .where(
                     and(
-                        eq(orders.id, sql.placeholder('order_id')),
-                        gte(orders.created_at, sql.placeholder('fromDate')),
-                        lte(orders.created_at, sql.placeholder('toDate'))
+                        eq(orders.id, order_id),
+                        gte(orders.created_at, fromDate),
+                        lte(orders.created_at, toDate)
                     )
                 )
-                .prepare('setStatusUpdateOrderStatusFinish');
-
-            await updateOrderStatusFinishPrepare.execute({
-                order_id,
-                status_id,
-                finished_date: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-                fromDate,
-                toDate,
-            });
+                .execute();
         } else {
 
             const updateOrderPrepare = drizzle.update(orders).set({
-                order_status_id: sql.placeholder('status_id'),
+                order_status_id: status_id,
             })
                 .where(
                     and(
-                        eq(orders.id, sql.placeholder('order_id')),
-                        gte(orders.created_at, sql.placeholder('fromDate')),
-                        lte(orders.created_at, sql.placeholder('toDate'))
+                        eq(orders.id, order_id),
+                        gte(orders.created_at, fromDate),
+                        lte(orders.created_at, toDate)
                     )
                 )
-                .prepare('setStatusUpdateOrder');
+                .execute();
 
-            await updateOrderPrepare.execute({
-                order_id,
-                status_id,
-                fromDate,
-                toDate,
-            });
         }
         console.timeEnd('updateOrder');
 
@@ -2657,7 +2643,7 @@ export const OrdersController = new Elysia({
             created_at_to: dayjs(created_at).add(2, 'hours').toISOString()
         });
 
-        const deliveryPricing = await cacheControl.getDeliveryPricingById(order[0].delivery_pricing_id);
+        const deliveryPricing = await cacheControl.getDeliveryPricingById(order[0].delivery_pricing_id as string);
 
         return deliveryPricing.drive_type;
     }, {

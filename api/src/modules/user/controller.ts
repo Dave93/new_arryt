@@ -458,9 +458,13 @@ export const UsersController = new Elysia({
     async ({ body: { refresh_token }, set }) => {
       try {
         let jwtResult = await verifyJwt(refresh_token);
-        const { id, phone } = jwtResult.payload;
-        // @ts-ignore
-        return await generateAuthToken({ id, phone });
+        const id = jwtResult.payload.id as string;
+        const phone = jwtResult.payload.phone as string;
+
+        return await generateAuthToken({
+          id,
+          phone,
+        });
       } catch (e) {
         set.status = 400;
         return {
