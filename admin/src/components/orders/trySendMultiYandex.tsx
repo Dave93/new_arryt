@@ -33,7 +33,6 @@ export const TrySendMultiYandex = ({
           Authorization: `Bearer ${token}`,
         }
       );
-      console.log(data);
       setIsLoading(false);
       copy(data.sendOrderToRoutedYandex);
       setResultString(data.sendOrderToRoutedYandex);

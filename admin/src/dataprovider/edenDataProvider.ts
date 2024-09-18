@@ -10,7 +10,6 @@ export const edenDataProvider: DataProvider = {
     meta,
   }: GetListParams) => {
     const { current, pageSize } = pagination!;
-    console.log("meta", meta);
     /**
      * create query params string from meta?.fields
      * meta?.fields possible value is

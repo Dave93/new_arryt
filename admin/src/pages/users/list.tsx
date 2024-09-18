@@ -208,8 +208,6 @@ export const UsersList: React.FC = () => {
         });
       }
 
-      console.log("drive_type", drive_type);
-
       return filters;
     },
 
@@ -543,10 +541,6 @@ export const UsersList: React.FC = () => {
                   delete values.roles;
                   delete values.work_schedules;
 
-                  console.log("usersTerminals", usersTerminals);
-                  console.log("workSchedules", usersWorkSchedules);
-                  console.log("roles", roles);
-
                   if (usersTerminals && Array.isArray(usersTerminals)) {
                     usersTerminals = usersTerminals.map((item: any) =>
                       typeof item == "string" ? item : item.id
@@ -704,7 +698,6 @@ export const UsersList: React.FC = () => {
                     label="Филиалы"
                     name="terminals"
                     getValueProps={(value) => {
-                      console.log("terminals", value);
                       return {
                         value: value?.map((item: any) =>
                           typeof item == "string" ? item : item.id
@@ -728,7 +721,6 @@ export const UsersList: React.FC = () => {
                     getValueProps={(value) => {
                       return {
                         value: value?.map((item: any) => {
-                          console.log("item", item);
                           return typeof item == "string"
                             ? item
                             : item && item.work_schedules

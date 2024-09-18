@@ -80,7 +80,6 @@ const MissedOrdersList: React.FC = () => {
       const localFilters: CrudFilters = [];
       queryClient.invalidateQueries(["default", "missed_orders", "list"]);
 
-      console.log("params", params);
 
       // queryClient.invalidateQueries();
       const { created_at, terminal_id, need_action, order_number } = params;

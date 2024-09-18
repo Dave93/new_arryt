@@ -43,7 +43,6 @@ const CourierEffectiveness = ({ user }: { user: UsersModel }) => {
     setIsLoading(true);
 
     const { created_at, per_hour } = getValues();
-    console.log("created_at", created_at);
     let query = gql``;
     if (per_hour) {
       const { data } = await apiClient.api.couriers.efficiency.hour.post({
@@ -124,8 +123,6 @@ const CourierEffectiveness = ({ user }: { user: UsersModel }) => {
         exportable: true,
       },
     ];
-
-    console.log("data", data);
 
     if (isPerHour) {
       const hours = data.map((d) => d.hour_period).flat();

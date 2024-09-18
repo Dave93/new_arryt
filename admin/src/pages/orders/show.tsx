@@ -257,7 +257,6 @@ export const OrdersShow = () => {
             return zipObjectDeep(["order_status", "location"], currentItem);
           })
           .value() as IGroupedLocations[];
-        console.log("result", result);
         setOrderLocations(result);
       }
     }

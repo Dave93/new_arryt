@@ -94,17 +94,6 @@ export const useTableExport = <
     let preparingData = true;
     while (preparingData) {
       try {
-        console.log("current", {
-          resource,
-          filters,
-          sort: sorter,
-          pagination: {
-            current,
-            pageSize,
-          },
-          meta: metaData,
-        });
-
         const { data, total } = await getList<TData>({
           resource,
           filters,
@@ -120,15 +109,12 @@ export const useTableExport = <
         });
 
         current++;
-        console.log("total", total);
-        console.log("data", data);
         rawData.push(...data);
 
         if (maxItemCount && rawData.length >= maxItemCount) {
           rawData = rawData.slice(0, maxItemCount);
           preparingData = false;
         }
-        console.log(+total === rawData.length);
         if (+total === rawData.length) {
           preparingData = false;
         }
@@ -156,7 +142,6 @@ export const useTableExport = <
       }
       return true;
     });
-    console.log("filteredColumns", filteredColumns);
     try {
       const excel = new Excel();
       excel

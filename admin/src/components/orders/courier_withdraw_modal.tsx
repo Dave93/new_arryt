@@ -19,7 +19,6 @@ const CourierWithdrawModal = ({ order, onWithdraw, identity }: Props) => {
   const [withdrawAmount, setWithdrawAmount] = useState(order.balance);
 
   const handleWithdraw = async () => {
-    console.log("withdrawAmount", withdrawAmount);
     if (withdrawAmount <= order.balance && withdrawAmount > 0) {
       setIsSubmitting(true);
       try {

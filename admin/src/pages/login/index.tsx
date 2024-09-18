@@ -44,14 +44,10 @@ export const Login: React.FC = () => {
   const { mutate: login, isLoading } = useLogin<ILoginForm>();
 
   const onGsmFormSubmit = async (values: Pick<ILoginForm, "phone">) => {
-    console.log("values", values);
     setLoading(true);
-    console.log("values", values);
     setGsmNumber(`+${values.phone}`);
     let phone = `+${values.phone}`;
-    console.log("values", values);
     try {
-      console.log("apiClient", apiClient.api);
       // const res = await apiClient.api.users["send-otp"].post({
       //   phone,
       // });

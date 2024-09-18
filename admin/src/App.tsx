@@ -415,7 +415,6 @@ function App() {
     };
   }, []);
 
-  console.log("app");
   return (
     <BrowserRouter>
       <RefineKbarProvider>
