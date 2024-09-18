@@ -1,9 +1,10 @@
 import { DB } from "@api/src/lib/db";
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { order_actions, orders, users } from "@api/drizzle/schema";
 import Redis from "ioredis";
 import { CacheControlService } from "@api/src/modules/cache/service";
 import { Queue } from "bullmq";
+import dayjs from "dayjs";
 
 type orderChangeStatusData = {
     before_status_id: string;
@@ -12,7 +13,7 @@ type orderChangeStatusData = {
     user_id: string;
 };
 
-export default async function processChangeStatus(redis: Redis, db: DB, cacheControl: CacheControlService, data: orderChangeStatusData) {
+export default async function processChangeStatus(redis: Redis, db: DB, cacheControl: CacheControlService, data: orderChangeStatusData, processOrderCompleteQueue: Queue) {
 
     const orderStatuses = await cacheControl.getOrderStatuses();
     const beforeStatus = orderStatuses.find((status) => status.id === data.before_status_id);
@@ -65,5 +66,32 @@ export default async function processChangeStatus(redis: Redis, db: DB, cacheCon
         }).where(
             eq(orders.id, data.order_id)
         ).execute();
+
+        if (afterStatus?.finish) {
+
+            const ordersListPrepare = await db
+                .select()
+                .from(orders)
+                .where(and(
+                    eq(orders.id, sql.placeholder('order_id')),
+                    gte(orders.created_at, sql.placeholder('startDate')),
+                    lte(orders.created_at, sql.placeholder('endDate')),
+                ))
+                .limit(1)
+                .orderBy(asc(orders.created_at))
+                .prepare('queue_find_order')
+
+            const ordersList = await ordersListPrepare
+                .execute({
+                    order_id: data.order_id,
+                    startDate: dayjs().subtract(4, 'days').format('YYYY-MM-DD HH:mm:ss'),
+                    endDate: dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')
+                });
+
+            await processOrderCompleteQueue.add(ordersList[0].id, ordersList[0], {
+                attempts: 3, removeOnComplete: true
+            });
+        }
     }
+
 }

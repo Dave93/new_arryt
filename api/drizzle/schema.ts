@@ -751,6 +751,7 @@ export const orders = pgTable("orders", {
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	created_by: uuid("created_by"),
 	updated_by: uuid("updated_by"),
+	yandex_id: text("yandex_id")
 },
 	(table) => {
 		return {

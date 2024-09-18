@@ -31,7 +31,6 @@ type DeriveUserResponse = {
 const decorateApp = new Elysia({
   name: "@app/decorate",
 })
-  .use(bearer())
   .decorate("redis", client)
   .decorate("drizzle", db)
   .decorate("cacheControl", cacheControlService)
@@ -52,6 +51,7 @@ export const ctx = new Elysia({
   name: "@app/ctx"
 })
   .use(decorateApp)
+  .use(bearer())
   .derive({ as: 'global' }, async ({ bearer, redis, cacheControl }): Promise<DeriveUserResponse> => {
     const token = bearer;
     if (!token) {
@@ -59,7 +59,6 @@ export const ctx = new Elysia({
         user: null,
       };
     }
-
     const apiTokens = await cacheControl.getApiTokens();
     const apiToken = apiTokens.find((apiToken) => apiToken.token === token);
 

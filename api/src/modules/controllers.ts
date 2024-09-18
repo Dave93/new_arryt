@@ -25,7 +25,6 @@ export const apiController = new Elysia({
   prefix: "/api",
   name: "api",
 })
-
   .use(UsersController)
   .use(CustomersController)
   .use(OrderStatusController)
