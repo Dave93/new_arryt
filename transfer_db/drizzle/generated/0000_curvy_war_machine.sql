@@ -367,6 +367,7 @@ CREATE TABLE IF NOT EXISTS "orders" (
 	"updated_at" timestamp(5) with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
 	"updated_by" uuid,
+	"yandex_id" text,
 	CONSTRAINT orders_id_created_at PRIMARY KEY("id","created_at")
 );
 --> statement-breakpoint

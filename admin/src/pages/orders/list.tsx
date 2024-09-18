@@ -169,6 +169,7 @@ export const OrdersList: React.FC = () => {
 
     onSearch: async (params) => {
       const localFilters: CrudFilters = [];
+      queryClient.invalidateQueries(["default", "orders", "list"]);
       // queryClient.invalidateQueries({ queryKey: ["default", "orders"] });
       // queryClient.invalidateQueries();
       const {

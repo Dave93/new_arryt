@@ -30,13 +30,18 @@ const newOrderNotifyQueue = new Queue(
         connection: redisClient,
     }
 );
-
+export const processOrderCompleteQueue = new Queue(
+    `${process.env.TASKS_PREFIX}_order_complete`,
+    {
+        connection: redisClient,
+    }
+);
 
 const newOrderNotify = new Worker(
     `${process.env.TASKS_PREFIX}_new_order_notify`,
     async (job) => {
         console.log('new_order_notify', job.data);
-        // await processNewOrderNotify(redisClient, db, cacheControl, job.data);
+        await processNewOrderNotify(redisClient, db, cacheControl, job.data);
         return 'new_order_notify';
     },
     {
@@ -73,7 +78,7 @@ const checkAndSendYandexWorker = new Worker(
     `${process.env.TASKS_PREFIX}_check_and_send_yandex`,
     async (job) => {
         console.log('check_and_send_yandex', job.data);
-        // await processCheckAndSendYandex(db, redisClient, cacheControl, searchService, processOrderIndexWorker, job.data.id);
+        await processCheckAndSendYandex(db, redisClient, cacheControl, searchService, processOrderIndexWorker, job.data.id);
         return 'check_and_send_yandex';
     },
     {
@@ -98,7 +103,7 @@ const orderCompleteWorker = new Worker(
     `${process.env.TASKS_PREFIX}_order_complete`,
     async (job) => {
         console.log('order_complete', job.data);
-        // await processOrderComplete(db, cacheControl, job.data);
+        await processOrderComplete(db, cacheControl, job.data);
         return 'order_complete';
     },
     {
@@ -121,7 +126,7 @@ const orderChangeStatusWorker = new Worker(
     `${process.env.TASKS_PREFIX}_order_change_status`,
     async (job) => {
         console.log('order_change_status', job.data);
-        await processChangeStatus(redisClient, db, cacheControl, job.data);
+        await processChangeStatus(redisClient, db, cacheControl, job.data, processOrderCompleteQueue);
         return 'order_change_status';
     },
     {

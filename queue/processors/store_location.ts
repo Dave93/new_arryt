@@ -4,6 +4,7 @@ import { order_actions, order_locations, orders, users } from "@api/drizzle/sche
 import Redis from "ioredis";
 import { CacheControlService } from "@api/src/modules/cache/service";
 import { getDistance } from "geolib";
+import dayjs from "dayjs";
 
 type storeLocationData = {
     lat: string;
@@ -32,6 +33,8 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
         }
         const orderStatusesNotOnWay = orderStatuses.filter((status) => status.in_terminal);
         console.log('store location line', 22);
+
+
         const ordersNotOnWay = await db.select({
             id: orders.id,
             terminal_id: orders.terminal_id,
@@ -41,8 +44,8 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
             and(
                 inArray(orders.order_status_id, orderStatusesNotOnWay.map((status) => status.id)),
                 eq(orders.courier_id, data.user_id),
-                gte(orders.created_at, sql`now() - interval '1 day'`),
-                lte(orders.created_at, sql`now()`)
+                gte(orders.created_at, dayjs().subtract(5, 'day').toISOString()),
+                lte(orders.created_at, dayjs().toISOString())
             )
         ).execute();
         console.log('store location line', 36);
@@ -61,8 +64,8 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
                 }).where(
                     and(
                         eq(orders.id, order.id),
-                        gte(orders.created_at, sql`now() - interval '1 day'`),
-                        lte(orders.created_at, sql`now()`)
+                        gte(orders.created_at, dayjs().subtract(5, 'day').toISOString()),
+                        lte(orders.created_at, dayjs().toISOString())
                     )
                 ).execute();
             }
@@ -75,6 +78,7 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
         );
 
         console.log('store location line', 61);
+
         const ordersThatNeedLocation = await db.select({
             id: orders.id,
             terminal_id: orders.terminal_id,
@@ -85,12 +89,12 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
             and(
                 inArray(orders.order_status_id, orderStatusesThatNeedLocation.map((status) => status.id)),
                 eq(orders.courier_id, data.user_id),
-                gte(orders.created_at, sql`now() - interval '1 day'`),
-                lte(orders.created_at, sql`now()`)
+                gte(orders.created_at, dayjs().subtract(7, 'day').toISOString()),
+                lte(orders.created_at, dayjs().toISOString())
             )
         ).execute();
-
         console.log('store location line', 81);
+        let orderLocations = [];
         for (const order of ordersThatNeedLocation) {
             console.log('needLocation insert', {
                 order_id: order.id,
@@ -98,20 +102,34 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
                 terminal_id: order.terminal_id,
                 courier_id: data.user_id,
                 order_status_id: order.order_status_id,
-                lat: data.lat,
-                lon: data.lon,
+                lat: +data.lat,
+                lon: +data.lon,
                 created_by: data.user_id,
             })
-            await db.insert(order_locations).values({
+            orderLocations.push({
                 order_id: order.id,
                 order_created_at: order.created_at,
                 terminal_id: order.terminal_id,
                 courier_id: data.user_id,
                 order_status_id: order.order_status_id,
-                lat: data.lat,
-                lon: data.lon,
+                lat: +data.lat,
+                lon: +data.lon,
                 created_by: data.user_id,
-            }).execute();
+            })
+            // await db.insert(order_locations).values({
+            //     order_id: order.id,
+            //     order_created_at: order.created_at,
+            //     terminal_id: order.terminal_id,
+            //     courier_id: data.user_id,
+            //     order_status_id: order.order_status_id,
+            //     lat: data.lat,
+            //     lon: data.lon,
+            //     created_by: data.user_id,
+            // }).execute();
+        }
+
+        if (orderLocations.length > 0) {
+            await db.insert(order_locations).values(orderLocations).execute();
         }
 
         const orderStatusesThatNeedLocationAndFinished = orderStatuses.filter(

@@ -1,6 +1,7 @@
 import { cors } from "@elysiajs/cors";
 import Elysia from "elysia";
 import { loggingMiddleware } from "./loggingMiddleware";
+import { staticPlugin } from '@elysiajs/static'
 import { apiController } from "./modules/controllers";
 
 const app = new Elysia()
@@ -9,7 +10,7 @@ const app = new Elysia()
             methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         })
     )
-    .use(loggingMiddleware)
+    // .use(loggingMiddleware)
     // .use(
     //   opentelemetry({
     //     spanProcessors: [
@@ -19,7 +20,10 @@ const app = new Elysia()
     //     ]
     //   })
     // )
-    .get("/", () => "Hello Davr")
+    .get("/", () => {
+        console.log('get /');
+        return 'Hello Davr';
+    })
     .get("/check_service", () => ({
         result: "ok",
     }))

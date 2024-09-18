@@ -4,7 +4,7 @@ import { CacheControlService } from "@api/src/modules/cache/service";
 import { SearchService } from "@api/src/services/search/service";
 import { getSetting } from "@api/src/utils/settings";
 import { Queue } from "bullmq";
-import { sleep } from "bun";
+import { sleep, sleepSync } from "bun";
 import { eq, getTableColumns } from "drizzle-orm";
 import Redis from "ioredis/built/Redis";
 
@@ -24,10 +24,15 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         ));
 
     const order = newOrders[0];
+    console.log('order', order);
+
 
     const newStatus = orderStatuses.find(status => status.sort == 1 && status.organization_id == order.organization_id);
-
+    const nextStatus = orderStatuses.find(status => status.sort == 2 && status.organization_id == order.organization_id);
+    console.log('newStatus', newStatus);
     if (!order.courier_id && order.order_status_id == newStatus!.id) {
+        console.log('order.order_status_id', order.order_status_id);
+        console.log('newStatus!.id', newStatus!.id);
         const yandexSenderName = await getSetting(redis, 'yandex_sender_name');
         const yandexSenderPhone = await getSetting(redis, 'yandex_sender_phone');
 
@@ -39,7 +44,6 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         const organization = await cacheControl.getOrganization(order.organization_id);
 
         let isClient = false;
-
         // get delivery pricing
         const deliveryPricing = await cacheControl.getDeliveryPricingById(order.delivery_pricing_id!);
 
@@ -75,11 +79,15 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         const orderPriceLabel = new Intl.NumberFormat('ru').format(orderPrice);
 
         let cargo_options = ['thermobag'];
-
+        console.log('yandexSenderName', yandexSenderName);
+        console.log('yandexSenderPhone', yandexSenderPhone);
+        console.log('order!.orders_terminals!.manager_name', order!.orders_terminals!.manager_name);
+        console.log('order!.orders_terminals!.phone', order!.orders_terminals!.phone);
+        console.log('isClient', isClient);
         const yandexData = {
             auto_accept: true,
             callback_properties: {
-                callback_url: `https://${this.configService.get('API_DOMAIN')}/api/external/yandex-callback`,
+                callback_url: `https://${process.env.API_DOMAIN}/api/external/yandex-callback`,
             },
             client_requirements: {
                 cargo_options,
@@ -87,8 +95,8 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                 taxi_class: expressTerminals.includes(order!.orders_terminals!.id) ? 'express' : 'courier',
             },
             emergency_contact: {
-                name: yandexSenderName ? yandexSenderName.value : order!.orders_terminals!.manager_name,
-                phone: yandexSenderPhone ? yandexSenderPhone.value : order!.orders_terminals!.phone,
+                name: yandexSenderName ? yandexSenderName : order!.orders_terminals!.manager_name,
+                phone: yandexSenderPhone ? yandexSenderPhone : order!.orders_terminals!.phone,
             },
             items: [],
             route_points: [
@@ -99,8 +107,8 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                         comment: comment,
                     },
                     contact: {
-                        name: yandexSenderName ? yandexSenderName.value : order!.orders_terminals!.manager_name,
-                        phone: yandexSenderPhone ? yandexSenderPhone.value : order!.orders_terminals!.phone,
+                        name: (yandexSenderName ? yandexSenderName : order!.orders_terminals!.manager_name),
+                        phone: (yandexSenderPhone ? yandexSenderPhone : order!.orders_terminals!.phone),
                     },
                     type: 'source',
                     // pickup_code: ['56fe54a9-ae37-49b7-8de7-62aadb2abd19', '972b7402-345d-400e-9bf2-b77691b0fcd9'].includes(
@@ -140,8 +148,8 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                         comment: comment,
                     },
                     contact: {
-                        name: yandexSenderName ? yandexSenderName.value : order!.orders_terminals!.manager_name,
-                        phone: yandexSenderPhone ? yandexSenderPhone.value : order!.orders_terminals!.phone,
+                        name: yandexSenderName ? yandexSenderName : order!.orders_terminals!.manager_name,
+                        phone: yandexSenderPhone ? yandexSenderPhone : order!.orders_terminals!.phone,
                     },
                     type: 'return',
                     // pickup_code: ['56fe54a9-ae37-49b7-8de7-62aadb2abd19', '972b7402-345d-400e-9bf2-b77691b0fcd9'].includes(
@@ -160,6 +168,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             skip_client_notify: false,
             skip_door_to_door: false,
         };
+        console.log('yandexData', JSON.stringify(yandexData));
         const items = await db.select().from(order_items).where(eq(order_items.order_id, order.id));
         items.forEach((item) => {
             // @ts-ignore
@@ -167,7 +176,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                 pickup_point: 1,
                 dropoff_point: 2,
                 cost_currency: 'UZS',
-                cost_value: item.price,
+                cost_value: item.price.toString(),
                 title: item.name,
                 quantity: item.quantity,
                 weight: 0,
@@ -185,19 +194,21 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             },
             body: JSON.stringify(yandexData),
         });
-
+        // console.log('yandexReponse', await yandexReponse.json());
         const yandexJson = await yandexReponse.json();
+        console.log('yandexJson', yandexJson);
         const yandexCourier = await db.select({
             id: users.id,
         }).from(users).where(eq(users.phone, '+998908251218'));
 
-        const davrUser = await db.select().from(users).where(eq(users.phone, '+998909514019'));
-
+        // const davrUser = await db.select().from(users).where(eq(users.phone, '+998909514019'));
         await db.update(orders).set({
             courier_id: yandexCourier[0].id,
+            order_status_id: nextStatus!.id,
+            yandex_id: yandexJson.id,
         }).where(eq(orders.id, order.id));
 
-        await sleep(300);
+        sleepSync(500);
 
         const approveUrl = `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/accept?claim_id=${yandexJson.id}`;
         try {
@@ -214,21 +225,22 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             });
 
             const approveJson = await approveResponse.json();
-
-            await searchService.indexYandexDeliveryOrder(order.id, {
-                // @ts-ignore
-                ...yandexJson,
-                // @ts-ignore
-                ...approveJson,
-            }, {}, davrUser[0]);
+            console.log('approveJson', approveJson);
+            // await searchService.indexYandexDeliveryOrder(order.id, {
+            //     // @ts-ignore
+            //     ...yandexJson,
+            //     // @ts-ignore
+            //     ...approveJson,
+            // }, {}, davrUser[0]);
         } catch (e) {
+            console.log('e', e);
         }
 
-        await processOrderIndex.add(order.id, {
-            id: order.id,
-            created_at: order.created_at,
-        }, {
-            attempts: 3, removeOnComplete: true
-        });
+        // await processOrderIndex.add(order.id, {
+        //     id: order.id,
+        //     created_at: order.created_at,
+        // }, {
+        //     attempts: 3, removeOnComplete: true
+        // });
     }
 }

@@ -10,6 +10,7 @@ import {
   Space,
   Table,
   Tag,
+  Input,
 } from "antd";
 import { CrudFilters, HttpError, useGetIdentity } from "@refinedev/core";
 import { useQueryClient } from "@tanstack/react-query";
@@ -47,12 +48,13 @@ const MissedOrdersList: React.FC = () => {
       role: string;
       terminal_id: string;
       need_action: boolean;
+      order_number: number;
     }
   >({
     queryOptions: {
-      queryKey: ["missed_orders"],
+      // queryKey: ["missed_orders"],
+      refetchInterval: 1000 * 5,
     },
-
     meta: {
       fields: [
         "id",
@@ -81,7 +83,7 @@ const MissedOrdersList: React.FC = () => {
       console.log("params", params);
 
       // queryClient.invalidateQueries();
-      const { created_at, terminal_id, need_action } = params;
+      const { created_at, terminal_id, need_action, order_number } = params;
 
       localFilters.push(
         {
@@ -101,6 +103,13 @@ const MissedOrdersList: React.FC = () => {
           field: "terminal_id",
           operator: "in",
           value: terminal_id,
+        });
+      }
+      if (order_number) {
+        localFilters.push({
+          field: "order_number",
+          operator: "eq",
+          value: order_number,
         });
       }
 
@@ -303,6 +312,11 @@ const MissedOrdersList: React.FC = () => {
                     </Select.Option>
                   ))}
                 </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={12} sm={12} md={2}>
+              <Form.Item name="order_number" label="Номер заказа">
+                <Input allowClear />
               </Form.Item>
             </Col>
             <Col xs={12} sm={12} md={3}>

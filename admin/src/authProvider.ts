@@ -73,54 +73,45 @@ export const authProvider: AuthBindings = {
       });
       const { data: decrypted } = await openpgp.decrypt({
         message: encryptedMessage,
-        passwords: [password], // decrypt with password
-        format: 'binary' // output as Uint8Array
+        passwords: [password],
+        format: 'binary'
       });
 
-      // binary to string
       const decryptedString = new TextDecoder().decode(decrypted);
-
       var decryptedData = JSON.parse(decryptedString);
+      console.log('decryptedData', decryptedData);
       if (decryptedData.token.accessTokenExpires) {
         let expiration = DateTime.fromMillis(
           decryptedData.token.expirationMillis
-        );
-        if (DateTime.local() > expiration) {
+        ).minus({ minutes: 20 });
+        if (DateTime.local() >= expiration) {
           try {
-            let query = gql`
-            mutation {
-              refreshToken(
-                refreshToken: "${decryptedData.token.refreshToken}"
-              ) {
-                accessToken
-                accessTokenExpires
-                refreshToken
-                tokenType
-              }
-            }
-          `;
-            const data = await client.request(query);
-            let expirationAddition = parseInt(
-              ms(data.refreshToken.accessTokenExpires)
-            );
-            let expiration = DateTime.local().plus({
-              milliseconds: expirationAddition,
-            });
-            decryptedData.token = data.refreshToken;
-            decryptedData.token.expirationMillis = expiration.toMillis();
-            let credentials = JSON.stringify(decryptedData);
-            let password = import.meta.env.VITE_CRYPTO_KEY!;
-            const message = await openpgp.createMessage({ text: credentials });
-            const encrypted = await openpgp.encrypt({
-              message, // input as Message object
-              passwords: [password], // multiple passwords possible
-              format: 'armored' // don't ASCII armor (for Uint8Array output)
+            const { data } = await apiClient.api.users["refresh-token"].post({
+              refreshToken: decryptedData.token.refreshToken,
             });
 
-            localStorage.setItem(TOKEN_KEY, encrypted);
-            return {
-              authenticated: true,
-            };
+            if (data) {
+              let expirationAddition = parseInt(
+                ms(data.token.accessTokenExpires).toString()
+              );
+              let expiration = DateTime.local().plus({
+                milliseconds: expirationAddition,
+              });
+              data.token.expirationMillis = expiration.toMillis();
+              let credentials = JSON.stringify(data);
+              let password = import.meta.env.VITE_CRYPTO_KEY!;
+              const message = await openpgp.createMessage({ text: credentials });
+              const encrypted = await openpgp.encrypt({
+                message,
+                passwords: [password],
+                format: 'armored'
+              });
+
+              localStorage.setItem(TOKEN_KEY, encrypted);
+              return {
+                authenticated: true,
+              };
+            }
           } catch (e) {
             console.log("auth error", e);
             return {

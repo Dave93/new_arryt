@@ -10,6 +10,7 @@ import {
     users,
     users_roles,
     users_terminals,
+    customers_comments
 } from "@api/drizzle/schema";
 import { db } from "@api/src/lib/db";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
@@ -308,9 +309,15 @@ export const OrdersController = new Elysia({
         }
 
         console.time('usersTerminals');
-        const usersTerminalsList = await drizzle.select({
-            terminal_id: users_terminals.terminal_id
-        }).from(users_terminals).where(eq(users_terminals.user_id, user.user.id)).execute();
+        const usersTerminalsListPrepare = await drizzle
+            .select({
+                terminal_id: users_terminals.terminal_id
+            })
+            .from(users_terminals)
+            .where(
+                eq(users_terminals.user_id, sql.placeholder('user_id'))
+            ).prepare('usersTerminalsList');
+        const usersTerminalsList = await usersTerminalsListPrepare.execute({ user_id: user.user.id });
         console.timeEnd('usersTerminals');
         console.time('cacheWorks');
         const orderStatuses = await cacheControl.getOrderStatuses();
@@ -329,9 +336,15 @@ export const OrdersController = new Elysia({
         console.timeEnd('cacheWorks');
 
         console.time('userAdditionalData');
-        const userAdditionalData = await drizzle.select({
-            max_active_order_count: users.max_active_order_count,
-        }).from(users).where(eq(users.id, user.user.id)).execute();
+        const userMaxActiveOrderCountPrepare = await drizzle
+            .select({
+                max_active_order_count: users.max_active_order_count,
+            })
+            .from(users)
+            .where(
+                eq(users.id, sql.placeholder('user_id'))
+            ).prepare('userMaxActiveOrderCount');
+        const userAdditionalData = await userMaxActiveOrderCountPrepare.execute({ user_id: user.user.id });
 
         console.timeEnd('userAdditionalData');
         let maxActiveOrderCount = 0;
@@ -343,19 +356,20 @@ export const OrdersController = new Elysia({
             maxActiveOrderCount = Math.max(...organizations.map((organization) => organization.max_active_order_count));
         }
 
-        const fromDate = dayjs().subtract(2, 'days').format('YYYY-MM-DD HH:mm:ss');
-        const toDate = dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss');
+        const fromDate = dayjs().subtract(2, 'days').toISOString();
+        const toDate = dayjs().add(2, 'days').toISOString();
 
         console.time('ordersCount');
-        const currentOrdersCount = await drizzle.select({
-            count: sql<number>`count(*)`
-        }).from(orders).where(and(
-            inArray(orders.terminal_id, terminalsIds),
-            inArray(orders.order_status_id, orderStatuses.filter(orderStatus => !orderStatus.finish && !orderStatus.cancel).map((orderStatus) => orderStatus.id)),
-            eq(orders.courier_id, user.user.id),
-            gte(orders.created_at, fromDate),
-            lte(orders.created_at, toDate),
-        )).execute();
+        const currentOrdersCount = await drizzle
+            .select({
+                count: sql<number>`count(*)`
+            }).from(orders).where(and(
+                inArray(orders.terminal_id, terminalsIds),
+                inArray(orders.order_status_id, orderStatuses.filter(orderStatus => !orderStatus.finish && !orderStatus.cancel).map((orderStatus) => orderStatus.id)),
+                eq(orders.courier_id, user.user.id),
+                gte(orders.created_at, fromDate),
+                lte(orders.created_at, toDate),
+            )).execute();
         console.timeEnd('ordersCount');
 
         let possibleOrdersCount = maxActiveOrderCount - currentOrdersCount[0].count;
@@ -421,13 +435,20 @@ export const OrdersController = new Elysia({
                 lte(orders.created_at, toDate),
             ))
             .orderBy(asc(orders.created_at))
-            .limit(possibleOrdersCount)
+            .limit(100)
             .execute();
 
         console.timeEnd('ordersList');
         return ordersList;
     })
-    .post('/orders/approve', async ({ body: { order_id, latitude, longitude }, user, set, cacheControl, processOrderChangeCourierQueue, drizzle }) => {
+    .post('/orders/approve', async ({
+        body: { order_id, latitude, longitude },
+        user,
+        set,
+        cacheControl,
+        processOrderChangeCourierQueue,
+        drizzle,
+    }) => {
         if (!user) {
             set.status = 400;
             return {
@@ -588,7 +609,7 @@ export const OrdersController = new Elysia({
 
         console.time('existingOrder');
 
-        const existingOrder = await drizzle
+        const existingOrderPrepare = drizzle
             .select({
                 id: orders.id,
                 organization_id: orders.organization_id,
@@ -602,12 +623,18 @@ export const OrdersController = new Elysia({
             .from(orders)
             .where(
                 and(
-                    eq(orders.id, order_id),
-                    gte(orders.created_at, fromDate),
-                    lte(orders.created_at, toDate),
+                    eq(orders.id, sql.placeholder('order_id')),
+                    gte(orders.created_at, sql.placeholder('fromDate')),
+                    lte(orders.created_at, sql.placeholder('toDate')),
                 )
             )
-            .execute();
+            .prepare('setStatusExistingOrder');
+
+        const existingOrder = await existingOrderPrepare.execute({
+            order_id,
+            fromDate,
+            toDate,
+        });
 
         console.timeEnd('existingOrder');
         if (existingOrder.length === 0) {
@@ -679,14 +706,52 @@ export const OrdersController = new Elysia({
         }
 
         console.time('updateOrder');
-        await drizzle.update(orders).set({
-            order_status_id: status_id,
-            ...(currentStatus?.finish || currentStatus?.cancel ? { finished_date: dayjs().format('YYYY-MM-DD HH:mm:ss') } : {}),
-        }).where(eq(orders.id, order_id)).execute();
+        if (currentStatus?.finish || currentStatus?.cancel) {
+            const updateOrderStatusFinishPrepare = drizzle.update(orders).set({
+                order_status_id: sql.placeholder('status_id'),
+                finished_date: sql.placeholder('finished_date'),
+            })
+                .where(
+                    and(
+                        eq(orders.id, sql.placeholder('order_id')),
+                        gte(orders.created_at, sql.placeholder('fromDate')),
+                        lte(orders.created_at, sql.placeholder('toDate'))
+                    )
+                )
+                .prepare('setStatusUpdateOrderStatusFinish');
+
+            await updateOrderStatusFinishPrepare.execute({
+                order_id,
+                status_id,
+                finished_date: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                fromDate,
+                toDate,
+            });
+        } else {
+
+            const updateOrderPrepare = drizzle.update(orders).set({
+                order_status_id: sql.placeholder('status_id'),
+            })
+                .where(
+                    and(
+                        eq(orders.id, sql.placeholder('order_id')),
+                        gte(orders.created_at, sql.placeholder('fromDate')),
+                        lte(orders.created_at, sql.placeholder('toDate'))
+                    )
+                )
+                .prepare('setStatusUpdateOrder');
+
+            await updateOrderPrepare.execute({
+                order_id,
+                status_id,
+                fromDate,
+                toDate,
+            });
+        }
         console.timeEnd('updateOrder');
 
         console.time('orderActions');
-        const lastOrderActions = await drizzle
+        const lastOrderActionsPrepapre = drizzle
             .select({
                 id: order_actions.id,
                 created_at: order_actions.created_at,
@@ -695,14 +760,20 @@ export const OrdersController = new Elysia({
             .from(order_actions)
             .where(
                 and(
-                    eq(order_actions.order_id, order_id),
-                    gte(order_actions.order_created_at, fromDate),
-                    lte(order_actions.order_created_at, toDate),
+                    eq(order_actions.order_id, sql.placeholder('order_id')),
+                    gte(order_actions.order_created_at, sql.placeholder('fromDate')),
+                    lte(order_actions.order_created_at, sql.placeholder('toDate')),
                     eq(order_actions.action, 'STATUS_CHANGE')
                 )
             )
             .orderBy(desc(order_actions.created_at))
-            .limit(1);
+            .limit(1)
+            .prepare('setStatusLastOrderActions');
+        const lastOrderActions = await lastOrderActionsPrepapre.execute({
+            order_id,
+            fromDate,
+            toDate,
+        });
         console.timeEnd('orderActions');
         let duration = 0;
 
@@ -723,7 +794,7 @@ export const OrdersController = new Elysia({
 
         console.time('ordersList');
 
-        const ordersList = await drizzle
+        const ordersListPrepare = drizzle
             .select({
                 id: orders.id,
                 order_number: orders.order_number,
@@ -779,13 +850,19 @@ export const OrdersController = new Elysia({
             .leftJoin(customers, eq(orders.customer_id, customers.id))
             .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
-                eq(orders.id, order_id),
-                gte(orders.created_at, dayjs().subtract(4, 'days').format('YYYY-MM-DD HH:mm:ss')),
-                lte(orders.created_at, dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')),
+                eq(orders.id, sql.placeholder('order_id')),
+                gte(orders.created_at, sql.placeholder('fromDate')),
+                lte(orders.created_at, sql.placeholder('toDate')),
             ))
             .limit(1)
             .orderBy(asc(orders.created_at))
-            .execute();
+            .prepare('setStatusOrdersList');
+
+        const ordersList = await ordersListPrepare.execute({
+            order_id,
+            fromDate,
+            toDate,
+        });
 
         console.timeEnd('ordersList');
 
@@ -1122,15 +1199,15 @@ export const OrdersController = new Elysia({
                     });
 
 
-                    if (['621c0913-93d0-4eeb-bf00-f0c6f578bcd1', '0ca018c8-22ff-40b4-bb0a-b4ba95068662'].includes(currentTerminal.id)) {
-                        // Next and Eko and C5
-                        await processFromBasketToCouriers.add(currentOrder.id, {
-                            id: currentOrder.id
-                        }, {
-                            attempts: 3, removeOnComplete: true,
-                            delay: 1000 * 60 * 5
-                        });
-                    }
+                    // if (['621c0913-93d0-4eeb-bf00-f0c6f578bcd1', '0ca018c8-22ff-40b4-bb0a-b4ba95068662'].includes(currentTerminal.id)) {
+                    //     // Next and Eko and C5
+                    //     await processFromBasketToCouriers.add(currentOrder.id, {
+                    //         id: currentOrder.id
+                    //     }, {
+                    //         attempts: 3, removeOnComplete: true,
+                    //         delay: 1000 * 60 * 5
+                    //     });
+                    // }
 
                     let defaultYandexCreateDelay = 1000 * 60 * 15;
 
@@ -1138,103 +1215,103 @@ export const OrdersController = new Elysia({
                         defaultYandexCreateDelay = 1000 * 60 * +currentTerminal.time_to_yandex;
                     }
 
-                    let yandexAllowedTerminals = ['96f31330-ed33-42fa-b84a-d28e595177b0', 'c61bc73d-6fd6-49e7-acb0-09cfc1863bad']; // Farxadskiy
+                    // let yandexAllowedTerminals = ['96f31330-ed33-42fa-b84a-d28e595177b0', 'c61bc73d-6fd6-49e7-acb0-09cfc1863bad']; // Farxadskiy
 
-                    if (
-                        yandexAllowedTerminals.includes(currentTerminal.id) &&
-                        minDistance >= 2 &&
-                        delivery_schedule != 'later'
-                    ) {
-                        await processCheckAndSendYandex.add(
-                            'checkAndSendYandex',
-                            {
-                                id: currentOrder.id,
-                            },
-                            {
-                                attempts: 3,
-                                removeOnComplete: true,
-                                // delay to 15 minutes
-                                delay: defaultYandexCreateDelay,
-                            },
-                        );
-                    }
+                    // if (
+                    //     yandexAllowedTerminals.includes(currentTerminal.id) &&
+                    //     minDistance >= 2 &&
+                    //     delivery_schedule != 'later'
+                    // ) {
+                    //     await processCheckAndSendYandex.add(
+                    //         'checkAndSendYandex',
+                    //         {
+                    //             id: currentOrder.id,
+                    //         },
+                    //         {
+                    //             attempts: 3,
+                    //             removeOnComplete: true,
+                    //             // delay to 15 minutes
+                    //             delay: defaultYandexCreateDelay,
+                    //         },
+                    //     );
+                    // }
 
-                    yandexAllowedTerminals = ['621c0913-93d0-4eeb-bf00-f0c6f578bcd1', '0ca018c8-22ff-40b4-bb0a-b4ba95068662']; // Next and eko
+                    // yandexAllowedTerminals = ['621c0913-93d0-4eeb-bf00-f0c6f578bcd1', '0ca018c8-22ff-40b4-bb0a-b4ba95068662']; // Next and eko
 
-                    if (yandexAllowedTerminals.includes(currentTerminal.id) && delivery_schedule != 'later') {
-                        await processCheckAndSendYandex.add(
-                            'checkAndSendYandex',
-                            {
-                                id: currentOrder.id,
-                            },
-                            {
-                                attempts: 3,
-                                removeOnComplete: true,
-                                delay: 1000 * 60 * 6,
-                            },
-                        );
-                    }
+                    // if (yandexAllowedTerminals.includes(currentTerminal.id) && delivery_schedule != 'later') {
+                    //     await processCheckAndSendYandex.add(
+                    //         'checkAndSendYandex',
+                    //         {
+                    //             id: currentOrder.id,
+                    //         },
+                    //         {
+                    //             attempts: 3,
+                    //             removeOnComplete: true,
+                    //             delay: 1000 * 60 * 6,
+                    //         },
+                    //     );
+                    // }
 
-                    yandexAllowedTerminals = ['8338f048-4b2f-4863-ad26-7b439e255203']; // Algoritm
+                    // yandexAllowedTerminals = ['8338f048-4b2f-4863-ad26-7b439e255203']; // Algoritm
 
-                    if (yandexAllowedTerminals.includes(currentTerminal.id) && delivery_schedule != 'later') {
-                        await processCheckAndSendYandex.add(
-                            'checkAndSendYandex',
-                            {
-                                id: currentOrder.id,
-                            },
-                            {
-                                attempts: 3,
-                                removeOnComplete: true,
-                                delay: 1000 * 60 * 5,
-                            },
-                        );
-                    }
+                    // if (yandexAllowedTerminals.includes(currentTerminal.id) && delivery_schedule != 'later') {
+                    //     await processCheckAndSendYandex.add(
+                    //         'checkAndSendYandex',
+                    //         {
+                    //             id: currentOrder.id,
+                    //         },
+                    //         {
+                    //             attempts: 3,
+                    //             removeOnComplete: true,
+                    //             delay: 1000 * 60 * 5,
+                    //         },
+                    //     );
+                    // }
 
-                    yandexAllowedTerminals = [
-                        '621c0913-93d0-4eeb-bf00-f0c6f578bcd1',
-                        '972b7402-345d-400e-9bf2-b77691b0fcd9',
-                        '56fe54a9-ae37-49b7-8de7-62aadb2abd19',
-                        '419b466b-a575-4e2f-b771-7206342bc242',
-                        'f8bff3a8-651e-44dc-a774-90129a3487eb',
-                        '0ca018c8-22ff-40b4-bb0a-b4ba95068662',
-                    ]; // Eko Park, C5 and Oybek
+                    // yandexAllowedTerminals = [
+                    //     '621c0913-93d0-4eeb-bf00-f0c6f578bcd1',
+                    //     '972b7402-345d-400e-9bf2-b77691b0fcd9',
+                    //     '56fe54a9-ae37-49b7-8de7-62aadb2abd19',
+                    //     '419b466b-a575-4e2f-b771-7206342bc242',
+                    //     'f8bff3a8-651e-44dc-a774-90129a3487eb',
+                    //     '0ca018c8-22ff-40b4-bb0a-b4ba95068662',
+                    // ]; // Eko Park, C5 and Oybek
 
-                    if (
-                        yandexAllowedTerminals.includes(currentTerminal.id) &&
-                        minDistance >= 2 &&
-                        delivery_schedule != 'later'
-                    ) {
-                        await processCheckAndSendYandex.add(
-                            'checkAndSendYandex',
-                            {
-                                id: currentOrder.id,
-                            },
-                            {
-                                attempts: 3,
-                                removeOnComplete: true,
-                                // delay to 15 minutes
-                                delay: defaultYandexCreateDelay,
-                            },
-                        );
-                    }
+                    // if (
+                    //     yandexAllowedTerminals.includes(currentTerminal.id) &&
+                    //     minDistance >= 2 &&
+                    //     delivery_schedule != 'later'
+                    // ) {
+                    //     await processCheckAndSendYandex.add(
+                    //         'checkAndSendYandex',
+                    //         {
+                    //             id: currentOrder.id,
+                    //         },
+                    //         {
+                    //             attempts: 3,
+                    //             removeOnComplete: true,
+                    //             // delay to 15 minutes
+                    //             delay: defaultYandexCreateDelay,
+                    //         },
+                    //     );
+                    // }
 
-                    yandexAllowedTerminals = ['36f7a844-8a72-40c2-a1c5-27dcdc8c2efd', 'afec8909-5e34-45c8-8185-297bde69f263']; // Yunusabad and Mega Planet
+                    // yandexAllowedTerminals = ['36f7a844-8a72-40c2-a1c5-27dcdc8c2efd', 'afec8909-5e34-45c8-8185-297bde69f263']; // Yunusabad and Mega Planet
 
-                    if (yandexAllowedTerminals.includes(currentTerminal.id) && delivery_schedule != 'later') {
-                        await processCheckAndSendYandex.add(
-                            'checkAndSendYandex',
-                            {
-                                id: currentOrder.id,
-                            },
-                            {
-                                attempts: 3,
-                                removeOnComplete: true,
-                                // delay to 15 minutes
-                                delay: defaultYandexCreateDelay,
-                            },
-                        );
-                    }
+                    // if (yandexAllowedTerminals.includes(currentTerminal.id) && delivery_schedule != 'later') {
+                    //     await processCheckAndSendYandex.add(
+                    //         'checkAndSendYandex',
+                    //         {
+                    //             id: currentOrder.id,
+                    //         },
+                    //         {
+                    //             attempts: 3,
+                    //             removeOnComplete: true,
+                    //             // delay to 15 minutes
+                    //             delay: defaultYandexCreateDelay,
+                    //         },
+                    //     );
+                    // }
 
                     return newOrders[0];
                 }
@@ -2542,6 +2619,55 @@ export const OrdersController = new Elysia({
             id: t.String(),
         }),
     })
+    .get('/orders/:id/map_type', async ({
+        params: { id },
+        drizzle,
+        set,
+        user,
+        cacheControl,
+        query: {
+            created_at
+        }
+    }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        const orderPrepare = drizzle
+            .select({
+                id: orders.id,
+                delivery_pricing_id: orders.delivery_pricing_id,
+            })
+            .from(orders)
+            .where(
+                and(
+                    eq(orders.id, sql.placeholder('id')),
+                    gte(orders.created_at, sql.placeholder('created_at_from')),
+                    lte(orders.created_at, sql.placeholder('created_at_to'))
+                )
+            )
+            .prepare('order_delivery_pricing_id_by_id')
+
+        const order = await orderPrepare.execute({
+            id,
+            created_at_from: dayjs(created_at).subtract(2, 'hours').toISOString(),
+            created_at_to: dayjs(created_at).add(2, 'hours').toISOString()
+        });
+
+        const deliveryPricing = await cacheControl.getDeliveryPricingById(order[0].delivery_pricing_id);
+
+        return deliveryPricing.drive_type;
+    }, {
+        params: t.Object({
+            id: t.String(),
+        }),
+        query: t.Object({
+            created_at: t.String(),
+        })
+    })
     .get('/orders/:id/items', async ({ params: { id }, drizzle, set, user }) => {
         if (!user) {
             set.status = 401;
@@ -2550,7 +2676,7 @@ export const OrdersController = new Elysia({
             };
         }
 
-        if (!user.access.additionalPermissions.includes("orders.show")) {
+        if (!user.access.additionalPermissions.includes("orders.list")) {
             set.status = 401;
             return {
                 message: "You don't have permissions",
@@ -2569,6 +2695,84 @@ export const OrdersController = new Elysia({
             id: t.String(),
         }),
     })
+    .get('/orders/:id/comments', async ({ params: { id }, drizzle, set, user }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        if (!user.access.additionalPermissions.includes("orders.list")) {
+            set.status = 401;
+            return {
+                message: "You don't have permissions",
+            };
+        }
+
+        console.time('orderCommentsQuery');
+
+        const orderPrepare = drizzle
+            .select({
+                id: orders.id,
+                delivery_comment: orders.delivery_comment,
+                customer_id: orders.customer_id,
+                created_at: orders.created_at,
+            })
+            .from(orders)
+            .where(eq(orders.id, sql.placeholder('id')))
+            .prepare('order_by_id_comments')
+
+        const order = await orderPrepare.execute({
+            id
+        });
+        if (!order) {
+            set.status = 404;
+            return {
+                message: "Order not found",
+            };
+        }
+
+        const customerCommentsPrepare = drizzle
+            .select({
+                id: customers_comments.id,
+                comment: customers_comments.comment,
+                customer_id: customers_comments.customer_id,
+                created_at: customers_comments.created_at,
+            })
+            .from(customers_comments)
+            .where(eq(customers_comments.customer_id, sql.placeholder('customer_id')))
+            .prepare('customer_comments_by_customer_id')
+
+        const customerComments = await customerCommentsPrepare.execute({
+            customer_id: order[0].customer_id
+        });
+
+        let res = [];
+        for (const comment of customerComments) {
+            res.push({
+                id: comment.id,
+                comment: comment.comment,
+                customer_id: comment.customer_id,
+                created_at: comment.created_at,
+            });
+        }
+
+        console.timeEnd('orderCommentsQuery');
+
+        res.push({
+            id: order[0].id,
+            comment: order[0].delivery_comment,
+            customer_id: order[0].customer_id,
+            created_at: order[0].created_at,
+        });
+
+        return res;
+    }, {
+        params: t.Object({
+            id: t.String(),
+        }),
+    })
     .post('/orders/my_history', async ({ drizzle, set, user, cacheControl, body: {
         startDate,
         endDate,
@@ -2582,7 +2786,7 @@ export const OrdersController = new Elysia({
             };
         }
 
-        if (!user.access.additionalPermissions.includes("orders.show")) {
+        if (!user.access.additionalPermissions.includes("orders.list")) {
             set.status = 401;
             return {
                 message: "You don't have permissions",

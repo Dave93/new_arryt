@@ -12,6 +12,8 @@ import {
   timesheet,
   courier_terminal_balance,
   work_schedule_entries,
+  orders,
+  order_transactions
 } from "@api/drizzle/schema";
 import {
   InferSelectModel,
@@ -27,7 +29,9 @@ import {
   lte,
   or,
   sql,
-  desc
+  desc,
+  isNotNull,
+  ne
 } from "drizzle-orm";
 import { generate } from "otp-generator";
 import { addMinutesToDate, getHours } from "@api/src/lib/dates";
@@ -1947,20 +1951,90 @@ export const UsersController = new Elysia({
         message: "User not found",
       };
     }
-
-    const numbersResponse = await fetch(`${process.env.DUCK_API}/couriers/profile_numbers`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        courierId: user.user.id
+    console.time('sqlScorePrepare');
+    const sqlScorePrepare = await drizzle
+      .select({
+        avg_score: sql<number>`avg(score)`,
       })
-    });
+      .from(orders)
+      .where(and(
+        eq(orders.courier_id, sql.placeholder('courierId')),
+        isNotNull(orders.score),
+        gte(orders.created_at, sql.placeholder('startDate')),
+        lte(orders.created_at, sql.placeholder('endDate'))
+      ))
+      .groupBy(orders.courier_id)
+      .prepare('courier_score');
 
-    const numbers = await numbersResponse.json();
+    const sqlSqore = (await sqlScorePrepare.execute({
+      courierId: user.user.id,
+      startDate: dayjs().startOf('month').toISOString(),
+      endDate: dayjs().endOf('month').add(1, 'day').toISOString()
+    }))[0];
 
-    return numbers;
+    console.timeEnd('sqlScorePrepare');
+
+    console.time('sqlTotalBalancePrepare');
+    const sqlTotalBalancePrepare = await drizzle
+      .select({
+        not_paid_amount: sql<number>`sum(not_paid_amount)`,
+      })
+      .from(order_transactions)
+      .where(and(
+        eq(order_transactions.courier_id, sql.placeholder('courierId')),
+        gte(order_transactions.created_at, sql.placeholder('startDate')),
+        lte(order_transactions.created_at, sql.placeholder('endDate')),
+        eq(order_transactions.status, 'pending'),
+        ne(order_transactions.transaction_type, 'work_schedule_bonus')
+      ))
+      .prepare('courier_total_balance');
+
+    const sqlTotalBalance = (await sqlTotalBalancePrepare.execute({
+      courierId: user.user.id,
+      startDate: dayjs().subtract(45, 'day').toISOString(),
+      endDate: dayjs().add(10, 'day').toISOString()
+    }))[0];
+    console.timeEnd('sqlTotalBalancePrepare');
+
+    console.time('sqlTotalFuelPrepare');
+    const sqlTotalFuelPrepare = await drizzle
+      .select({
+        amount: sql<number>`sum(amount)`,
+      })
+      .from(order_transactions)
+      .where(and(
+        eq(order_transactions.courier_id, sql.placeholder('courierId')),
+        gte(order_transactions.created_at, sql.placeholder('startDate')),
+        lte(order_transactions.created_at, sql.placeholder('endDate')),
+        eq(order_transactions.status, 'pending'),
+        eq(order_transactions.transaction_type, 'work_schedule_bonus')
+      ))
+      .prepare('courier_total_fuel');
+
+    const sqlTotalFuel = (await sqlTotalFuelPrepare.execute({
+      courierId: user.user.id,
+      startDate: dayjs().subtract(45, 'day').toISOString(),
+      endDate: dayjs().add(10, 'day').toISOString()
+    }))[0];
+    console.timeEnd('sqlTotalFuelPrepare');
+
+    // const numbersResponse = await fetch(`${process.env.DUCK_API}/couriers/profile_numbers`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({
+    //     courierId: user.user.id
+    //   })
+    // });
+
+    // const numbers = await numbersResponse.json();
+
+    return {
+      score: sqlSqore?.avg_score || 0,
+      not_paid_amount: sqlTotalBalance?.not_paid_amount || 0,
+      fuel: sqlTotalFuel?.amount || 0
+    };
   })
   .get('/couriers/mob_stat', async ({ drizzle, user, set, redis, cacheControl }) => {
 
@@ -1981,23 +2055,405 @@ export const UsersController = new Elysia({
     const finishedStatusIds = orderStatuses.filter((status) => status.finish).map((status) => status.id);
     const canceledStatusIds = orderStatuses.filter((status) => status.cancel).map((status) => status.id);
 
-    const numbersResponse = await fetch(`${process.env.DUCK_API}/couriers/mobile_stats`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const currentHour = dayjs().hour();
+    console.time('totalQueires');
+    // today queries
+    let fromDate = dayjs().startOf("day").hour(workStartHour);
+    let toDate = dayjs().add(1, 'day').startOf("day").hour(workEndHour);
+    console.log('workStartHour', workStartHour);
+    console.log('currentHour', currentHour);
+    if (currentHour < workStartHour) {
+      fromDate = fromDate.subtract(1, "day").startOf('day').hour(workStartHour);
+      toDate = dayjs().startOf("day").hour(workEndHour);
+    }
+    console.log('finishedstatusSql', `AND order_status_id in ('${finishedStatusIds.join("','")}')`);
+    const finishedStatusIdsSql = sql.raw(`order_status_id in ('${finishedStatusIds.join("','")}')`);
+    const canceledStatusIdsSql = sql.raw(`order_status_id in ('${canceledStatusIds.join("','")}')`);
+
+    const courierIdSql = sql.raw(user.user.id);
+
+    console.log('fromDate', fromDate.toISOString());
+    console.log('toDate', toDate.toISOString());
+    const fromTodayDateSql = sql.raw(fromDate.toISOString());
+    const toTodayDateSql = sql.raw(toDate.toISOString());
+    console.time('sqlTodayFinishedOrdersCountQuery');
+    const sqlTodayFinishedOrdersCountQuery = (await drizzle.execute<{ count: number }>(
+      sql`SELECT count(*) as count
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${finishedStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
+    )).rows[0];
+    console.timeEnd('sqlTodayFinishedOrdersCountQuery');
+
+    console.time('sqlTodayCanceledOrdersCountQuery');
+    const sqlTodayCanceledOrdersCountQuery = (await drizzle
+      .execute<
+        { count: number }
+      >(
+        sql`SELECT count(*) as count
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${canceledStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlTodayCanceledOrdersCountQuery');
+
+    console.time('sqlTodayFinishedOrdersAmountQuery');
+    const sqlTodayFinishedOrdersAmountQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(delivery_price) as amount
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${finishedStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlTodayFinishedOrdersAmountQuery');
+
+    // yesterday queries
+    fromDate = dayjs().subtract(1, "day").startOf("day").hour(workStartHour);
+    toDate = dayjs().startOf("day").hour(workEndHour);
+
+    if (currentHour < workStartHour) {
+      fromDate = fromDate.subtract(1, "day").startOf('day').hour(workStartHour);
+      toDate = toDate.subtract(1, "day").startOf('day').hour(workEndHour);
+    }
+
+    const fromYesterdayDateSql = sql.raw(fromDate.toISOString());
+    const toYesterdayDateSql = sql.raw(toDate.toISOString());
+
+    console.time('sqlYesterdayFinishedOrdersCountQuery');
+    const sqlYesterdayFinishedOrdersCountQuery = (await drizzle
+      .execute<
+        { count: number }
+      >(
+        sql`SELECT count(*) as count
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${finishedStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlYesterdayFinishedOrdersCountQuery');
+
+    console.time('sqlYesterdayCanceledOrdersCountQuery');
+    const sqlYesterdayCanceledOrdersCountQuery = (await drizzle
+      .execute<
+        { count: number }
+      >(
+        sql`SELECT count(*) as count
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${canceledStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
+      )).rows[0];
+
+    console.timeEnd('sqlYesterdayCanceledOrdersCountQuery');
+
+    console.time('sqlYesterdayFinishedOrdersAmountQuery');
+    const sqlYesterdayFinishedOrdersAmountQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(delivery_price) as amount
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${finishedStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlYesterdayFinishedOrdersAmountQuery');
+
+    // week queries
+    fromDate = dayjs().startOf("week").hour(workStartHour);
+    toDate = dayjs().endOf("week").add(1, "day").hour(workEndHour);
+
+    const fromWeekDateSql = sql.raw(fromDate.toISOString());
+    const toWeekDateSql = sql.raw(toDate.toISOString());
+
+    console.time('sqlWeekFinishedOrdersCountQuery');
+    const sqlWeekFinishedOrdersCountQuery = (await drizzle
+      .execute<
+        { count: number }
+      >(
+        sql`SELECT count(*) as count
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${finishedStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlWeekFinishedOrdersCountQuery');
+
+    console.time('sqlWeekCanceledOrdersCountQuery');
+    const sqlWeekCanceledOrdersCountQuery = (await drizzle
+      .execute<
+        { count: number }
+      >(
+        sql`SELECT count(*) as count
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${canceledStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlWeekCanceledOrdersCountQuery');
+
+    console.time('sqlWeekFinishedOrdersAmountQuery');
+    const sqlWeekFinishedOrdersAmountQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(delivery_price) as amount
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${finishedStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlWeekFinishedOrdersAmountQuery');
+
+    // month queries
+    fromDate = dayjs().startOf("month").hour(workStartHour);
+    toDate = dayjs().endOf("month").add(1, "day").hour(workEndHour);
+
+    const fromMonthDateSql = sql.raw(fromDate.toISOString());
+    const toMonthDateSql = sql.raw(toDate.toISOString());
+
+    console.time('sqlMonthFinishedOrdersCountQuery');
+    const sqlMonthFinishedOrdersCountQuery = (await drizzle
+      .execute<
+        { count: number }
+      >(
+        sql`SELECT count(*) as count
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${finishedStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlMonthFinishedOrdersCountQuery');
+
+    console.time('sqlMonthCanceledOrdersCountQuery');
+    const sqlMonthCanceledOrdersCountQuery = (await drizzle
+      .execute<
+        { count: number }
+      >(
+        sql`SELECT count(*) as count
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${canceledStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlMonthCanceledOrdersCountQuery');
+
+    console.time('sqlMonthFinishedOrdersAmountQuery');
+    const sqlMonthFinishedOrdersAmountQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(delivery_price) as amount
+                FROM orders
+                WHERE courier_id = '${courierIdSql}' 
+                AND ${finishedStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
+      )).rows[0];
+    console.timeEnd('sqlMonthFinishedOrdersAmountQuery');
+
+    // today bonus queries
+    console.time('sqlTodayBonusQuery');
+    const sqlTodayBonusQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'order_bonus'`
+      )).rows[0];
+    console.timeEnd('sqlTodayBonusQuery');
+
+    // yesterday bonus queries
+    console.time('sqlYesterdayBonusQuery');
+    const sqlYesterdayBonusQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'order_bonus'`
+      )).rows[0];
+    console.timeEnd('sqlYesterdayBonusQuery');
+
+    // week bonus queries
+    console.time('sqlWeekBonusQuery');
+    const sqlWeekBonusQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'order_bonus'`
+      )).rows[0];
+    console.timeEnd('sqlWeekBonusQuery');
+
+    // month bonus queries
+    console.time('sqlMonthBonusQuery');
+    const sqlMonthBonusQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'order_bonus'`
+      )).rows[0];
+    console.timeEnd('sqlMonthBonusQuery');
+
+    // today daily garant queries
+    console.time('sqlTodayDailyGarantQuery');
+    const sqlTodayDailyGarantQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'daily_garant'`
+      )).rows[0];
+    console.timeEnd('sqlTodayDailyGarantQuery');
+
+    // yesterday daily garant queries
+    console.time('sqlYesterdayDailyGarantQuery');
+    const sqlYesterdayDailyGarantQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'daily_garant'`
+      )).rows[0];
+    console.timeEnd('sqlYesterdayDailyGarantQuery');
+
+    // week daily garant queries
+    console.time('sqlWeekDailyGarantQuery');
+    const sqlWeekDailyGarantQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'daily_garant'`
+      )).rows[0];
+    console.timeEnd('sqlWeekDailyGarantQuery');
+
+    // month daily garant queries
+    console.time('sqlMonthDailyGarantQuery');
+    const sqlMonthDailyGarantQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'daily_garant'`
+      )).rows[0];
+    console.timeEnd('sqlMonthDailyGarantQuery');
+
+    // today work_schedule_bonus queries
+    console.time('sqlTodayWorkScheduleBonusQuery');
+    const sqlTodayWorkScheduleBonusQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'work_schedule_bonus'`
+      )).rows[0];
+    console.timeEnd('sqlTodayWorkScheduleBonusQuery');
+
+    // yesterday work_schedule_bonus queries
+    console.time('sqlYesterdayWorkScheduleBonusQuery');
+    const sqlYesterdayWorkScheduleBonusQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'work_schedule_bonus'`
+      )).rows[0];
+    console.timeEnd('sqlYesterdayWorkScheduleBonusQuery');
+
+    // week work_schedule_bonus queries
+    console.time('sqlWeekWorkScheduleBonusQuery');
+    const sqlWeekWorkScheduleBonusQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'work_schedule_bonus'`
+      )).rows[0];
+    console.timeEnd('sqlWeekWorkScheduleBonusQuery');
+
+    // month work_schedule_bonus queries
+    console.time('sqlMonthWorkScheduleBonusQuery');
+    const sqlMonthWorkScheduleBonusQuery = (await drizzle
+      .execute<
+        { amount: number }
+      >(
+        sql`SELECT sum(amount) as amount
+                FROM order_transactions
+                WHERE courier_id = '${courierIdSql}' 
+                AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'work_schedule_bonus'`
+      )).rows[0];
+    console.timeEnd('sqlMonthWorkScheduleBonusQuery');
+
+
+    console.timeEnd('totalQueires');
+    // const numbersResponse = await fetch(`${process.env.DUCK_API}/couriers/mobile_stats`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({
+    //     courierId: user.user.id,
+    //     startHour: workStartHour,
+    //     endHour: workEndHour,
+    //     finishedStatusIds,
+    //     canceledStatusIds
+    //   })
+    // });
+
+    // const numbers = await numbersResponse.json();
+
+    // return numbers;
+
+    return {
+      today: {
+        finishedOrdersCount: sqlTodayFinishedOrdersCountQuery.count ? Number(sqlTodayFinishedOrdersCountQuery.count) : 0,
+        canceledOrdersCount: sqlTodayCanceledOrdersCountQuery.count ? Number(sqlTodayCanceledOrdersCountQuery.count) : 0,
+        finishedOrdersAmount: sqlTodayFinishedOrdersAmountQuery.amount ? Number(sqlTodayFinishedOrdersAmountQuery.amount) : 0,
+        bonus: sqlTodayBonusQuery.amount ? Number(sqlTodayBonusQuery.amount) : 0,
+        dailyGarant: sqlTodayDailyGarantQuery.amount ? Number(sqlTodayDailyGarantQuery.amount) : 0,
+        workScheduleBonus: sqlTodayWorkScheduleBonusQuery.amount ? Number(sqlTodayWorkScheduleBonusQuery.amount) : 0
       },
-      body: JSON.stringify({
-        courierId: user.user.id,
-        startHour: workStartHour,
-        endHour: workEndHour,
-        finishedStatusIds,
-        canceledStatusIds
-      })
-    });
-
-    const numbers = await numbersResponse.json();
-
-    return numbers;
+      yesterday: {
+        finishedOrdersCount: sqlYesterdayFinishedOrdersCountQuery.count ? Number(sqlYesterdayFinishedOrdersCountQuery.count) : 0,
+        canceledOrdersCount: sqlYesterdayCanceledOrdersCountQuery.count ? Number(sqlYesterdayCanceledOrdersCountQuery.count) : 0,
+        finishedOrdersAmount: sqlYesterdayFinishedOrdersAmountQuery.amount ? Number(sqlYesterdayFinishedOrdersAmountQuery.amount) : 0,
+        bonus: sqlYesterdayBonusQuery.amount ? Number(sqlYesterdayBonusQuery.amount) : 0,
+        dailyGarant: sqlYesterdayDailyGarantQuery.amount ? Number(sqlYesterdayDailyGarantQuery.amount) : 0,
+        workScheduleBonus: sqlYesterdayWorkScheduleBonusQuery.amount ? Number(sqlYesterdayWorkScheduleBonusQuery.amount) : 0
+      },
+      week: {
+        finishedOrdersCount: sqlWeekFinishedOrdersCountQuery.count ? Number(sqlWeekFinishedOrdersCountQuery.count) : 0,
+        canceledOrdersCount: sqlWeekCanceledOrdersCountQuery.count ? Number(sqlWeekCanceledOrdersCountQuery.count) : 0,
+        finishedOrdersAmount: sqlWeekFinishedOrdersAmountQuery.amount ? Number(sqlWeekFinishedOrdersAmountQuery.amount) : 0,
+        bonus: sqlWeekBonusQuery.amount ? Number(sqlWeekBonusQuery.amount) : 0,
+        dailyGarant: sqlWeekDailyGarantQuery.amount ? Number(sqlWeekDailyGarantQuery.amount) : 0,
+        workScheduleBonus: sqlWeekWorkScheduleBonusQuery.amount ? Number(sqlWeekWorkScheduleBonusQuery.amount) : 0
+      },
+      month: {
+        finishedOrdersCount: sqlMonthFinishedOrdersCountQuery.count ? Number(sqlMonthFinishedOrdersCountQuery.count) : 0,
+        canceledOrdersCount: sqlMonthCanceledOrdersCountQuery.count ? Number(sqlMonthCanceledOrdersCountQuery.count) : 0,
+        finishedOrdersAmount: sqlMonthFinishedOrdersAmountQuery.amount ? Number(sqlMonthFinishedOrdersAmountQuery.amount) : 0,
+        bonus: sqlMonthBonusQuery.amount ? Number(sqlMonthBonusQuery.amount) : 0,
+        dailyGarant: sqlMonthDailyGarantQuery.amount ? Number(sqlMonthDailyGarantQuery.amount) : 0,
+        workScheduleBonus: sqlMonthWorkScheduleBonusQuery.amount ? Number(sqlMonthWorkScheduleBonusQuery.amount) : 0
+      }
+    }
   })
   .get('/couriers/my_couriers', async ({ drizzle, user, set, cacheControl }) => {
     if (!user) {
@@ -2129,4 +2585,43 @@ export const UsersController = new Elysia({
     }
 
     return res;
+  })
+  .get('/couriers/terminal_balance', async ({ user, drizzle, set }) => {
+    if (!user) {
+      set.status = 401;
+      return {
+        message: "User not found",
+      };
+    }
+
+    if (!user.access.additionalPermissions.includes("orders.list")) {
+      set.status = 401;
+      return {
+        message: "You don't have permissions",
+      };
+    }
+    console.time('courierTerminalBalanceQuery');
+    const courierTerminalBalancePrepare = drizzle
+      .select({
+        id: courier_terminal_balance.id,
+        balance: courier_terminal_balance.balance,
+        terminal_id: courier_terminal_balance.terminal_id,
+        terminal_name: terminals.name,
+        terminal_address: terminals.address,
+      })
+      .from(courier_terminal_balance)
+      .leftJoin(terminals, eq(courier_terminal_balance.terminal_id, terminals.id))
+      .where(
+        and(
+          eq(courier_terminal_balance.courier_id, sql.placeholder('courier_id')),
+          gt(courier_terminal_balance.balance, 0)
+        )
+      )
+      .prepare('courier_terminal_balance_by_courier_id');
+
+    const courierTerminalBalance = await courierTerminalBalancePrepare.execute({
+      courier_id: user.user.id
+    });
+    console.timeEnd('courierTerminalBalanceQuery');
+    return courierTerminalBalance;
   })

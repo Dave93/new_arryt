@@ -15,6 +15,7 @@ import {
   Select,
   Tabs,
   TabsProps,
+  Switch,
 } from "antd";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
 import dayjs from "dayjs";
@@ -96,7 +97,12 @@ export const SystemConfigsList: React.FC = () => {
       for (const [key, value] of Object.entries(data)) {
         if (
           key.indexOf("time") !== -1 &&
-          !["late_order_time", "yandex_courier_wait_time"].includes(key)
+          ![
+            "late_order_time",
+            "yandex_courier_wait_time",
+            "courier_assign_time",
+            "courier_accept_order_time",
+          ].includes(key)
         ) {
           // @ts-ignore
           setValue(key, dayjs(value));
@@ -683,6 +689,58 @@ export const SystemConfigsList: React.FC = () => {
                         >
                           Добавить
                         </Button>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </TabPane>
+                <TabPane tab="Назначение курьеров" key="3">
+                  <Row gutter={16}>
+                    <Col span={6}>
+                      <Form.Item
+                        label="Ожидание назначения курьера"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Обязательно для заполнения",
+                          },
+                        ]}
+                      >
+                        <Controller
+                          name="courier_assign_time"
+                          control={control}
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <InputNumber
+                              size="small"
+                              {...field}
+                              addonAfter="мин."
+                            />
+                          )}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item label="Время для принятия заказа">
+                        <Controller
+                          name="courier_accept_order_time"
+                          control={control}
+                          render={({ field }) => (
+                            <InputNumber
+                              size="small"
+                              {...field}
+                              addonAfter="мин."
+                            />
+                          )}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item label="Перекидывать в яндекс доставку">
+                        <Controller
+                          name="allow_yandex_transfer"
+                          control={control}
+                          render={({ field }) => <Switch {...field} />}
+                        />
                       </Form.Item>
                     </Col>
                   </Row>
