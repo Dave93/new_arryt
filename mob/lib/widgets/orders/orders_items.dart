@@ -1,7 +1,8 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:data_table_2/data_table_2.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 
 import '../../models/order_items.dart';
 
@@ -18,32 +19,20 @@ class _OrderItemsTableState extends State<OrderItemsTable> {
 
   Future<void> _loadOrderItems() async {
     try {
-      var client = GraphQLProvider.of(context).value;
-      var query = gql('''
-      query {
-        orderItems(orderId: "${widget.orderId}") {
-          productId
-          quantity
-          name
-          price
-          }
-          }
-          ''');
-      QueryResult result = await client.query(QueryOptions(
-          document: query,
-          cacheRereadPolicy: CacheRereadPolicy.mergeOptimistic,
-          fetchPolicy: FetchPolicy.networkOnly));
-      if (result.hasException) {
-        AnimatedSnackBar.material(
-          result.exception?.graphqlErrors[0].message ?? "Error",
-          type: AnimatedSnackBarType.error,
-        ).show(context);
-      }
+      ApiServer apiServer = ApiServer();
 
-      if (result.data != null) {
-        if (result.data!['orderItems'] != null) {
+      Response response =
+          await apiServer.get('/api/orders/${widget.orderId}/items', {});
+      if (response.statusCode == 200) {
+        if (response.data is Map<String, dynamic> &&
+            response.data.containsKey('errors')) {
+          AnimatedSnackBar.material(
+            response.data['errors'][0]['message'],
+            type: AnimatedSnackBarType.error,
+          ).show(context);
+        } else {
           setState(() {
-            items = (result.data!['orderItems'] as List)
+            items = (response.data as List)
                 .map((e) => OrderItemsModel.fromMap(e))
                 .toList();
           });

@@ -772,7 +772,7 @@ class _OrdersManagementViewState extends State<OrdersManagementView> {
                                                             FontWeight.bold),
                                                   ),
                                                   Text(
-                                                      "${(element.pre_distance).toString()} км"),
+                                                      "${(element.pre_distance).toStringAsFixed(4)} км"),
                                                 ],
                                               ),
                                             ],

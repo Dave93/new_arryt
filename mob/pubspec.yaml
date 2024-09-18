@@ -43,8 +43,8 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_awesome_buttons: ^1.1.0
-  flutter_background_service: ^2.4.6
-  flutter_background_service_android: ^3.0.3
+  flutter_background_service: ^5.0.10
+  flutter_background_service_android: ^6.2.7
   flutter_bloc: ^8.1.1
   flutter_hooks: ^0.18.5+1
   flutter_inappwebview: ^5.8.0
@@ -68,6 +68,8 @@ dependencies:
   group_button: ^5.3.4
   grouped_list: ^5.1.2
   hex: ^0.2.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
   http: ^1.1.2
   http_parser: ^4.0.2
   hydrated_bloc: ^9.1.0
@@ -97,6 +99,7 @@ dependencies:
   riverpod_annotation: ^2.3.1
   rounded_loading_button_plus: ^3.0.1
   sms_autofill: ^2.2.0
+  store_locator: ^0.0.6
   syncfusion_flutter_core: ^20.3.61
   syncfusion_flutter_datepicker: ^20.3.61
   tab_indicator_styler: ^2.0.0
@@ -122,6 +125,7 @@ dev_dependencies:
   flutter_lints: ^2.0.0
   flutter_test:
     sdk: flutter
+  hive_generator: ^2.0.1
   json_serializable: ^6.7.1
   objectbox_generator: ^2.3.1
   riverpod_generator: ^2.3.6

@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/main.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:arryt/pages/orders_management/orders_management.dart';
 import 'package:auto_route/auto_route.dart';
@@ -75,7 +77,6 @@ class _HomeViewPageState extends State<HomeViewPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkPermissions();
@@ -84,115 +85,23 @@ class _HomeViewPageState extends State<HomeViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<UserData>>(
-        stream: objectBox.getUserDataStream(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            if (snapshot.data!.isNotEmpty) {
-              UserData user = snapshot.data!.first;
-              Role? userRole;
-              if (user.roles.isNotEmpty) {
-                userRole = user.roles.first;
-              }
-              if (userRole == null) {
-                return const NoRoleSet();
-              }
+    return ValueListenableBuilder<Box<UserData>>(
+        valueListenable: HiveHelper.getUserDataBox().listenable(),
+        builder: (context, box, _) {
+          final userData = HiveHelper.getUserData();
+          if (userData != null) {
+            Role? userRole;
+            if (userData.roles.isNotEmpty) {
+              userRole = userData.roles.first;
+            }
+            if (userRole == null) {
+              return const NoRoleSet();
+            }
 
-              switch (userRole.code) {
-                case 'courier':
-                  return UpgradeAlert(
-                    child: PersistentTabView(
-                      context,
-                      controller: PersistentTabController(initialIndex: 1),
-                      screens: _buildScreens(userRole),
-                      items: [
-                        PersistentBottomNavBarItem(
-                          icon: const Icon(Icons.person),
-                          title: AppLocalizations.of(context)!
-                              .profile
-                              .toUpperCase(),
-                          activeColorPrimary: Theme.of(context).primaryColor,
-                          inactiveColorPrimary: Colors.grey,
-                        ),
-                        PersistentBottomNavBarItem(
-                          icon: const Icon(Icons.list),
-                          title: AppLocalizations.of(context)!
-                              .orders
-                              .toUpperCase(),
-                          activeColorPrimary: Theme.of(context).primaryColor,
-                          inactiveColorPrimary: Colors.grey,
-                        ),
-                        PersistentBottomNavBarItem(
-                          icon: const Icon(Icons.history_rounded),
-                          title: AppLocalizations.of(context)!
-                              .ordersHistory
-                              .toUpperCase(),
-                          activeColorPrimary: Theme.of(context).primaryColor,
-                          inactiveColorPrimary: Colors.grey,
-                        ),
-                        PersistentBottomNavBarItem(
-                          icon: const badges.Badge(
-                            badgeContent: NotificationsCountBadge(),
-                            badgeAnimation: badges.BadgeAnimation.rotation(
-                              animationDuration: Duration(seconds: 1),
-                              colorChangeAnimationDuration:
-                                  Duration(seconds: 1),
-                              loopAnimation: false,
-                              curve: Curves.fastOutSlowIn,
-                              colorChangeAnimationCurve: Curves.easeInCubic,
-                            ),
-                            child: Icon(Icons.notifications_active_outlined),
-                          ),
-                          title: AppLocalizations.of(context)!
-                              .notificationsLabel
-                              .toUpperCase(),
-                          activeColorPrimary: Theme.of(context).primaryColor,
-                          inactiveColorPrimary: Colors.grey,
-                        ),
-                        // PersistentBottomNavBarItem(
-                        //   icon: const Icon(Icons.attach_money),
-                        //   title: AppLocalizations.of(context)!
-                        //       .myGarantMenuLabel
-                        //       .toUpperCase(),
-                        //   activeColorPrimary: Theme.of(context).primaryColor,
-                        //   inactiveColorPrimary: Colors.grey,
-                        // ),
-                        PersistentBottomNavBarItem(
-                          icon: const Icon(Icons.settings),
-                          title: AppLocalizations.of(context)!
-                              .settings
-                              .toUpperCase(),
-                          activeColorPrimary: Theme.of(context).primaryColor,
-                          inactiveColorPrimary: Colors.grey,
-                        ),
-                      ],
-                      confineInSafeArea: true,
-                      backgroundColor: Colors.white,
-                      handleAndroidBackButtonPress: true,
-                      resizeToAvoidBottomInset: true,
-                      stateManagement: true,
-                      hideNavigationBarWhenKeyboardShows: true,
-                      decoration: NavBarDecoration(
-                        borderRadius: BorderRadius.circular(10.0),
-                        colorBehindNavBar: Colors.white,
-                      ),
-                      popAllScreensOnTapOfSelectedTab: true,
-                      popActionScreens: PopActionScreensType.all,
-                      itemAnimationProperties: const ItemAnimationProperties(
-                        duration: Duration(milliseconds: 200),
-                        curve: Curves.ease,
-                      ),
-                      screenTransitionAnimation:
-                          const ScreenTransitionAnimation(
-                        animateTabTransition: true,
-                        curve: Curves.ease,
-                        duration: Duration(milliseconds: 200),
-                      ),
-                      navBarStyle: NavBarStyle.style1,
-                    ),
-                  );
-                case 'manager':
-                  return PersistentTabView(
+            switch (userRole.code) {
+              case 'courier':
+                return UpgradeAlert(
+                  child: PersistentTabView(
                     context,
                     controller: PersistentTabController(initialIndex: 1),
                     screens: _buildScreens(userRole),
@@ -205,10 +114,9 @@ class _HomeViewPageState extends State<HomeViewPage> {
                         inactiveColorPrimary: Colors.grey,
                       ),
                       PersistentBottomNavBarItem(
-                        icon: const Icon(Icons.account_balance_wallet_outlined),
-                        title: AppLocalizations.of(context)!
-                            .couriersListTabLabel
-                            .toUpperCase(),
+                        icon: const Icon(Icons.list),
+                        title:
+                            AppLocalizations.of(context)!.orders.toUpperCase(),
                         activeColorPrimary: Theme.of(context).primaryColor,
                         inactiveColorPrimary: Colors.grey,
                       ),
@@ -221,9 +129,19 @@ class _HomeViewPageState extends State<HomeViewPage> {
                         inactiveColorPrimary: Colors.grey,
                       ),
                       PersistentBottomNavBarItem(
-                        icon: const Icon(Icons.history_rounded),
+                        icon: const badges.Badge(
+                          badgeContent: NotificationsCountBadge(),
+                          badgeAnimation: badges.BadgeAnimation.rotation(
+                            animationDuration: Duration(seconds: 1),
+                            colorChangeAnimationDuration: Duration(seconds: 1),
+                            loopAnimation: false,
+                            curve: Curves.fastOutSlowIn,
+                            colorChangeAnimationCurve: Curves.easeInCubic,
+                          ),
+                          child: Icon(Icons.notifications_active_outlined),
+                        ),
                         title: AppLocalizations.of(context)!
-                            .ordersManagement
+                            .notificationsLabel
                             .toUpperCase(),
                         activeColorPrimary: Theme.of(context).primaryColor,
                         inactiveColorPrimary: Colors.grey,
@@ -259,15 +177,79 @@ class _HomeViewPageState extends State<HomeViewPage> {
                       duration: Duration(milliseconds: 200),
                     ),
                     navBarStyle: NavBarStyle.style1,
-                  );
-                default:
-                  return const NoRoleSet();
-              }
-            } else {
-              return const SizedBox(height: 0);
+                  ),
+                );
+              case 'manager':
+                return PersistentTabView(
+                  context,
+                  controller: PersistentTabController(initialIndex: 1),
+                  screens: _buildScreens(userRole),
+                  items: [
+                    PersistentBottomNavBarItem(
+                      icon: const Icon(Icons.person),
+                      title:
+                          AppLocalizations.of(context)!.profile.toUpperCase(),
+                      activeColorPrimary: Theme.of(context).primaryColor,
+                      inactiveColorPrimary: Colors.grey,
+                    ),
+                    PersistentBottomNavBarItem(
+                      icon: const Icon(Icons.account_balance_wallet_outlined),
+                      title: AppLocalizations.of(context)!
+                          .couriersListTabLabel
+                          .toUpperCase(),
+                      activeColorPrimary: Theme.of(context).primaryColor,
+                      inactiveColorPrimary: Colors.grey,
+                    ),
+                    PersistentBottomNavBarItem(
+                      icon: const Icon(Icons.history_rounded),
+                      title: AppLocalizations.of(context)!
+                          .ordersHistory
+                          .toUpperCase(),
+                      activeColorPrimary: Theme.of(context).primaryColor,
+                      inactiveColorPrimary: Colors.grey,
+                    ),
+                    PersistentBottomNavBarItem(
+                      icon: const Icon(Icons.history_rounded),
+                      title: AppLocalizations.of(context)!
+                          .ordersManagement
+                          .toUpperCase(),
+                      activeColorPrimary: Theme.of(context).primaryColor,
+                      inactiveColorPrimary: Colors.grey,
+                    ),
+                    PersistentBottomNavBarItem(
+                      icon: const Icon(Icons.settings),
+                      title:
+                          AppLocalizations.of(context)!.settings.toUpperCase(),
+                      activeColorPrimary: Theme.of(context).primaryColor,
+                      inactiveColorPrimary: Colors.grey,
+                    ),
+                  ],
+                  confineInSafeArea: true,
+                  backgroundColor: Colors.white,
+                  handleAndroidBackButtonPress: true,
+                  resizeToAvoidBottomInset: true,
+                  stateManagement: true,
+                  hideNavigationBarWhenKeyboardShows: true,
+                  decoration: NavBarDecoration(
+                    borderRadius: BorderRadius.circular(10.0),
+                    colorBehindNavBar: Colors.white,
+                  ),
+                  popAllScreensOnTapOfSelectedTab: true,
+                  popActionScreens: PopActionScreensType.all,
+                  itemAnimationProperties: const ItemAnimationProperties(
+                    duration: Duration(milliseconds: 200),
+                    curve: Curves.ease,
+                  ),
+                  screenTransitionAnimation: const ScreenTransitionAnimation(
+                    animateTabTransition: true,
+                    curve: Curves.ease,
+                    duration: Duration(milliseconds: 200),
+                  ),
+                  navBarStyle: NavBarStyle.style1,
+                );
+              default:
+                return const NoRoleSet();
             }
-          } else if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox(height: 0);
           } else {
             getIt<AppRouter>().replace(LoginTypePhoneRoute());
             return const SizedBox(

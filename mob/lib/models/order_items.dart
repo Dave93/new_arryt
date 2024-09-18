@@ -39,7 +39,7 @@ class OrderItemsModel {
 
   factory OrderItemsModel.fromMap(Map<String, dynamic> map) {
     return OrderItemsModel(
-      map['productId'] as int,
+      map['product_id'] as int,
       map['quantity'] as int,
       map['name'] as String,
       map['price'] as int,

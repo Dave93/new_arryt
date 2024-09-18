@@ -6,6 +6,7 @@ import 'package:arryt/models/user_data.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_http2_adapter/dio_http2_adapter.dart';
 import 'package:http/http.dart' as http;
+import 'package:arryt/helpers/hive_helper.dart';
 
 class ApiServer {
   static String url = 'https://newapi.arryt.uz';
@@ -13,7 +14,7 @@ class ApiServer {
 
   // create constructor function
   ApiServer() {
-    ApiClient? client = objectBox.getDefaultApiClient();
+    ApiClient? client = HiveHelper.getDefaultApiClient();
     if (client != null) {
       url = "https://" + client.apiUrl;
     }
@@ -24,7 +25,7 @@ class ApiServer {
         ConnectionManager(idleTimeout: Duration(seconds: 10)),
       );
 
-    UserData? user = objectBox.getUserData();
+    UserData? user = HiveHelper.getUserData();
     if (user != null) {
       print(user.accessToken);
 
@@ -36,7 +37,7 @@ class ApiServer {
         onRequest:
             (RequestOptions options, RequestInterceptorHandler handler) async {
           if (options.headers.containsKey('Authorization')) {
-            UserData? user = objectBox.getUserData();
+            UserData? user = HiveHelper.getUserData();
             if (user!.tokenExpires.isBefore(DateTime.now())) {
               try {
                 var response = await http.post(
@@ -48,7 +49,7 @@ class ApiServer {
                   var result = jsonDecode(response.body);
                   if (result['errors'] == null) {
                     var data = result;
-                    objectBox.setUserDataToken(
+                    HiveHelper.setUserDataToken(
                         data['accessToken'],
                         data['refreshToken'],
                         data['accessTokenExpires'],

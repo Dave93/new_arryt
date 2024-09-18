@@ -5,8 +5,11 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:arryt/bloc/block_imports.dart';
 import 'package:arryt/pages/login/type_phone.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'api_client_intro/api_client_choose_brand.dart';
 import 'home/view/home_page.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 
 @RoutePage()
 class InitialPage extends StatelessWidget {
@@ -23,45 +26,28 @@ class _InitialPageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<ApiClient>(
-        stream: objectBox.getDefaultApiClientStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else {
-            if (snapshot.hasData) {
-              var apiClient = snapshot.data!;
-              if (apiClient.isServiceDefault) {
-                return StreamBuilder<List<UserData>>(
-                    stream: objectBox.getUserDataStream(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else {
-                        if (snapshot.hasData) {
-                          var userData = snapshot.data!;
-                          if (userData.isNotEmpty) {
-                            var accessToken = userData[0].accessToken;
-                            if (accessToken != null && accessToken.isNotEmpty) {
-                              return const HomeViewPage();
-                            } else {
-                              return const LoginTypePhonePage();
-                            }
-                          } else {
-                            return const LoginTypePhonePage();
-                          }
-                        } else {
-                          return const LoginTypePhonePage();
-                        }
-                      }
-                    });
+    return ValueListenableBuilder(
+      valueListenable: HiveHelper.getApiClientBox().listenable(),
+      builder: (context, Box<ApiClient> box, _) {
+        ApiClient? apiClient = HiveHelper.getDefaultApiClient();
+
+        if (apiClient != null && apiClient.isServiceDefault) {
+          return ValueListenableBuilder(
+            valueListenable: HiveHelper.getUserDataBox().listenable(),
+            builder: (context, Box<UserData> userBox, _) {
+              final userData = HiveHelper.getUserData();
+              if (userData != null &&
+                  userData.accessToken?.isNotEmpty == true) {
+                return const HomeViewPage();
               } else {
-                return const ApiClientChooseBrand();
+                return const LoginTypePhonePage();
               }
-            } else {
-              return const ApiClientChooseBrand();
-            }
-          }
-        });
+            },
+          );
+        } else {
+          return const ApiClientChooseBrand();
+        }
+      },
+    );
   }
 }

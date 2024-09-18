@@ -1,16 +1,15 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:chat_package/chat_package.dart';
 import 'package:chat_package/models/chat_message.dart';
 import 'package:chat_package/models/media/chat_media.dart';
 import 'package:chat_package/models/media/media_type.dart' as ChatMediaType;
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:arryt/models/customer_comments.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:http/http.dart';
 import 'package:http_parser/http_parser.dart';
 
 import '../../bloc/block_imports.dart';
@@ -26,11 +25,10 @@ class OrderCustomerCommentsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(
-        child: OrderCustomerCommentsView(
+    return OrderCustomerCommentsView(
       customerId: customerId,
       orderId: orderId,
-    ));
+    );
   }
 }
 
@@ -54,81 +52,34 @@ class _OrderCustomerCommentsViewState extends State<OrderCustomerCommentsView> {
 
   Future<void> _getCustomerComments() async {
     try {
-      var client = GraphQLProvider.of(context).value;
-      var query = gql('''
-      query {
-        customerComments(customerId: "${widget.customerId}", orderId: "${widget.orderId}") {
-          id
-          comment
-          customer_id
-          created_at
-          customers_comments_voice_idToassets {
-            id
-            model
-            file_name
-            sub_folder
-          }
-          customers_comments_image_idToassets {
-            id
-            model
-            file_name
-            sub_folder
-          }
-        }
-      }
-    ''');
-      QueryResult result = await client.query(QueryOptions(
-          document: query,
-          // cacheRereadPolicy: CacheRereadPolicy.mergeOptimistic,
-          fetchPolicy: FetchPolicy.noCache));
-      if (result.hasException) {
-        AnimatedSnackBar.material(
-          result.exception?.graphqlErrors[0].message ?? "Error",
-          type: AnimatedSnackBarType.error,
-        ).show(context);
-      }
-
-      if (result.data != null) {
-        ApiClientsState apiClientsState =
-            BlocProvider.of<ApiClientsBloc>(context).state;
-        final apiClient = apiClientsState.apiClients.firstWhere(
-            (element) => element.isServiceDefault == true,
-            orElse: () => apiClientsState.apiClients.first);
-        List<ChatMessage> resMessages =
-            (result.data!['customerComments'] as List)
-                .map((e) => CustomerCommentsModel.fromMap(e))
-                .map(
-          (e) {
-            if (e.customers_comments_image_idToassets != null) {
-              FileAsset imageData = e.customers_comments_image_idToassets!;
-              return ChatMessage(
-                  isSender: true,
-                  chatMedia: ChatMedia(
-                      url:
-                          "https://${apiClient.apiUrl}/${imageData.model}/${imageData.sub_folder}/${imageData.file_name}",
-                      mediaType: ChatMediaType.MediaType.imageMediaType()),
-                  createdAt: e.created_at);
-            }
-            if (e.customers_comments_voice_idToassets != null) {
-              FileAsset voiceData = e.customers_comments_voice_idToassets!;
-              return ChatMessage(
-                  isSender: true,
-                  chatMedia: ChatMedia(
-                      mediaType: ChatMediaType.MediaType.audioMediaType(),
-                      url:
-                          "https://${apiClient.apiUrl}/${voiceData.model}/${voiceData.sub_folder}/${voiceData.file_name}"),
-                  createdAt: e.created_at);
-            }
-            return ChatMessage(
-                isSender: true, text: e.comment!, createdAt: e.created_at);
-          },
-        ).toList();
+      ApiServer apiServer = ApiServer();
+      Response response =
+          await apiServer.get('/api/orders/${widget.orderId}/comments', {});
+      if (response.statusCode == 200) {
         setState(() {
-          comments = (result.data!['customerComments'] as List)
+          comments = (response.data as List)
               .map((e) => CustomerCommentsModel.fromMap(e))
               .toList();
-          messages = resMessages;
         });
+      }
+
+      if (response.statusCode == 200) {
+        if (response.data != null) {
+          List<ChatMessage> resMessages = (response.data as List)
+              .map((e) => CustomerCommentsModel.fromMap(e))
+              .map(
+            (e) {
+              return ChatMessage(
+                  isSender: true, text: e.comment!, createdAt: e.created_at);
+            },
+          ).toList();
+          setState(() {
+            comments = (response.data as List)
+                .map((e) => CustomerCommentsModel.fromMap(e))
+                .toList();
+            messages = resMessages;
+          });
+        }
       }
 
       setState(() {
@@ -146,62 +97,62 @@ class _OrderCustomerCommentsViewState extends State<OrderCustomerCommentsView> {
   }
 
   Future<void> saveCustomerComment() async {
-    var comment = _controller.text;
-    try {
-      var client = GraphQLProvider.of(context).value;
-      var query = gql('''
-      mutation {
-        createCustomerComment(customerId: "${widget.customerId}", comment: "$comment") {
-          id
-          comment
-          customer_id
-          created_at
-          customers_comments_voice_idToassets {
-            id
-            model
-            file_name
-            sub_folder
-          }
-          customers_comments_image_idToassets {
-            id
-            model
-            file_name
-            sub_folder
-          }
-        }
-      }
-    ''');
-      QueryResult result = await client.mutate(MutationOptions(
-          document: query,
-          cacheRereadPolicy: CacheRereadPolicy.mergeOptimistic,
-          fetchPolicy: FetchPolicy.networkOnly));
-      if (result.hasException) {
-        AnimatedSnackBar.material(
-          result.exception?.graphqlErrors[0].message ?? "Error",
-          type: AnimatedSnackBarType.error,
-        ).show(context);
-      }
+    // var comment = _controller.text;
+    // try {
+    //   var client = GraphQLProvider.of(context).value;
+    //   var query = gql('''
+    //   mutation {
+    //     createCustomerComment(customerId: "${widget.customerId}", comment: "$comment") {
+    //       id
+    //       comment
+    //       customer_id
+    //       created_at
+    //       customers_comments_voice_idToassets {
+    //         id
+    //         model
+    //         file_name
+    //         sub_folder
+    //       }
+    //       customers_comments_image_idToassets {
+    //         id
+    //         model
+    //         file_name
+    //         sub_folder
+    //       }
+    //     }
+    //   }
+    // ''');
+    //   QueryResult result = await client.mutate(MutationOptions(
+    //       document: query,
+    //       cacheRereadPolicy: CacheRereadPolicy.mergeOptimistic,
+    //       fetchPolicy: FetchPolicy.networkOnly));
+    //   if (result.hasException) {
+    //     AnimatedSnackBar.material(
+    //       result.exception?.graphqlErrors[0].message ?? "Error",
+    //       type: AnimatedSnackBarType.error,
+    //     ).show(context);
+    //   }
 
-      if (result.data != null) {
-        _controller.text = "";
-        setState(() {
-          comments.add(CustomerCommentsModel.fromMap(
-              result.data!['createCustomerComment']));
-        });
-      }
+    //   if (result.data != null) {
+    //     _controller.text = "";
+    //     setState(() {
+    //       comments.add(CustomerCommentsModel.fromMap(
+    //           result.data!['createCustomerComment']));
+    //     });
+    //   }
 
-      setState(() {
-        isLoading = false;
-      });
-    } on PlatformException catch (e) {
-      AnimatedSnackBar.material(
-        e.message ?? "Error",
-        type: AnimatedSnackBarType.error,
-      ).show(context);
-    }
-    setState(() {
-      isLoading = false;
-    });
+    //   setState(() {
+    //     isLoading = false;
+    //   });
+    // } on PlatformException catch (e) {
+    //   AnimatedSnackBar.material(
+    //     e.message ?? "Error",
+    //     type: AnimatedSnackBarType.error,
+    //   ).show(context);
+    // }
+    // setState(() {
+    //   isLoading = false;
+    // });
   }
 
   Widget addCommentWidget() {
@@ -389,28 +340,29 @@ class _OrderCustomerCommentsViewState extends State<OrderCustomerCommentsView> {
             },
             handleRecord: (path, canceled) async {
               if (!canceled) {
-                const uploadImage = r"""
-                mutation uploadCustomerVoiceComment($file: Upload!, $customerId: String!) {
-                  uploadCustomerVoiceComment(customerId: $customerId, file: $file) {
-                    id
-                  }
-                }
-                """;
-                var multipartFile = await MultipartFile.fromPath(
-                    'file', path!.chatMedia!.url!,
-                    contentType: MediaType("audio", "m4a"));
-                var opts = MutationOptions(
-                  document: gql(uploadImage),
-                  variables: {
-                    "file": multipartFile,
-                    "customerId": widget.customerId
-                  },
-                );
-                var client = GraphQLProvider.of(context).value;
+                // const uploadImage = r"""
+                // mutation uploadCustomerVoiceComment($file: Upload!, $customerId: String!) {
+                //   uploadCustomerVoiceComment(customerId: $customerId, file: $file) {
+                //     id
+                //   }
+                // }
+                // """;
+                // var multipartFile = await MultipartFile.fromPath(
+                //     'file', path!,
+                //     filename: path!.chatMedia!.url!,
+                //     contentType: MediaType("audio", "m4a"));
+                // var opts = MutationOptions(
+                //   document: gql(uploadImage),
+                //   variables: {
+                //     "file": multipartFile,
+                //     "customerId": widget.customerId
+                //   },
+                // );
+                // var client = GraphQLProvider.of(context).value;
 
-                var results = await client.mutate(opts);
+                // var results = await client.mutate(opts);
 
-                _getCustomerComments();
+                // _getCustomerComments();
               }
             },
           ));

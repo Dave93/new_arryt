@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:arryt/helpers/api_server.dart';
-import 'package:arryt/main.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/models/api_client.dart';
 import 'package:arryt/models/brands.dart';
 import 'package:auto_route/auto_route.dart';
@@ -9,7 +9,6 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:http/http.dart' as http;
 import 'package:loading_overlay/loading_overlay.dart';
 
 import '../../bloc/block_imports.dart';
@@ -30,32 +29,10 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
       isLoading = true;
     });
 
-    ApiServer api = new ApiServer();
+    ApiServer api = ApiServer();
 
     // get brands from api
     Response response = await api.get('/api/brands/cached', {});
-    // var brands = response.data['data']['brands'] as List<dynamic>;
-    // create http graphql request to get brands
-    // save brands to _brands
-    // var query = r'''
-    //   query {
-    //     brands {
-    //       id
-    //       name
-    //       logo_path
-    //       sign
-    //     }
-    //   }
-    // ''';
-    // var response = await http.post(
-    //   Uri.parse('https://api.arryt.uz/graphql'),
-    //   headers: <String, String>{
-    //     'Content-Type': 'application/json',
-    //     'Accept': 'application/json',
-    //   },
-    //   body: json.encode(<String, String>{'query': query}),
-    // );
-    // var data = json.decode(response.body) as Map<String, dynamic>;
 
     setState(() {
       isLoading = false;
@@ -70,22 +47,7 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
       isLoading = true;
     });
 
-    ApiServer api = new ApiServer();
-    // String hexString = brand.sign ?? '';
-    // List<String> splitted = [];
-    // for (int i = 0; i < hexString.length; i = i + 2) {
-    //   splitted.add(hexString.substring(i, i + 2));
-    // }
-    // String ascii = List.generate(splitted.length,
-    //     (i) => String.fromCharCode(int.parse(splitted[i], radix: 16))).join();
-
-    // // remove first 6 characters from ascii
-    // String asciiWithoutFirst6 = ascii.substring(6);
-    // Codec<String, String> stringToBase64 = utf8.fuse(base64);
-    // // base64 decode
-    // String base64Decoded = stringToBase64.decode(asciiWithoutFirst6);
-    // String apiUrl = base64Decoded.split("|")[0];
-    // String serviceName = base64Decoded.split("|")[1];
+    ApiServer api = ApiServer();
     try {
       Response response = await api.get('/check_service', {});
       print(response);
@@ -104,18 +66,11 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadBrands();
     });
-  }
-
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
   }
 
   @override
@@ -195,10 +150,10 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
       isLoading = false;
     });
 
-    ApiClient apiClient = new ApiClient(
+    ApiClient apiClient = ApiClient(
         apiUrl: apiUrl, serviceName: serviceName, isServiceDefault: true);
 
-    objectBox.setDefaultApiClient(apiClient);
+    HiveHelper.setDefaultApiClient(apiClient);
 
     await Future.delayed(Duration.zero);
     AutoRouter.of(context).replaceNamed('/login/type-phone');

@@ -5,15 +5,13 @@ import 'dart:math';
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:arryt/helpers/api_server.dart';
-import 'package:arryt/main.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:load_switch/load_switch.dart';
 import 'package:arryt/bloc/block_imports.dart';
-import 'package:http/http.dart' as http;
 
 import '../../../widgets/location_dialog.dart';
 
@@ -30,7 +28,7 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
   bool isCheckingFromServer = false;
 
   Future<bool> _toggleWork(BuildContext context) async {
-    UserData? user = objectBox.getUserData();
+    UserData? user = HiveHelper.getUserData();
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -66,7 +64,7 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
     Position currentPosition = await Geolocator.getCurrentPosition();
     print('get current position');
 
-    ApiServer api = new ApiServer();
+    ApiServer api = ApiServer();
 
     if (user!.is_online) {
       try {
@@ -82,13 +80,18 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
           return value;
         }
         if (response.data['id'] != null) {
-          objectBox.setUserOnlineStatus(false);
+          user.is_online = false;
+          HiveHelper.setUserData(user);
           setState(() {
             value = false;
           });
         }
       } catch (e) {
         print(e);
+        AnimatedSnackBar.material(
+          e.toString(),
+          type: AnimatedSnackBarType.error,
+        ).show(context);
         setState(() {
           value = true;
         });
@@ -109,7 +112,8 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
         }
 
         if (response.data['id'] != null) {
-          objectBox.setUserOnlineStatus(true);
+          user.is_online = true;
+          HiveHelper.setUserData(user);
           setState(() {
             value = true;
           });
@@ -126,20 +130,22 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
 
   Future<void> checkCurrentStatus() async {
     try {
-      ApiServer api = new ApiServer();
+      ApiServer api = ApiServer();
       var response = await api.get('/api/users/getme', {});
       setState(() {
         value = response.data!['user']['is_online'];
       });
-      UserData user = objectBox.getUserData()!;
-      UserData newUserData = UserData.fromMap(response.data);
-      newUserData.accessToken = user.accessToken;
-      newUserData.refreshToken = user.refreshToken;
-      newUserData.tokenExpires = user.tokenExpires;
-      newUserData.accessTokenExpires = user.accessTokenExpires;
-      newUserData.is_online = response.data!['user']['is_online'];
+      UserData? user = HiveHelper.getUserData();
+      if (user != null) {
+        UserData newUserData = UserData.fromMap(response.data);
+        newUserData.accessToken = user.accessToken;
+        newUserData.refreshToken = user.refreshToken;
+        newUserData.tokenExpires = user.tokenExpires;
+        newUserData.accessTokenExpires = user.accessTokenExpires;
+        newUserData.is_online = response.data!['user']['is_online'];
 
-      objectBox.setUserData(newUserData);
+        HiveHelper.setUserData(newUserData);
+      }
     } catch (e) {
       print(e);
     }
@@ -147,7 +153,6 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkCurrentStatus();
@@ -156,7 +161,6 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     positionStream?.cancel();
     super.dispose();
   }

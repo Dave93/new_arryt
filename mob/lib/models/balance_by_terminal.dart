@@ -29,7 +29,7 @@ class BalanceByTerminal {
 
   factory BalanceByTerminal.fromMap(Map<String, dynamic> map) {
     return BalanceByTerminal(
-      terminalName: map['courier_terminal_balance_terminals']['name'] as String,
+      terminalName: map['terminal_name'] as String,
       balance: map['balance'] as int,
     );
   }

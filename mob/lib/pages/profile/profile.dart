@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 
 import '../../models/orderMobilePeriodStat.dart';
 import '../../widgets/profile/logout.dart';
@@ -45,7 +46,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
   int walletBalance = 0;
   int totalFuelBalance = 0;
   double rating = 0;
-  UserData? user = objectBox.getUserData();
+  UserData? user = HiveHelper.getUserData();
 
   Future<void> _loadData() async {
     await _loadStatistics();
@@ -237,9 +238,9 @@ class _ProfilePageViewState extends State<ProfilePageView>
                     const SizedBox(
                       height: 20,
                     ),
-                    user?.userProfile.target?.last_name != null
+                    user?.userProfile?.last_name != null
                         ? AutoSizeText(
-                            "${user?.userProfile.target?.last_name} ${user?.userProfile.target?.first_name}",
+                            "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 25.0,
@@ -248,9 +249,9 @@ class _ProfilePageViewState extends State<ProfilePageView>
                         : const SizedBox(
                             height: 0,
                           ),
-                    user?.userProfile.target?.phone != null
+                    user?.userProfile?.phone != null
                         ? AutoSizeText(
-                            user?.userProfile.target?.phone ?? '',
+                            user?.userProfile?.phone ?? '',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16.0,

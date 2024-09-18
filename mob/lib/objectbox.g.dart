@@ -14,7 +14,6 @@ import 'package:objectbox/internal.dart'; // generated code can access "internal
 import 'package:objectbox/objectbox.dart';
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
-import 'models/api_client.dart';
 import 'models/couriers.dart';
 import 'models/customer.dart';
 import 'models/manager_couriers_model.dart';
@@ -23,155 +22,330 @@ import 'models/order_next_button.dart';
 import 'models/order_status.dart';
 import 'models/organizations.dart';
 import 'models/terminals.dart';
-import 'models/user_data.dart';
 import 'models/waiting_order.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
 
 final _entities = <ModelEntity>[
   ModelEntity(
-      id: const IdUid(6, 9091961325872571771),
-      name: 'Terminals',
-      lastPropertyId: const IdUid(4, 3920934876080503761),
+      id: const IdUid(2, 4955723998184028965),
+      name: 'Couriers',
+      lastPropertyId: const IdUid(4, 1776444435136694885),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(2, 840822925344105162),
+            id: const IdUid(1, 8220921239176780094),
             name: 'id',
             type: 6,
             flags: 1),
         ModelProperty(
-            id: const IdUid(3, 2210336822924642268),
-            name: 'name',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 3920934876080503761),
+            id: const IdUid(2, 8196877216634407924),
             name: 'identity',
             type: 9,
             flags: 2048,
-            indexId: const IdUid(1, 1676434599599334635))
-      ],
-      relations: <ModelRelation>[],
-      backlinks: <ModelBacklink>[]),
-  ModelEntity(
-      id: const IdUid(7, 8563256737949417726),
-      name: 'OrderStatus',
-      lastPropertyId: const IdUid(5, 1953990034282549854),
-      flags: 0,
-      properties: <ModelProperty>[
+            indexId: const IdUid(2, 5915899748378784249)),
         ModelProperty(
-            id: const IdUid(1, 2828808062281907829),
-            name: 'id',
-            type: 6,
-            flags: 1),
-        ModelProperty(
-            id: const IdUid(2, 4459246252108730740),
-            name: 'identity',
+            id: const IdUid(3, 1184003105681483804),
+            name: 'firstName',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(3, 8962048234501600838),
-            name: 'name',
+            id: const IdUid(4, 1776444435136694885),
+            name: 'lastName',
             type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 637348538912960010),
-            name: 'cancel',
-            type: 1,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(5, 1953990034282549854),
-            name: 'finish',
-            type: 1,
             flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(8, 6192037116325498403),
+      id: const IdUid(3, 5473375209576606999),
       name: 'Customer',
-      lastPropertyId: const IdUid(5, 3090020386679110062),
+      lastPropertyId: const IdUid(4, 7675585321142820053),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(2, 897756238628117785),
+            id: const IdUid(1, 1831717027371519211),
             name: 'id',
             type: 6,
             flags: 1),
         ModelProperty(
-            id: const IdUid(3, 7094149867248436284),
+            id: const IdUid(2, 6224108448430410819),
+            name: 'identity',
+            type: 9,
+            flags: 2048,
+            indexId: const IdUid(3, 6041090055125413539)),
+        ModelProperty(
+            id: const IdUid(3, 5022631738739935332),
             name: 'name',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(4, 1001685769562708279),
+            id: const IdUid(4, 7675585321142820053),
             name: 'phone',
             type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(5, 3090020386679110062),
-            name: 'identity',
-            type: 9,
-            flags: 2048,
-            indexId: const IdUid(2, 1130095198174930973))
+            flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(9, 3885740093415193842),
-      name: 'OrderNextButton',
-      lastPropertyId: const IdUid(11, 4009770236287666747),
+      id: const IdUid(4, 4585928615725286779),
+      name: 'ManagerCouriersModel',
+      lastPropertyId: const IdUid(9, 3965218059845424892),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 884935736184302183),
+            id: const IdUid(1, 2958913160681255399),
             name: 'id',
             type: 6,
             flags: 1),
         ModelProperty(
-            id: const IdUid(2, 589923553981987948),
+            id: const IdUid(2, 6834976006247908416),
             name: 'identity',
             type: 9,
             flags: 2048,
-            indexId: const IdUid(7, 7968099699081636885)),
+            indexId: const IdUid(4, 4755574621539302571)),
         ModelProperty(
-            id: const IdUid(3, 1836023034390262135),
+            id: const IdUid(3, 2212481259726862653),
+            name: 'firstName',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(4, 6334384601285152144),
+            name: 'lastName',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(5, 5094802023215205539),
+            name: 'phone',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(6, 2802662914467989753),
+            name: 'terminalId',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(7, 4857924925043412205),
+            name: 'courierId',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(8, 4469856104079930377),
+            name: 'terminalName',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(9, 3965218059845424892),
+            name: 'balance',
+            type: 6,
+            flags: 0)
+      ],
+      relations: <ModelRelation>[],
+      backlinks: <ModelBacklink>[]),
+  ModelEntity(
+      id: const IdUid(5, 789466),
+      name: 'OrderModel',
+      lastPropertyId: const IdUid(25, 3514177041029269672),
+      flags: 0,
+      properties: <ModelProperty>[
+        ModelProperty(
+            id: const IdUid(1, 1237772253845156083),
+            name: 'id',
+            type: 6,
+            flags: 1),
+        ModelProperty(
+            id: const IdUid(2, 4043831477614509708),
+            name: 'identity',
+            type: 9,
+            flags: 2048,
+            indexId: const IdUid(5, 6097335743628430032)),
+        ModelProperty(
+            id: const IdUid(3, 5844101188977205762),
+            name: 'to_lat',
+            type: 8,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(4, 1082254745410937789),
+            name: 'to_lon',
+            type: 8,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(5, 2320196033748530650),
+            name: 'from_lat',
+            type: 8,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(6, 7501619028577010744),
+            name: 'from_lon',
+            type: 8,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(7, 4163606865485115771),
+            name: 'pre_distance',
+            type: 8,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(8, 3554203049017470276),
+            name: 'order_number',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(9, 7704192191119504457),
+            name: 'order_price',
+            type: 6,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(10, 8456839757906906593),
+            name: 'delivery_price',
+            type: 6,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(11, 261701052980245815),
+            name: 'delivery_address',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(12, 4036776916166659784),
+            name: 'delivery_comment',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(13, 8176442382562433843),
+            name: 'created_at',
+            type: 10,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(14, 1837456553624467440),
+            name: 'paymentType',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(15, 7768497248809562025),
+            name: 'yandexPincode',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(16, 4293235795440001137),
+            name: 'cDeliveryPrice',
+            type: 6,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(17, 3793044038322454657),
+            name: 'additional_phone',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(18, 4636640447755966317),
+            name: 'house',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(19, 4156792526843955482),
+            name: 'entrance',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(20, 3314014150108779229),
+            name: 'flat',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(21, 1865591932069594544),
+            name: 'customerId',
+            type: 11,
+            flags: 520,
+            indexId: const IdUid(6, 7963406002533161542),
+            relationTarget: 'Customer'),
+        ModelProperty(
+            id: const IdUid(22, 9078805976316943749),
+            name: 'terminalId',
+            type: 11,
+            flags: 520,
+            indexId: const IdUid(7, 76294488246563747),
+            relationTarget: 'Terminals'),
+        ModelProperty(
+            id: const IdUid(23, 9142260690491204403),
+            name: 'orderStatusId',
+            type: 11,
+            flags: 520,
+            indexId: const IdUid(8, 4232124682113797244),
+            relationTarget: 'OrderStatus'),
+        ModelProperty(
+            id: const IdUid(24, 7746920615808984749),
+            name: 'organizationId',
+            type: 11,
+            flags: 520,
+            indexId: const IdUid(9, 3992297828445457491),
+            relationTarget: 'Organizations'),
+        ModelProperty(
+            id: const IdUid(25, 3514177041029269672),
+            name: 'courierId',
+            type: 11,
+            flags: 520,
+            indexId: const IdUid(10, 3927476809050050658),
+            relationTarget: 'Couriers')
+      ],
+      relations: <ModelRelation>[
+        ModelRelation(
+            id: const IdUid(1, 7613187243220439849),
+            name: 'orderNextButton',
+            targetId: const IdUid(6, 4076473343368338481))
+      ],
+      backlinks: <ModelBacklink>[]),
+  ModelEntity(
+      id: const IdUid(6, 4076473343368338481),
+      name: 'OrderNextButton',
+      lastPropertyId: const IdUid(10, 8870530454611102339),
+      flags: 0,
+      properties: <ModelProperty>[
+        ModelProperty(
+            id: const IdUid(1, 7588803499799128377),
+            name: 'id',
+            type: 6,
+            flags: 1),
+        ModelProperty(
+            id: const IdUid(2, 6048280741433833098),
+            name: 'identity',
+            type: 9,
+            flags: 2048,
+            indexId: const IdUid(11, 2051850693874130345)),
+        ModelProperty(
+            id: const IdUid(3, 4440907219563623957),
             name: 'name',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(4, 4037992427263734469),
+            id: const IdUid(4, 1804734112206229641),
             name: 'color',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(5, 3902532852745225948),
+            id: const IdUid(5, 926748288320997162),
             name: 'sort',
             type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(6, 2046563212734404928),
+            id: const IdUid(6, 5480181550192238167),
             name: 'finish',
             type: 1,
             flags: 0),
         ModelProperty(
-            id: const IdUid(7, 950248480076907380),
+            id: const IdUid(7, 7614120346064880005),
             name: 'cancel',
             type: 1,
             flags: 0),
         ModelProperty(
-            id: const IdUid(8, 1065756737884964156),
+            id: const IdUid(8, 6601786812040547290),
             name: 'waiting',
             type: 1,
             flags: 0),
         ModelProperty(
-            id: const IdUid(10, 2800772117691376491),
+            id: const IdUid(9, 7571639674710330770),
             name: 'onWay',
             type: 1,
             flags: 0),
         ModelProperty(
-            id: const IdUid(11, 4009770236287666747),
+            id: const IdUid(10, 8870530454611102339),
             name: 'inTerminal',
             type: 1,
             flags: 0)
@@ -179,583 +353,236 @@ final _entities = <ModelEntity>[
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(10, 1949976709383216849),
-      name: 'WaitingOrderModel',
-      lastPropertyId: const IdUid(18, 8744202764868180277),
+      id: const IdUid(7, 7714239418338821462),
+      name: 'OrderStatus',
+      lastPropertyId: const IdUid(5, 161192711299955867),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 868269279235324358),
+            id: const IdUid(1, 7785090973605585800),
             name: 'id',
             type: 6,
             flags: 1),
         ModelProperty(
-            id: const IdUid(2, 5178099977464507097),
+            id: const IdUid(2, 28125061827926453),
             name: 'identity',
             type: 9,
-            flags: 2048,
-            indexId: const IdUid(9, 6311318010321925875)),
-        ModelProperty(
-            id: const IdUid(3, 6901417536013603633),
-            name: 'to_lat',
-            type: 8,
             flags: 0),
         ModelProperty(
-            id: const IdUid(4, 1149308492177433937),
-            name: 'to_lon',
-            type: 8,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(5, 8808132436442961559),
-            name: 'pre_distance',
-            type: 8,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(6, 7334693274384789930),
-            name: 'order_number',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(7, 1506878761545737708),
-            name: 'order_price',
-            type: 6,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(8, 8451503649275082587),
-            name: 'delivery_price',
-            type: 6,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(9, 8400788228286204025),
-            name: 'delivery_address',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(10, 2553211143359129527),
-            name: 'delivery_comment',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(11, 3434374933585513207),
-            name: 'created_at',
-            type: 10,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(12, 7106550158358494055),
-            name: 'customerId',
-            type: 11,
-            flags: 520,
-            indexId: const IdUid(10, 4107127334998577976),
-            relationTarget: 'Customer'),
-        ModelProperty(
-            id: const IdUid(13, 5834073754124692378),
-            name: 'terminalId',
-            type: 11,
-            flags: 520,
-            indexId: const IdUid(11, 1499991988140241428),
-            relationTarget: 'Terminals'),
-        ModelProperty(
-            id: const IdUid(14, 7737347985296494294),
-            name: 'orderStatusId',
-            type: 11,
-            flags: 520,
-            indexId: const IdUid(12, 2319697532974640764),
-            relationTarget: 'OrderStatus'),
-        ModelProperty(
-            id: const IdUid(15, 6854746085406089198),
-            name: 'from_lat',
-            type: 8,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(16, 6097524008689169922),
-            name: 'from_lon',
-            type: 8,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(17, 3169785221312573997),
-            name: 'organizationId',
-            type: 11,
-            flags: 520,
-            indexId: const IdUid(14, 5510076716237701865),
-            relationTarget: 'Organizations'),
-        ModelProperty(
-            id: const IdUid(18, 8744202764868180277),
-            name: 'paymentType',
-            type: 9,
-            flags: 0)
-      ],
-      relations: <ModelRelation>[
-        ModelRelation(
-            id: const IdUid(2, 1296200797359606388),
-            name: 'orderNextButton',
-            targetId: const IdUid(9, 3885740093415193842))
-      ],
-      backlinks: <ModelBacklink>[]),
-  ModelEntity(
-      id: const IdUid(11, 8076618993551493134),
-      name: 'Organizations',
-      lastPropertyId: const IdUid(10, 1732659299647189366),
-      flags: 0,
-      properties: <ModelProperty>[
-        ModelProperty(
-            id: const IdUid(1, 3212550456628815415),
-            name: 'id',
-            type: 6,
-            flags: 1),
-        ModelProperty(
-            id: const IdUid(2, 4023538849320669406),
-            name: 'identity',
-            type: 9,
-            flags: 2048,
-            indexId: const IdUid(13, 5249122921441728128)),
-        ModelProperty(
-            id: const IdUid(3, 2868774649306464763),
+            id: const IdUid(3, 8118192591686952764),
             name: 'name',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(4, 3437973949576021472),
+            id: const IdUid(4, 4025713971589960092),
+            name: 'cancel',
+            type: 1,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(5, 161192711299955867),
+            name: 'finish',
+            type: 1,
+            flags: 0)
+      ],
+      relations: <ModelRelation>[],
+      backlinks: <ModelBacklink>[]),
+  ModelEntity(
+      id: const IdUid(8, 4416652976101781313),
+      name: 'Organizations',
+      lastPropertyId: const IdUid(10, 5769646531673351930),
+      flags: 0,
+      properties: <ModelProperty>[
+        ModelProperty(
+            id: const IdUid(1, 4525156447660686662),
+            name: 'id',
+            type: 6,
+            flags: 1),
+        ModelProperty(
+            id: const IdUid(2, 8394741057431612877),
+            name: 'identity',
+            type: 9,
+            flags: 2048,
+            indexId: const IdUid(12, 2374429530957752465)),
+        ModelProperty(
+            id: const IdUid(3, 5159789453312005320),
+            name: 'name',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(4, 2529365311793947019),
             name: 'active',
             type: 1,
             flags: 0),
         ModelProperty(
-            id: const IdUid(5, 5068897635430290529),
+            id: const IdUid(5, 3007349893525881802),
+            name: 'iconUrl',
+            type: 9,
+            flags: 0),
+        ModelProperty(
+            id: const IdUid(6, 2005046031751747118),
             name: 'description',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(6, 8157506104009687261),
+            id: const IdUid(7, 6872904665322479932),
             name: 'maxDistance',
             type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(7, 8885256933266866562),
+            id: const IdUid(8, 6084933270485047968),
             name: 'maxActiveOrderCount',
             type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(8, 4395138515048416723),
+            id: const IdUid(9, 7653060597707455815),
             name: 'maxOrderCloseDistance',
             type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(9, 6037131285445460449),
+            id: const IdUid(10, 5769646531673351930),
             name: 'supportChatUrl',
             type: 9,
-            flags: 0),
+            flags: 0)
+      ],
+      relations: <ModelRelation>[],
+      backlinks: <ModelBacklink>[]),
+  ModelEntity(
+      id: const IdUid(9, 1830217361042213119),
+      name: 'Terminals',
+      lastPropertyId: const IdUid(3, 1784256838379703036),
+      flags: 0,
+      properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(10, 1732659299647189366),
-            name: 'iconUrl',
+            id: const IdUid(1, 3228663222636896531),
+            name: 'id',
+            type: 6,
+            flags: 1),
+        ModelProperty(
+            id: const IdUid(2, 8684926485336329040),
+            name: 'identity',
+            type: 9,
+            flags: 2048,
+            indexId: const IdUid(13, 4591089372081436261)),
+        ModelProperty(
+            id: const IdUid(3, 1784256838379703036),
+            name: 'name',
             type: 9,
             flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(12, 5349769437952250488),
-      name: 'ManagerCouriersModel',
-      lastPropertyId: const IdUid(9, 6371879390527856676),
+      id: const IdUid(10, 8652548725592521416),
+      name: 'WaitingOrderModel',
+      lastPropertyId: const IdUid(18, 293521553983635991),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 7886582209767772120),
+            id: const IdUid(1, 397888336254129541),
             name: 'id',
             type: 6,
             flags: 1),
         ModelProperty(
-            id: const IdUid(2, 6591988332844142606),
+            id: const IdUid(2, 3060400363857841573),
             name: 'identity',
             type: 9,
             flags: 2048,
-            indexId: const IdUid(16, 3707077786157151456)),
+            indexId: const IdUid(14, 4267632084633500248)),
         ModelProperty(
-            id: const IdUid(3, 4180793703179948086),
-            name: 'firstName',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 79270462026450625),
-            name: 'lastName',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(5, 7946166619234932682),
-            name: 'phone',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(6, 5614485167576377256),
-            name: 'terminalId',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(7, 3413557915128308234),
-            name: 'terminalName',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(8, 5468550202241238972),
-            name: 'balance',
-            type: 6,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(9, 6371879390527856676),
-            name: 'courierId',
-            type: 9,
-            flags: 0)
-      ],
-      relations: <ModelRelation>[],
-      backlinks: <ModelBacklink>[]),
-  ModelEntity(
-      id: const IdUid(13, 2537530572472304200),
-      name: 'Couriers',
-      lastPropertyId: const IdUid(4, 2300257700537351364),
-      flags: 0,
-      properties: <ModelProperty>[
-        ModelProperty(
-            id: const IdUid(1, 8469239260230610635),
-            name: 'id',
-            type: 6,
-            flags: 1),
-        ModelProperty(
-            id: const IdUid(2, 1272115890219078573),
-            name: 'identity',
-            type: 9,
-            flags: 2048,
-            indexId: const IdUid(17, 4429152182772479287)),
-        ModelProperty(
-            id: const IdUid(3, 705569632956642091),
-            name: 'firstName',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 2300257700537351364),
-            name: 'lastName',
-            type: 9,
-            flags: 0)
-      ],
-      relations: <ModelRelation>[],
-      backlinks: <ModelBacklink>[]),
-  ModelEntity(
-      id: const IdUid(14, 789466),
-      name: 'OrderModel',
-      lastPropertyId: const IdUid(25, 3569275048088835734),
-      flags: 0,
-      properties: <ModelProperty>[
-        ModelProperty(
-            id: const IdUid(1, 5770927622093998027),
-            name: 'id',
-            type: 6,
-            flags: 1),
-        ModelProperty(
-            id: const IdUid(2, 4195963514142489811),
-            name: 'identity',
-            type: 9,
-            flags: 2048,
-            indexId: const IdUid(19, 399225752258304172)),
-        ModelProperty(
-            id: const IdUid(3, 455803875508062485),
+            id: const IdUid(3, 6315055203723707741),
             name: 'to_lat',
             type: 8,
             flags: 0),
         ModelProperty(
-            id: const IdUid(4, 9088090132406611820),
+            id: const IdUid(4, 7335147345107058149),
             name: 'to_lon',
             type: 8,
             flags: 0),
         ModelProperty(
-            id: const IdUid(5, 3002734141704347314),
+            id: const IdUid(5, 7848445907466730371),
             name: 'from_lat',
             type: 8,
             flags: 0),
         ModelProperty(
-            id: const IdUid(6, 8355594693050098656),
+            id: const IdUid(6, 4491902761557898188),
             name: 'from_lon',
             type: 8,
             flags: 0),
         ModelProperty(
-            id: const IdUid(7, 2465396999810310667),
+            id: const IdUid(7, 5165468583376613941),
             name: 'pre_distance',
             type: 8,
             flags: 0),
         ModelProperty(
-            id: const IdUid(8, 5003480529717031273),
+            id: const IdUid(8, 4181431163382753824),
             name: 'order_number',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(9, 8224525201279600288),
+            id: const IdUid(9, 606499749608950579),
             name: 'order_price',
             type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(10, 6648436973511871802),
+            id: const IdUid(10, 8663124132331683374),
             name: 'delivery_price',
             type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(11, 8133675796126300561),
+            id: const IdUid(11, 5776641537488590555),
             name: 'delivery_address',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(12, 8138623495183227194),
+            id: const IdUid(12, 9066920409271968947),
             name: 'delivery_comment',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(13, 4563963630265147565),
+            id: const IdUid(13, 777860174564320227),
             name: 'created_at',
             type: 10,
             flags: 0),
         ModelProperty(
-            id: const IdUid(14, 285623917967790984),
+            id: const IdUid(14, 3979947394416130513),
             name: 'paymentType',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(15, 6510137199872959730),
-            name: 'yandexPincode',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(16, 6474627362826500273),
-            name: 'cDeliveryPrice',
-            type: 6,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(17, 2522922906054663164),
-            name: 'additional_phone',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(18, 8180958349755568284),
-            name: 'house',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(19, 6909110970997211612),
-            name: 'entrance',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(20, 7086650279363690076),
-            name: 'flat',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(21, 4904313525487382366),
+            id: const IdUid(15, 5005528945951331076),
             name: 'customerId',
             type: 11,
             flags: 520,
-            indexId: const IdUid(20, 8010324233737352142),
+            indexId: const IdUid(15, 3089324001546128215),
             relationTarget: 'Customer'),
         ModelProperty(
-            id: const IdUid(22, 5832950277109922375),
+            id: const IdUid(16, 8643064867818007378),
             name: 'terminalId',
             type: 11,
             flags: 520,
-            indexId: const IdUid(21, 1693866450869436684),
+            indexId: const IdUid(16, 3192171549795321792),
             relationTarget: 'Terminals'),
         ModelProperty(
-            id: const IdUid(23, 5810896111314289583),
+            id: const IdUid(17, 7762396102497464952),
             name: 'orderStatusId',
             type: 11,
             flags: 520,
-            indexId: const IdUid(22, 5159666056422686611),
+            indexId: const IdUid(17, 2830062244035905251),
             relationTarget: 'OrderStatus'),
         ModelProperty(
-            id: const IdUid(24, 5956046772499864552),
+            id: const IdUid(18, 293521553983635991),
             name: 'organizationId',
             type: 11,
             flags: 520,
-            indexId: const IdUid(23, 7408433011422827150),
-            relationTarget: 'Organizations'),
-        ModelProperty(
-            id: const IdUid(25, 3569275048088835734),
-            name: 'courierId',
-            type: 11,
-            flags: 520,
-            indexId: const IdUid(24, 1628256773781419482),
-            relationTarget: 'Couriers')
+            indexId: const IdUid(18, 684422398799809103),
+            relationTarget: 'Organizations')
       ],
       relations: <ModelRelation>[
         ModelRelation(
-            id: const IdUid(3, 8700615593623795387),
+            id: const IdUid(2, 9208783192562743855),
             name: 'orderNextButton',
-            targetId: const IdUid(9, 3885740093415193842))
+            targetId: const IdUid(6, 4076473343368338481))
       ],
-      backlinks: <ModelBacklink>[]),
-  ModelEntity(
-      id: const IdUid(16, 478433351452863884),
-      name: 'ApiClient',
-      lastPropertyId: const IdUid(4, 2593781435132997964),
-      flags: 0,
-      properties: <ModelProperty>[
-        ModelProperty(
-            id: const IdUid(1, 6744270445383003536),
-            name: 'id',
-            type: 6,
-            flags: 1),
-        ModelProperty(
-            id: const IdUid(2, 4700271197621029131),
-            name: 'apiUrl',
-            type: 9,
-            flags: 2048,
-            indexId: const IdUid(25, 5686078841869236333)),
-        ModelProperty(
-            id: const IdUid(3, 2716541582549572761),
-            name: 'serviceName',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 2593781435132997964),
-            name: 'isServiceDefault',
-            type: 1,
-            flags: 0)
-      ],
-      relations: <ModelRelation>[],
-      backlinks: <ModelBacklink>[]),
-  ModelEntity(
-      id: const IdUid(17, 6267878315522397864),
-      name: 'Role',
-      lastPropertyId: const IdUid(4, 6907114542480224461),
-      flags: 0,
-      properties: <ModelProperty>[
-        ModelProperty(
-            id: const IdUid(1, 2339957134727827786),
-            name: 'id',
-            type: 6,
-            flags: 1),
-        ModelProperty(
-            id: const IdUid(2, 8978298896465441166),
-            name: 'name',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(3, 6026209215848483367),
-            name: 'code',
-            type: 9,
-            flags: 2048,
-            indexId: const IdUid(26, 4292781798110048097)),
-        ModelProperty(
-            id: const IdUid(4, 6907114542480224461),
-            name: 'active',
-            type: 1,
-            flags: 0)
-      ],
-      relations: <ModelRelation>[],
-      backlinks: <ModelBacklink>[]),
-  ModelEntity(
-      id: const IdUid(18, 6907096769466601773),
-      name: 'UserData',
-      lastPropertyId: const IdUid(9, 5457197742395468158),
-      flags: 0,
-      properties: <ModelProperty>[
-        ModelProperty(
-            id: const IdUid(1, 1073698351633599393),
-            name: 'id',
-            type: 6,
-            flags: 1),
-        ModelProperty(
-            id: const IdUid(2, 2333047086563174659),
-            name: 'permissions',
-            type: 30,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(3, 3017813845385822339),
-            name: 'accessToken',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 4034509772827863981),
-            name: 'refreshToken',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(5, 7206318336301687336),
-            name: 'accessTokenExpires',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(6, 5243767864348513710),
-            name: 'is_online',
-            type: 1,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(7, 3882684217421651516),
-            name: 'tokenExpires',
-            type: 10,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(8, 6694200917451304621),
-            name: 'userProfileId',
-            type: 11,
-            flags: 520,
-            indexId: const IdUid(27, 5823730739666247642),
-            relationTarget: 'UserProfile'),
-        ModelProperty(
-            id: const IdUid(9, 5457197742395468158),
-            name: 'identity',
-            type: 9,
-            flags: 0)
-      ],
-      relations: <ModelRelation>[
-        ModelRelation(
-            id: const IdUid(4, 2885090432581392375),
-            name: 'roles',
-            targetId: const IdUid(17, 6267878315522397864))
-      ],
-      backlinks: <ModelBacklink>[]),
-  ModelEntity(
-      id: const IdUid(19, 226236551609623488),
-      name: 'UserProfile',
-      lastPropertyId: const IdUid(8, 1176102613275710565),
-      flags: 0,
-      properties: <ModelProperty>[
-        ModelProperty(
-            id: const IdUid(1, 3667931267405151828),
-            name: 'id',
-            type: 6,
-            flags: 1),
-        ModelProperty(
-            id: const IdUid(2, 4133269098683869278),
-            name: 'identity',
-            type: 9,
-            flags: 2048,
-            indexId: const IdUid(28, 9218516956748934818)),
-        ModelProperty(
-            id: const IdUid(3, 6032207422352830083),
-            name: 'first_name',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 5693831006154475818),
-            name: 'last_name',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(5, 8913674004896007050),
-            name: 'phone',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(6, 6258927065814091039),
-            name: 'is_super_user',
-            type: 1,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(7, 5657300947280713989),
-            name: 'terminal_id',
-            type: 30,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(8, 1176102613275710565),
-            name: 'wallet_balance',
-            type: 6,
-            flags: 0)
-      ],
-      relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[])
 ];
 
@@ -786,73 +613,17 @@ Future<Store> openStore(
 ModelDefinition getObjectBoxModel() {
   final model = ModelInfo(
       entities: _entities,
-      lastEntityId: const IdUid(19, 226236551609623488),
-      lastIndexId: const IdUid(28, 9218516956748934818),
-      lastRelationId: const IdUid(4, 2885090432581392375),
+      lastEntityId: const IdUid(10, 8652548725592521416),
+      lastIndexId: const IdUid(18, 684422398799809103),
+      lastRelationId: const IdUid(2, 9208783192562743855),
       lastSequenceId: const IdUid(0, 0),
-      retiredEntityUids: const [
-        1863924414234841213,
-        8619516910133107737,
-        135028551281165955,
-        1846751678898275623,
-        8938918269802989134,
-        1213596919118144903
-      ],
-      retiredIndexUids: const [4921986240989773902],
+      retiredEntityUids: const [8277430634145776413],
+      retiredIndexUids: const [],
       retiredPropertyUids: const [
-        2644272314132256799,
-        5195995904683270951,
-        5665188339763281843,
-        670938261679094489,
-        4661653812920702588,
-        8247987230190835116,
-        4032052936787801220,
-        3909389925653241792,
-        564995292937529856,
-        4052066614249312864,
-        2219328941636834940,
-        4593010863572601325,
-        6801889756641705086,
-        4599324437995865890,
-        2575838619834289619,
-        616016896979766167,
-        8551996614833550299,
-        6227792049006403338,
-        6062476513322378053,
-        786840397266920362,
-        8266593758222525160,
-        2094901791835261984,
-        8945765911252574506,
-        8107958439781220600,
-        6685362917590658499,
-        1290841174320871070,
-        1643304251919963795,
-        6087142303395005860,
-        4764357116416772482,
-        5466737264095854493,
-        4697113116362280261,
-        2220628863310541438,
-        3463541009649801615,
-        2053130246302463334,
-        1766346521000078553,
-        8095690817807058778,
-        840164195621845206,
-        4233819846249036246,
-        4199781037572021773,
-        2809260946128085365,
-        3357979323474007785,
-        7913170474316076287,
-        6400841373942310655,
-        6887866108329889092,
-        8573742609611702437,
-        8626749551733128580,
-        5691642509388763970,
-        9147620556844210598,
-        232875419428101232,
-        1646914461858119708,
-        635420148182469357,
-        4663663571284872597,
-        2478586823062583325
+        5433239361472065801,
+        4383526011583149542,
+        5082264500589599139,
+        1176246109742688508
       ],
       retiredRelationUids: const [],
       modelVersion: 5,
@@ -860,421 +631,8 @@ ModelDefinition getObjectBoxModel() {
       version: 1);
 
   final bindings = <Type, EntityDefinition>{
-    Terminals: EntityDefinition<Terminals>(
-        model: _entities[0],
-        toOneRelations: (Terminals object) => [],
-        toManyRelations: (Terminals object) => {},
-        getId: (Terminals object) => object.id,
-        setId: (Terminals object, int id) {
-          object.id = id;
-        },
-        objectToFB: (Terminals object, fb.Builder fbb) {
-          final nameOffset = fbb.writeString(object.name);
-          final identityOffset = fbb.writeString(object.identity);
-          fbb.startTable(5);
-          fbb.addInt64(1, object.id);
-          fbb.addOffset(2, nameOffset);
-          fbb.addOffset(3, identityOffset);
-          fbb.finish(fbb.endTable());
-          return object.id;
-        },
-        objectFromFB: (Store store, ByteData fbData) {
-          final buffer = fb.BufferContext(fbData);
-          final rootOffset = buffer.derefObject(0);
-          final identityParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 10, '');
-          final nameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 8, '');
-          final object = Terminals(identity: identityParam, name: nameParam)
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 6, 0);
-
-          return object;
-        }),
-    OrderStatus: EntityDefinition<OrderStatus>(
-        model: _entities[1],
-        toOneRelations: (OrderStatus object) => [],
-        toManyRelations: (OrderStatus object) => {},
-        getId: (OrderStatus object) => object.id,
-        setId: (OrderStatus object, int id) {
-          object.id = id;
-        },
-        objectToFB: (OrderStatus object, fb.Builder fbb) {
-          final identityOffset = fbb.writeString(object.identity);
-          final nameOffset = fbb.writeString(object.name);
-          fbb.startTable(6);
-          fbb.addInt64(0, object.id);
-          fbb.addOffset(1, identityOffset);
-          fbb.addOffset(2, nameOffset);
-          fbb.addBool(3, object.cancel);
-          fbb.addBool(4, object.finish);
-          fbb.finish(fbb.endTable());
-          return object.id;
-        },
-        objectFromFB: (Store store, ByteData fbData) {
-          final buffer = fb.BufferContext(fbData);
-          final rootOffset = buffer.derefObject(0);
-          final identityParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 6, '');
-          final nameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 8, '');
-          final cancelParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 10, false);
-          final finishParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 12, false);
-          final object = OrderStatus(
-              identity: identityParam,
-              name: nameParam,
-              cancel: cancelParam,
-              finish: finishParam)
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
-
-          return object;
-        }),
-    Customer: EntityDefinition<Customer>(
-        model: _entities[2],
-        toOneRelations: (Customer object) => [],
-        toManyRelations: (Customer object) => {},
-        getId: (Customer object) => object.id,
-        setId: (Customer object, int id) {
-          object.id = id;
-        },
-        objectToFB: (Customer object, fb.Builder fbb) {
-          final nameOffset = fbb.writeString(object.name);
-          final phoneOffset = fbb.writeString(object.phone);
-          final identityOffset = fbb.writeString(object.identity);
-          fbb.startTable(6);
-          fbb.addInt64(1, object.id);
-          fbb.addOffset(2, nameOffset);
-          fbb.addOffset(3, phoneOffset);
-          fbb.addOffset(4, identityOffset);
-          fbb.finish(fbb.endTable());
-          return object.id;
-        },
-        objectFromFB: (Store store, ByteData fbData) {
-          final buffer = fb.BufferContext(fbData);
-          final rootOffset = buffer.derefObject(0);
-          final identityParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 12, '');
-          final nameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 8, '');
-          final phoneParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 10, '');
-          final object = Customer(
-              identity: identityParam, name: nameParam, phone: phoneParam)
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 6, 0);
-
-          return object;
-        }),
-    OrderNextButton: EntityDefinition<OrderNextButton>(
-        model: _entities[3],
-        toOneRelations: (OrderNextButton object) => [],
-        toManyRelations: (OrderNextButton object) => {},
-        getId: (OrderNextButton object) => object.id,
-        setId: (OrderNextButton object, int id) {
-          object.id = id;
-        },
-        objectToFB: (OrderNextButton object, fb.Builder fbb) {
-          final identityOffset = fbb.writeString(object.identity);
-          final nameOffset = fbb.writeString(object.name);
-          final colorOffset =
-              object.color == null ? null : fbb.writeString(object.color!);
-          fbb.startTable(12);
-          fbb.addInt64(0, object.id);
-          fbb.addOffset(1, identityOffset);
-          fbb.addOffset(2, nameOffset);
-          fbb.addOffset(3, colorOffset);
-          fbb.addInt64(4, object.sort);
-          fbb.addBool(5, object.finish);
-          fbb.addBool(6, object.cancel);
-          fbb.addBool(7, object.waiting);
-          fbb.addBool(9, object.onWay);
-          fbb.addBool(10, object.inTerminal);
-          fbb.finish(fbb.endTable());
-          return object.id;
-        },
-        objectFromFB: (Store store, ByteData fbData) {
-          final buffer = fb.BufferContext(fbData);
-          final rootOffset = buffer.derefObject(0);
-          final identityParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 6, '');
-          final nameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 8, '');
-          final colorParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGetNullable(buffer, rootOffset, 10);
-          final sortParam =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 12, 0);
-          final finishParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 14, false);
-          final cancelParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 16, false);
-          final waitingParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 18, false);
-          final onWayParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 22, false);
-          final inTerminalParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 24, false);
-          final object = OrderNextButton(
-              identity: identityParam,
-              name: nameParam,
-              color: colorParam,
-              sort: sortParam,
-              finish: finishParam,
-              cancel: cancelParam,
-              waiting: waitingParam,
-              onWay: onWayParam,
-              inTerminal: inTerminalParam)
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
-
-          return object;
-        }),
-    WaitingOrderModel: EntityDefinition<WaitingOrderModel>(
-        model: _entities[4],
-        toOneRelations: (WaitingOrderModel object) => [
-              object.customer,
-              object.terminal,
-              object.orderStatus,
-              object.organization
-            ],
-        toManyRelations: (WaitingOrderModel object) => {
-              RelInfo<WaitingOrderModel>.toMany(2, object.id):
-                  object.orderNextButton
-            },
-        getId: (WaitingOrderModel object) => object.id,
-        setId: (WaitingOrderModel object, int id) {
-          object.id = id;
-        },
-        objectToFB: (WaitingOrderModel object, fb.Builder fbb) {
-          final identityOffset = fbb.writeString(object.identity);
-          final order_numberOffset = fbb.writeString(object.order_number);
-          final delivery_addressOffset = object.delivery_address == null
-              ? null
-              : fbb.writeString(object.delivery_address!);
-          final delivery_commentOffset = object.delivery_comment == null
-              ? null
-              : fbb.writeString(object.delivery_comment!);
-          final paymentTypeOffset = object.paymentType == null
-              ? null
-              : fbb.writeString(object.paymentType!);
-          fbb.startTable(19);
-          fbb.addInt64(0, object.id);
-          fbb.addOffset(1, identityOffset);
-          fbb.addFloat64(2, object.to_lat);
-          fbb.addFloat64(3, object.to_lon);
-          fbb.addFloat64(4, object.pre_distance);
-          fbb.addOffset(5, order_numberOffset);
-          fbb.addInt64(6, object.order_price);
-          fbb.addInt64(7, object.delivery_price);
-          fbb.addOffset(8, delivery_addressOffset);
-          fbb.addOffset(9, delivery_commentOffset);
-          fbb.addInt64(10, object.created_at.millisecondsSinceEpoch);
-          fbb.addInt64(11, object.customer.targetId);
-          fbb.addInt64(12, object.terminal.targetId);
-          fbb.addInt64(13, object.orderStatus.targetId);
-          fbb.addFloat64(14, object.from_lat);
-          fbb.addFloat64(15, object.from_lon);
-          fbb.addInt64(16, object.organization.targetId);
-          fbb.addOffset(17, paymentTypeOffset);
-          fbb.finish(fbb.endTable());
-          return object.id;
-        },
-        objectFromFB: (Store store, ByteData fbData) {
-          final buffer = fb.BufferContext(fbData);
-          final rootOffset = buffer.derefObject(0);
-          final identityParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 6, '');
-          final to_latParam =
-              const fb.Float64Reader().vTableGet(buffer, rootOffset, 8, 0);
-          final to_lonParam =
-              const fb.Float64Reader().vTableGet(buffer, rootOffset, 10, 0);
-          final from_latParam =
-              const fb.Float64Reader().vTableGet(buffer, rootOffset, 32, 0);
-          final from_lonParam =
-              const fb.Float64Reader().vTableGet(buffer, rootOffset, 34, 0);
-          final pre_distanceParam =
-              const fb.Float64Reader().vTableGet(buffer, rootOffset, 12, 0);
-          final order_numberParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGet(buffer, rootOffset, 14, '');
-          final order_priceParam =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 16, 0);
-          final delivery_priceParam =
-              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 18);
-          final delivery_addressParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGetNullable(buffer, rootOffset, 20);
-          final delivery_commentParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGetNullable(buffer, rootOffset, 22);
-          final created_atParam = DateTime.fromMillisecondsSinceEpoch(
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 24, 0));
-          final paymentTypeParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGetNullable(buffer, rootOffset, 38);
-          final object = WaitingOrderModel(
-              identity: identityParam,
-              to_lat: to_latParam,
-              to_lon: to_lonParam,
-              from_lat: from_latParam,
-              from_lon: from_lonParam,
-              pre_distance: pre_distanceParam,
-              order_number: order_numberParam,
-              order_price: order_priceParam,
-              delivery_price: delivery_priceParam,
-              delivery_address: delivery_addressParam,
-              delivery_comment: delivery_commentParam,
-              created_at: created_atParam,
-              paymentType: paymentTypeParam)
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
-          object.customer.targetId =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 26, 0);
-          object.customer.attach(store);
-          object.terminal.targetId =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 28, 0);
-          object.terminal.attach(store);
-          object.orderStatus.targetId =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 30, 0);
-          object.orderStatus.attach(store);
-          object.organization.targetId =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 36, 0);
-          object.organization.attach(store);
-          InternalToManyAccess.setRelInfo<WaitingOrderModel>(
-              object.orderNextButton,
-              store,
-              RelInfo<WaitingOrderModel>.toMany(2, object.id));
-          return object;
-        }),
-    Organizations: EntityDefinition<Organizations>(
-        model: _entities[5],
-        toOneRelations: (Organizations object) => [],
-        toManyRelations: (Organizations object) => {},
-        getId: (Organizations object) => object.id,
-        setId: (Organizations object, int id) {
-          object.id = id;
-        },
-        objectToFB: (Organizations object, fb.Builder fbb) {
-          final identityOffset = fbb.writeString(object.identity);
-          final nameOffset = fbb.writeString(object.name);
-          final descriptionOffset = object.description == null
-              ? null
-              : fbb.writeString(object.description!);
-          final supportChatUrlOffset = fbb.writeString(object.supportChatUrl);
-          final iconUrlOffset =
-              object.iconUrl == null ? null : fbb.writeString(object.iconUrl!);
-          fbb.startTable(11);
-          fbb.addInt64(0, object.id);
-          fbb.addOffset(1, identityOffset);
-          fbb.addOffset(2, nameOffset);
-          fbb.addBool(3, object.active);
-          fbb.addOffset(4, descriptionOffset);
-          fbb.addInt64(5, object.maxDistance);
-          fbb.addInt64(6, object.maxActiveOrderCount);
-          fbb.addInt64(7, object.maxOrderCloseDistance);
-          fbb.addOffset(8, supportChatUrlOffset);
-          fbb.addOffset(9, iconUrlOffset);
-          fbb.finish(fbb.endTable());
-          return object.id;
-        },
-        objectFromFB: (Store store, ByteData fbData) {
-          final buffer = fb.BufferContext(fbData);
-          final rootOffset = buffer.derefObject(0);
-          final identityParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 6, '');
-          final nameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 8, '');
-          final activeParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 10, false);
-          final iconUrlParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGetNullable(buffer, rootOffset, 22);
-          final descriptionParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGetNullable(buffer, rootOffset, 12);
-          final maxDistanceParam =
-              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 14);
-          final maxActiveOrderCountParam =
-              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 16);
-          final maxOrderCloseDistanceParam =
-              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 18);
-          final supportChatUrlParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGet(buffer, rootOffset, 20, '');
-          final object = Organizations(
-              identityParam,
-              nameParam,
-              activeParam,
-              iconUrlParam,
-              descriptionParam,
-              maxDistanceParam,
-              maxActiveOrderCountParam,
-              maxOrderCloseDistanceParam,
-              supportChatUrlParam)
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
-
-          return object;
-        }),
-    ManagerCouriersModel: EntityDefinition<ManagerCouriersModel>(
-        model: _entities[6],
-        toOneRelations: (ManagerCouriersModel object) => [],
-        toManyRelations: (ManagerCouriersModel object) => {},
-        getId: (ManagerCouriersModel object) => object.id,
-        setId: (ManagerCouriersModel object, int id) {
-          object.id = id;
-        },
-        objectToFB: (ManagerCouriersModel object, fb.Builder fbb) {
-          final identityOffset = fbb.writeString(object.identity);
-          final firstNameOffset = fbb.writeString(object.firstName);
-          final lastNameOffset = fbb.writeString(object.lastName);
-          final phoneOffset = fbb.writeString(object.phone);
-          final terminalIdOffset = fbb.writeString(object.terminalId);
-          final terminalNameOffset = fbb.writeString(object.terminalName);
-          final courierIdOffset = fbb.writeString(object.courierId);
-          fbb.startTable(10);
-          fbb.addInt64(0, object.id);
-          fbb.addOffset(1, identityOffset);
-          fbb.addOffset(2, firstNameOffset);
-          fbb.addOffset(3, lastNameOffset);
-          fbb.addOffset(4, phoneOffset);
-          fbb.addOffset(5, terminalIdOffset);
-          fbb.addOffset(6, terminalNameOffset);
-          fbb.addInt64(7, object.balance);
-          fbb.addOffset(8, courierIdOffset);
-          fbb.finish(fbb.endTable());
-          return object.id;
-        },
-        objectFromFB: (Store store, ByteData fbData) {
-          final buffer = fb.BufferContext(fbData);
-          final rootOffset = buffer.derefObject(0);
-          final identityParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 6, '');
-          final firstNameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 8, '');
-          final lastNameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 10, '');
-          final phoneParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 12, '');
-          final terminalIdParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 14, '');
-          final courierIdParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 20, '');
-          final terminalNameParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGet(buffer, rootOffset, 16, '');
-          final balanceParam =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 18, 0);
-          final object = ManagerCouriersModel(
-              identity: identityParam,
-              firstName: firstNameParam,
-              lastName: lastNameParam,
-              phone: phoneParam,
-              terminalId: terminalIdParam,
-              courierId: courierIdParam,
-              terminalName: terminalNameParam,
-              balance: balanceParam)
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
-
-          return object;
-        }),
     Couriers: EntityDefinition<Couriers>(
-        model: _entities[7],
+        model: _entities[0],
         toOneRelations: (Couriers object) => [],
         toManyRelations: (Couriers object) => {},
         getId: (Couriers object) => object.id,
@@ -1310,8 +668,105 @@ ModelDefinition getObjectBoxModel() {
 
           return object;
         }),
+    Customer: EntityDefinition<Customer>(
+        model: _entities[1],
+        toOneRelations: (Customer object) => [],
+        toManyRelations: (Customer object) => {},
+        getId: (Customer object) => object.id,
+        setId: (Customer object, int id) {
+          object.id = id;
+        },
+        objectToFB: (Customer object, fb.Builder fbb) {
+          final identityOffset = fbb.writeString(object.identity);
+          final nameOffset = fbb.writeString(object.name);
+          final phoneOffset = fbb.writeString(object.phone);
+          fbb.startTable(5);
+          fbb.addInt64(0, object.id);
+          fbb.addOffset(1, identityOffset);
+          fbb.addOffset(2, nameOffset);
+          fbb.addOffset(3, phoneOffset);
+          fbb.finish(fbb.endTable());
+          return object.id;
+        },
+        objectFromFB: (Store store, ByteData fbData) {
+          final buffer = fb.BufferContext(fbData);
+          final rootOffset = buffer.derefObject(0);
+          final identityParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 6, '');
+          final nameParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 8, '');
+          final phoneParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 10, '');
+          final object = Customer(
+              identity: identityParam, name: nameParam, phone: phoneParam)
+            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+
+          return object;
+        }),
+    ManagerCouriersModel: EntityDefinition<ManagerCouriersModel>(
+        model: _entities[2],
+        toOneRelations: (ManagerCouriersModel object) => [],
+        toManyRelations: (ManagerCouriersModel object) => {},
+        getId: (ManagerCouriersModel object) => object.id,
+        setId: (ManagerCouriersModel object, int id) {
+          object.id = id;
+        },
+        objectToFB: (ManagerCouriersModel object, fb.Builder fbb) {
+          final identityOffset = fbb.writeString(object.identity);
+          final firstNameOffset = fbb.writeString(object.firstName);
+          final lastNameOffset = fbb.writeString(object.lastName);
+          final phoneOffset = fbb.writeString(object.phone);
+          final terminalIdOffset = fbb.writeString(object.terminalId);
+          final courierIdOffset = fbb.writeString(object.courierId);
+          final terminalNameOffset = fbb.writeString(object.terminalName);
+          fbb.startTable(10);
+          fbb.addInt64(0, object.id);
+          fbb.addOffset(1, identityOffset);
+          fbb.addOffset(2, firstNameOffset);
+          fbb.addOffset(3, lastNameOffset);
+          fbb.addOffset(4, phoneOffset);
+          fbb.addOffset(5, terminalIdOffset);
+          fbb.addOffset(6, courierIdOffset);
+          fbb.addOffset(7, terminalNameOffset);
+          fbb.addInt64(8, object.balance);
+          fbb.finish(fbb.endTable());
+          return object.id;
+        },
+        objectFromFB: (Store store, ByteData fbData) {
+          final buffer = fb.BufferContext(fbData);
+          final rootOffset = buffer.derefObject(0);
+          final identityParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 6, '');
+          final firstNameParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 8, '');
+          final lastNameParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 10, '');
+          final phoneParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 12, '');
+          final terminalIdParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 14, '');
+          final courierIdParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 16, '');
+          final terminalNameParam =
+              const fb.StringReader(asciiOptimization: true)
+                  .vTableGet(buffer, rootOffset, 18, '');
+          final balanceParam =
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 20, 0);
+          final object = ManagerCouriersModel(
+              identity: identityParam,
+              firstName: firstNameParam,
+              lastName: lastNameParam,
+              phone: phoneParam,
+              terminalId: terminalIdParam,
+              courierId: courierIdParam,
+              terminalName: terminalNameParam,
+              balance: balanceParam)
+            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+
+          return object;
+        }),
     OrderModel: EntityDefinition<OrderModel>(
-        model: _entities[8],
+        model: _entities[3],
         toOneRelations: (OrderModel object) => [
               object.customer,
               object.terminal,
@@ -1320,7 +775,7 @@ ModelDefinition getObjectBoxModel() {
               object.courier
             ],
         toManyRelations: (OrderModel object) =>
-            {RelInfo<OrderModel>.toMany(3, object.id): object.orderNextButton},
+            {RelInfo<OrderModel>.toMany(1, object.id): object.orderNextButton},
         getId: (OrderModel object) => object.id,
         setId: (OrderModel object, int id) {
           object.id = id;
@@ -1463,185 +918,194 @@ ModelDefinition getObjectBoxModel() {
               const fb.Int64Reader().vTableGet(buffer, rootOffset, 52, 0);
           object.courier.attach(store);
           InternalToManyAccess.setRelInfo<OrderModel>(object.orderNextButton,
-              store, RelInfo<OrderModel>.toMany(3, object.id));
+              store, RelInfo<OrderModel>.toMany(1, object.id));
           return object;
         }),
-    ApiClient: EntityDefinition<ApiClient>(
-        model: _entities[9],
-        toOneRelations: (ApiClient object) => [],
-        toManyRelations: (ApiClient object) => {},
-        getId: (ApiClient object) => object.id,
-        setId: (ApiClient object, int id) {
+    OrderNextButton: EntityDefinition<OrderNextButton>(
+        model: _entities[4],
+        toOneRelations: (OrderNextButton object) => [],
+        toManyRelations: (OrderNextButton object) => {},
+        getId: (OrderNextButton object) => object.id,
+        setId: (OrderNextButton object, int id) {
           object.id = id;
         },
-        objectToFB: (ApiClient object, fb.Builder fbb) {
-          final apiUrlOffset = fbb.writeString(object.apiUrl);
-          final serviceNameOffset = fbb.writeString(object.serviceName);
-          fbb.startTable(5);
+        objectToFB: (OrderNextButton object, fb.Builder fbb) {
+          final identityOffset = fbb.writeString(object.identity);
+          final nameOffset = fbb.writeString(object.name);
+          final colorOffset =
+              object.color == null ? null : fbb.writeString(object.color!);
+          fbb.startTable(11);
           fbb.addInt64(0, object.id);
-          fbb.addOffset(1, apiUrlOffset);
-          fbb.addOffset(2, serviceNameOffset);
-          fbb.addBool(3, object.isServiceDefault);
+          fbb.addOffset(1, identityOffset);
+          fbb.addOffset(2, nameOffset);
+          fbb.addOffset(3, colorOffset);
+          fbb.addInt64(4, object.sort);
+          fbb.addBool(5, object.finish);
+          fbb.addBool(6, object.cancel);
+          fbb.addBool(7, object.waiting);
+          fbb.addBool(8, object.onWay);
+          fbb.addBool(9, object.inTerminal);
           fbb.finish(fbb.endTable());
           return object.id;
         },
         objectFromFB: (Store store, ByteData fbData) {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
-          final apiUrlParam = const fb.StringReader(asciiOptimization: true)
+          final identityParam = const fb.StringReader(asciiOptimization: true)
               .vTableGet(buffer, rootOffset, 6, '');
-          final serviceNameParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGet(buffer, rootOffset, 8, '');
-          final isServiceDefaultParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 10, false);
-          final object = ApiClient(
-              apiUrl: apiUrlParam,
-              serviceName: serviceNameParam,
-              isServiceDefault: isServiceDefaultParam)
+          final nameParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 8, '');
+          final colorParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGetNullable(buffer, rootOffset, 10);
+          final sortParam =
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 12, 0);
+          final finishParam =
+              const fb.BoolReader().vTableGet(buffer, rootOffset, 14, false);
+          final cancelParam =
+              const fb.BoolReader().vTableGet(buffer, rootOffset, 16, false);
+          final waitingParam =
+              const fb.BoolReader().vTableGet(buffer, rootOffset, 18, false);
+          final onWayParam =
+              const fb.BoolReader().vTableGet(buffer, rootOffset, 20, false);
+          final inTerminalParam =
+              const fb.BoolReader().vTableGet(buffer, rootOffset, 22, false);
+          final object = OrderNextButton(
+              identity: identityParam,
+              name: nameParam,
+              color: colorParam,
+              sort: sortParam,
+              finish: finishParam,
+              cancel: cancelParam,
+              waiting: waitingParam,
+              onWay: onWayParam,
+              inTerminal: inTerminalParam)
             ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
 
           return object;
         }),
-    Role: EntityDefinition<Role>(
-        model: _entities[10],
-        toOneRelations: (Role object) => [],
-        toManyRelations: (Role object) => {},
-        getId: (Role object) => object.id,
-        setId: (Role object, int id) {
+    OrderStatus: EntityDefinition<OrderStatus>(
+        model: _entities[5],
+        toOneRelations: (OrderStatus object) => [],
+        toManyRelations: (OrderStatus object) => {},
+        getId: (OrderStatus object) => object.id,
+        setId: (OrderStatus object, int id) {
           object.id = id;
         },
-        objectToFB: (Role object, fb.Builder fbb) {
+        objectToFB: (OrderStatus object, fb.Builder fbb) {
+          final identityOffset = fbb.writeString(object.identity);
           final nameOffset = fbb.writeString(object.name);
-          final codeOffset = fbb.writeString(object.code);
-          fbb.startTable(5);
+          fbb.startTable(6);
           fbb.addInt64(0, object.id);
-          fbb.addOffset(1, nameOffset);
-          fbb.addOffset(2, codeOffset);
-          fbb.addBool(3, object.active);
+          fbb.addOffset(1, identityOffset);
+          fbb.addOffset(2, nameOffset);
+          fbb.addBool(3, object.cancel);
+          fbb.addBool(4, object.finish);
           fbb.finish(fbb.endTable());
           return object.id;
         },
         objectFromFB: (Store store, ByteData fbData) {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
-          final nameParam = const fb.StringReader(asciiOptimization: true)
+          final identityParam = const fb.StringReader(asciiOptimization: true)
               .vTableGet(buffer, rootOffset, 6, '');
-          final codeParam = const fb.StringReader(asciiOptimization: true)
+          final nameParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 8, '');
+          final cancelParam =
+              const fb.BoolReader().vTableGet(buffer, rootOffset, 10, false);
+          final finishParam =
+              const fb.BoolReader().vTableGet(buffer, rootOffset, 12, false);
+          final object = OrderStatus(
+              identity: identityParam,
+              name: nameParam,
+              cancel: cancelParam,
+              finish: finishParam)
+            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+
+          return object;
+        }),
+    Organizations: EntityDefinition<Organizations>(
+        model: _entities[6],
+        toOneRelations: (Organizations object) => [],
+        toManyRelations: (Organizations object) => {},
+        getId: (Organizations object) => object.id,
+        setId: (Organizations object, int id) {
+          object.id = id;
+        },
+        objectToFB: (Organizations object, fb.Builder fbb) {
+          final identityOffset = fbb.writeString(object.identity);
+          final nameOffset = fbb.writeString(object.name);
+          final iconUrlOffset =
+              object.iconUrl == null ? null : fbb.writeString(object.iconUrl!);
+          final descriptionOffset = object.description == null
+              ? null
+              : fbb.writeString(object.description!);
+          final supportChatUrlOffset = fbb.writeString(object.supportChatUrl);
+          fbb.startTable(11);
+          fbb.addInt64(0, object.id);
+          fbb.addOffset(1, identityOffset);
+          fbb.addOffset(2, nameOffset);
+          fbb.addBool(3, object.active);
+          fbb.addOffset(4, iconUrlOffset);
+          fbb.addOffset(5, descriptionOffset);
+          fbb.addInt64(6, object.maxDistance);
+          fbb.addInt64(7, object.maxActiveOrderCount);
+          fbb.addInt64(8, object.maxOrderCloseDistance);
+          fbb.addOffset(9, supportChatUrlOffset);
+          fbb.finish(fbb.endTable());
+          return object.id;
+        },
+        objectFromFB: (Store store, ByteData fbData) {
+          final buffer = fb.BufferContext(fbData);
+          final rootOffset = buffer.derefObject(0);
+          final identityParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 6, '');
+          final nameParam = const fb.StringReader(asciiOptimization: true)
               .vTableGet(buffer, rootOffset, 8, '');
           final activeParam =
               const fb.BoolReader().vTableGet(buffer, rootOffset, 10, false);
-          final object = Role(
-              name: nameParam, code: codeParam, active: activeParam)
+          final iconUrlParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGetNullable(buffer, rootOffset, 12);
+          final descriptionParam =
+              const fb.StringReader(asciiOptimization: true)
+                  .vTableGetNullable(buffer, rootOffset, 14);
+          final maxDistanceParam =
+              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 16);
+          final maxActiveOrderCountParam =
+              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 18);
+          final maxOrderCloseDistanceParam =
+              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 20);
+          final supportChatUrlParam =
+              const fb.StringReader(asciiOptimization: true)
+                  .vTableGet(buffer, rootOffset, 22, '');
+          final object = Organizations(
+              identityParam,
+              nameParam,
+              activeParam,
+              iconUrlParam,
+              descriptionParam,
+              maxDistanceParam,
+              maxActiveOrderCountParam,
+              maxOrderCloseDistanceParam,
+              supportChatUrlParam)
             ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
 
           return object;
         }),
-    UserData: EntityDefinition<UserData>(
-        model: _entities[11],
-        toOneRelations: (UserData object) => [object.userProfile],
-        toManyRelations: (UserData object) =>
-            {RelInfo<UserData>.toMany(4, object.id): object.roles},
-        getId: (UserData object) => object.id,
-        setId: (UserData object, int id) {
+    Terminals: EntityDefinition<Terminals>(
+        model: _entities[7],
+        toOneRelations: (Terminals object) => [],
+        toManyRelations: (Terminals object) => {},
+        getId: (Terminals object) => object.id,
+        setId: (Terminals object, int id) {
           object.id = id;
         },
-        objectToFB: (UserData object, fb.Builder fbb) {
-          final permissionsOffset = fbb.writeList(
-              object.permissions.map(fbb.writeString).toList(growable: false));
-          final accessTokenOffset = object.accessToken == null
-              ? null
-              : fbb.writeString(object.accessToken!);
-          final refreshTokenOffset = object.refreshToken == null
-              ? null
-              : fbb.writeString(object.refreshToken!);
-          final accessTokenExpiresOffset = object.accessTokenExpires == null
-              ? null
-              : fbb.writeString(object.accessTokenExpires!);
+        objectToFB: (Terminals object, fb.Builder fbb) {
           final identityOffset = fbb.writeString(object.identity);
-          fbb.startTable(10);
-          fbb.addInt64(0, object.id);
-          fbb.addOffset(1, permissionsOffset);
-          fbb.addOffset(2, accessTokenOffset);
-          fbb.addOffset(3, refreshTokenOffset);
-          fbb.addOffset(4, accessTokenExpiresOffset);
-          fbb.addBool(5, object.is_online);
-          fbb.addInt64(6, object.tokenExpires.millisecondsSinceEpoch);
-          fbb.addInt64(7, object.userProfile.targetId);
-          fbb.addOffset(8, identityOffset);
-          fbb.finish(fbb.endTable());
-          return object.id;
-        },
-        objectFromFB: (Store store, ByteData fbData) {
-          final buffer = fb.BufferContext(fbData);
-          final rootOffset = buffer.derefObject(0);
-          final identityParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGet(buffer, rootOffset, 20, '');
-          final permissionsParam = const fb.ListReader<String>(
-                  fb.StringReader(asciiOptimization: true),
-                  lazy: false)
-              .vTableGet(buffer, rootOffset, 6, []);
-          final accessTokenParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGetNullable(buffer, rootOffset, 8);
-          final refreshTokenParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGetNullable(buffer, rootOffset, 10);
-          final accessTokenExpiresParam =
-              const fb.StringReader(asciiOptimization: true)
-                  .vTableGetNullable(buffer, rootOffset, 12);
-          final is_onlineParam =
-              const fb.BoolReader().vTableGet(buffer, rootOffset, 14, false);
-          final tokenExpiresParam = DateTime.fromMillisecondsSinceEpoch(
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 16, 0));
-          final object = UserData(
-              identity: identityParam,
-              permissions: permissionsParam,
-              accessToken: accessTokenParam,
-              refreshToken: refreshTokenParam,
-              accessTokenExpires: accessTokenExpiresParam,
-              is_online: is_onlineParam,
-              tokenExpires: tokenExpiresParam)
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
-          object.userProfile.targetId =
-              const fb.Int64Reader().vTableGet(buffer, rootOffset, 18, 0);
-          object.userProfile.attach(store);
-          InternalToManyAccess.setRelInfo<UserData>(
-              object.roles, store, RelInfo<UserData>.toMany(4, object.id));
-          return object;
-        }),
-    UserProfile: EntityDefinition<UserProfile>(
-        model: _entities[12],
-        toOneRelations: (UserProfile object) => [],
-        toManyRelations: (UserProfile object) => {},
-        getId: (UserProfile object) => object.id,
-        setId: (UserProfile object, int id) {
-          object.id = id;
-        },
-        objectToFB: (UserProfile object, fb.Builder fbb) {
-          final identityOffset = fbb.writeString(object.identity);
-          final first_nameOffset = object.first_name == null
-              ? null
-              : fbb.writeString(object.first_name!);
-          final last_nameOffset = object.last_name == null
-              ? null
-              : fbb.writeString(object.last_name!);
-          final phoneOffset =
-              object.phone == null ? null : fbb.writeString(object.phone!);
-          final terminal_idOffset = object.terminal_id == null
-              ? null
-              : fbb.writeList(object.terminal_id!
-                  .map(fbb.writeString)
-                  .toList(growable: false));
-          fbb.startTable(9);
+          final nameOffset = fbb.writeString(object.name);
+          fbb.startTable(4);
           fbb.addInt64(0, object.id);
           fbb.addOffset(1, identityOffset);
-          fbb.addOffset(2, first_nameOffset);
-          fbb.addOffset(3, last_nameOffset);
-          fbb.addOffset(4, phoneOffset);
-          fbb.addBool(5, object.is_super_user);
-          fbb.addOffset(6, terminal_idOffset);
-          fbb.addInt64(7, object.wallet_balance);
+          fbb.addOffset(2, nameOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -1650,30 +1114,127 @@ ModelDefinition getObjectBoxModel() {
           final rootOffset = buffer.derefObject(0);
           final identityParam = const fb.StringReader(asciiOptimization: true)
               .vTableGet(buffer, rootOffset, 6, '');
-          final first_nameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGetNullable(buffer, rootOffset, 8);
-          final last_nameParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGetNullable(buffer, rootOffset, 10);
-          final phoneParam = const fb.StringReader(asciiOptimization: true)
-              .vTableGetNullable(buffer, rootOffset, 12);
-          final is_super_userParam =
-              const fb.BoolReader().vTableGetNullable(buffer, rootOffset, 14);
-          final terminal_idParam = const fb.ListReader<String>(
-                  fb.StringReader(asciiOptimization: true),
-                  lazy: false)
-              .vTableGetNullable(buffer, rootOffset, 16);
-          final wallet_balanceParam =
-              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 18);
-          final object = UserProfile(
-              identity: identityParam,
-              first_name: first_nameParam,
-              last_name: last_nameParam,
-              phone: phoneParam,
-              is_super_user: is_super_userParam,
-              terminal_id: terminal_idParam,
-              wallet_balance: wallet_balanceParam)
+          final nameParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 8, '');
+          final object = Terminals(identity: identityParam, name: nameParam)
             ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
 
+          return object;
+        }),
+    WaitingOrderModel: EntityDefinition<WaitingOrderModel>(
+        model: _entities[8],
+        toOneRelations: (WaitingOrderModel object) => [
+              object.customer,
+              object.terminal,
+              object.orderStatus,
+              object.organization
+            ],
+        toManyRelations: (WaitingOrderModel object) => {
+              RelInfo<WaitingOrderModel>.toMany(2, object.id):
+                  object.orderNextButton
+            },
+        getId: (WaitingOrderModel object) => object.id,
+        setId: (WaitingOrderModel object, int id) {
+          object.id = id;
+        },
+        objectToFB: (WaitingOrderModel object, fb.Builder fbb) {
+          final identityOffset = fbb.writeString(object.identity);
+          final order_numberOffset = fbb.writeString(object.order_number);
+          final delivery_addressOffset = object.delivery_address == null
+              ? null
+              : fbb.writeString(object.delivery_address!);
+          final delivery_commentOffset = object.delivery_comment == null
+              ? null
+              : fbb.writeString(object.delivery_comment!);
+          final paymentTypeOffset = object.paymentType == null
+              ? null
+              : fbb.writeString(object.paymentType!);
+          fbb.startTable(19);
+          fbb.addInt64(0, object.id);
+          fbb.addOffset(1, identityOffset);
+          fbb.addFloat64(2, object.to_lat);
+          fbb.addFloat64(3, object.to_lon);
+          fbb.addFloat64(4, object.from_lat);
+          fbb.addFloat64(5, object.from_lon);
+          fbb.addFloat64(6, object.pre_distance);
+          fbb.addOffset(7, order_numberOffset);
+          fbb.addInt64(8, object.order_price);
+          fbb.addInt64(9, object.delivery_price);
+          fbb.addOffset(10, delivery_addressOffset);
+          fbb.addOffset(11, delivery_commentOffset);
+          fbb.addInt64(12, object.created_at.millisecondsSinceEpoch);
+          fbb.addOffset(13, paymentTypeOffset);
+          fbb.addInt64(14, object.customer.targetId);
+          fbb.addInt64(15, object.terminal.targetId);
+          fbb.addInt64(16, object.orderStatus.targetId);
+          fbb.addInt64(17, object.organization.targetId);
+          fbb.finish(fbb.endTable());
+          return object.id;
+        },
+        objectFromFB: (Store store, ByteData fbData) {
+          final buffer = fb.BufferContext(fbData);
+          final rootOffset = buffer.derefObject(0);
+          final identityParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGet(buffer, rootOffset, 6, '');
+          final to_latParam =
+              const fb.Float64Reader().vTableGet(buffer, rootOffset, 8, 0);
+          final to_lonParam =
+              const fb.Float64Reader().vTableGet(buffer, rootOffset, 10, 0);
+          final from_latParam =
+              const fb.Float64Reader().vTableGet(buffer, rootOffset, 12, 0);
+          final from_lonParam =
+              const fb.Float64Reader().vTableGet(buffer, rootOffset, 14, 0);
+          final pre_distanceParam =
+              const fb.Float64Reader().vTableGet(buffer, rootOffset, 16, 0);
+          final order_numberParam =
+              const fb.StringReader(asciiOptimization: true)
+                  .vTableGet(buffer, rootOffset, 18, '');
+          final order_priceParam =
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 20, 0);
+          final delivery_priceParam =
+              const fb.Int64Reader().vTableGetNullable(buffer, rootOffset, 22);
+          final delivery_addressParam =
+              const fb.StringReader(asciiOptimization: true)
+                  .vTableGetNullable(buffer, rootOffset, 24);
+          final delivery_commentParam =
+              const fb.StringReader(asciiOptimization: true)
+                  .vTableGetNullable(buffer, rootOffset, 26);
+          final created_atParam = DateTime.fromMillisecondsSinceEpoch(
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 28, 0));
+          final paymentTypeParam =
+              const fb.StringReader(asciiOptimization: true)
+                  .vTableGetNullable(buffer, rootOffset, 30);
+          final object = WaitingOrderModel(
+              identity: identityParam,
+              to_lat: to_latParam,
+              to_lon: to_lonParam,
+              from_lat: from_latParam,
+              from_lon: from_lonParam,
+              pre_distance: pre_distanceParam,
+              order_number: order_numberParam,
+              order_price: order_priceParam,
+              delivery_price: delivery_priceParam,
+              delivery_address: delivery_addressParam,
+              delivery_comment: delivery_commentParam,
+              created_at: created_atParam,
+              paymentType: paymentTypeParam)
+            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+          object.customer.targetId =
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 32, 0);
+          object.customer.attach(store);
+          object.terminal.targetId =
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 34, 0);
+          object.terminal.attach(store);
+          object.orderStatus.targetId =
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 36, 0);
+          object.orderStatus.attach(store);
+          object.organization.targetId =
+              const fb.Int64Reader().vTableGet(buffer, rootOffset, 38, 0);
+          object.organization.attach(store);
+          InternalToManyAccess.setRelInfo<WaitingOrderModel>(
+              object.orderNextButton,
+              store,
+              RelInfo<WaitingOrderModel>.toMany(2, object.id));
           return object;
         })
   };
@@ -1681,498 +1242,388 @@ ModelDefinition getObjectBoxModel() {
   return ModelDefinition(model, bindings);
 }
 
-/// [Terminals] entity fields to define ObjectBox queries.
-class Terminals_ {
-  /// see [Terminals.id]
-  static final id = QueryIntegerProperty<Terminals>(_entities[0].properties[0]);
+/// [Couriers] entity fields to define ObjectBox queries.
+class Couriers_ {
+  /// see [Couriers.id]
+  static final id = QueryIntegerProperty<Couriers>(_entities[0].properties[0]);
 
-  /// see [Terminals.name]
-  static final name =
-      QueryStringProperty<Terminals>(_entities[0].properties[1]);
-
-  /// see [Terminals.identity]
+  /// see [Couriers.identity]
   static final identity =
-      QueryStringProperty<Terminals>(_entities[0].properties[2]);
-}
+      QueryStringProperty<Couriers>(_entities[0].properties[1]);
 
-/// [OrderStatus] entity fields to define ObjectBox queries.
-class OrderStatus_ {
-  /// see [OrderStatus.id]
-  static final id =
-      QueryIntegerProperty<OrderStatus>(_entities[1].properties[0]);
+  /// see [Couriers.firstName]
+  static final firstName =
+      QueryStringProperty<Couriers>(_entities[0].properties[2]);
 
-  /// see [OrderStatus.identity]
-  static final identity =
-      QueryStringProperty<OrderStatus>(_entities[1].properties[1]);
-
-  /// see [OrderStatus.name]
-  static final name =
-      QueryStringProperty<OrderStatus>(_entities[1].properties[2]);
-
-  /// see [OrderStatus.cancel]
-  static final cancel =
-      QueryBooleanProperty<OrderStatus>(_entities[1].properties[3]);
-
-  /// see [OrderStatus.finish]
-  static final finish =
-      QueryBooleanProperty<OrderStatus>(_entities[1].properties[4]);
+  /// see [Couriers.lastName]
+  static final lastName =
+      QueryStringProperty<Couriers>(_entities[0].properties[3]);
 }
 
 /// [Customer] entity fields to define ObjectBox queries.
 class Customer_ {
   /// see [Customer.id]
-  static final id = QueryIntegerProperty<Customer>(_entities[2].properties[0]);
-
-  /// see [Customer.name]
-  static final name = QueryStringProperty<Customer>(_entities[2].properties[1]);
-
-  /// see [Customer.phone]
-  static final phone =
-      QueryStringProperty<Customer>(_entities[2].properties[2]);
+  static final id = QueryIntegerProperty<Customer>(_entities[1].properties[0]);
 
   /// see [Customer.identity]
   static final identity =
-      QueryStringProperty<Customer>(_entities[2].properties[3]);
-}
+      QueryStringProperty<Customer>(_entities[1].properties[1]);
 
-/// [OrderNextButton] entity fields to define ObjectBox queries.
-class OrderNextButton_ {
-  /// see [OrderNextButton.id]
-  static final id =
-      QueryIntegerProperty<OrderNextButton>(_entities[3].properties[0]);
+  /// see [Customer.name]
+  static final name = QueryStringProperty<Customer>(_entities[1].properties[2]);
 
-  /// see [OrderNextButton.identity]
-  static final identity =
-      QueryStringProperty<OrderNextButton>(_entities[3].properties[1]);
-
-  /// see [OrderNextButton.name]
-  static final name =
-      QueryStringProperty<OrderNextButton>(_entities[3].properties[2]);
-
-  /// see [OrderNextButton.color]
-  static final color =
-      QueryStringProperty<OrderNextButton>(_entities[3].properties[3]);
-
-  /// see [OrderNextButton.sort]
-  static final sort =
-      QueryIntegerProperty<OrderNextButton>(_entities[3].properties[4]);
-
-  /// see [OrderNextButton.finish]
-  static final finish =
-      QueryBooleanProperty<OrderNextButton>(_entities[3].properties[5]);
-
-  /// see [OrderNextButton.cancel]
-  static final cancel =
-      QueryBooleanProperty<OrderNextButton>(_entities[3].properties[6]);
-
-  /// see [OrderNextButton.waiting]
-  static final waiting =
-      QueryBooleanProperty<OrderNextButton>(_entities[3].properties[7]);
-
-  /// see [OrderNextButton.onWay]
-  static final onWay =
-      QueryBooleanProperty<OrderNextButton>(_entities[3].properties[8]);
-
-  /// see [OrderNextButton.inTerminal]
-  static final inTerminal =
-      QueryBooleanProperty<OrderNextButton>(_entities[3].properties[9]);
-}
-
-/// [WaitingOrderModel] entity fields to define ObjectBox queries.
-class WaitingOrderModel_ {
-  /// see [WaitingOrderModel.id]
-  static final id =
-      QueryIntegerProperty<WaitingOrderModel>(_entities[4].properties[0]);
-
-  /// see [WaitingOrderModel.identity]
-  static final identity =
-      QueryStringProperty<WaitingOrderModel>(_entities[4].properties[1]);
-
-  /// see [WaitingOrderModel.to_lat]
-  static final to_lat =
-      QueryDoubleProperty<WaitingOrderModel>(_entities[4].properties[2]);
-
-  /// see [WaitingOrderModel.to_lon]
-  static final to_lon =
-      QueryDoubleProperty<WaitingOrderModel>(_entities[4].properties[3]);
-
-  /// see [WaitingOrderModel.pre_distance]
-  static final pre_distance =
-      QueryDoubleProperty<WaitingOrderModel>(_entities[4].properties[4]);
-
-  /// see [WaitingOrderModel.order_number]
-  static final order_number =
-      QueryStringProperty<WaitingOrderModel>(_entities[4].properties[5]);
-
-  /// see [WaitingOrderModel.order_price]
-  static final order_price =
-      QueryIntegerProperty<WaitingOrderModel>(_entities[4].properties[6]);
-
-  /// see [WaitingOrderModel.delivery_price]
-  static final delivery_price =
-      QueryIntegerProperty<WaitingOrderModel>(_entities[4].properties[7]);
-
-  /// see [WaitingOrderModel.delivery_address]
-  static final delivery_address =
-      QueryStringProperty<WaitingOrderModel>(_entities[4].properties[8]);
-
-  /// see [WaitingOrderModel.delivery_comment]
-  static final delivery_comment =
-      QueryStringProperty<WaitingOrderModel>(_entities[4].properties[9]);
-
-  /// see [WaitingOrderModel.created_at]
-  static final created_at =
-      QueryIntegerProperty<WaitingOrderModel>(_entities[4].properties[10]);
-
-  /// see [WaitingOrderModel.customer]
-  static final customer = QueryRelationToOne<WaitingOrderModel, Customer>(
-      _entities[4].properties[11]);
-
-  /// see [WaitingOrderModel.terminal]
-  static final terminal = QueryRelationToOne<WaitingOrderModel, Terminals>(
-      _entities[4].properties[12]);
-
-  /// see [WaitingOrderModel.orderStatus]
-  static final orderStatus = QueryRelationToOne<WaitingOrderModel, OrderStatus>(
-      _entities[4].properties[13]);
-
-  /// see [WaitingOrderModel.from_lat]
-  static final from_lat =
-      QueryDoubleProperty<WaitingOrderModel>(_entities[4].properties[14]);
-
-  /// see [WaitingOrderModel.from_lon]
-  static final from_lon =
-      QueryDoubleProperty<WaitingOrderModel>(_entities[4].properties[15]);
-
-  /// see [WaitingOrderModel.organization]
-  static final organization =
-      QueryRelationToOne<WaitingOrderModel, Organizations>(
-          _entities[4].properties[16]);
-
-  /// see [WaitingOrderModel.paymentType]
-  static final paymentType =
-      QueryStringProperty<WaitingOrderModel>(_entities[4].properties[17]);
-
-  /// see [WaitingOrderModel.orderNextButton]
-  static final orderNextButton =
-      QueryRelationToMany<WaitingOrderModel, OrderNextButton>(
-          _entities[4].relations[0]);
-}
-
-/// [Organizations] entity fields to define ObjectBox queries.
-class Organizations_ {
-  /// see [Organizations.id]
-  static final id =
-      QueryIntegerProperty<Organizations>(_entities[5].properties[0]);
-
-  /// see [Organizations.identity]
-  static final identity =
-      QueryStringProperty<Organizations>(_entities[5].properties[1]);
-
-  /// see [Organizations.name]
-  static final name =
-      QueryStringProperty<Organizations>(_entities[5].properties[2]);
-
-  /// see [Organizations.active]
-  static final active =
-      QueryBooleanProperty<Organizations>(_entities[5].properties[3]);
-
-  /// see [Organizations.description]
-  static final description =
-      QueryStringProperty<Organizations>(_entities[5].properties[4]);
-
-  /// see [Organizations.maxDistance]
-  static final maxDistance =
-      QueryIntegerProperty<Organizations>(_entities[5].properties[5]);
-
-  /// see [Organizations.maxActiveOrderCount]
-  static final maxActiveOrderCount =
-      QueryIntegerProperty<Organizations>(_entities[5].properties[6]);
-
-  /// see [Organizations.maxOrderCloseDistance]
-  static final maxOrderCloseDistance =
-      QueryIntegerProperty<Organizations>(_entities[5].properties[7]);
-
-  /// see [Organizations.supportChatUrl]
-  static final supportChatUrl =
-      QueryStringProperty<Organizations>(_entities[5].properties[8]);
-
-  /// see [Organizations.iconUrl]
-  static final iconUrl =
-      QueryStringProperty<Organizations>(_entities[5].properties[9]);
+  /// see [Customer.phone]
+  static final phone =
+      QueryStringProperty<Customer>(_entities[1].properties[3]);
 }
 
 /// [ManagerCouriersModel] entity fields to define ObjectBox queries.
 class ManagerCouriersModel_ {
   /// see [ManagerCouriersModel.id]
   static final id =
-      QueryIntegerProperty<ManagerCouriersModel>(_entities[6].properties[0]);
+      QueryIntegerProperty<ManagerCouriersModel>(_entities[2].properties[0]);
 
   /// see [ManagerCouriersModel.identity]
   static final identity =
-      QueryStringProperty<ManagerCouriersModel>(_entities[6].properties[1]);
+      QueryStringProperty<ManagerCouriersModel>(_entities[2].properties[1]);
 
   /// see [ManagerCouriersModel.firstName]
   static final firstName =
-      QueryStringProperty<ManagerCouriersModel>(_entities[6].properties[2]);
+      QueryStringProperty<ManagerCouriersModel>(_entities[2].properties[2]);
 
   /// see [ManagerCouriersModel.lastName]
   static final lastName =
-      QueryStringProperty<ManagerCouriersModel>(_entities[6].properties[3]);
+      QueryStringProperty<ManagerCouriersModel>(_entities[2].properties[3]);
 
   /// see [ManagerCouriersModel.phone]
   static final phone =
-      QueryStringProperty<ManagerCouriersModel>(_entities[6].properties[4]);
+      QueryStringProperty<ManagerCouriersModel>(_entities[2].properties[4]);
 
   /// see [ManagerCouriersModel.terminalId]
   static final terminalId =
-      QueryStringProperty<ManagerCouriersModel>(_entities[6].properties[5]);
-
-  /// see [ManagerCouriersModel.terminalName]
-  static final terminalName =
-      QueryStringProperty<ManagerCouriersModel>(_entities[6].properties[6]);
-
-  /// see [ManagerCouriersModel.balance]
-  static final balance =
-      QueryIntegerProperty<ManagerCouriersModel>(_entities[6].properties[7]);
+      QueryStringProperty<ManagerCouriersModel>(_entities[2].properties[5]);
 
   /// see [ManagerCouriersModel.courierId]
   static final courierId =
-      QueryStringProperty<ManagerCouriersModel>(_entities[6].properties[8]);
-}
+      QueryStringProperty<ManagerCouriersModel>(_entities[2].properties[6]);
 
-/// [Couriers] entity fields to define ObjectBox queries.
-class Couriers_ {
-  /// see [Couriers.id]
-  static final id = QueryIntegerProperty<Couriers>(_entities[7].properties[0]);
+  /// see [ManagerCouriersModel.terminalName]
+  static final terminalName =
+      QueryStringProperty<ManagerCouriersModel>(_entities[2].properties[7]);
 
-  /// see [Couriers.identity]
-  static final identity =
-      QueryStringProperty<Couriers>(_entities[7].properties[1]);
-
-  /// see [Couriers.firstName]
-  static final firstName =
-      QueryStringProperty<Couriers>(_entities[7].properties[2]);
-
-  /// see [Couriers.lastName]
-  static final lastName =
-      QueryStringProperty<Couriers>(_entities[7].properties[3]);
+  /// see [ManagerCouriersModel.balance]
+  static final balance =
+      QueryIntegerProperty<ManagerCouriersModel>(_entities[2].properties[8]);
 }
 
 /// [OrderModel] entity fields to define ObjectBox queries.
 class OrderModel_ {
   /// see [OrderModel.id]
   static final id =
-      QueryIntegerProperty<OrderModel>(_entities[8].properties[0]);
+      QueryIntegerProperty<OrderModel>(_entities[3].properties[0]);
 
   /// see [OrderModel.identity]
   static final identity =
-      QueryStringProperty<OrderModel>(_entities[8].properties[1]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[1]);
 
   /// see [OrderModel.to_lat]
   static final to_lat =
-      QueryDoubleProperty<OrderModel>(_entities[8].properties[2]);
+      QueryDoubleProperty<OrderModel>(_entities[3].properties[2]);
 
   /// see [OrderModel.to_lon]
   static final to_lon =
-      QueryDoubleProperty<OrderModel>(_entities[8].properties[3]);
+      QueryDoubleProperty<OrderModel>(_entities[3].properties[3]);
 
   /// see [OrderModel.from_lat]
   static final from_lat =
-      QueryDoubleProperty<OrderModel>(_entities[8].properties[4]);
+      QueryDoubleProperty<OrderModel>(_entities[3].properties[4]);
 
   /// see [OrderModel.from_lon]
   static final from_lon =
-      QueryDoubleProperty<OrderModel>(_entities[8].properties[5]);
+      QueryDoubleProperty<OrderModel>(_entities[3].properties[5]);
 
   /// see [OrderModel.pre_distance]
   static final pre_distance =
-      QueryDoubleProperty<OrderModel>(_entities[8].properties[6]);
+      QueryDoubleProperty<OrderModel>(_entities[3].properties[6]);
 
   /// see [OrderModel.order_number]
   static final order_number =
-      QueryStringProperty<OrderModel>(_entities[8].properties[7]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[7]);
 
   /// see [OrderModel.order_price]
   static final order_price =
-      QueryIntegerProperty<OrderModel>(_entities[8].properties[8]);
+      QueryIntegerProperty<OrderModel>(_entities[3].properties[8]);
 
   /// see [OrderModel.delivery_price]
   static final delivery_price =
-      QueryIntegerProperty<OrderModel>(_entities[8].properties[9]);
+      QueryIntegerProperty<OrderModel>(_entities[3].properties[9]);
 
   /// see [OrderModel.delivery_address]
   static final delivery_address =
-      QueryStringProperty<OrderModel>(_entities[8].properties[10]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[10]);
 
   /// see [OrderModel.delivery_comment]
   static final delivery_comment =
-      QueryStringProperty<OrderModel>(_entities[8].properties[11]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[11]);
 
   /// see [OrderModel.created_at]
   static final created_at =
-      QueryIntegerProperty<OrderModel>(_entities[8].properties[12]);
+      QueryIntegerProperty<OrderModel>(_entities[3].properties[12]);
 
   /// see [OrderModel.paymentType]
   static final paymentType =
-      QueryStringProperty<OrderModel>(_entities[8].properties[13]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[13]);
 
   /// see [OrderModel.yandexPincode]
   static final yandexPincode =
-      QueryStringProperty<OrderModel>(_entities[8].properties[14]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[14]);
 
   /// see [OrderModel.cDeliveryPrice]
   static final cDeliveryPrice =
-      QueryIntegerProperty<OrderModel>(_entities[8].properties[15]);
+      QueryIntegerProperty<OrderModel>(_entities[3].properties[15]);
 
   /// see [OrderModel.additional_phone]
   static final additional_phone =
-      QueryStringProperty<OrderModel>(_entities[8].properties[16]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[16]);
 
   /// see [OrderModel.house]
   static final house =
-      QueryStringProperty<OrderModel>(_entities[8].properties[17]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[17]);
 
   /// see [OrderModel.entrance]
   static final entrance =
-      QueryStringProperty<OrderModel>(_entities[8].properties[18]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[18]);
 
   /// see [OrderModel.flat]
   static final flat =
-      QueryStringProperty<OrderModel>(_entities[8].properties[19]);
+      QueryStringProperty<OrderModel>(_entities[3].properties[19]);
 
   /// see [OrderModel.customer]
   static final customer =
-      QueryRelationToOne<OrderModel, Customer>(_entities[8].properties[20]);
+      QueryRelationToOne<OrderModel, Customer>(_entities[3].properties[20]);
 
   /// see [OrderModel.terminal]
   static final terminal =
-      QueryRelationToOne<OrderModel, Terminals>(_entities[8].properties[21]);
+      QueryRelationToOne<OrderModel, Terminals>(_entities[3].properties[21]);
 
   /// see [OrderModel.orderStatus]
   static final orderStatus =
-      QueryRelationToOne<OrderModel, OrderStatus>(_entities[8].properties[22]);
+      QueryRelationToOne<OrderModel, OrderStatus>(_entities[3].properties[22]);
 
   /// see [OrderModel.organization]
   static final organization = QueryRelationToOne<OrderModel, Organizations>(
-      _entities[8].properties[23]);
+      _entities[3].properties[23]);
 
   /// see [OrderModel.courier]
   static final courier =
-      QueryRelationToOne<OrderModel, Couriers>(_entities[8].properties[24]);
+      QueryRelationToOne<OrderModel, Couriers>(_entities[3].properties[24]);
 
   /// see [OrderModel.orderNextButton]
   static final orderNextButton =
       QueryRelationToMany<OrderModel, OrderNextButton>(
-          _entities[8].relations[0]);
+          _entities[3].relations[0]);
 }
 
-/// [ApiClient] entity fields to define ObjectBox queries.
-class ApiClient_ {
-  /// see [ApiClient.id]
-  static final id = QueryIntegerProperty<ApiClient>(_entities[9].properties[0]);
-
-  /// see [ApiClient.apiUrl]
-  static final apiUrl =
-      QueryStringProperty<ApiClient>(_entities[9].properties[1]);
-
-  /// see [ApiClient.serviceName]
-  static final serviceName =
-      QueryStringProperty<ApiClient>(_entities[9].properties[2]);
-
-  /// see [ApiClient.isServiceDefault]
-  static final isServiceDefault =
-      QueryBooleanProperty<ApiClient>(_entities[9].properties[3]);
-}
-
-/// [Role] entity fields to define ObjectBox queries.
-class Role_ {
-  /// see [Role.id]
-  static final id = QueryIntegerProperty<Role>(_entities[10].properties[0]);
-
-  /// see [Role.name]
-  static final name = QueryStringProperty<Role>(_entities[10].properties[1]);
-
-  /// see [Role.code]
-  static final code = QueryStringProperty<Role>(_entities[10].properties[2]);
-
-  /// see [Role.active]
-  static final active = QueryBooleanProperty<Role>(_entities[10].properties[3]);
-}
-
-/// [UserData] entity fields to define ObjectBox queries.
-class UserData_ {
-  /// see [UserData.id]
-  static final id = QueryIntegerProperty<UserData>(_entities[11].properties[0]);
-
-  /// see [UserData.permissions]
-  static final permissions =
-      QueryStringVectorProperty<UserData>(_entities[11].properties[1]);
-
-  /// see [UserData.accessToken]
-  static final accessToken =
-      QueryStringProperty<UserData>(_entities[11].properties[2]);
-
-  /// see [UserData.refreshToken]
-  static final refreshToken =
-      QueryStringProperty<UserData>(_entities[11].properties[3]);
-
-  /// see [UserData.accessTokenExpires]
-  static final accessTokenExpires =
-      QueryStringProperty<UserData>(_entities[11].properties[4]);
-
-  /// see [UserData.is_online]
-  static final is_online =
-      QueryBooleanProperty<UserData>(_entities[11].properties[5]);
-
-  /// see [UserData.tokenExpires]
-  static final tokenExpires =
-      QueryIntegerProperty<UserData>(_entities[11].properties[6]);
-
-  /// see [UserData.userProfile]
-  static final userProfile =
-      QueryRelationToOne<UserData, UserProfile>(_entities[11].properties[7]);
-
-  /// see [UserData.identity]
-  static final identity =
-      QueryStringProperty<UserData>(_entities[11].properties[8]);
-
-  /// see [UserData.roles]
-  static final roles =
-      QueryRelationToMany<UserData, Role>(_entities[11].relations[0]);
-}
-
-/// [UserProfile] entity fields to define ObjectBox queries.
-class UserProfile_ {
-  /// see [UserProfile.id]
+/// [OrderNextButton] entity fields to define ObjectBox queries.
+class OrderNextButton_ {
+  /// see [OrderNextButton.id]
   static final id =
-      QueryIntegerProperty<UserProfile>(_entities[12].properties[0]);
+      QueryIntegerProperty<OrderNextButton>(_entities[4].properties[0]);
 
-  /// see [UserProfile.identity]
+  /// see [OrderNextButton.identity]
   static final identity =
-      QueryStringProperty<UserProfile>(_entities[12].properties[1]);
+      QueryStringProperty<OrderNextButton>(_entities[4].properties[1]);
 
-  /// see [UserProfile.first_name]
-  static final first_name =
-      QueryStringProperty<UserProfile>(_entities[12].properties[2]);
+  /// see [OrderNextButton.name]
+  static final name =
+      QueryStringProperty<OrderNextButton>(_entities[4].properties[2]);
 
-  /// see [UserProfile.last_name]
-  static final last_name =
-      QueryStringProperty<UserProfile>(_entities[12].properties[3]);
+  /// see [OrderNextButton.color]
+  static final color =
+      QueryStringProperty<OrderNextButton>(_entities[4].properties[3]);
 
-  /// see [UserProfile.phone]
-  static final phone =
-      QueryStringProperty<UserProfile>(_entities[12].properties[4]);
+  /// see [OrderNextButton.sort]
+  static final sort =
+      QueryIntegerProperty<OrderNextButton>(_entities[4].properties[4]);
 
-  /// see [UserProfile.is_super_user]
-  static final is_super_user =
-      QueryBooleanProperty<UserProfile>(_entities[12].properties[5]);
+  /// see [OrderNextButton.finish]
+  static final finish =
+      QueryBooleanProperty<OrderNextButton>(_entities[4].properties[5]);
 
-  /// see [UserProfile.terminal_id]
-  static final terminal_id =
-      QueryStringVectorProperty<UserProfile>(_entities[12].properties[6]);
+  /// see [OrderNextButton.cancel]
+  static final cancel =
+      QueryBooleanProperty<OrderNextButton>(_entities[4].properties[6]);
 
-  /// see [UserProfile.wallet_balance]
-  static final wallet_balance =
-      QueryIntegerProperty<UserProfile>(_entities[12].properties[7]);
+  /// see [OrderNextButton.waiting]
+  static final waiting =
+      QueryBooleanProperty<OrderNextButton>(_entities[4].properties[7]);
+
+  /// see [OrderNextButton.onWay]
+  static final onWay =
+      QueryBooleanProperty<OrderNextButton>(_entities[4].properties[8]);
+
+  /// see [OrderNextButton.inTerminal]
+  static final inTerminal =
+      QueryBooleanProperty<OrderNextButton>(_entities[4].properties[9]);
+}
+
+/// [OrderStatus] entity fields to define ObjectBox queries.
+class OrderStatus_ {
+  /// see [OrderStatus.id]
+  static final id =
+      QueryIntegerProperty<OrderStatus>(_entities[5].properties[0]);
+
+  /// see [OrderStatus.identity]
+  static final identity =
+      QueryStringProperty<OrderStatus>(_entities[5].properties[1]);
+
+  /// see [OrderStatus.name]
+  static final name =
+      QueryStringProperty<OrderStatus>(_entities[5].properties[2]);
+
+  /// see [OrderStatus.cancel]
+  static final cancel =
+      QueryBooleanProperty<OrderStatus>(_entities[5].properties[3]);
+
+  /// see [OrderStatus.finish]
+  static final finish =
+      QueryBooleanProperty<OrderStatus>(_entities[5].properties[4]);
+}
+
+/// [Organizations] entity fields to define ObjectBox queries.
+class Organizations_ {
+  /// see [Organizations.id]
+  static final id =
+      QueryIntegerProperty<Organizations>(_entities[6].properties[0]);
+
+  /// see [Organizations.identity]
+  static final identity =
+      QueryStringProperty<Organizations>(_entities[6].properties[1]);
+
+  /// see [Organizations.name]
+  static final name =
+      QueryStringProperty<Organizations>(_entities[6].properties[2]);
+
+  /// see [Organizations.active]
+  static final active =
+      QueryBooleanProperty<Organizations>(_entities[6].properties[3]);
+
+  /// see [Organizations.iconUrl]
+  static final iconUrl =
+      QueryStringProperty<Organizations>(_entities[6].properties[4]);
+
+  /// see [Organizations.description]
+  static final description =
+      QueryStringProperty<Organizations>(_entities[6].properties[5]);
+
+  /// see [Organizations.maxDistance]
+  static final maxDistance =
+      QueryIntegerProperty<Organizations>(_entities[6].properties[6]);
+
+  /// see [Organizations.maxActiveOrderCount]
+  static final maxActiveOrderCount =
+      QueryIntegerProperty<Organizations>(_entities[6].properties[7]);
+
+  /// see [Organizations.maxOrderCloseDistance]
+  static final maxOrderCloseDistance =
+      QueryIntegerProperty<Organizations>(_entities[6].properties[8]);
+
+  /// see [Organizations.supportChatUrl]
+  static final supportChatUrl =
+      QueryStringProperty<Organizations>(_entities[6].properties[9]);
+}
+
+/// [Terminals] entity fields to define ObjectBox queries.
+class Terminals_ {
+  /// see [Terminals.id]
+  static final id = QueryIntegerProperty<Terminals>(_entities[7].properties[0]);
+
+  /// see [Terminals.identity]
+  static final identity =
+      QueryStringProperty<Terminals>(_entities[7].properties[1]);
+
+  /// see [Terminals.name]
+  static final name =
+      QueryStringProperty<Terminals>(_entities[7].properties[2]);
+}
+
+/// [WaitingOrderModel] entity fields to define ObjectBox queries.
+class WaitingOrderModel_ {
+  /// see [WaitingOrderModel.id]
+  static final id =
+      QueryIntegerProperty<WaitingOrderModel>(_entities[8].properties[0]);
+
+  /// see [WaitingOrderModel.identity]
+  static final identity =
+      QueryStringProperty<WaitingOrderModel>(_entities[8].properties[1]);
+
+  /// see [WaitingOrderModel.to_lat]
+  static final to_lat =
+      QueryDoubleProperty<WaitingOrderModel>(_entities[8].properties[2]);
+
+  /// see [WaitingOrderModel.to_lon]
+  static final to_lon =
+      QueryDoubleProperty<WaitingOrderModel>(_entities[8].properties[3]);
+
+  /// see [WaitingOrderModel.from_lat]
+  static final from_lat =
+      QueryDoubleProperty<WaitingOrderModel>(_entities[8].properties[4]);
+
+  /// see [WaitingOrderModel.from_lon]
+  static final from_lon =
+      QueryDoubleProperty<WaitingOrderModel>(_entities[8].properties[5]);
+
+  /// see [WaitingOrderModel.pre_distance]
+  static final pre_distance =
+      QueryDoubleProperty<WaitingOrderModel>(_entities[8].properties[6]);
+
+  /// see [WaitingOrderModel.order_number]
+  static final order_number =
+      QueryStringProperty<WaitingOrderModel>(_entities[8].properties[7]);
+
+  /// see [WaitingOrderModel.order_price]
+  static final order_price =
+      QueryIntegerProperty<WaitingOrderModel>(_entities[8].properties[8]);
+
+  /// see [WaitingOrderModel.delivery_price]
+  static final delivery_price =
+      QueryIntegerProperty<WaitingOrderModel>(_entities[8].properties[9]);
+
+  /// see [WaitingOrderModel.delivery_address]
+  static final delivery_address =
+      QueryStringProperty<WaitingOrderModel>(_entities[8].properties[10]);
+
+  /// see [WaitingOrderModel.delivery_comment]
+  static final delivery_comment =
+      QueryStringProperty<WaitingOrderModel>(_entities[8].properties[11]);
+
+  /// see [WaitingOrderModel.created_at]
+  static final created_at =
+      QueryIntegerProperty<WaitingOrderModel>(_entities[8].properties[12]);
+
+  /// see [WaitingOrderModel.paymentType]
+  static final paymentType =
+      QueryStringProperty<WaitingOrderModel>(_entities[8].properties[13]);
+
+  /// see [WaitingOrderModel.customer]
+  static final customer = QueryRelationToOne<WaitingOrderModel, Customer>(
+      _entities[8].properties[14]);
+
+  /// see [WaitingOrderModel.terminal]
+  static final terminal = QueryRelationToOne<WaitingOrderModel, Terminals>(
+      _entities[8].properties[15]);
+
+  /// see [WaitingOrderModel.orderStatus]
+  static final orderStatus = QueryRelationToOne<WaitingOrderModel, OrderStatus>(
+      _entities[8].properties[16]);
+
+  /// see [WaitingOrderModel.organization]
+  static final organization =
+      QueryRelationToOne<WaitingOrderModel, Organizations>(
+          _entities[8].properties[17]);
+
+  /// see [WaitingOrderModel.orderNextButton]
+  static final orderNextButton =
+      QueryRelationToMany<WaitingOrderModel, OrderNextButton>(
+          _entities[8].relations[0]);
 }

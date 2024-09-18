@@ -277,10 +277,8 @@ export const UsersList: React.FC = () => {
 
   const getAllFilterData = async () => {
     const { data: terminals } = await apiClient.api.terminals.cached.get({
-      $fetch: {
-        headers: {
-          Authorization: `Bearer ${identity?.token.accessToken}`,
-        },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
       },
     });
     if (terminals && Array.isArray(terminals)) {
@@ -289,10 +287,8 @@ export const UsersList: React.FC = () => {
 
     const { data: workSchedules } =
       await apiClient.api.work_schedules.cached.get({
-        $fetch: {
-          headers: {
-            Authorization: `Bearer ${identity?.token.accessToken}`,
-          },
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
     var workScheduleResult = chain(workSchedules)
@@ -309,10 +305,8 @@ export const UsersList: React.FC = () => {
 
     const { data: cachedDailyGarant } =
       await apiClient.api.daily_garant.cached.get({
-        $fetch: {
-          headers: {
-            Authorization: `Bearer ${identity?.token.accessToken}`,
-          },
+        $headers: {
+          Authorization: `Bearer ${identity?.token.accessToken}`,
         },
       });
 
@@ -321,10 +315,8 @@ export const UsersList: React.FC = () => {
     }
 
     const { data: roles } = await apiClient.api.roles.cached.get({
-      $fetch: {
-        headers: {
-          Authorization: `Bearer ${identity?.token.accessToken}`,
-        },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
       },
     });
 
@@ -735,16 +727,21 @@ export const UsersList: React.FC = () => {
                     name="work_schedules"
                     getValueProps={(value) => {
                       return {
-                        value: value?.map((item: any) =>
-                          item.work_schedules ? item.work_schedules.id : item.id
-                        ),
+                        value: value?.map((item: any) => {
+                          console.log("item", item);
+                          return typeof item == "string"
+                            ? item
+                            : item && item.work_schedules
+                            ? item.work_schedules.id
+                            : item.id;
+                        }),
                       };
                     }}
                   >
                     <Select mode="multiple">
                       {work_schedulesList.map((work_schedule) => (
                         <Select.OptGroup
-                          key={work_schedule.name}
+                          key={`work_schedule.${work_schedule.name}`}
                           label={work_schedule.name}
                         >
                           {work_schedule.children.map((work_schedule) => (

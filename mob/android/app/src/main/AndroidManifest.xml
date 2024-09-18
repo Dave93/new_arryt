@@ -31,6 +31,8 @@
              This is used by the Flutter tool to
         generate GeneratedPluginRegistrant.java -->
         <meta-data android:name="flutterEmbedding" android:value="2" />
+        <service android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
+            android:exported="false" android:stopWithTask="false" />
     </application>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -44,4 +46,6 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Permissions options for the `RECORD_AUDIO` group -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Добавьте эту строку -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>

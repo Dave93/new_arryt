@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:arryt/main.dart';
 import 'package:arryt/models/api_client.dart';
 import 'package:arryt/models/customer.dart';
@@ -15,8 +16,11 @@ import '../models/manager_couriers_model.dart';
 import '../models/waiting_order.dart';
 
 class ObjectBox {
-  // ObjectBox
+  static ObjectBox? _instance;
   late final Store _store;
+  final Completer<void> initCompleter = Completer<void>();
+
+  // ObjectBox
   late final Box<OrderModel> _currentOrdersBox;
   late final Box<OrderModel> _historyOrdersBox;
   late final Box<Customer> _customersBox;
@@ -25,10 +29,33 @@ class ObjectBox {
   late final Box<Terminals> _terminalsBox;
   late final Box<Organizations> _organizationsBox;
   late final Box<ManagerCouriersModel> _managerCouriersBox;
-  late final Box<ApiClient> _apiClientBox;
-  late final Box<UserData> _userDataBox;
 
-  ObjectBox._init(this._store) {
+  ObjectBox._();
+
+  static Future<ObjectBox> create({String? directory}) async {
+    if (_instance == null) {
+      _instance = ObjectBox._();
+      await _instance!._init(directory);
+    }
+    return _instance!;
+  }
+
+  Future<void> _init(String? directory) async {
+    if (!initCompleter.isCompleted) {
+      try {
+        final docsDir =
+            directory ?? (await getApplicationDocumentsDirectory()).path;
+        _store = await openStore(directory: p.join(docsDir, "arryt"));
+        _initBoxes();
+        initCompleter.complete();
+      } catch (e) {
+        initCompleter.completeError(e);
+      }
+    }
+    await initCompleter.future;
+  }
+
+  void _initBoxes() {
     _currentOrdersBox = Box<OrderModel>(_store);
     _historyOrdersBox = Box<OrderModel>(_store);
     _waitingOrdersBox = Box<WaitingOrderModel>(_store);
@@ -37,18 +64,6 @@ class ObjectBox {
     _terminalsBox = Box<Terminals>(_store);
     _organizationsBox = Box<Organizations>(_store);
     _managerCouriersBox = Box<ManagerCouriersModel>(_store);
-    _apiClientBox = Box<ApiClient>(_store);
-    _userDataBox = Box<UserData>(_store);
-  }
-
-  ObjectBox._internal();
-
-  // Init
-  static Future<ObjectBox> init() async {
-    final docsDir = await getApplicationDocumentsDirectory();
-    // Get the directory where the database file will be stored
-    final store = await openStore(directory: p.join(docsDir.path, "arryt"));
-    return ObjectBox._init(store);
   }
 
   Future<void> clearCurrentOrders() {
@@ -169,87 +184,10 @@ class ObjectBox {
     return _historyOrdersBox.count();
   }
 
-  ApiClient? getDefaultApiClient() {
-    final query = _apiClientBox
-        .query(ApiClient_.isServiceDefault.equals(true))
-        .build()
-      ..limit = 1;
-    return query.findFirst();
+  void close() {
+    _store.close();
+    _instance = null;
   }
 
-  Stream<ApiClient> getDefaultApiClientStream() {
-    final builder =
-        _apiClientBox.query(ApiClient_.isServiceDefault.equals(true));
-    return builder.watch(triggerImmediately: true).map((query) {
-      return query.findFirst()!;
-    });
-  }
-
-  void setDefaultApiClient(ApiClient apiClient) {
-    final query = _apiClientBox
-        .query(ApiClient_.isServiceDefault.equals(true))
-        .build()
-      ..limit = 1;
-    final oldApiClient = query.findFirst();
-    if (oldApiClient != null) {
-      oldApiClient.isServiceDefault = false;
-      _apiClientBox.put(oldApiClient);
-    }
-    apiClient.isServiceDefault = true;
-    _apiClientBox.put(apiClient);
-  }
-
-  UserData? getUserData() {
-    final query = _userDataBox.query().build()..limit = 1;
-    return query.findFirst();
-  }
-
-  void setUserData(UserData userData) {
-    _userDataBox.removeAll();
-    _userDataBox.put(userData);
-  }
-
-  void setUserDataToken(String accessToken, String refreshToken,
-      String accessTokenExpires, DateTime tokenExpires) {
-    final query = _userDataBox.query().build()..limit = 1;
-    final userData = query.findFirst();
-    if (userData != null) {
-      userData.accessToken = accessToken;
-      userData.refreshToken = refreshToken;
-      userData.accessTokenExpires = accessTokenExpires;
-      userData.tokenExpires = tokenExpires;
-      _userDataBox.put(userData);
-    }
-  }
-
-  void setUserOnlineStatus(bool isOnline) {
-    final query = _userDataBox.query().build()..limit = 1;
-    final userData = query.findFirst();
-    if (userData != null) {
-      userData.is_online = isOnline;
-      _userDataBox.put(userData);
-    }
-
-    // get all users
-    final allUsersQuery = _userDataBox.query().build();
-    final users = allUsersQuery.find();
-    print(users);
-  }
-
-  void deleteUserData() {
-    _userDataBox.removeAll();
-    getIt<AppRouter>().replace(LoginTypePhoneRoute());
-  }
-
-  bool isUserDataExist() {
-    final query = _userDataBox.query().build()..limit = 1;
-    return query.findFirst() != null;
-  }
-
-  Stream<List<UserData>> getUserDataStream() {
-    final builder = _userDataBox.query();
-    return builder.watch(triggerImmediately: true).map((query) {
-      return query.find();
-    });
-  }
+  bool get isOpen => !_store.isClosed();
 }

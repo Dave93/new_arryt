@@ -5,6 +5,7 @@ import 'dart:ui';
 // import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:arryt/bloc/block_imports.dart';
 import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/location_service.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:arryt/router.dart';
 import 'package:flutter/foundation.dart';
@@ -27,6 +28,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'app.dart';
 import 'notifications/notification_controller.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 
 final getIt = GetIt.instance;
 
@@ -115,6 +117,13 @@ bool isFlutterLocalNotificationsInitialized = false;
 late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await HiveHelper.initHive();
+
+  final docsDir = await getApplicationDocumentsDirectory();
+  objectBox = await ObjectBox.create(directory: docsDir.path);
+
   getIt.registerSingleton<AppRouter>(AppRouter());
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -122,8 +131,6 @@ Future<void> main() async {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  WidgetsFlutterBinding.ensureInitialized();
-  objectBox = await ObjectBox.init();
 
   await NotificationController.initializeLocalNotifications(debug: true);
   await NotificationController.initializeRemoteNotifications(debug: true);
@@ -146,7 +153,10 @@ Future<void> main() async {
     // await InAppWebViewController.setWebContentsDebuggingEnabled(true);
   }
 
-  await initializeService();
+  // await initializeService();
+  // Ensure ObjectBox is initialized before starting the location service
+  await objectBox.initCompleter.future;
+  await LocationService.initializeService();
 
   runApp(
     const ProviderScope(child: App()),
@@ -158,7 +168,7 @@ Future<void> initializeService() async {
   Timer myTimer;
 
   myTimer = Timer.periodic(const Duration(seconds: 8), (timer) async {
-    UserData? user = objectBox.getUserData();
+    UserData? user = HiveHelper.getUserData();
 
     String? _error;
     try {

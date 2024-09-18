@@ -1,9 +1,12 @@
 import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:keframe/keframe.dart';
 import 'package:arryt/widgets/orders/waiting_order_card.dart';
 
@@ -134,91 +137,87 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<UserData>>(
-        stream: objectBox.getUserDataStream(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            if (snapshot.data!.isNotEmpty) {
-              UserData user = snapshot.data!.first;
-              Role? userRole;
-              if (user.roles.isNotEmpty) {
-                userRole = user.roles.first;
-              }
-              if (userRole == null) {
-                return const SizedBox();
-              }
+    return ValueListenableBuilder<Box<UserData>>(
+        valueListenable: HiveHelper.getUserDataBox().listenable(),
+        builder: (context, box, _) {
+          final userData = HiveHelper.getUserData();
+          if (userData != null) {
+            Role? userRole;
+            if (userData.roles.isNotEmpty) {
+              userRole = userData.roles.first;
+            }
+            if (userRole == null) {
+              return const SizedBox();
+            }
 
-              if (userRole.code == 'courier') {
-                if (!user.is_online) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 15.0, vertical: 10),
-                        child: Text(
-                          AppLocalizations.of(context)!
-                              .error_work_schedule_offline_title
-                              .toUpperCase(),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headline5
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
+            if (userRole.code == 'courier') {
+              if (!userData.is_online) {
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 15.0, vertical: 10),
+                      child: Text(
+                        AppLocalizations.of(context)!
+                            .error_work_schedule_offline_title
+                            .toUpperCase(),
+                        style: Theme.of(context)
+                            .textTheme
+                            .headline5
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                        child: Text(
-                          AppLocalizations.of(context)!
-                              .notice_torn_on_work_schedule_subtitle,
-                          style: Theme.of(context).textTheme.subtitle1,
-                          textAlign: TextAlign.center,
-                        ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Text(
+                        AppLocalizations.of(context)!
+                            .notice_torn_on_work_schedule_subtitle,
+                        style: Theme.of(context).textTheme.subtitle1,
+                        textAlign: TextAlign.center,
                       ),
-                    ],
-                  );
-                } else {
-                  return EasyRefresh(
-                    controller: _controller,
-                    header: const BezierCircleHeader(),
-                    onRefresh: () async {
-                      await _loadOrders();
-                      _controller.finishRefresh();
-                      _controller.resetFooter();
-                    },
-                    child: orders.isNotEmpty
-                        ? SizeCacheWidget(
-                            child: ListView.builder(
-                            // shrinkWrap: true,
-                            itemCount: orders.length,
-                            itemBuilder: (context, index) {
-                              return WaitingOrderCard(
-                                  order: orders[index],
-                                  onUpdate: () => _loadOrders());
-                            },
-                          ))
-                        : ListView(
-                            children: [
-                              ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight:
-                                      MediaQuery.of(context).size.height * 0.8,
-                                ),
-                                child: const IntrinsicHeight(
-                                  child: Center(child: Text('Заказов нет')),
-                                ),
-                              )
-                            ],
-                          ),
-                  );
-                }
+                    ),
+                  ],
+                );
               } else {
-                return Text(AppLocalizations.of(context)!.you_are_not_courier,
-                    style: Theme.of(context).textTheme.headline6);
+                return EasyRefresh(
+                  controller: _controller,
+                  header: const BezierCircleHeader(),
+                  onRefresh: () async {
+                    await _loadOrders();
+                    _controller.finishRefresh();
+                    _controller.resetFooter();
+                  },
+                  child: orders.isNotEmpty
+                      ? SizeCacheWidget(
+                          child: ListView.builder(
+                          // shrinkWrap: true,
+                          itemCount: orders.length,
+                          itemBuilder: (context, index) {
+                            return WaitingOrderCard(
+                                order: orders[index],
+                                onUpdate: () => _loadOrders());
+                          },
+                        ))
+                      : ListView(
+                          children: [
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight:
+                                    MediaQuery.of(context).size.height * 0.8,
+                              ),
+                              child: const IntrinsicHeight(
+                                child: Center(child: Text('Заказов нет')),
+                              ),
+                            )
+                          ],
+                        ),
+                );
               }
             } else {
-              return const SizedBox();
+              return Text(AppLocalizations.of(context)!.you_are_not_courier,
+                  style: Theme.of(context).textTheme.headline6);
             }
           } else {
             return const SizedBox();

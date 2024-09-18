@@ -164,19 +164,19 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
   }
 
   Future _buildRoute() async {
-    var client = GraphQLProvider.of(context).value;
-    var query = '''
-      query {
-        getDeliveryMapType(order_id: "${widget.order.id}")
-      }
-    ''';
+    try {
+      ApiServer api = new ApiServer();
+      var response = await api.get("/api/orders/${widget.order.id}/map_type", {
+        'created_at': widget.order.created_at.toIso8601String(),
+      });
 
-    var result = await client.query(
-        QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache));
-    if (result.hasException) {
-    } else {
-      if (result.data != null) {
-        var mapType = result.data!['getDeliveryMapType'];
+      if (response.statusCode != 200) {
+        return AnimatedSnackBar.material(
+          response.data['message'] ?? "Error",
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+      } else {
+        var mapType = response.data;
         if (mapType != null) {
           if (mapType == 'foot') {
             launchYandexMaps(widget.order.from_lat, widget.order.from_lon,
@@ -186,6 +186,8 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
           }
         }
       }
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -243,7 +245,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
                     DateFormat('dd.MM.yyyy HH:mm')
-                        .format(widget.order.created_at),
+                        .format(widget.order.created_at.toLocal()),
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.bold),
                   ),
@@ -314,7 +316,8 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                         AppLocalizations.of(context)!.pre_distance_label,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Text("${(widget.order.pre_distance).toString()} км"),
+                      Text(
+                          "${(widget.order.pre_distance).toStringAsFixed(4)} км"),
                     ],
                   ),
                 ],
@@ -590,10 +593,8 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                       showBarModalBottomSheet(
                         context: context,
                         expand: false,
-                        builder: (context) => ApiGraphqlProvider(
-                          child: OrderItemsTable(
-                            orderId: widget.order.id,
-                          ),
+                        builder: (context) => OrderItemsTable(
+                          orderId: widget.order.id,
                         ),
                       );
                     },

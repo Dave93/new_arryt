@@ -1,16 +1,16 @@
-import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/balance_by_terminal.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:data_table_2/data_table_2.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 
 class MyBalanceByTerminal extends StatelessWidget {
   const MyBalanceByTerminal({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(child: const MyBalanceByTerminalView());
+    return MyBalanceByTerminalView();
   }
 }
 
@@ -37,32 +37,19 @@ class _MyBalanceByTerminalViewState extends State<MyBalanceByTerminalView> {
     setState(() {
       isLoading = true;
     });
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      query {
-        myBalanceByTerminal {
-            balance
-            courier_terminal_balance_terminals {
-                name
-            }
-        }
-      }
-    ''';
-    var data = await client.query(
-      QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache),
-    );
-    List<BalanceByTerminal> tempData = [];
-    if (data.data?['myBalanceByTerminal'] != null) {
-      for (var item in data.data?['myBalanceByTerminal']) {
-        tempData.add(BalanceByTerminal.fromMap(item));
-      }
+    ApiServer apiServer = ApiServer();
+    Response response =
+        await apiServer.get("/api/couriers/terminal_balance", {});
+    if (response.statusCode == 200) {
+      setState(() {
+        balanceByTerminal = (response.data as List)
+            .map((e) => BalanceByTerminal.fromMap(e))
+            .toList();
+      });
     }
 
     setState(() {
       isLoading = false;
-    });
-    setState(() {
-      balanceByTerminal = tempData;
     });
   }
 

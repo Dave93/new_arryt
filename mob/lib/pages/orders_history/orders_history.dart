@@ -899,7 +899,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                             FontWeight.bold),
                                                   ),
                                                   Text(
-                                                      "${(element.pre_distance).toString()} км"),
+                                                      "${(element.pre_distance).toStringAsFixed(4)} км"),
                                                 ],
                                               ),
                                             ],
