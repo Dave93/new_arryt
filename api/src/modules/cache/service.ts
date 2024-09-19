@@ -515,4 +515,59 @@ export class CacheControlService {
     );
     return JSON.parse(dailyGarant || "[]") as InferSelectModel<typeof daily_garant>[];
   }
+
+  async getNextQueueCourier(terminal_id: string, drive_type: string) {
+    const terminals = await this.getTerminals();
+    const terminal = terminals.find((t) => t.id === terminal_id);
+    if (!terminal) {
+      return null;
+    }
+
+    const workStartTime = await this.getSetting('work_start_time');
+    const workEndTime = await this.getSetting('work_end_time');
+
+    let queueKey = `${process.env.PROJECT_PREFIX}_order_queue`;
+    let lastCourierKey = `${process.env.PROJECT_PREFIX}_last_courier`;
+
+    if (drive_type === 'foot') {
+      queueKey += '_foot';
+      lastCourierKey += '_foot';
+    }
+
+    let queueTerminals = [terminal_id];
+    if (terminal.linked_terminal_id) {
+      const linkedTerminal = terminals.find((t) => t.id === terminal.linked_terminal_id);
+      if (linkedTerminal) {
+        queueTerminals.push(linkedTerminal.id);
+      }
+    }
+
+    queueKey += `_${queueTerminals.sort().join('_')}`;
+    lastCourierKey += `_${queueTerminals.sort().join('_')}`;
+
+    const currentTime = new Date().getHours();
+    const currentDate = currentTime < Number(workEndTime)
+      ? new Date(Date.now() - 86400000).toISOString().split('T')[0].replace(/-/g, '_')
+      : new Date().toISOString().split('T')[0].replace(/-/g, '_');
+
+    queueKey += `_${currentDate}`;
+    lastCourierKey += `_${currentDate}`;
+
+    const lastCourierId = await this.redis.get(lastCourierKey);
+    const courierQueue = await this.redis.lrange(queueKey, 0, -1);
+
+    if (!courierQueue.length) {
+      return null;
+    }
+
+    const lastCourierIndex = courierQueue.findIndex(id => id === lastCourierId);
+
+    if (lastCourierIndex === -1 || lastCourierIndex === courierQueue.length - 1) {
+      // If last courier not found or is the last in queue, return the first courier
+      return courierQueue[0];
+    } else {
+      // Return the next courier in the queue
+      return courierQueue[lastCourierIndex + 1];
+    }
+  }
 }

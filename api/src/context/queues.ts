@@ -85,3 +85,24 @@ export const processSendNotificationQueue = new Queue(
         connection: client,
     }
 );
+
+export const processPushCourierToQueue = new Queue(
+    `${process.env.TASKS_PREFIX}_push_courier_to_queue`,
+    {
+        connection: client,
+    }
+);
+
+export const processSetQueueLastCourier = new Queue(
+    `${process.env.TASKS_PREFIX}_set_queue_last_courier`,
+    {
+        connection: client,
+    }
+);
+
+export const processTryAssignCourier = new Queue(
+    `${process.env.TASKS_PREFIX}_try_assign_courier`,
+    {
+        connection: client,
+    }
+);

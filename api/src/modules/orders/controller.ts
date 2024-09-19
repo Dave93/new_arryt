@@ -34,6 +34,7 @@ import Elysia, { t } from "elysia";
 import { GarantReportItem } from "./dtos/reposts.dto";
 import postgres from "postgres";
 import { getSetting } from "@api/src/utils/settings";
+import { addMinutesToDate, getHours } from "@api/src/lib/dates";
 import utc from "dayjs/plugin/utc";
 
 import isToday from "dayjs/plugin/isToday";
@@ -46,7 +47,7 @@ import { prepareOrdersNextButton } from '@api/src/lib/orders';
 import { getDistance } from "geolib";
 import { ctx } from "@api/src/context";
 import { OrderLocationsWithRelations, OrdersWithRelations } from "./dtos/list.dto";
-import { newOrderNotify, processOrderEcommerceWebhookQueue } from "@api/src/context/queues";
+import { newOrderNotify, processOrderEcommerceWebhookQueue, processSetQueueLastCourier, processTryAssignCourier } from "@api/src/context/queues";
 import { DeliveryPricingRulesDto } from "@api/src/modules/delivery_pricing/dto/rules.dto";
 
 dayjs.extend(utc);
@@ -448,6 +449,7 @@ export const OrdersController = new Elysia({
         cacheControl,
         processOrderChangeCourierQueue,
         drizzle,
+        redis,
     }) => {
         if (!user) {
             set.status = 400;
@@ -588,6 +590,21 @@ export const OrdersController = new Elysia({
             attempts: 3, removeOnComplete: true
         });
 
+        const settingsWorkStartTime = getHours(
+            await getSetting(redis, "work_start_time")
+        );
+        const settingsWorkEndTime = getHours(
+            await getSetting(redis, "work_end_time")
+        );
+
+        await processSetQueueLastCourier.add(order.id, {
+            courier_id: user.user.id,
+            terminal_id: order.orders_terminals!.id,
+            workStartTime: settingsWorkStartTime,
+            workEndTime: settingsWorkEndTime,
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
         return order;
     }, {
         body: t.Object({
@@ -908,9 +925,7 @@ export const OrdersController = new Elysia({
         },
         cacheControl,
         redis,
-        processFromBasketToCouriers,
-        processCheckAndSendYandex
-        , request: {
+        request: {
             headers
         },
         drizzle,
@@ -1108,12 +1123,7 @@ export const OrdersController = new Elysia({
 
                     let orderStatus: InferSelectModel<typeof order_status> | undefined;
 
-                    if (['621c0913-93d0-4eeb-bf00-f0c6f578bcd1', '0ca018c8-22ff-40b4-bb0a-b4ba95068662'].includes(currentTerminal.id)) {
-                        // Next and Eko and C5
-                        orderStatus = orderStatuses.find((o) => o.sort === 0 && o.organization_id === currentOrganization.id);
-                    } else {
-                        orderStatus = orderStatuses.find((o) => o.sort === 1 && o.organization_id === currentOrganization.id);
-                    }
+                    orderStatus = orderStatuses.find((o) => o.sort === 1 && o.organization_id === currentOrganization.id);
 
                     let customer = await drizzle.query.customers.findFirst({
                         columns: {
@@ -1184,6 +1194,17 @@ export const OrdersController = new Elysia({
                         attempts: 3, removeOnComplete: true
                     });
 
+                    let courierAssignTime = await getSetting(redis, "courier_assign_time");
+
+                    if (courierAssignTime && courierAssignTime > 0) {
+                        await processTryAssignCourier.add(currentOrder.id, {
+                            id: currentOrder.id,
+                            created_at: currentOrder.created_at
+                        }, {
+                            attempts: 3, removeOnComplete: true,
+                            delay: 1000 * 60 * courierAssignTime
+                        });
+                    }
 
                     // if (['621c0913-93d0-4eeb-bf00-f0c6f578bcd1', '0ca018c8-22ff-40b4-bb0a-b4ba95068662'].includes(currentTerminal.id)) {
                     //     // Next and Eko and C5
@@ -1195,11 +1216,11 @@ export const OrdersController = new Elysia({
                     //     });
                     // }
 
-                    let defaultYandexCreateDelay = 1000 * 60 * 15;
+                    // let defaultYandexCreateDelay = 1000 * 60 * 15;
 
-                    if (currentTerminal.time_to_yandex > 0) {
-                        defaultYandexCreateDelay = 1000 * 60 * +currentTerminal.time_to_yandex;
-                    }
+                    // if (currentTerminal.time_to_yandex > 0) {
+                    //     defaultYandexCreateDelay = 1000 * 60 * +currentTerminal.time_to_yandex;
+                    // }
 
                     // let yandexAllowedTerminals = ['96f31330-ed33-42fa-b84a-d28e595177b0', 'c61bc73d-6fd6-49e7-acb0-09cfc1863bad']; // Farxadskiy
 

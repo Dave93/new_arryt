@@ -51,6 +51,7 @@ import { getSetting } from "@api/src/utils/settings";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { ctx } from "@api/src/context";
 import { CourierEfficiencyReportItem, UsersModel, WalletStatus } from "./dto/list.dto";
+import { processPushCourierToQueue } from "@api/src/context/queues";
 dayjs.extend(customParseFormat);
 
 
@@ -667,8 +668,6 @@ export const UsersController = new Elysia({
       let terminalId = null;
 
       userTerminals.forEach((terminal) => {
-        organizationId = terminal.terminals!.organization_id;
-        terminalId = terminal.terminals!.id;
         const distance = getDistance(
           {
             latitude: terminal.terminals!.latitude,
@@ -678,6 +677,8 @@ export const UsersController = new Elysia({
         );
         if (!minDistance || distance < minDistance) {
           minDistance = distance;
+          organizationId = terminal.terminals!.organization_id;
+          terminalId = terminal.terminals!.id;
         }
       });
 
@@ -952,6 +953,13 @@ export const UsersController = new Elysia({
         })
         .returning()
         .execute();
+
+      await processPushCourierToQueue.add(user.user.id, {
+        courier_id: user.user.id,
+        terminal_id: terminalId,
+        workStartTime: settingsWorkStartTime,
+        workEndTime: settingsWorkEndTime,
+      }, { attempts: 3, removeOnComplete: true });
 
       return workScheduleEntry[0];
     },

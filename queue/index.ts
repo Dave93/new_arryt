@@ -14,6 +14,9 @@ import processChangeCourier from "./processors/change_courier";
 import processStoreLocation from "./processors/store_location";
 import processYandexCallback from "./processors/yandex_callback";
 import { processSendNotification } from "./processors/send_notification";
+import processPushCourierToQueue from "./processors/push_courier_to_queue";
+import processSetQueueLastCourier from "./processors/set_queue_last_courier";
+import processTryAssignCourier from "./processors/try_assign_courier";
 
 export const redisClient = new Redis({
     maxRetriesPerRequest: null,
@@ -188,6 +191,43 @@ const sendNotificationWorker = new Worker(
         console.log('send_notification', job.data);
         await processSendNotification(redisClient, db, cacheControl, job.data);
         return 'send_notification';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+
+const pushCourierToQueueWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_push_courier_to_queue`,
+    async (job) => {
+        console.log('push_courier_to_queue', job.data);
+        await processPushCourierToQueue(redisClient, db, cacheControl, job.data);
+        return 'push_courier_to_queue';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+const setQueueLastCourierWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_set_queue_last_courier`,
+    async (job) => {
+        console.log('set_queue_last_courier', job.data);
+        await processSetQueueLastCourier(redisClient, db, cacheControl, job.data);
+        return 'set_queue_last_courier';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+const tryAssignCourierWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_try_assign_courier`,
+    async (job) => {
+        console.log('try_assign_courier', job.data);
+        await processTryAssignCourier(redisClient, db, cacheControl, job.data);
+        return 'try_assign_courier';
     },
     {
         connection: redisClient,
