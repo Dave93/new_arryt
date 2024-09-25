@@ -8,7 +8,7 @@ import { sleep, sleepSync } from "bun";
 import { eq, getTableColumns } from "drizzle-orm";
 import Redis from "ioredis/built/Redis";
 
-export default async function processCheckAndSendYandex(db: DB, redis: Redis, cacheControl: CacheControlService, searchService: SearchService, processOrderIndex: Queue, orderId: string) {
+export default async function processCheckAndSendYandex(db: DB, redis: Redis, cacheControl: CacheControlService, orderId: string) {
     const orderStatuses = await cacheControl.getOrderStatuses();
 
     const newOrders = await db.select({

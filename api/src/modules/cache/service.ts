@@ -516,7 +516,8 @@ export class CacheControlService {
     return JSON.parse(dailyGarant || "[]") as InferSelectModel<typeof daily_garant>[];
   }
 
-  async getNextQueueCourier(terminal_id: string, drive_type: string) {
+  async getNextQueueCourier(terminal_id: string, drive_type: string, skipCourierId?: string) {
+
     const terminals = await this.getTerminals();
     const terminal = terminals.find((t) => t.id === terminal_id);
     if (!terminal) {
@@ -554,9 +555,18 @@ export class CacheControlService {
     lastCourierKey += `_${currentDate}`;
 
     const lastCourierId = await this.redis.get(lastCourierKey);
-    const courierQueue = await this.redis.lrange(queueKey, 0, -1);
+    let courierQueue = await this.redis.lrange(queueKey, 0, -1);
 
     if (!courierQueue.length) {
+      return null;
+    }
+
+    // Remove the courier to skip from the queue if provided
+    if (skipCourierId) {
+      courierQueue = courierQueue.filter(id => id !== skipCourierId);
+    }
+
+    if (courierQueue.length === 0) {
       return null;
     }
 
@@ -569,5 +579,10 @@ export class CacheControlService {
       // Return the next courier in the queue
       return courierQueue[lastCourierIndex + 1];
     }
+  }
+
+  async getCourierFcmToken(courierId: string) {
+    const courier = await this.db.select().from(users).where(eq(users.id, courierId)).limit(1);
+    return courier[0].fcm_token;
   }
 }

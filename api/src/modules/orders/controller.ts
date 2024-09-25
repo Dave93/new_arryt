@@ -1199,7 +1199,8 @@ export const OrdersController = new Elysia({
                     if (courierAssignTime && courierAssignTime > 0) {
                         await processTryAssignCourier.add(currentOrder.id, {
                             id: currentOrder.id,
-                            created_at: currentOrder.created_at
+                            created_at: currentOrder.created_at,
+                            queue: 1
                         }, {
                             attempts: 3, removeOnComplete: true,
                             delay: 1000 * 60 * courierAssignTime
@@ -2258,6 +2259,48 @@ export const OrdersController = new Elysia({
             }),
         }
     )
+    .post('/cancel_accept_order/:id', async ({ params: { id }, body: { queue }, drizzle, set, user }) => {
+        if (!user) {
+            set.status = 401;
+            return {
+                message: "User not found",
+            };
+        }
+
+        const order = await drizzle
+            .select({
+                id: orders.id,
+                courier_id: orders.courier_id,
+                created_at: orders.created_at,
+            })
+            .from(orders)
+            .where(eq(orders.id, id))
+            .execute();
+
+        if (!order) {
+            set.status = 404;
+            return {
+                message: "Order not found",
+            };
+        }
+
+        await processTryAssignCourier.add(order[0].id, {
+            order_id: order[0].id,
+            created_at: order[0].created_at,
+            queue: queue + 1,
+            courier_id: user.user.id
+        }, {
+            attempts: 3, removeOnComplete: true
+        });
+
+    }, {
+        params: t.Object({
+            id: t.String(),
+        }),
+        body: t.Object({
+            queue: t.Number(),
+        }),
+    })
     .get(
         "/orders/:id",
         async ({ params: { id }, query: { fields }, drizzle, set, user }) => {
@@ -2285,6 +2328,7 @@ export const OrdersController = new Elysia({
                     couriers,
                 });
             }
+            console.log('davr');
             const permissionsRecord = await drizzle
                 .select(selectFields)
                 .from(orders)
@@ -2295,6 +2339,7 @@ export const OrdersController = new Elysia({
                 .leftJoin(couriers, eq(orders.courier_id, couriers.id))
                 .where(eq(orders.id, id))
                 .execute() as OrdersWithRelations[];
+            console.log(permissionsRecord);
             return {
                 data: permissionsRecord[0],
             };

@@ -52,6 +52,18 @@ const newOrderNotify = new Worker(
     }
 );
 
+const sendStopListExpress24Worker = new Worker(
+    `${process.env.TASKS_PREFIX}_send_stop_list_express24`,
+    async (job) => {
+        console.log('send_stop_list_express24', job.data);
+        await processSendStopListExpress24(job.data);
+        return 'send_stop_list_express24';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
 const processOrderIndexWorker = new Worker(
     `${process.env.TASKS_PREFIX}_process_order_index`,
     async (job) => {
@@ -81,7 +93,7 @@ const checkAndSendYandexWorker = new Worker(
     `${process.env.TASKS_PREFIX}_check_and_send_yandex`,
     async (job) => {
         console.log('check_and_send_yandex', job.data);
-        await processCheckAndSendYandex(db, redisClient, cacheControl, searchService, processOrderIndexWorker, job.data.id);
+        await processCheckAndSendYandex(db, redisClient, cacheControl, job.data.id);
         return 'check_and_send_yandex';
     },
     {
@@ -233,3 +245,7 @@ const tryAssignCourierWorker = new Worker(
         connection: redisClient,
     }
 );
+
+function processSendStopListExpress24(data: any) {
+    throw new Error("Function not implemented.");
+}
