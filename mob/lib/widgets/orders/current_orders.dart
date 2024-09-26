@@ -3,9 +3,6 @@ import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:arryt/bloc/block_imports.dart';
-import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:arryt/models/order_status.dart';
 import 'package:arryt/models/terminals.dart';
@@ -139,7 +136,7 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
                             .toUpperCase(),
                         style: Theme.of(context)
                             .textTheme
-                            .headline5
+                            .titleLarge
                             ?.copyWith(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
@@ -149,7 +146,7 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
                       child: Text(
                         AppLocalizations.of(context)!
                             .notice_torn_on_work_schedule_subtitle,
-                        style: Theme.of(context).textTheme.subtitle1,
+                        style: Theme.of(context).textTheme.titleMedium,
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -215,7 +212,7 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
               }
             } else {
               return Text(AppLocalizations.of(context)!.you_are_not_courier,
-                  style: Theme.of(context).textTheme.headline6);
+                  style: Theme.of(context).textTheme.titleLarge);
             }
           } else {
             return const SizedBox();

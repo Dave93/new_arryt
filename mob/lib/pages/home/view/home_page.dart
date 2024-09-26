@@ -1,6 +1,3 @@
-import 'dart:math';
-
-import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/main.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -14,13 +11,11 @@ import 'package:arryt/pages/orders/orders.dart';
 import 'package:arryt/pages/profile/profile.dart';
 import 'package:arryt/pages/settings/settings.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:badges/badges.dart' as badges;
 
-import '../../../bloc/block_imports.dart';
 import '../../../router.dart';
 import '../../../widgets/home/check_permissions.dart';
 import '../../../widgets/no_role_set.dart';
@@ -155,26 +150,13 @@ class _HomeViewPageState extends State<HomeViewPage> {
                         inactiveColorPrimary: Colors.grey,
                       ),
                     ],
-                    confineInSafeArea: true,
                     backgroundColor: Colors.white,
                     handleAndroidBackButtonPress: true,
                     resizeToAvoidBottomInset: true,
                     stateManagement: true,
-                    hideNavigationBarWhenKeyboardShows: true,
                     decoration: NavBarDecoration(
                       borderRadius: BorderRadius.circular(10.0),
                       colorBehindNavBar: Colors.white,
-                    ),
-                    popAllScreensOnTapOfSelectedTab: true,
-                    popActionScreens: PopActionScreensType.all,
-                    itemAnimationProperties: const ItemAnimationProperties(
-                      duration: Duration(milliseconds: 200),
-                      curve: Curves.ease,
-                    ),
-                    screenTransitionAnimation: const ScreenTransitionAnimation(
-                      animateTabTransition: true,
-                      curve: Curves.ease,
-                      duration: Duration(milliseconds: 200),
                     ),
                     navBarStyle: NavBarStyle.style1,
                   ),
@@ -224,26 +206,13 @@ class _HomeViewPageState extends State<HomeViewPage> {
                       inactiveColorPrimary: Colors.grey,
                     ),
                   ],
-                  confineInSafeArea: true,
                   backgroundColor: Colors.white,
                   handleAndroidBackButtonPress: true,
                   resizeToAvoidBottomInset: true,
                   stateManagement: true,
-                  hideNavigationBarWhenKeyboardShows: true,
                   decoration: NavBarDecoration(
                     borderRadius: BorderRadius.circular(10.0),
                     colorBehindNavBar: Colors.white,
-                  ),
-                  popAllScreensOnTapOfSelectedTab: true,
-                  popActionScreens: PopActionScreensType.all,
-                  itemAnimationProperties: const ItemAnimationProperties(
-                    duration: Duration(milliseconds: 200),
-                    curve: Curves.ease,
-                  ),
-                  screenTransitionAnimation: const ScreenTransitionAnimation(
-                    animateTabTransition: true,
-                    curve: Curves.ease,
-                    duration: Duration(milliseconds: 200),
                   ),
                   navBarStyle: NavBarStyle.style1,
                 );

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:loading_overlay/loading_overlay.dart';
 
 import '../../helpers/api_graphql_provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';

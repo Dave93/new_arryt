@@ -6,8 +6,8 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../bloc/block_imports.dart';
 
@@ -142,6 +142,14 @@ class _NoRoleSetViewState extends State<NoRoleSetView> {
     AutoRouter.of(context).pushNamed('/home');
   }
 
+  void _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    await launchUrl(launchUri);
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -167,7 +175,7 @@ class _NoRoleSetViewState extends State<NoRoleSetView> {
                     .replaceAll(" ", "\n")
                     .toUpperCase(),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headline4!.copyWith(
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -177,8 +185,7 @@ class _NoRoleSetViewState extends State<NoRoleSetView> {
               ),
               ElevatedButton(
                   onPressed: () async {
-                    bool? res =
-                        await FlutterPhoneDirectCaller.callNumber(adminPhone);
+                    _makePhoneCall(adminPhone);
                   },
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green.shade400,

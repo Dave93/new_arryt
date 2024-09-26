@@ -1,8 +1,6 @@
 import { useForm, Edit } from "@refinedev/antd";
 import { Form, Input, Switch, Select } from "antd";
 import { useGetIdentity } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 import { useEffect, useState } from "react";
 import { permissions, roles } from "@api/drizzle/schema";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
@@ -81,24 +79,24 @@ export const RolesEdit: React.FC = () => {
   };
 
   const beforeSave = async (data: any) => {
-    const query = gql`
-      mutation ($id: ID!, $chosenPermissions: [String!]!) {
-        assignRolePermissions(
-          role_id: $id
-          permission_ids: $chosenPermissions
-        ) {
-          count
-        }
-      }
-    `;
-    let variables = {
-      id: id,
-      chosenPermissions: chosenPermissions,
-    };
-    await client.request(query, variables, {
-      Authorization: `Bearer ${identity?.token.accessToken}`,
-    });
-    saveButtonProps.onClick();
+    // const query = gql`
+    //   mutation ($id: ID!, $chosenPermissions: [String!]!) {
+    //     assignRolePermissions(
+    //       role_id: $id
+    //       permission_ids: $chosenPermissions
+    //     ) {
+    //       count
+    //     }
+    //   }
+    // `;
+    // let variables = {
+    //   id: id,
+    //   chosenPermissions: chosenPermissions,
+    // };
+    // await client.request(query, variables, {
+    //   Authorization: `Bearer ${identity?.token.accessToken}`,
+    // });
+    // saveButtonProps.onClick();
   };
 
   const onPermissionsSelect = (value: any) => {

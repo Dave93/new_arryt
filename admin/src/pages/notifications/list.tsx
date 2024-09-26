@@ -3,7 +3,6 @@ import {
   DeleteButton,
   List,
   useDrawerForm,
-  useModal,
   useTable,
 } from "@refinedev/antd";
 import {
@@ -13,26 +12,18 @@ import {
   Drawer,
   Form,
   Input,
-  Modal,
   Row,
   Select,
   Space,
   Table,
 } from "antd";
 import { CrudFilters, HttpError, useGetIdentity } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import {
-  INotificationStatistic,
-  INotifications,
-  IRoles,
-} from "@admin/src/interfaces";
+import { INotifications, IRoles } from "@admin/src/interfaces";
 import { rangePresets } from "@admin/src/components/dates/RangePresets";
 import { PlusOutlined, BarsOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
-import { NotificationsStatistic } from "@admin/src/components/notifications/statistic";
 
 const { RangePicker } = DatePicker;
 
@@ -144,35 +135,35 @@ const NotificationsList: React.FC = () => {
   });
 
   const showNotificationStatistic = async (notification_id: string) => {
-    const query = gql`
-      query {
-        notificationStatistic(
-          id: "${notification_id}"
-        ) {
-          id
-          title
-          body
-          created_at
-          send_at
-          status
-          role
-          user {
-            id
-            first_name
-            last_name
-          }
-          deliver_status
-        }
-      }
-    `;
-    const { notificationStatistic } = await client.request<{
-      notificationStatistic: INotificationStatistic[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    Modal.info({
-      // title: "This is a notification message",
-      content: <NotificationsStatistic notifications={notificationStatistic} />,
-      onOk() {},
-    });
+    // const query = gql`
+    //   query {
+    //     notificationStatistic(
+    //       id: "${notification_id}"
+    //     ) {
+    //       id
+    //       title
+    //       body
+    //       created_at
+    //       send_at
+    //       status
+    //       role
+    //       user {
+    //         id
+    //         first_name
+    //         last_name
+    //       }
+    //       deliver_status
+    //     }
+    //   }
+    // `;
+    // const { notificationStatistic } = await client.request<{
+    //   notificationStatistic: INotificationStatistic[];
+    // }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    // Modal.info({
+    //   // title: "This is a notification message",
+    //   content: <NotificationsStatistic notifications={notificationStatistic} />,
+    //   onOk() {},
+    // });
   };
 
   const {
@@ -284,18 +275,18 @@ const NotificationsList: React.FC = () => {
   ];
 
   const getAllFilterData = async () => {
-    const query = gql`
-      query {
-        roles {
-          id
-          name
-        }
-      }
-    `;
-    const { roles } = await client.request<{
-      roles: IRoles[];
-    }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
-    setRoles(roles);
+    // const query = gql`
+    //   query {
+    //     roles {
+    //       id
+    //       name
+    //     }
+    //   }
+    // `;
+    // const { roles } = await client.request<{
+    //   roles: IRoles[];
+    // }>(query, {}, { Authorization: `Bearer ${identity?.token.accessToken}` });
+    // setRoles(roles);
   };
 
   useEffect(() => {

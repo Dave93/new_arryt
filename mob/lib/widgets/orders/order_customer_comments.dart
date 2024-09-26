@@ -1,18 +1,12 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_server.dart';
 import 'package:auto_route/auto_route.dart';
-import 'package:chat_package/chat_package.dart';
-import 'package:chat_package/models/chat_message.dart';
-import 'package:chat_package/models/media/chat_media.dart';
-import 'package:chat_package/models/media/media_type.dart' as ChatMediaType;
+import 'package:chatview/chatview.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:arryt/models/customer_comments.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:http_parser/http_parser.dart';
-
-import '../../bloc/block_imports.dart';
 
 @RoutePage()
 class OrderCustomerCommentsPage extends StatelessWidget {
@@ -46,9 +40,16 @@ class OrderCustomerCommentsView extends StatefulWidget {
 class _OrderCustomerCommentsViewState extends State<OrderCustomerCommentsView> {
   bool isLoading = true;
   List<CustomerCommentsModel> comments = [];
-  List<ChatMessage> messages = [];
+  List<Message> messages = [];
   final TextEditingController _controller = TextEditingController();
   final scrollController = ScrollController();
+
+  final chatController = ChatController(
+    initialMessageList: [],
+    scrollController: ScrollController(),
+    currentUser: ChatUser(id: '1', name: ''),
+    otherUsers: [],
+  );
 
   Future<void> _getCustomerComments() async {
     try {
@@ -65,20 +66,28 @@ class _OrderCustomerCommentsViewState extends State<OrderCustomerCommentsView> {
 
       if (response.statusCode == 200) {
         if (response.data != null) {
-          List<ChatMessage> resMessages = (response.data as List)
+          List<Message> resMessages = (response.data as List)
               .map((e) => CustomerCommentsModel.fromMap(e))
               .map(
             (e) {
-              return ChatMessage(
-                  isSender: true, text: e.comment!, createdAt: e.created_at);
+              return Message(
+                  id: e.id,
+                  message: e.comment!,
+                  sentBy: '1',
+                  createdAt: e.created_at);
             },
           ).toList();
-          setState(() {
-            comments = (response.data as List)
-                .map((e) => CustomerCommentsModel.fromMap(e))
-                .toList();
-            messages = resMessages;
+
+          resMessages.forEach((element) {
+            chatController.addMessage(element);
           });
+
+          // setState(() {
+          //   comments = (response.data as List)
+          //       .map((e) => CustomerCommentsModel.fromMap(e))
+          //       .toList();
+          //   messages = resMessages;
+          // });
         }
       }
 
@@ -208,7 +217,6 @@ class _OrderCustomerCommentsViewState extends State<OrderCustomerCommentsView> {
 
   @override
   Widget build(BuildContext context) {
-    final bool keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     if (isLoading) {
       return Scaffold(
         appBar: AppBar(
@@ -304,67 +312,11 @@ class _OrderCustomerCommentsViewState extends State<OrderCustomerCommentsView> {
           // body: Center(
           //   child: Text(AppLocalizations.of(context)!.no_comments),
           // )
-          body: ChatScreen(
-            scrollController: scrollController,
-            messages: messages,
-            sendMessageHintText:
-                AppLocalizations.of(context)!.commentFieldLabel.toUpperCase(),
-            senderColor: Theme.of(context).primaryColor,
-            imageAttachmentCancelText: AppLocalizations.of(context)!
-                .imageAttachmentCancelText
-                .toUpperCase(),
-            onTextSubmit: (textMessage) {},
-            handleImageSelect: (p0) async {
-              // const uploadImage = r"""
-              //   mutation uploadCustomerImageComment($file: Upload!, $customerId: String!) {
-              //     uploadCustomerImageComment(customerId: $customerId, file: $file) {
-              //       id
-              //     }
-              //   }
-              //   """;
-              // var bytes = p0.readAsBytes();
-              // var multipartFile = MultipartFile.fromBytes('file', await bytes,
-              //     filename: p0.name);
-              // var opts = MutationOptions(
-              //   document: gql(uploadImage),
-              //   variables: {
-              //     "file": multipartFile,
-              //     "customerId": widget.customerId
-              //   },
-              // );
-              // var client = GraphQLProvider.of(context).value;
-
-              // var results = await client.mutate(opts);
-
-              // _getCustomerComments();
-            },
-            handleRecord: (path, canceled) async {
-              if (!canceled) {
-                // const uploadImage = r"""
-                // mutation uploadCustomerVoiceComment($file: Upload!, $customerId: String!) {
-                //   uploadCustomerVoiceComment(customerId: $customerId, file: $file) {
-                //     id
-                //   }
-                // }
-                // """;
-                // var multipartFile = await MultipartFile.fromPath(
-                //     'file', path!,
-                //     filename: path!.chatMedia!.url!,
-                //     contentType: MediaType("audio", "m4a"));
-                // var opts = MutationOptions(
-                //   document: gql(uploadImage),
-                //   variables: {
-                //     "file": multipartFile,
-                //     "customerId": widget.customerId
-                //   },
-                // );
-                // var client = GraphQLProvider.of(context).value;
-
-                // var results = await client.mutate(opts);
-
-                // _getCustomerComments();
-              }
-            },
+          body: ChatView(
+            chatController: chatController,
+            // onSendTap: () {},
+            chatViewState: ChatViewState
+                .hasMessages, // Add this state once data is available.
           ));
     }
   }

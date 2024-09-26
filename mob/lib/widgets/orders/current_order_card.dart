@@ -4,16 +4,12 @@ import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:dio/dio.dart';
-import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:map_launcher/map_launcher.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
-import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:arryt/main.dart';
 import 'package:arryt/models/order.dart';
 import 'package:arryt/widgets/orders/orders_items.dart';
@@ -40,7 +36,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   final TextEditingController _textEditingController = TextEditingController();
-  CurrencyFormatterSettings euroSettings = CurrencyFormatterSettings(
+  CurrencyFormat euroSettings = const CurrencyFormat(
     symbol: 'сум',
     symbolSide: SymbolSide.right,
     thousandSeparator: ' ',
@@ -310,6 +306,14 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
     } catch (e) {
       print(e);
     }
+  }
+
+  void _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    await launchUrl(launchUri);
   }
 
   @override
@@ -654,7 +658,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
               onTap: () async {
                 String number =
                     widget.order.customer.target!.phone; //set the number here
-                bool? res = await FlutterPhoneDirectCaller.callNumber(number);
+                _makePhoneCall(number);
               },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -699,7 +703,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                             .toUpperCase(),
                         style: Theme.of(context)
                             .textTheme
-                            .button
+                            .titleMedium
                             ?.copyWith(fontSize: 14),
                       ),
                     ),
@@ -727,7 +731,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                               .toUpperCase(),
                           style: Theme.of(context)
                               .textTheme
-                              .button
+                              .titleMedium
                               ?.copyWith(fontSize: 14)),
                     ),
                   ),

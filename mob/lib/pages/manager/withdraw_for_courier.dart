@@ -4,6 +4,7 @@ import 'package:currency_formatter/currency_formatter.dart';
 import 'package:currency_text_input_formatter/currency_text_input_formatter.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:intl/intl.dart';
@@ -51,7 +52,6 @@ class WithdrawForCourierView extends StatefulWidget {
 
 class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
   bool _isLoading = false;
-  final _formKey = GlobalKey<FormState>();
   final TextEditingController _amountController = TextEditingController();
   CurrencyFormatterSettings euroSettings = CurrencyFormatterSettings(
     symbol: 'сум',
@@ -186,8 +186,8 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextFormField(
                     inputFormatters: [
-                      CurrencyTextInputFormatter(
-                        locale: 'ru',
+                      CurrencyTextInputFormatter.currency(
+                        locale: 'ru_RU',
                         decimalDigits: 0,
                         symbol: ' ',
                       )

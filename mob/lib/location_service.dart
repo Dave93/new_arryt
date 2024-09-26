@@ -8,12 +8,9 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:arryt/helpers/objectbox.dart';
-import 'package:path_provider/path_provider.dart';
 
 // Глобальные переменные для изолята
 SendPort? uiSendPort;

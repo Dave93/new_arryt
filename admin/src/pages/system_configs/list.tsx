@@ -692,6 +692,33 @@ export const SystemConfigsList: React.FC = () => {
                       </Form.Item>
                     </Col>
                   </Row>
+                  <Divider>Дневной гарант</Divider>
+                  <Row gutter={16}>
+                    <Col span={6}>
+                      <Form.Item label="Максимальная разница времени гаранта и фактического времени закрытия смены">
+                        <Controller
+                          name="daily_garant_max_difference"
+                          control={control}
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <InputNumber {...field} addonAfter="мин." />
+                          )}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item label="Максимальная время опоздания для гаранта">
+                        <Controller
+                          name="daily_garant_max_difference"
+                          control={control}
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <InputNumber {...field} addonAfter="мин." />
+                          )}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </TabPane>
                 <TabPane tab="Назначение курьеров" key="3">
                   <Row gutter={16}>

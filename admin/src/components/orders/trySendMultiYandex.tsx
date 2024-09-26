@@ -1,7 +1,5 @@
 import { Button, Space } from "antd";
 import { useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { useNotification } from "@refinedev/core";
 import { IOrders } from "@admin/src/interfaces";
 import { useCopyToClipboard } from "usehooks-ts";
@@ -20,26 +18,26 @@ export const TrySendMultiYandex = ({
 
   const sendToYandex = async (id: string) => {
     try {
-      setIsLoading(true);
-      const query = gql`
-        mutation ($id: String!) {
-          sendOrderToRoutedYandex(id: $id)
-        }
-      `;
-      const data = await client.request(
-        query,
-        { id },
-        {
-          Authorization: `Bearer ${token}`,
-        }
-      );
-      setIsLoading(false);
-      copy(data.sendOrderToRoutedYandex);
-      setResultString(data.sendOrderToRoutedYandex);
-      open!({
-        type: "success",
-        message: "Скопировано в буфер обмена",
-      });
+      // setIsLoading(true);
+      // const query = gql`
+      //   mutation ($id: String!) {
+      //     sendOrderToRoutedYandex(id: $id)
+      //   }
+      // `;
+      // const data = await client.request(
+      //   query,
+      //   { id },
+      //   {
+      //     Authorization: `Bearer ${token}`,
+      //   }
+      // );
+      // setIsLoading(false);
+      // copy(data.sendOrderToRoutedYandex);
+      // setResultString(data.sendOrderToRoutedYandex);
+      // open!({
+      //   type: "success",
+      //   message: "Скопировано в буфер обмена",
+      // });
     } catch (e: any) {
       setIsLoading(false);
       open!({

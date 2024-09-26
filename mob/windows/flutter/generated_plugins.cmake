@@ -3,16 +3,15 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  awesome_notifications
-  awesome_notifications_core
   connectivity_plus
   dynamic_color
+  emoji_picker_flutter
   file_selector_windows
   firebase_core
+  flutter_inappwebview_windows
   geolocator_windows
   objectbox_flutter_libs
   permission_handler_windows
-  record_windows
   url_launcher_windows
 )
 

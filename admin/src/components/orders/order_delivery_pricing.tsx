@@ -5,8 +5,6 @@ import {
 } from "@admin/src/interfaces";
 import { drive_type } from "@admin/src/interfaces/enums";
 import React, { FC, useEffect, useMemo, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
 import dayjs from "dayjs";
 import { organization_payment_types } from "@admin/src/interfaces/enums";

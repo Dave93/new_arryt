@@ -1,7 +1,6 @@
 import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 class ManagerShowQRCode extends StatelessWidget {
   const ManagerShowQRCode({super.key});

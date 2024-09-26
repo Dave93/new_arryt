@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:arryt/main.dart';
 import 'package:arryt/models/api_client.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:dio/dio.dart';

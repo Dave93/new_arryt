@@ -1,6 +1,11 @@
 import { DevtoolsProvider, DevtoolsPanel } from "@refinedev/devtools";
 import { Authenticated, CanParams, Refine } from "@refinedev/core";
-import { notificationProvider, ErrorComponent } from "@refinedev/antd";
+import {
+  notificationProvider,
+  ErrorComponent,
+  Header,
+  Sider,
+} from "@refinedev/antd";
 
 import "@refinedev/antd/dist/reset.css";
 import "./styles/main.css";
@@ -13,23 +18,13 @@ import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 import { useTranslation } from "react-i18next";
 import { authProvider, TOKEN_KEY } from "./authProvider";
 import {
-  ApolloClient,
-  InMemoryCache,
-  ApolloProvider,
-  split,
-  HttpLink,
-} from "@apollo/client";
-import {
   ApiTokensCreate,
   ApiTokensList,
   OrderStatusEdit,
 } from "@admin/src/pages/api_tokens";
-import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
-import { createClient } from "graphql-ws";
 import { useEffect, useMemo } from "react";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
 import { RolesCreate, RolesEdit, RolesList, RolesShow } from "./pages/roles";
-import { getMainDefinition } from "@apollo/client/utilities";
 import queryClient from "./dataprovider/reactQueryClient";
 import { BrandsList, BrandsCreate, BrandsEdit } from "./pages/brands";
 import {
@@ -98,32 +93,17 @@ import { App as AntdApp } from "antd";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import * as openpgp from "openpgp";
 
-const httpLink = new HttpLink({
-  uri: `https://${import.meta.env.VITE_GRAPHQL_API_DOMAIN!}/graphql`,
-});
+const CustomTitle = () => {
+  return (
+    <div className="mx-auto text-white font-bold uppercase text-center my-4 text-2xl">
+      Arryt
+    </div>
+  );
+};
 
-const wsLink = new GraphQLWsLink(
-  createClient({
-    url: `wss://${import.meta.env.VITE_GRAPHQL_API_DOMAIN!}/ws`,
-  })
-);
-
-const splitLink = split(
-  ({ query }) => {
-    const definition = getMainDefinition(query);
-    return (
-      definition.kind === "OperationDefinition" &&
-      definition.operation === "subscription"
-    );
-  },
-  wsLink,
-  httpLink
-);
-
-const gqlClient = new ApolloClient({
-  link: splitLink,
-  cache: new InMemoryCache(),
-});
+const CustomSider = () => {
+  return <Sider Title={CustomTitle} />;
+};
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -418,264 +398,254 @@ function App() {
   return (
     <BrowserRouter>
       <RefineKbarProvider>
-        <ApolloProvider client={gqlClient}>
-          <AntdApp>
-            <DevtoolsProvider>
-              <Refine
-                notificationProvider={notificationProvider}
-                options={{
-                  syncWithLocation: true,
+        <AntdApp>
+          <DevtoolsProvider>
+            <Refine
+              notificationProvider={notificationProvider}
+              options={{
+                syncWithLocation: true,
 
-                  reactQuery: {
-                    clientConfig: queryClient,
-                  },
+                reactQuery: {
+                  clientConfig: queryClient,
+                },
 
-                  projectId: "7UjA0s-GtR2fw-90I5AE",
-                }}
-                accessControlProvider={{
-                  can: async ({ action, params, resource }: CanParams) => {
-                    if (
-                      action === "list" &&
-                      Object.values({ ...params }).length === 0
-                    ) {
-                      return Promise.resolve({
-                        can: true,
-                      });
-                    }
-                    if (!params?.resource?.route) {
-                      return Promise.resolve({
-                        can: true,
-                      });
-                    }
-
-                    if (
-                      params?.resource?.children &&
-                      params?.resource?.children.length > 0 &&
-                      !params?.resource?.parentName
-                    ) {
-                      return Promise.resolve({
-                        can: true,
-                      });
-                    }
-
-                    if (resource === "dashboard") {
-                      return Promise.resolve({
-                        can: true,
-                      });
-                    }
-                    const token = localStorage.getItem(TOKEN_KEY);
-                    if (token) {
-                      let password = import.meta.env.VITE_CRYPTO_KEY!;
-                      const encryptedMessage = await openpgp.readMessage({
-                        armoredMessage: token,
-                      });
-                      const { data: decrypted } = await openpgp.decrypt({
-                        message: encryptedMessage,
-                        passwords: [password], // decrypt with password
-                        format: "binary", // output as Uint8Array
-                      });
-
-                      // binary to string
-                      const decryptedString = new TextDecoder().decode(
-                        decrypted
-                      );
-
-                      var decryptedData = JSON.parse(decryptedString);
-                      const {
-                        access: { additionalPermissions },
-                      } = decryptedData;
-                      let resourceName =
-                        params?.resource?.meta?.resource ?? resource;
-                      return Promise.resolve({
-                        can: additionalPermissions.includes(
-                          `${resourceName}.${action}`
-                        ),
-                        reason: additionalPermissions.includes(
-                          `${resourceName}.${action}`
-                        )
-                          ? undefined
-                          : "You are not allowed to do this",
-                      });
-                    }
+                projectId: "7UjA0s-GtR2fw-90I5AE",
+              }}
+              accessControlProvider={{
+                can: async ({ action, params, resource }: CanParams) => {
+                  if (
+                    action === "list" &&
+                    Object.values({ ...params }).length === 0
+                  ) {
                     return Promise.resolve({
                       can: true,
                     });
-                  },
-                }}
-                routerProvider={routerProvider}
-                dataProvider={edenDataProvider}
-                authProvider={authProvider}
-                i18nProvider={i18nProvider}
-                // syncWithLocation={true}
-                resources={resources}
-              >
-                <Routes>
-                  <Route path="/privacy" element={<PrivacyPage />} />
-                  <Route
-                    element={
-                      <Authenticated
-                        key="authenticated-inner"
-                        fallback={<CatchAllNavigate to="/login" />}
-                      >
-                        <ThemedLayoutV2>
-                          <Outlet />
-                        </ThemedLayoutV2>
-                      </Authenticated>
-                    }
-                  >
-                    <Route index element={<MainPage />} />
-                    <Route path="/orders">
-                      <Route index element={<OrdersList />} />
-                      <Route path="show/:id" element={<OrdersShow />} />
-                    </Route>
-                    <Route path="/missed_orders">
-                      <Route index element={<MissedOrdersList />} />
-                    </Route>
-                    <Route
-                      path="/orders_garant_report"
-                      element={<OrdersGarantReport />}
-                    />
-                    <Route
-                      path="/yuriy_orders_garant_report"
-                      element={<YuriyOrdersGarantReport />}
-                    />
-                    <Route path="/manager_withdraw">
-                      <Route index element={<ManagerWithdrawList />} />
-                    </Route>
-                    <Route path="/users">
-                      <Route index element={<UsersList />} />
-                      <Route path="show/:id" element={<UsersShow />} />
-                      <Route path="create" element={<UsersCreate />} />
-                      <Route path="edit/:id" element={<UsersEdit />} />
-                    </Route>
-                    <Route path="/roll_call">
-                      <Route index element={<RollCallList />} />
-                    </Route>
-                    <Route path="/courier_balance">
-                      <Route index element={<CourierBalance />} />
-                    </Route>
-                    <Route path="/courier_efficiency">
-                      <Route index element={<CourierEfficiency />} />
-                    </Route>
-                    <Route path="/customers">
-                      <Route index element={<CustomersList />} />
-                      <Route path="show/:id" element={<CustomersShow />} />
-                    </Route>
-                    <Route path="/order_status">
-                      <Route index element={<OrderStatusList />} />
-                      <Route path="create" element={<OrderStatusCreate />} />
-                      <Route path="edit/:id" element={<OrderStatusEdit />} />
-                    </Route>
-                    <Route path="/roles">
-                      <Route index element={<RolesList />} />
-                      <Route path="create" element={<RolesCreate />} />
-                      <Route path="edit/:id" element={<RolesEdit />} />
-                      <Route path="show/:id" element={<RolesShow />} />
-                    </Route>
-                    <Route path="/permissions">
-                      <Route index element={<PermissionsList />} />
-                      <Route path="create" element={<PermissionsCreate />} />
-                      <Route path="edit/:id" element={<PermissionsEdit />} />
-                    </Route>
-                    <Route path="/where_courier">
-                      <Route index element={<WhereCourierList />} />
-                    </Route>
-                    <Route path="/organizations">
-                      <Route index element={<OrganizationList />} />
-                      <Route path="create" element={<OrganizationsCreate />} />
-                      <Route path="edit/:id" element={<OrganizationsEdit />} />
-                    </Route>
-                    <Route path="/terminals">
-                      <Route index element={<TerminalsList />} />
-                      <Route path="create" element={<TerminalsCreate />} />
-                      <Route path="edit/:id" element={<TerminalsEdit />} />
-                    </Route>
-                    <Route path="/delivery_pricing">
-                      <Route index element={<DeliveryPricingList />} />
-                      <Route
-                        path="create"
-                        element={<DeliveryPricingCreate />}
-                      />
-                      <Route
-                        path="edit/:id"
-                        element={<DeliveryPricingEdit />}
-                      />
-                    </Route>
-                    <Route path="/order_bonus_pricing">
-                      <Route index element={<OrderBonusPricingList />} />
-                      <Route
-                        path="create"
-                        element={<OrderBonusPricingCreate />}
-                      />
-                      <Route
-                        path="edit/:id"
-                        element={<OrderBonusPricingEdit />}
-                      />
-                    </Route>
-                    <Route path="/constructed_bonus_pricing">
-                      <Route index element={<ConstructedBonusPricingList />} />
-                      <Route
-                        path="create"
-                        element={<ConstructedBonusPricingCreate />}
-                      />
-                      <Route
-                        path="edit/:id"
-                        element={<ConstructedBonusPricingEdit />}
-                      />
-                    </Route>
-                    <Route path="/work_schedules">
-                      <Route index element={<WorkSchedulesList />} />
-                      <Route path="create" element={<WorkSchedulesCreate />} />
-                      <Route path="edit/:id" element={<WorkSchedulesEdit />} />
-                    </Route>
-                    <Route path="/work_schedule_entries_report">
-                      <Route index element={<WorkSchedulesReport />} />
-                    </Route>
-                    <Route path="/api_tokens">
-                      <Route index element={<ApiTokensList />} />
-                      <Route path="create" element={<ApiTokensCreate />} />
-                    </Route>
-                    <Route path="/system_configs">
-                      <Route index element={<SystemConfigsList />} />
-                    </Route>
-                    <Route path="/brands">
-                      <Route index element={<BrandsList />} />
-                      <Route path="create" element={<BrandsCreate />} />
-                      <Route path="edit/:id" element={<BrandsEdit />} />
-                    </Route>
-                    <Route path="/notifications">
-                      <Route index element={<NotificationsList />} />
-                      {/* <Route path="create" element={<NotificationsCreate />} />
-                    <Route path="edit/:id" element={<NotificationsEdit />} /> */}
-                    </Route>
-                    <Route path="/daily_garant">
-                      <Route index element={<DailyGarantList />} />
-                      <Route path="create" element={<DailyGarantCreate />} />
-                      <Route path="edit/:id" element={<DailyGarantEdit />} />
-                    </Route>
-                    <Route path="*" element={<ErrorComponent />} />
-                  </Route>
-                  <Route
-                    element={
-                      <Authenticated
-                        key="authenticated-outer"
-                        fallback={<Outlet />}
-                      >
-                        <NavigateToResource />
-                      </Authenticated>
-                    }
-                  >
-                    <Route path="/login" element={<Login />} />
-                  </Route>
-                </Routes>
+                  }
+                  if (!params?.resource?.route) {
+                    return Promise.resolve({
+                      can: true,
+                    });
+                  }
 
-                <ReactQueryDevtools initialIsOpen={false} />
-                <RefineKbar />
-              </Refine>
-              <DevtoolsPanel />
-            </DevtoolsProvider>
-          </AntdApp>
-        </ApolloProvider>
+                  if (
+                    params?.resource?.children &&
+                    params?.resource?.children.length > 0 &&
+                    !params?.resource?.parentName
+                  ) {
+                    return Promise.resolve({
+                      can: true,
+                    });
+                  }
+
+                  if (resource === "dashboard") {
+                    return Promise.resolve({
+                      can: true,
+                    });
+                  }
+                  const token = localStorage.getItem(TOKEN_KEY);
+                  if (token) {
+                    let password = import.meta.env.VITE_CRYPTO_KEY!;
+                    const encryptedMessage = await openpgp.readMessage({
+                      armoredMessage: token,
+                    });
+                    const { data: decrypted } = await openpgp.decrypt({
+                      message: encryptedMessage,
+                      passwords: [password], // decrypt with password
+                      format: "binary", // output as Uint8Array
+                    });
+
+                    // binary to string
+                    const decryptedString = new TextDecoder().decode(decrypted);
+
+                    var decryptedData = JSON.parse(decryptedString);
+                    const {
+                      access: { additionalPermissions },
+                    } = decryptedData;
+                    let resourceName =
+                      params?.resource?.meta?.resource ?? resource;
+                    return Promise.resolve({
+                      can: additionalPermissions.includes(
+                        `${resourceName}.${action}`
+                      ),
+                      reason: additionalPermissions.includes(
+                        `${resourceName}.${action}`
+                      )
+                        ? undefined
+                        : "You are not allowed to do this",
+                    });
+                  }
+                  return Promise.resolve({
+                    can: true,
+                  });
+                },
+              }}
+              routerProvider={routerProvider}
+              dataProvider={edenDataProvider}
+              authProvider={authProvider}
+              i18nProvider={i18nProvider}
+              // syncWithLocation={true}
+              resources={resources}
+            >
+              <Routes>
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route
+                  element={
+                    <Authenticated
+                      key="authenticated-inner"
+                      fallback={<CatchAllNavigate to="/login" />}
+                    >
+                      <ThemedLayoutV2 Sider={CustomSider}>
+                        <Outlet />
+                      </ThemedLayoutV2>
+                    </Authenticated>
+                  }
+                >
+                  <Route index element={<MainPage />} />
+                  <Route path="/orders">
+                    <Route index element={<OrdersList />} />
+                    <Route path="show/:id" element={<OrdersShow />} />
+                  </Route>
+                  <Route path="/missed_orders">
+                    <Route index element={<MissedOrdersList />} />
+                  </Route>
+                  <Route
+                    path="/orders_garant_report"
+                    element={<OrdersGarantReport />}
+                  />
+                  <Route
+                    path="/yuriy_orders_garant_report"
+                    element={<YuriyOrdersGarantReport />}
+                  />
+                  <Route path="/manager_withdraw">
+                    <Route index element={<ManagerWithdrawList />} />
+                  </Route>
+                  <Route path="/users">
+                    <Route index element={<UsersList />} />
+                    <Route path="show/:id" element={<UsersShow />} />
+                    <Route path="create" element={<UsersCreate />} />
+                    <Route path="edit/:id" element={<UsersEdit />} />
+                  </Route>
+                  <Route path="/roll_call">
+                    <Route index element={<RollCallList />} />
+                  </Route>
+                  <Route path="/courier_balance">
+                    <Route index element={<CourierBalance />} />
+                  </Route>
+                  <Route path="/courier_efficiency">
+                    <Route index element={<CourierEfficiency />} />
+                  </Route>
+                  <Route path="/customers">
+                    <Route index element={<CustomersList />} />
+                    <Route path="show/:id" element={<CustomersShow />} />
+                  </Route>
+                  <Route path="/order_status">
+                    <Route index element={<OrderStatusList />} />
+                    <Route path="create" element={<OrderStatusCreate />} />
+                    <Route path="edit/:id" element={<OrderStatusEdit />} />
+                  </Route>
+                  <Route path="/roles">
+                    <Route index element={<RolesList />} />
+                    <Route path="create" element={<RolesCreate />} />
+                    <Route path="edit/:id" element={<RolesEdit />} />
+                    <Route path="show/:id" element={<RolesShow />} />
+                  </Route>
+                  <Route path="/permissions">
+                    <Route index element={<PermissionsList />} />
+                    <Route path="create" element={<PermissionsCreate />} />
+                    <Route path="edit/:id" element={<PermissionsEdit />} />
+                  </Route>
+                  <Route path="/where_courier">
+                    <Route index element={<WhereCourierList />} />
+                  </Route>
+                  <Route path="/organizations">
+                    <Route index element={<OrganizationList />} />
+                    <Route path="create" element={<OrganizationsCreate />} />
+                    <Route path="edit/:id" element={<OrganizationsEdit />} />
+                  </Route>
+                  <Route path="/terminals">
+                    <Route index element={<TerminalsList />} />
+                    <Route path="create" element={<TerminalsCreate />} />
+                    <Route path="edit/:id" element={<TerminalsEdit />} />
+                  </Route>
+                  <Route path="/delivery_pricing">
+                    <Route index element={<DeliveryPricingList />} />
+                    <Route path="create" element={<DeliveryPricingCreate />} />
+                    <Route path="edit/:id" element={<DeliveryPricingEdit />} />
+                  </Route>
+                  <Route path="/order_bonus_pricing">
+                    <Route index element={<OrderBonusPricingList />} />
+                    <Route
+                      path="create"
+                      element={<OrderBonusPricingCreate />}
+                    />
+                    <Route
+                      path="edit/:id"
+                      element={<OrderBonusPricingEdit />}
+                    />
+                  </Route>
+                  <Route path="/constructed_bonus_pricing">
+                    <Route index element={<ConstructedBonusPricingList />} />
+                    <Route
+                      path="create"
+                      element={<ConstructedBonusPricingCreate />}
+                    />
+                    <Route
+                      path="edit/:id"
+                      element={<ConstructedBonusPricingEdit />}
+                    />
+                  </Route>
+                  <Route path="/work_schedules">
+                    <Route index element={<WorkSchedulesList />} />
+                    <Route path="create" element={<WorkSchedulesCreate />} />
+                    <Route path="edit/:id" element={<WorkSchedulesEdit />} />
+                  </Route>
+                  <Route path="/work_schedule_entries_report">
+                    <Route index element={<WorkSchedulesReport />} />
+                  </Route>
+                  <Route path="/api_tokens">
+                    <Route index element={<ApiTokensList />} />
+                    <Route path="create" element={<ApiTokensCreate />} />
+                  </Route>
+                  <Route path="/system_configs">
+                    <Route index element={<SystemConfigsList />} />
+                  </Route>
+                  <Route path="/brands">
+                    <Route index element={<BrandsList />} />
+                    <Route path="create" element={<BrandsCreate />} />
+                    <Route path="edit/:id" element={<BrandsEdit />} />
+                  </Route>
+                  <Route path="/notifications">
+                    <Route index element={<NotificationsList />} />
+                    {/* <Route path="create" element={<NotificationsCreate />} />
+                    <Route path="edit/:id" element={<NotificationsEdit />} /> */}
+                  </Route>
+                  <Route path="/daily_garant">
+                    <Route index element={<DailyGarantList />} />
+                    <Route path="create" element={<DailyGarantCreate />} />
+                    <Route path="edit/:id" element={<DailyGarantEdit />} />
+                  </Route>
+                  <Route path="*" element={<ErrorComponent />} />
+                </Route>
+                <Route
+                  element={
+                    <Authenticated
+                      key="authenticated-outer"
+                      fallback={<Outlet />}
+                    >
+                      <NavigateToResource />
+                    </Authenticated>
+                  }
+                >
+                  <Route path="/login" element={<Login />} />
+                </Route>
+              </Routes>
+
+              <ReactQueryDevtools initialIsOpen={false} />
+              <RefineKbar />
+            </Refine>
+            <DevtoolsPanel />
+          </DevtoolsProvider>
+        </AntdApp>
       </RefineKbarProvider>
     </BrowserRouter>
   );

@@ -10,8 +10,6 @@ import UserRollCallList from "@admin/src/components/users/user_roll_call";
 import CourierWithdraws from "@admin/src/components/users/courier_withdraws";
 import CourierEffectiveness from "@admin/src/components/users/courier_effectiveness";
 import CourierTransactions from "@admin/src/components/users/courier_transactions";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { useEffect, useState } from "react";
 import { sortBy } from "lodash";
 import { organization, terminals } from "@api/drizzle/schema";

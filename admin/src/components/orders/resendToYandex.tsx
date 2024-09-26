@@ -1,7 +1,5 @@
 import { Button, Space } from "antd";
 import React, { FC, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNotification } from "@refinedev/core";
 import { IOrders } from "@admin/src/interfaces";
@@ -19,24 +17,24 @@ export const ResentToYandex = ({
 
   const sendToYandex = async (id: string) => {
     try {
-      setIsLoading(true);
-      const query = gql`
-        mutation ($id: String!) {
-          resendToYandex(id: $id)
-        }
-      `;
-      const data = await client.request(
-        query,
-        { id },
-        {
-          Authorization: `Bearer ${token}`,
-        }
-      );
-      setIsLoading(false);
-      open!({
-        type: "success",
-        message: "Успешно переотправлен",
-      });
+      // setIsLoading(true);
+      // const query = gql`
+      //   mutation ($id: String!) {
+      //     resendToYandex(id: $id)
+      //   }
+      // `;
+      // const data = await client.request(
+      //   query,
+      //   { id },
+      //   {
+      //     Authorization: `Bearer ${token}`,
+      //   }
+      // );
+      // setIsLoading(false);
+      // open!({
+      //   type: "success",
+      //   message: "Успешно переотправлен",
+      // });
     } catch (e: any) {
       setIsLoading(false);
       open!({

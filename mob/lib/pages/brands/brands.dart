@@ -16,7 +16,7 @@ class BrandsPage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () {
-            context.router.pop();
+            context.router.maybePop();
           },
         ),
         title: Text(AppLocalizations.of(context)!.choose_brand.toUpperCase(),

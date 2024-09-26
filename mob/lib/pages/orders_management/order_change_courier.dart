@@ -1,10 +1,8 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
-import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/couriers.dart';
 import 'package:arryt/models/order.dart';
 import 'package:flutter/material.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:loading_overlay/loading_overlay.dart';
 

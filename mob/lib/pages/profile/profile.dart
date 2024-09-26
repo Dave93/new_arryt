@@ -1,7 +1,6 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/bloc/block_imports.dart';
 import 'package:arryt/helpers/api_server.dart';
-import 'package:arryt/main.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:arryt/widgets/profile/my_balance_by_terminal.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -9,7 +8,6 @@ import 'package:currency_formatter/currency_formatter.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:arryt/helpers/hive_helper.dart';
 

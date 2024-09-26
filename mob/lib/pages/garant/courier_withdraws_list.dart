@@ -1,6 +1,5 @@
 import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:currency_formatter/currency_formatter.dart';
-import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:intl/intl.dart';

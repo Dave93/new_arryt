@@ -1,6 +1,5 @@
 import { terminals, users } from "@api/drizzle/schema";
 import { drive_type, organization_system_type, user_status } from "./enums";
-import { GraphQLScalarType } from "graphql";
 import { InferSelectModel } from "drizzle-orm";
 
 export interface IPermissions {

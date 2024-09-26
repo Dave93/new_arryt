@@ -1,22 +1,12 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_server.dart';
-import 'package:arryt/models/organizations.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 // import 'package:chat_package/views/componants/chat_input_feild.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:group_button/group_button.dart';
-import 'package:http/http.dart';
-import 'package:http_parser/http_parser.dart';
 
 import '../../main.dart';
-import '../../models/customer.dart';
-import '../../models/order.dart';
-import '../../models/order_next_button.dart';
-import '../../models/order_status.dart';
-import '../../models/terminals.dart';
 
 class CancelOrderModal extends StatefulWidget {
   final String orderId;

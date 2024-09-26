@@ -1,7 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:arryt/models/api_client.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 class HiveHelper {
   static const String userDataBoxName = 'userDataBox';

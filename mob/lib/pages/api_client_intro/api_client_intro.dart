@@ -9,7 +9,7 @@ class ApiClientIntroPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).backgroundColor,
+      backgroundColor: Theme.of(context).primaryColor,
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Center(
@@ -27,7 +27,7 @@ class ApiClientIntroPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 5),
                     child: AutoSizeText(
                       AppLocalizations.of(context)!.app_clients_intro_title,
-                      style: Theme.of(context).textTheme.headline4,
+                      style: Theme.of(context).textTheme.titleLarge,
                       textAlign: TextAlign.center,
                       maxLines: 1,
                     ),
@@ -37,7 +37,7 @@ class ApiClientIntroPage extends StatelessWidget {
                     child: AutoSizeText(
                       AppLocalizations.of(context)!
                           .app_clients_intro_description,
-                      style: Theme.of(context).textTheme.subtitle1,
+                      style: Theme.of(context).textTheme.titleMedium,
                       textAlign: TextAlign.center,
                       maxLines: 3,
                     ),
@@ -74,7 +74,7 @@ class ApiClientIntroPage extends StatelessWidget {
                       child: Center(
                         child: Text(
                           AppLocalizations.of(context)!.scan.toUpperCase(),
-                          style: Theme.of(context).textTheme.button,
+                          style: Theme.of(context).textTheme.titleMedium,
                           textAlign: TextAlign.center,
                         ),
                       ),
