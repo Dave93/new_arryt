@@ -51,7 +51,7 @@ import { getSetting } from "@api/src/utils/settings";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { ctx } from "@api/src/context";
 import { CourierEfficiencyReportItem, UsersModel, WalletStatus } from "./dto/list.dto";
-import { processPushCourierToQueue } from "@api/src/context/queues";
+import { processPushCourierToQueue, processTrySetDailyGarant } from "@api/src/context/queues";
 dayjs.extend(customParseFormat);
 
 
@@ -574,6 +574,14 @@ export const UsersController = new Elysia({
         .execute();
 
       redis.hdel(`${process.env.PROJECT_PREFIX}_user_location`, user.user.id);
+
+      await processTrySetDailyGarant.add(user.user.id, {
+        courier_id: user.user.id,
+        terminal_id: user.user.terminal_id,
+      }, {
+        attempts: 3,
+        removeOnComplete: true,
+      });
 
       return openedTimeEntry;
     },

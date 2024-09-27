@@ -16,10 +16,11 @@ import {
   daily_garant,
 } from "@api/drizzle/schema";
 import { DB } from "@api/src/lib/db";
-import { eq, getTableColumns, InferSelectModel } from "drizzle-orm";
+import { eq, getTableColumns, InferSelectModel, sql } from "drizzle-orm";
 import { Redis } from "ioredis";
 import { UserResponseDto } from "../user/users.dto";
 import { WorkScheduleWithRelations } from "../work_schedules/dto/list.dto";
+import dayjs from "dayjs";
 
 export class CacheControlService {
   constructor(private readonly db: DB, private readonly redis: Redis) {
@@ -518,6 +519,10 @@ export class CacheControlService {
 
   async getNextQueueCourier(terminal_id: string, drive_type: string, skipCourierId?: string) {
 
+    let skipCourierIds = [];
+    if (skipCourierId) {
+      skipCourierIds.push(skipCourierId);
+    }
     const terminals = await this.getTerminals();
     const terminal = terminals.find((t) => t.id === terminal_id);
     if (!terminal) {
@@ -543,6 +548,8 @@ export class CacheControlService {
       }
     }
 
+    const orderStatuses = await this.getOrderStatuses();
+    const finishOrderStatuses = orderStatuses.filter((status) => status.finish || status.cancel).map((status) => status.id);
     queueKey += `_${queueTerminals.sort().join('_')}`;
     lastCourierKey += `_${queueTerminals.sort().join('_')}`;
 
@@ -561,9 +568,29 @@ export class CacheControlService {
       return null;
     }
 
+    const sqlStartDateTime = sql.raw(`${dayjs().subtract(6, 'hours').format('YYYY_MM_DD')} 00:00:00`);
+    const sqlEndDateTime = sql.raw(`${dayjs().format('YYYY_MM_DD')} 04:00:00`);
+    const terminalIds = sql.raw(queueTerminals.map((id) => `'${id}'`).join(','));
+    const busyCourierIds = (await this.db.execute<{ courier_id: string }>(
+      sql`select courier_id 
+        from orders 
+        where order_status_id not in (${finishOrderStatuses}) 
+        and courier_id is not null 
+        and created_at >= '${sqlStartDateTime}' 
+        and created_at <= '${sqlEndDateTime}' 
+        and terminal_id in (${terminalIds}) 
+        group by courier_id`
+    )).rows;
+
+    console.log(busyCourierIds);
+
+    if (busyCourierIds.length > 0) {
+      skipCourierIds = [...skipCourierIds, ...busyCourierIds.map((courier) => courier.courier_id)];
+    }
+
     // Remove the courier to skip from the queue if provided
-    if (skipCourierId) {
-      courierQueue = courierQueue.filter(id => id !== skipCourierId);
+    if (skipCourierIds.length > 0) {
+      courierQueue = courierQueue.filter(id => !skipCourierIds.includes(id));
     }
 
     if (courierQueue.length === 0) {

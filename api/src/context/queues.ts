@@ -106,3 +106,10 @@ export const processTryAssignCourier = new Queue(
         connection: client,
     }
 );
+
+export const processTrySetDailyGarant = new Queue(
+    `${process.env.TASKS_PREFIX}_try_set_daily_garant`,
+    {
+        connection: client,
+    }
+);

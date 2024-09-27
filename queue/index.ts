@@ -17,6 +17,7 @@ import { processSendNotification } from "./processors/send_notification";
 import processPushCourierToQueue from "./processors/push_courier_to_queue";
 import processSetQueueLastCourier from "./processors/set_queue_last_courier";
 import processTryAssignCourier from "./processors/try_assign_courier";
+import { processTrySetDailyGarant } from "./processors/try_set_daily_garant";
 
 export const redisClient = new Redis({
     maxRetriesPerRequest: null,
@@ -52,17 +53,6 @@ const newOrderNotify = new Worker(
     }
 );
 
-const sendStopListExpress24Worker = new Worker(
-    `${process.env.TASKS_PREFIX}_send_stop_list_express24`,
-    async (job) => {
-        console.log('send_stop_list_express24', job.data);
-        await processSendStopListExpress24(job.data);
-        return 'send_stop_list_express24';
-    },
-    {
-        connection: redisClient,
-    }
-);
 
 const processOrderIndexWorker = new Worker(
     `${process.env.TASKS_PREFIX}_process_order_index`,
@@ -234,11 +224,19 @@ const setQueueLastCourierWorker = new Worker(
     }
 );
 
+const tryAssignCourierQueue = new Queue(
+    `${process.env.TASKS_PREFIX}_try_assign_courier`,
+    {
+        connection: redisClient,
+    }
+);
+
+
 const tryAssignCourierWorker = new Worker(
     `${process.env.TASKS_PREFIX}_try_assign_courier`,
     async (job) => {
         console.log('try_assign_courier', job.data);
-        await processTryAssignCourier(redisClient, db, cacheControl, job.data);
+        await processTryAssignCourier(redisClient, db, cacheControl, job.data, tryAssignCourierQueue);
         return 'try_assign_courier';
     },
     {
@@ -246,6 +244,15 @@ const tryAssignCourierWorker = new Worker(
     }
 );
 
-function processSendStopListExpress24(data: any) {
-    throw new Error("Function not implemented.");
-}
+
+const trySetDailyGarantWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_try_set_daily_garant`,
+    async (job) => {
+        console.log('try_set_daily_garant', job.data);
+        await processTrySetDailyGarant(redisClient, db, cacheControl, job.data);
+        return 'try_set_daily_garant';
+    },
+    {
+        connection: redisClient,
+    }
+);

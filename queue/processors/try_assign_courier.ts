@@ -5,6 +5,7 @@ import getFirebaseAccessToken from "@queue/lib";
 import { and, eq } from "drizzle-orm";
 import Redis from "ioredis";
 import processCheckAndSendYandex from "./check_and_send_yandex";
+import { Queue } from "bullmq";
 
 type TryAssignCourierData = {
     order_id: string;
@@ -13,7 +14,7 @@ type TryAssignCourierData = {
     queue: number;
 }
 
-export default async function processTryAssignCourier(redis: Redis, db: DB, cacheControl: CacheControlService, data: TryAssignCourierData) {
+export default async function processTryAssignCourier(redis: Redis, db: DB, cacheControl: CacheControlService, data: TryAssignCourierData, tryAssignCourierQueue: Queue) {
     console.time('processTryAssignCourier');
     const { order_id, created_at } = data;
 
@@ -51,7 +52,9 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
     if (orderStatus!.sort <= 1 && !order[0].courier_id) {
 
         if (data.queue > 2) {
-            await processCheckAndSendYandex(db, redis, cacheControl, order_id);
+            if (order[0].terminal_id == '621c0913-93d0-4eeb-bf00-f0c6f578bcd1') {
+                await processCheckAndSendYandex(db, redis, cacheControl, order_id);
+            }
         }
         else {
 
@@ -73,18 +76,18 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
                     const message = {
                         token: courierFcmToken,
                         notification: {
-                            title: "New Order Assigned",
-                            body: `You have been assigned a new order: ${order_id}`,
+                            title: "Примите новый заказ",
+                            body: `Вы были назначены на новый заказ: ${order_id}`,
                             android: {
                                 notification: {
                                     click_action: "OPEN_ORDER_DETAILS",
                                     buttons: [
                                         {
-                                            text: "Accept",
+                                            text: "Принять",
                                             action: "accept"
                                         },
                                         {
-                                            text: "Reject",
+                                            text: "Отклонить",
                                             action: "reject"
                                         }
                                     ]
@@ -125,6 +128,14 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
                 } else {
                     console.warn(`No FCM token found for courier ${nextCourier}`);
                 }
+            } else {
+                await tryAssignCourierQueue.add(`${order_id}_${data.queue + 1}`, {
+                    order_id,
+                    created_at,
+                    queue: data.queue + 1
+                }, {
+                    delay: 1000 * 60 * 5
+                });
             }
         }
     }
