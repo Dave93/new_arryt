@@ -1,7 +1,7 @@
-import dataProvider from "./dataProvider";
-export default dataProvider;
+import { edenDataProvider } from "./edenDataProvider";
+export default edenDataProvider;
 
-export * from "./dataProvider";
+export * from "./edenDataProvider";
 
 export {
   GraphQLClient,
