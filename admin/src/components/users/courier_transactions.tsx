@@ -64,10 +64,6 @@ const CourierTransactions = ({
     onMutationSuccess: () => {
       loadData();
     },
-
-    initialValues: {
-      courier_id: user.id,
-    },
     meta: {
       pluralize: true,
       fields: ["id"],
