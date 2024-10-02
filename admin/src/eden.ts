@@ -3,7 +3,7 @@ import type { BackendApp } from "@api/src/app";
 
 
 export const apiClient = edenTreaty<BackendApp>(import.meta.env.VITE_API_URL!, {
-    fetch: {
+    $fetch: {
         credentials: "include",
     }
 });
