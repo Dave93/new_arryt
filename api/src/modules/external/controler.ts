@@ -505,13 +505,12 @@ export const externalControler = new Elysia({
         const currentTime = new Date().getHours();
         let activeDeliveryPricing = [];
         activeDeliveryPricing = deliveryPricing.filter((d) => {
+            console.log('start_time', d.start_time)
             let res = false;
-            const startTime = dayjs.tz(d.start_time, 'Asia/Tashkent').add(5, 'hour').format('HH:mm');
-            const endTime = dayjs.tz(d.end_time, 'Asia/Tashkent').add(5, 'hour').format('HH:mm');
             const currentTime = new Date();
             const now = getMinutesNow();
-            let start = getMinutes(startTime);
-            let end = getMinutes(endTime);
+            let start = getMinutes(d.start_time);
+            let end = getMinutes(d.end_time);
 
             if (end < start && now < start) {
                 start -= getMinutes('24:00');

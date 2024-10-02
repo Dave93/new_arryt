@@ -26,21 +26,9 @@ const app = new Elysia()
     }))
     // .use(serverTiming())
     .use(apiController)
-    .get("/davr", async ({
-        cookie: {
-            sessionId
-        }
-    }) => {
-        console.log('sessionId', sessionId.value);
+    .get("/davr", async () => {
         console.log('get /');
         return 'Hello Davr';
-    }, {
-        cookie: t.Cookie({
-            sessionId: t.Optional(t.String({
-            }))
-        }, {
-
-        })
     });
 
 export default app;

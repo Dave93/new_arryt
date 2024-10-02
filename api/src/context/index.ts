@@ -119,36 +119,43 @@ export const contextWitUser = new Elysia({
       }
     }
 
-    const token = authorization.split(' ')[1];
-    let jwtResult = await verifyJwt(token);
-    let userData = await redis.hget(
-      `${process.env.PROJECT_PREFIX}_user`,
-      jwtResult.payload.id as string
-    );
-    let userRes = null as {
-      user: UserResponseDto;
-      access: {
-        additionalPermissions: string[];
-        roles: {
-          name: string;
-          code: string;
-          active: boolean;
-        }[];
-      };
-    } | null;
-    if (userData) {
-      userRes = JSON.parse(userData);
-    }
+    try {
+      const token = authorization.split(' ')[1];
+      let jwtResult = await verifyJwt(token);
+      let userData = await redis.hget(
+        `${process.env.PROJECT_PREFIX}_user`,
+        jwtResult.payload.id as string
+      );
+      let userRes = null as {
+        user: UserResponseDto;
+        access: {
+          additionalPermissions: string[];
+          roles: {
+            name: string;
+            code: string;
+            active: boolean;
+          }[];
+        };
+      } | null;
+      if (userData) {
+        userRes = JSON.parse(userData);
+      }
 
-    if (!userRes) {
+      if (!userRes) {
+        return {
+          user: null,
+        }
+      }
+
+      return {
+        user: userRes,
+      };
+    } catch (e) {
       return {
         user: null,
       }
-    }
 
-    return {
-      user: userRes,
-    };
+    }
   })
   .macro(({ onBeforeHandle }) => ({
     permission(permission: string) {
@@ -160,40 +167,45 @@ export const contextWitUser = new Elysia({
           });
         }
 
-        const token = authorization.split(' ')[1];
-        let jwtResult = await verifyJwt(token);
-        let userData = await redis.hget(
-          `${process.env.PROJECT_PREFIX}_user`,
-          jwtResult.payload.id as string
-        );
-        let userRes = null as {
-          user: UserResponseDto;
-          access: {
-            additionalPermissions: string[];
-            roles: {
-              name: string;
-              code: string;
-              active: boolean;
-            }[];
-          };
-        } | null;
-        if (userData) {
-          userRes = JSON.parse(userData);
-        }
+        try {
+          const token = authorization.split(' ')[1];
+          let jwtResult = await verifyJwt(token);
+          let userData = await redis.hget(
+            `${process.env.PROJECT_PREFIX}_user`,
+            jwtResult.payload.id as string
+          );
+          let userRes = null as {
+            user: UserResponseDto;
+            access: {
+              additionalPermissions: string[];
+              roles: {
+                name: string;
+                code: string;
+                active: boolean;
+              }[];
+            };
+          } | null;
+          if (userData) {
+            userRes = JSON.parse(userData);
+          }
 
-        if (!userRes) {
+          if (!userRes) {
+            return error(401, {
+              message: "Unauthorized",
+            });
+          }
+
+          if (!userRes.access.additionalPermissions.includes(permission)) {
+            return error(403, {
+              message: "Forbidden",
+            });
+          }
+        } catch (e) {
           return error(401, {
             message: "Unauthorized",
           });
         }
 
-        if (!userRes.access.additionalPermissions.includes(permission)) {
-          return error(403, {
-            message: "Forbidden",
-          });
-        }
-
-        user = userRes;
       })
     }
   }))

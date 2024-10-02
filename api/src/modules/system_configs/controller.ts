@@ -71,7 +71,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
-            permission: 'system_configs.show',
+            permission: 'system_configs.list',
             params: t.Object({
                 id: t.String(),
             }),
@@ -94,7 +94,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
-            permission: 'system_configs.create',
+            permission: 'system_configs.list',
             body: t.Object({
                 data: t.Object({
                     name: t.String(),
@@ -122,7 +122,7 @@ export const systemConfigsController = new Elysia({
 
         };
     }, {
-        permission: 'system_configs.create',
+        permission: 'system_configs.list',
         body: t.Object({
             data: t.Array(t.Object({
                 name: t.String(),
@@ -148,7 +148,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
-            permission: 'system_configs.edit',
+            permission: 'system_configs.list',
             params: t.Object({
                 id: t.String(),
             }),
@@ -174,7 +174,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
-            permission: 'system_configs.delete',
+            permission: 'system_configs.list',
             params: t.Object({
                 id: t.String(),
             }),

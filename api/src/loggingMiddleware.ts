@@ -36,17 +36,22 @@ export const loggingMiddleware = new Elysia()
         const isJson = typeof response === 'object'
         const text = isJson
             ? JSON.stringify(response)
+            // @ts-ignore
             : response?.toString() ?? ''
         logger.info({
             label: 'Outgoing response',
             response: text,
+            // @ts-ignore
             status: set.status,
             labels: {
                 request_type: 'outgoing',
             },
             duration: `${duration.toFixed(2)}ms`,
+            // @ts-ignore
             ...request,
+            // @ts-ignore
             url: request.url,
+            // @ts-ignore
             method: request.method,
         });
     })

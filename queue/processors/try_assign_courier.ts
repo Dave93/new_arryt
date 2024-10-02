@@ -49,12 +49,19 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
 
     const deliveryPricing = await cacheControl.getDeliveryPricingById(order[0].delivery_pricing_id!);
 
+    const terminalsList = await cacheControl.getTerminals();
+    const terminal = terminalsList.find(t => t.id === order[0].terminal_id);
+
+    if (!terminal?.active) {
+        return;
+    }
+
     if (orderStatus!.sort <= 1 && !order[0].courier_id) {
 
         if (data.queue > 2) {
-            if (order[0].terminal_id == '621c0913-93d0-4eeb-bf00-f0c6f578bcd1') {
-                await processCheckAndSendYandex(db, redis, cacheControl, order_id);
-            }
+            // if (order[0].terminal_id == '621c0913-93d0-4eeb-bf00-f0c6f578bcd1') {
+            await processCheckAndSendYandex(db, redis, cacheControl, order_id);
+            // }
         }
         else {
 

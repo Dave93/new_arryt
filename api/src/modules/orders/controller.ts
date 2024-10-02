@@ -100,7 +100,6 @@ export const OrdersController = new Elysia({
     .get(
         "/orders",
         async ({ query: { limit, offset, sort, filters, fields, ext_all }, user, drizzle }) => {
-            console.log('current user', user);
             const couriers = alias(users, "couriers");
             let selectFields: SelectedFields = {};
             if (fields) {
@@ -121,6 +120,9 @@ export const OrdersController = new Elysia({
                     terminals,
                     couriers,
                 });
+                whereClause.push(
+                    eq(terminals.active, true)
+                )
             }
             const rolesCount = await drizzle
                 .select({ count: sql<number>`count(*)` })
@@ -206,7 +208,13 @@ export const OrdersController = new Elysia({
 
         const usersTerminals = await drizzle.select({
             terminal_id: users_terminals.terminal_id
-        }).from(users_terminals).where(eq(users_terminals.user_id, user.user.id)).execute();
+        })
+            .from(users_terminals)
+            .where(
+                // @ts-ignore
+                eq(users_terminals.user_id, user.user.id)
+            )
+            .execute();
         const terminalIds = usersTerminals.map((terminal) => terminal.terminal_id);
         const allTerminals = await cacheControl.getTerminals();
         const terminalsList = allTerminals.filter((terminal) => terminalIds.includes(terminal.id));
@@ -273,6 +281,7 @@ export const OrdersController = new Elysia({
             .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 inArray(orders.order_status_id, orderStatusIds),
+                // @ts-ignore
                 eq(orders.courier_id, user.user.id),
                 gte(orders.created_at, dayjs().subtract(4, 'days').format('YYYY-MM-DD HH:mm:ss')),
                 lte(orders.created_at, dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')),
@@ -283,7 +292,7 @@ export const OrdersController = new Elysia({
         permission: 'orders.list',
     })
     .get('/orders/my_new_orders', async ({ user, set, redis, cacheControl, drizzle }) => {
-
+        // @ts-ignore
         if (!user.user.is_online) {
             return [];
         }
@@ -297,6 +306,7 @@ export const OrdersController = new Elysia({
             .where(
                 eq(users_terminals.user_id, sql.placeholder('user_id'))
             ).prepare('usersTerminalsList');
+        // @ts-ignore
         const usersTerminalsList = await usersTerminalsListPrepare.execute({ user_id: user.user.id });
         console.timeEnd('usersTerminals');
         console.time('cacheWorks');
@@ -324,6 +334,7 @@ export const OrdersController = new Elysia({
             .where(
                 eq(users.id, sql.placeholder('user_id'))
             ).prepare('userMaxActiveOrderCount');
+        // @ts-ignore
         const userAdditionalData = await userMaxActiveOrderCountPrepare.execute({ user_id: user.user.id });
 
         console.timeEnd('userAdditionalData');
@@ -346,6 +357,7 @@ export const OrdersController = new Elysia({
             }).from(orders).where(and(
                 inArray(orders.terminal_id, terminalsIds),
                 inArray(orders.order_status_id, orderStatuses.filter(orderStatus => !orderStatus.finish && !orderStatus.cancel).map((orderStatus) => orderStatus.id)),
+                // @ts-ignore
                 eq(orders.courier_id, user.user.id),
                 gte(orders.created_at, fromDate),
                 lte(orders.created_at, toDate),
@@ -493,6 +505,7 @@ export const OrdersController = new Elysia({
         console.time('usersTerminals');
         const usersTerminalsList = await drizzle.select({
             terminal_id: users_terminals.terminal_id
+            // @ts-ignore
         }).from(users_terminals).where(eq(users_terminals.user_id, user.user.id)).execute();
         console.timeEnd('usersTerminals');
         const orderStatuses = await cacheControl.getOrderStatuses();
@@ -510,6 +523,7 @@ export const OrdersController = new Elysia({
         console.time('userAdditionalData')
         const userAdditionalData = await drizzle.select({
             max_active_order_count: users.max_active_order_count,
+            // @ts-ignore
         }).from(users).where(eq(users.id, user.user.id)).execute();
         console.timeEnd('userAdditionalData');
 
@@ -528,6 +542,7 @@ export const OrdersController = new Elysia({
         }).from(orders).where(and(
             inArray(orders.terminal_id, terminalsIds),
             inArray(orders.order_status_id, orderStatuses.filter(orderStatus => !orderStatus.finish && !orderStatus.cancel).map((orderStatus) => orderStatus.id)),
+            // @ts-ignore
             eq(orders.courier_id, user.user.id),
             gte(orders.created_at, fromDate),
             lte(orders.created_at, toDate),
@@ -551,6 +566,7 @@ export const OrdersController = new Elysia({
         const nextStatus = sortedOrderStatuses[currentStatusIndex + 1];
         console.time('updateOrder');
         await drizzle.update(orders).set({
+            // @ts-ignore
             courier_id: user.user.id,
             order_status_id: nextStatus.id,
         }).where(eq(orders.id, order_id)).execute();
@@ -559,7 +575,9 @@ export const OrdersController = new Elysia({
         await processOrderChangeCourierQueue.add(order.id, {
             order_id: order_id,
             before_courier_id: order.courier_id,
+            // @ts-ignore
             after_courier_id: user.user.id,
+            // @ts-ignore
             user_id: user.user.id,
         }, {
             attempts: 3, removeOnComplete: true
@@ -573,6 +591,7 @@ export const OrdersController = new Elysia({
         );
 
         await processSetQueueLastCourier.add(order.id, {
+            // @ts-ignore
             courier_id: user.user.id,
             terminal_id: order.orders_terminals!.id,
             workStartTime: settingsWorkStartTime,
@@ -633,6 +652,7 @@ export const OrdersController = new Elysia({
 
         const order = existingOrder[0];
 
+        // @ts-ignore
         if (order.courier_id !== user.user.id) {
             set.status = 400;
             return {
@@ -760,6 +780,7 @@ export const OrdersController = new Elysia({
             action: 'STATUS_CHANGE',
             order_created_at: order.created_at,
             duration,
+            // @ts-ignore
             created_by: user.user.id,
             action_text: `Статус заказа изменен на "${currentStatus!.name}"`,
         }).execute();
@@ -854,6 +875,7 @@ export const OrdersController = new Elysia({
             order_id: result[0].id,
             before_status_id: result[0].order_status_id,
             after_status_id: status_id,
+            // @ts-ignore
             user_id: user.user.id,
         }, {
             attempts: 3, removeOnComplete: true
@@ -945,8 +967,6 @@ export const OrdersController = new Elysia({
                     const currentTime = new Date().getHours();
                     const activeDeliveryPricing = deliveryPricing.filter((d) => {
                         let res = false;
-                        const startTime = dayjs(d.start_time, 'HH:mm:ss').format('HH:mm');
-                        const endTime = dayjs(d.end_time, 'HH:mm:ss').format('HH:mm');
                         const currentTime = new Date();
                         const now = getMinutesNow();
                         let start = getMinutes(d.start_time);
@@ -1325,37 +1345,7 @@ export const OrdersController = new Elysia({
                 name: t.String(),
                 price: t.String(),
             }))
-        }),
-        beforeHandle: async ({
-            set, request: {
-                headers
-            },
-            redis
-        }) => {
-            const token = headers.get("authorization")?.split(" ")[1] ?? null;
-            if (!token) {
-                set.status = 401;
-
-                return `Unauthorized`;
-            }
-
-            const apiTokenJson = await redis.get(
-                `${process.env.PROJECT_PREFIX}_api_tokens`
-            );
-            try {
-                const apiTokens = JSON.parse(apiTokenJson || "[]");
-                const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
-                if (!apiToken) {
-                    set.status = 403;
-
-                    return `Forbidden`;
-                }
-            } catch (e) {
-                set.status = 403;
-
-                return `Forbidden`;
-            }
-        },
+        })
     })
     .post(
         "/orders/calculate_garant",
@@ -2240,6 +2230,7 @@ export const OrdersController = new Elysia({
             order_id: order[0].id,
             created_at: order[0].created_at,
             queue: queue + 1,
+            // @ts-ignore
             courier_id: user.user.id
         }, {
             attempts: 3, removeOnComplete: true
@@ -2459,6 +2450,7 @@ export const OrdersController = new Elysia({
             order_id: id,
             before_courier_id: order[0].courier_id,
             after_courier_id: courier_id,
+            // @ts-ignore
             user_id: user.user.id,
         }, {
             attempts: 3, removeOnComplete: true
@@ -2501,6 +2493,7 @@ export const OrdersController = new Elysia({
         await processClearCourierQueue.add(order[0].id, {
             order_id: id,
             courier_id: order[0].courier_id,
+            // @ts-ignore
             user_id: user.user.id,
         }, {
             attempts: 3, removeOnComplete: true
@@ -2544,6 +2537,7 @@ export const OrdersController = new Elysia({
             order_id: id,
             before_status_id: order[0].order_status_id,
             after_status_id: status_id,
+            // @ts-ignore
             user_id: user.user.id,
         }, {
             attempts: 3, removeOnComplete: true
@@ -2695,11 +2689,13 @@ export const OrdersController = new Elysia({
     } }) => {
 
         const courierIds: string[] = [];
+        // @ts-ignore
         const courierRole = user.access.roles.find(role => role.code === "courier");
-
+        // @ts-ignore
         const managerRole = user.access.roles.find(role => role.code === "manager");
 
         if (courierRole) {
+            // @ts-ignore
             courierIds.push(user.user.id);
         } else if (managerRole) {
             const userTerminalsList = await drizzle
@@ -2707,6 +2703,7 @@ export const OrdersController = new Elysia({
                     terminal_id: users_terminals.terminal_id
                 })
                 .from(users_terminals)
+                // @ts-ignore
                 .where(eq(users_terminals.user_id, user.user.id))
                 .execute() as InferSelectModel<typeof users_terminals>[];
 
@@ -2823,6 +2820,7 @@ export const OrdersController = new Elysia({
         }
     }) => {
 
+        // @ts-ignore
         const managerRole = user.access.roles.find(role => role.code === "manager");
 
         if (!managerRole) {
@@ -2834,7 +2832,12 @@ export const OrdersController = new Elysia({
 
         const usersTerminals = await drizzle.select({
             terminal_id: users_terminals.terminal_id
-        }).from(users_terminals).where(eq(users_terminals.user_id, user.user.id)).execute();
+        })
+            .from(users_terminals)
+            .where(
+                // @ts-ignore
+                eq(users_terminals.user_id, user.user.id)
+            ).execute();
 
         const orderStatuses = await cacheControl.getOrderStatuses();
 
@@ -2971,6 +2974,7 @@ export const OrdersController = new Elysia({
             order_id: id,
             before_status_id: order[0].order_status_id,
             after_status_id: canceledOrderStatus!.id,
+            // @ts-ignore
             user_id: user.user.id
         }, {
             attempts: 3, removeOnComplete: true

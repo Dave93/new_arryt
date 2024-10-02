@@ -13,7 +13,9 @@ import {
   courier_terminal_balance,
   work_schedule_entries,
   orders,
-  order_transactions
+  order_transactions,
+  manager_withdraw,
+  manager_withdraw_transactions
 } from "@api/drizzle/schema";
 import {
   InferSelectModel,
@@ -31,7 +33,9 @@ import {
   sql,
   desc,
   isNotNull,
-  ne
+  ne,
+  asc,
+  not
 } from "drizzle-orm";
 import { generate } from "otp-generator";
 import { addMinutesToDate, getHours } from "@api/src/lib/dates";
@@ -486,7 +490,7 @@ export const UsersController = new Elysia({
       request,
       redis
     }) => {
-
+      // @ts-ignore
       if (user.user.status != "active") {
         set.status = 400;
         return {
@@ -502,6 +506,7 @@ export const UsersController = new Elysia({
         .from(work_schedule_entries)
         .where(
           and(
+            // @ts-ignore
             eq(work_schedule_entries.user_id, user.user.id),
             eq(work_schedule_entries.current_status, "open")
           )
@@ -525,12 +530,15 @@ export const UsersController = new Elysia({
           latitude: +lat_close,
           longitude: +lon_close,
         })
+        // @ts-ignore
         .where(eq(users.id, user.user.id))
         .execute();
 
       await processUpdateUserCache.add(
+        // @ts-ignore
         user.user.id,
         {
+          // @ts-ignore
           id: user.user.id,
         },
         { attempts: 3, removeOnComplete: true }
@@ -555,10 +563,13 @@ export const UsersController = new Elysia({
         .where(eq(work_schedule_entries.id, openedTimeEntry.id))
         .execute();
 
+      // @ts-ignore
       redis.hdel(`${process.env.PROJECT_PREFIX}_user_location`, user.user.id);
-
+      // @ts-ignore
       await processTrySetDailyGarant.add(user.user.id, {
+        // @ts-ignore
         courier_id: user.user.id,
+        // @ts-ignore
         terminal_id: user.user.terminal_id,
       }, {
         attempts: 3,
@@ -587,7 +598,7 @@ export const UsersController = new Elysia({
       drizzle,
       request,
     }) => {
-
+      // @ts-ignore
       if (user.user.status != "active") {
         set.status = 400;
         return {
@@ -595,6 +606,7 @@ export const UsersController = new Elysia({
         };
       }
 
+      // @ts-ignore
       const userRoles = user.access.roles;
       const userRoleCodes = userRoles.map((role: any) => role.code);
 
@@ -612,6 +624,7 @@ export const UsersController = new Elysia({
         .from(work_schedule_entries)
         .where(
           and(
+            // @ts-ignore
             eq(work_schedule_entries.user_id, user.user.id),
             eq(work_schedule_entries.current_status, "open")
           )
@@ -638,6 +651,7 @@ export const UsersController = new Elysia({
         })
         .from(users_terminals)
         .leftJoin(terminals, eq(users_terminals.terminal_id, terminals.id))
+        // @ts-ignore
         .where(eq(users_terminals.user_id, user.user.id))
         .execute();
 
@@ -693,6 +707,7 @@ export const UsersController = new Elysia({
         )
         .where(
           and(
+            // @ts-ignore
             eq(users_work_schedules.user_id, user.user.id),
             arrayContains(work_schedules.days, [dayjs().day().toString()])
           )
@@ -884,6 +899,7 @@ export const UsersController = new Elysia({
         .from(timesheet)
         .where(
           and(
+            // @ts-ignore
             eq(timesheet.user_id, user.user.id),
             eq(timesheet.date, (timesheetDate as Date).toISOString())
           )
@@ -895,7 +911,9 @@ export const UsersController = new Elysia({
         await db
           .insert(timesheet)
           .values({
+            // @ts-ignore
             user_id: user.user.id,
+            // @ts-ignore
             date: (timesheetDate as Date).toISOString(),
             is_late: isLate,
             late_minutes: lateMinutes,
@@ -910,12 +928,15 @@ export const UsersController = new Elysia({
           latitude: +lat_open,
           longitude: +lon_open,
         })
+        // @ts-ignore
         .where(eq(users.id, user.user.id))
         .execute();
 
       await processUpdateUserCache.add(
+        // @ts-ignore
         user.user.id,
         {
+          // @ts-ignore
           id: user.user.id,
         },
         { attempts: 3, removeOnComplete: true }
@@ -934,12 +955,15 @@ export const UsersController = new Elysia({
           late: isLate,
           date_start: new Date().toISOString(),
           work_schedule_id: workSchedule!.id,
+          // @ts-ignore
           user_id: user.user.id,
         })
         .returning()
         .execute();
 
+      // @ts-ignore
       await processPushCourierToQueue.add(user.user.id, {
+        // @ts-ignore
         courier_id: user.user.id,
         terminal_id: terminalId,
         workStartTime: settingsWorkStartTime,
@@ -1830,6 +1854,7 @@ export const UsersController = new Elysia({
       .prepare('courier_score');
 
     const sqlSqore = (await sqlScorePrepare.execute({
+      // @ts-ignore
       courierId: user.user.id,
       startDate: dayjs().startOf('month').toISOString(),
       endDate: dayjs().endOf('month').add(1, 'day').toISOString()
@@ -1853,6 +1878,7 @@ export const UsersController = new Elysia({
       .prepare('courier_total_balance');
 
     const sqlTotalBalance = (await sqlTotalBalancePrepare.execute({
+      // @ts-ignore
       courierId: user.user.id,
       startDate: dayjs().subtract(45, 'day').toISOString(),
       endDate: dayjs().add(10, 'day').toISOString()
@@ -1875,6 +1901,7 @@ export const UsersController = new Elysia({
       .prepare('courier_total_fuel');
 
     const sqlTotalFuel = (await sqlTotalFuelPrepare.execute({
+      // @ts-ignore
       courierId: user.user.id,
       startDate: dayjs().subtract(45, 'day').toISOString(),
       endDate: dayjs().add(10, 'day').toISOString()
@@ -1928,6 +1955,7 @@ export const UsersController = new Elysia({
     const finishedStatusIdsSql = sql.raw(`order_status_id in ('${finishedStatusIds.join("','")}')`);
     const canceledStatusIdsSql = sql.raw(`order_status_id in ('${canceledStatusIds.join("','")}')`);
 
+    // @ts-ignore
     const courierIdSql = sql.raw(user.user.id);
 
     console.log('fromDate', fromDate.toISOString());
@@ -2317,6 +2345,7 @@ export const UsersController = new Elysia({
   })
   .get('/couriers/my_couriers', async ({ drizzle, user, set, cacheControl }) => {
 
+    // @ts-ignore
     const managerRole = user.access.roles.find(role => role.code === "manager");
 
     if (!managerRole) {
@@ -2330,6 +2359,7 @@ export const UsersController = new Elysia({
       user_id: users_terminals.user_id,
       terminal_id: users_terminals.terminal_id,
     }).from(users_terminals).where(
+      // @ts-ignore
       eq(users_terminals.user_id, user.user.id)
     ).execute();
 
@@ -2362,8 +2392,46 @@ export const UsersController = new Elysia({
   }, {
     permission: 'orders.list',
   })
+  .get('/couriers/my_couriers/balance', async ({ user, drizzle, set }) => {
+
+
+    const userTerminalsList = await drizzle.select({
+      terminal_id: users_terminals.terminal_id,
+    }).from(users_terminals).where(
+      // @ts-ignore
+      eq(users_terminals.user_id, user.user.id)
+    ).execute();
+
+    console.time('courierTerminalBalanceQuery');
+    const courierTerminalBalance = await drizzle
+      .select({
+        id: courier_terminal_balance.id,
+        phone: users.phone,
+        balance: courier_terminal_balance.balance,
+        terminal_id: courier_terminal_balance.terminal_id,
+        terminal_name: terminals.name,
+        courier_id: users.id,
+        first_name: users.first_name,
+        last_name: users.last_name,
+      })
+      .from(courier_terminal_balance)
+      .leftJoin(terminals, eq(courier_terminal_balance.terminal_id, terminals.id))
+      .leftJoin(users, eq(courier_terminal_balance.courier_id, users.id))
+      .where(
+        and(
+          inArray(courier_terminal_balance.terminal_id, userTerminalsList.map((userTerminal) => userTerminal.terminal_id)),
+          gt(courier_terminal_balance.balance, 0)
+        )
+      )
+      .execute();
+    console.timeEnd('courierTerminalBalanceQuery');
+    return courierTerminalBalance;
+  }, {
+    permission: 'orders.list',
+  })
   .post('/couriers/store-location', async ({ body: { lat, lon, app_version }, drizzle, user, set, processStoreLocationQueue }) => {
 
+    // @ts-ignore
     if (!user.user.is_online) {
       return {
         success: true,
@@ -2374,6 +2442,7 @@ export const UsersController = new Elysia({
       lat,
       lon,
       app_version,
+      // @ts-ignore
       user_id: user.user.id
     }, {
       attempts: 3, removeOnComplete: true
@@ -2455,10 +2524,222 @@ export const UsersController = new Elysia({
       .prepare('courier_terminal_balance_by_courier_id');
 
     const courierTerminalBalance = await courierTerminalBalancePrepare.execute({
+      // @ts-ignore
       courier_id: user.user.id
     });
     console.timeEnd('courierTerminalBalanceQuery');
     return courierTerminalBalance;
   }, {
     permission: 'orders.list',
+  })
+  .get('/couriers/:id/:terminal_id/balance', async ({ user, drizzle, set, params: { id, terminal_id } }) => {
+    const courierTransactionsPrepare = drizzle.select({
+      id: order_transactions.id,
+      not_paid_amount: order_transactions.not_paid_amount,
+      created_at: order_transactions.created_at,
+      transaction_type: order_transactions.transaction_type,
+      order_transactions_terminals: {
+        name: terminals.name,
+      },
+      order_id: order_transactions.order_id,
+    }).from(order_transactions)
+      .leftJoin(terminals, eq(order_transactions.terminal_id, terminals.id))
+      .where(
+        and(
+          eq(order_transactions.courier_id, sql.placeholder('courier_id')),
+          eq(order_transactions.terminal_id, sql.placeholder('terminal_id')),
+          eq(order_transactions.status, 'pending'),
+          gte(order_transactions.created_at, dayjs().subtract(1, 'month').toISOString()),
+          lte(order_transactions.created_at, dayjs().toISOString())
+        )
+      )
+      .orderBy(desc(order_transactions.created_at))
+      .prepare('order_transactions_by_courier_id_and_terminal_id');
+
+    const courierTerminalBalance = await courierTransactionsPrepare.execute({
+      courier_id: id,
+      terminal_id: terminal_id
+    });
+
+    const orderIds = courierTerminalBalance.map((transaction) => transaction.order_id).filter((orderId) => orderId !== null);
+
+    console.log('orderIds', orderIds);
+    // get min and max created_at
+    const maxCreatedAt = dayjs(courierTerminalBalance[0].created_at).add(1, 'day').toISOString();
+    const minCreatedAt = dayjs(courierTerminalBalance[courierTerminalBalance.length - 1].created_at).subtract(1, 'day').toISOString();
+    console.log('minCreatedAt', minCreatedAt);
+    console.log('maxCreatedAt', maxCreatedAt);
+    const ordersList = await drizzle.select({
+      id: orders.id,
+      order_number: orders.order_number,
+    }).from(orders)
+      .where(
+        and(
+          inArray(orders.id, orderIds),
+          gte(orders.created_at, minCreatedAt),
+          lte(orders.created_at, maxCreatedAt)
+        )
+      )
+      .execute();
+    console.log('ordersList', ordersList);
+
+    courierTerminalBalance.forEach((balance) => {
+      const orderNumber = ordersList.find((order) => order.id === balance.order_id)?.order_number;
+      if (orderNumber) {
+        // @ts-ignore
+        balance.order_transactions_orders = {
+          order_number: orderNumber
+        };
+      } else {
+        // @ts-ignore
+        balance.order_transactions_orders = {
+          order_number: ''
+        };
+      }
+    });
+
+
+    return courierTerminalBalance;
+  }, {
+    permission: 'orders.list',
+    params: t.Object({
+      id: t.String(),
+      terminal_id: t.String()
+    })
+  })
+  .post('/couriers/withdraw', async ({ user, drizzle, set, redis, error, body: { amount, terminal_id, courier_id } }) => {
+    const courierBalance = await drizzle.select({
+      id: courier_terminal_balance.id,
+      balance: courier_terminal_balance.balance,
+      organization_id: courier_terminal_balance.organization_id,
+    }).from(courier_terminal_balance).where(
+      and(
+        eq(courier_terminal_balance.courier_id, courier_id),
+        eq(courier_terminal_balance.terminal_id, terminal_id)
+      )
+    ).execute();
+
+
+    if (!courierBalance.length) {
+      error(404, {
+        message: "Courier balance not found"
+      });
+    }
+
+    if (courierBalance[0].balance < amount) {
+      error(400, {
+        message: "Insufficient funds"
+      });
+    }
+
+
+
+    const newBalance = courierBalance[0].balance - amount;
+
+    const settingsWorkStartTime = getHours(
+      await getSetting(redis, "work_start_time")
+    );
+    const settingsWorkEndTime = getHours(
+      await getSetting(redis, "work_end_time")
+    );
+
+    const currentTime = dayjs().hour();
+    console.log('currentTime', currentTime);
+
+    let currentDate = dayjs().toISOString();
+
+    if (currentTime < settingsWorkEndTime) {
+      currentDate = dayjs().subtract(1, 'day').toISOString();
+    }
+
+    const managerWithdraw = await drizzle.insert(manager_withdraw).values({
+      amount,
+      terminal_id,
+      courier_id,
+      created_at: currentDate,
+      payed_date: currentDate,
+      // @ts-ignore
+      manager_id: user.user.id,
+      organization_id: courierBalance[0].organization_id,
+      amount_before: courierBalance[0].balance,
+      amount_after: newBalance
+    })
+      .returning({
+        id: manager_withdraw.id,
+      })
+      .execute();
+
+
+    await drizzle.update(courier_terminal_balance).set({
+      balance: newBalance
+    }).where(
+      and(
+        eq(courier_terminal_balance.id, courierBalance[0].id),
+      )
+    ).execute();
+
+
+    const orderTransactions = await drizzle.select({
+      id: order_transactions.id,
+      not_paid_amount: order_transactions.not_paid_amount,
+      created_at: order_transactions.created_at,
+      status: order_transactions.status,
+      transaction_created_at: order_transactions.created_at,
+    }).from(order_transactions)
+      .where(
+        and(
+          eq(order_transactions.courier_id, courier_id),
+          eq(order_transactions.terminal_id, terminal_id),
+          gt(order_transactions.not_paid_amount, 0),
+          eq(order_transactions.status, 'pending')
+        )
+      )
+      .orderBy(asc(order_transactions.created_at))
+      .execute();
+
+    let amountToWithdraw = amount;
+    for (const order_transaction of orderTransactions) {
+      if (amountToWithdraw > 0) {
+        if (amountToWithdraw >= order_transaction.not_paid_amount) {
+          amountToWithdraw = amountToWithdraw - order_transaction.not_paid_amount;
+
+          await drizzle.insert(manager_withdraw_transactions).values({
+            amount: order_transaction.not_paid_amount,
+            withdraw_id: managerWithdraw.id,
+            transaction_id: order_transaction.id,
+            transaction_created_at: order_transaction.created_at,
+            payed_date: currentDate,
+          }).execute();
+
+          await drizzle.update(order_transactions).set({
+            not_paid_amount: 0,
+            status: 'success',
+          }).where(
+            eq(order_transactions.id, order_transaction.id)
+          ).execute();
+        } else {
+          await drizzle.insert(manager_withdraw_transactions).values({
+            amount: amountToWithdraw,
+            withdraw_id: managerWithdraw.id,
+            transaction_id: order_transaction.id,
+            payed_date: currentDate,
+            transaction_created_at: order_transaction.created_at,
+          }).execute();
+
+          await drizzle.update(order_transactions).set({
+            not_paid_amount: order_transaction.not_paid_amount - amountToWithdraw,
+          }).where(
+            eq(order_transactions.id, order_transaction.id)
+          ).execute();
+          amountToWithdraw = 0;
+        }
+      }
+    }
+  }, {
+    permission: 'order_transactions.list',
+    body: t.Object({
+      amount: t.Number(),
+      terminal_id: t.String(),
+      courier_id: t.String()
+    })
   })

@@ -15,6 +15,7 @@ import {
     inArray,
     isNull,
     lte,
+    not,
     sql,
 } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
@@ -61,7 +62,8 @@ export const MissedOrdersController = new Elysia({
             whereClause.push(...[
                 gte(orders.created_at, dayjs().subtract(2, 'hour').minute(0).second(0).format('YYYY-MM-DD HH:mm:ss')),
                 lte(orders.created_at, dayjs().subtract(laterMinutes, 'minute').format('YYYY-MM-DD HH:mm:ss')),
-                isNull(orders.courier_id)
+                isNull(orders.courier_id),
+                not(order_status.cancel, true)
             ]);
 
             let isFilteredByTerminal = false;

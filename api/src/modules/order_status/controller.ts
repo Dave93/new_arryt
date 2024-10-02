@@ -70,7 +70,7 @@ export const OrderStatusController = new Elysia({
             orderStatus.organization_id === organization_id
         );
       }
-      return result;
+      return result.sort((a: any, b: any) => a.sort - b.sort);
     },
     {
       permission: 'order_status.list',
