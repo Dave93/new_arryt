@@ -353,13 +353,11 @@ export const OrdersList: React.FC = () => {
       exportable: false,
       width: 50,
       render: (_text: any, record: OrdersWithRelations): React.ReactNode => (
-        <Space>
-          <Button
-            size="small"
-            onClick={() => window.open(`/orders/show/${record.id}`)}
-            icon={<EyeOutlined />}
-          />
-        </Space>
+        <Button
+          size="small"
+          onClick={() => window.open(`/orders/show/${record.id}`)}
+          icon={<EyeOutlined />}
+        />
       ),
     },
     {
@@ -783,6 +781,7 @@ export const OrdersList: React.FC = () => {
     const res = {
       selectedRowKeys,
       onChange: onSelectChange,
+      columnWidth: 50,
       selections: [
         {
           key: "all-data",
