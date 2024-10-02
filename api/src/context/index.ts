@@ -51,50 +51,150 @@ export const ctx = new Elysia({
   name: "@app/ctx"
 })
   .use(decorateApp)
-  .use(bearer())
-  .derive({ as: 'global' }, async ({ bearer, redis, cacheControl }): Promise<DeriveUserResponse> => {
-    const token = bearer;
-    if (!token) {
-      return {
-        user: null,
-      };
-    }
-    const apiTokens = await cacheControl.getApiTokens();
-    const apiToken = apiTokens.find((apiToken) => apiToken.token === token);
+  .derive({ as: 'global' }, async ({ redis, cacheControl }): Promise<DeriveUserResponse> => {
+    return {
+      user: null,
+    };
+  })
+  .macro(({ onBeforeHandle }) => ({
+    permission(permission: string) {
+      if (!permission) return;
+      onBeforeHandle(async ({ redis, error, cacheControl, user, headers: { authorization } }) => {
+        if (!authorization) {
+          return error(401, {
+            message: "Unauthorized",
+          });
+        }
 
-    if (apiToken) {
+        const token = authorization.split(' ')[1];
+        let jwtResult = await verifyJwt(token);
+        let userData = await redis.hget(
+          `${process.env.PROJECT_PREFIX}_user`,
+          jwtResult.payload.id as string
+        );
+        let userRes = null as {
+          user: UserResponseDto;
+          access: {
+            additionalPermissions: string[];
+            roles: {
+              name: string;
+              code: string;
+              active: boolean;
+            }[];
+          };
+        } | null;
+        if (userData) {
+          userRes = JSON.parse(userData);
+        }
+
+        if (!userRes) {
+          return error(401, {
+            message: "Unauthorized",
+          });
+        }
+
+        if (!userRes.access.additionalPermissions.includes(permission)) {
+          return error(403, {
+            message: "Forbidden",
+          });
+        }
+
+        user = userRes;
+      })
+    }
+  }))
+  .as('global');
+
+
+
+
+export const contextWitUser = new Elysia({
+  name: "@app/ctx"
+})
+  .use(decorateApp)
+  .derive({ as: 'global' }, async ({ redis, cacheControl, headers: { authorization } }): Promise<DeriveUserResponse> => {
+    if (!authorization) {
       return {
         user: null,
-      };
-    }
-    try {
-      let jwtResult = await verifyJwt(token);
-      let userData = await redis.hget(
-        `${process.env.PROJECT_PREFIX}_user`,
-        jwtResult.payload.id as string
-      );
-      let userRes = null as {
-        user: UserResponseDto;
-        access: {
-          additionalPermissions: string[];
-          roles: {
-            name: string;
-            code: string;
-            active: boolean;
-          }[];
-        };
-      } | null;
-      if (userData) {
-        userRes = JSON.parse(userData);
       }
-      return {
-        user: userRes,
+    }
+
+    const token = authorization.split(' ')[1];
+    let jwtResult = await verifyJwt(token);
+    let userData = await redis.hget(
+      `${process.env.PROJECT_PREFIX}_user`,
+      jwtResult.payload.id as string
+    );
+    let userRes = null as {
+      user: UserResponseDto;
+      access: {
+        additionalPermissions: string[];
+        roles: {
+          name: string;
+          code: string;
+          active: boolean;
+        }[];
       };
-    } catch (error) {
-      console.log("error", error);
+    } | null;
+    if (userData) {
+      userRes = JSON.parse(userData);
+    }
+
+    if (!userRes) {
       return {
         user: null,
-      };
+      }
     }
-  }).as('global');
 
+    return {
+      user: userRes,
+    };
+  })
+  .macro(({ onBeforeHandle }) => ({
+    permission(permission: string) {
+      if (!permission) return;
+      onBeforeHandle(async ({ redis, error, cacheControl, user, headers: { authorization } }) => {
+        if (!authorization) {
+          return error(401, {
+            message: "Unauthorized",
+          });
+        }
+
+        const token = authorization.split(' ')[1];
+        let jwtResult = await verifyJwt(token);
+        let userData = await redis.hget(
+          `${process.env.PROJECT_PREFIX}_user`,
+          jwtResult.payload.id as string
+        );
+        let userRes = null as {
+          user: UserResponseDto;
+          access: {
+            additionalPermissions: string[];
+            roles: {
+              name: string;
+              code: string;
+              active: boolean;
+            }[];
+          };
+        } | null;
+        if (userData) {
+          userRes = JSON.parse(userData);
+        }
+
+        if (!userRes) {
+          return error(401, {
+            message: "Unauthorized",
+          });
+        }
+
+        if (!userRes.access.additionalPermissions.includes(permission)) {
+          return error(403, {
+            message: "Forbidden",
+          });
+        }
+
+        user = userRes;
+      })
+    }
+  }))
+  .as('global');

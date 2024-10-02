@@ -7,5 +7,6 @@ dist/
 transfer_db/data
 *.duckdb
 api/app
+queue/queue
 api/arryt_api
 firebase.json

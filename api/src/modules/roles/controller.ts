@@ -13,19 +13,6 @@ export const RolesController = new Elysia({
   .get(
     "/roles",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle, set, user }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("roles.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, roles, {});
@@ -50,6 +37,7 @@ export const RolesController = new Elysia({
       };
     },
     {
+      permission: 'roles.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -60,36 +48,12 @@ export const RolesController = new Elysia({
     }
   )
   .get("/roles/cached", async ({ redis, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("roles.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_roles`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof roles>[];
+  }, {
+    permission: 'roles.list',
   })
   .get('/roles/:id/permissions', async ({ params: { id }, drizzle, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("roles.show")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
     const permissionsList = await drizzle
       .select({
         permission_id: roles_permissions.permission_id,
@@ -101,6 +65,7 @@ export const RolesController = new Elysia({
       data: permissionsList,
     };
   }, {
+    permission: 'roles.show',
     params: t.Object({
       id: t.String(),
     }),
@@ -108,19 +73,6 @@ export const RolesController = new Elysia({
   .get(
     "/roles/:id",
     async ({ params: { id }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("roles.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       const rolesRecord = await drizzle
         .select()
         .from(roles)
@@ -131,6 +83,7 @@ export const RolesController = new Elysia({
       };
     },
     {
+      permission: 'roles.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -139,19 +92,6 @@ export const RolesController = new Elysia({
   .post(
     "/roles",
     async ({ body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("roles.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, roles, {});
@@ -166,6 +106,7 @@ export const RolesController = new Elysia({
       };
     },
     {
+      permission: 'roles.create',
       body: t.Object({
         data: t.Object({
           name: t.String(),
@@ -179,19 +120,6 @@ export const RolesController = new Elysia({
   .put(
     "/roles/:id",
     async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("roles.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, roles, {});
@@ -207,6 +135,7 @@ export const RolesController = new Elysia({
       };
     },
     {
+      permission: 'roles.edit',
       params: t.Object({
         id: t.String(),
       }),

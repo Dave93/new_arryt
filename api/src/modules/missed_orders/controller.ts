@@ -40,20 +40,7 @@ export const MissedOrdersController = new Elysia({
     .use(ctx)
     .get(
         "/missed_orders",
-        async ({ query: { limit, offset, sort, filters, fields, ext_all }, redis, cacheControl, drizzle, user, set }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
-
-            if (!user.access.additionalPermissions.includes("orders.list")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
+        async ({ query: { limit, offset, sort, filters, fields, ext_all }, redis, cacheControl, drizzle }) => {
 
             const laterMinutes = await getSetting(redis, 'late_order_time');
             let selectFields: SelectedFields = {};
@@ -115,6 +102,7 @@ export const MissedOrdersController = new Elysia({
             };
         },
         {
+            permission: 'orders.list',
             query: t.Object({
                 limit: t.String(),
                 offset: t.String(),
@@ -127,25 +115,13 @@ export const MissedOrdersController = new Elysia({
     )
     .post('/missed_orders/send_yandex', async ({ processCheckAndSendYandex, body: {
         id
-    }, user, set }) => {
-        if (!user) {
-            set.status = 401;
-            return {
-                message: "User not found",
-            };
-        }
-
-        if (!user.access.additionalPermissions.includes("orders.list")) {
-            set.status = 401;
-            return {
-                message: "You don't have permissions",
-            };
-        }
+    } }) => {
         await processCheckAndSendYandex.add('checkAndSendYandex', {
             id
         }, { removeOnComplete: true });
         return { status: 'ok' };
     }, {
+        permission: 'orders.list',
         body: t.Object({
             id: t.String(),
         }),

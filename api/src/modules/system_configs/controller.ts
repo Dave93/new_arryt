@@ -13,19 +13,6 @@ export const systemConfigsController = new Elysia({
     .get(
         "/system_configs",
         async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
-
-            if (!user.access.additionalPermissions.includes("system_configs.list")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
             let selectFields: SelectedFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, system_configs, {});
@@ -53,6 +40,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
+            permission: 'system_configs.list',
             query: t.Object({
                 limit: t.String(),
                 offset: t.String(),
@@ -63,40 +51,16 @@ export const systemConfigsController = new Elysia({
         }
     )
     .get("/system_configs/cached", async ({ redis, user, set }) => {
-        if (!user) {
-            set.status = 401;
-            return {
-                message: "User not found",
-            };
-        }
-
-        if (!user.access.additionalPermissions.includes("system_configs.list")) {
-            set.status = 401;
-            return {
-                message: "You don't have permissions",
-            };
-        }
         const res = await redis.get(
             `${process.env.PROJECT_PREFIX}_system_configs`
         );
         return JSON.parse(res || "{}") as Record<string, string>;
+    }, {
+        permission: 'system_configs.list',
     })
     .get(
         "/system_configs/:id",
         async ({ params: { id }, drizzle, user, set }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
-
-            if (!user.access.additionalPermissions.includes("system_configs.show")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
             const permissionsRecord = await drizzle
                 .select()
                 .from(system_configs)
@@ -107,6 +71,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
+            permission: 'system_configs.show',
             params: t.Object({
                 id: t.String(),
             }),
@@ -115,19 +80,6 @@ export const systemConfigsController = new Elysia({
     .post(
         "/system_configs",
         async ({ body: { data, fields }, drizzle, user, set, cacheControl }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
-
-            if (!user.access.additionalPermissions.includes("system_configs.create")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
             let selectFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, system_configs, {});
@@ -142,6 +94,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
+            permission: 'system_configs.create',
             body: t.Object({
                 data: t.Object({
                     name: t.String(),
@@ -152,19 +105,6 @@ export const systemConfigsController = new Elysia({
         }
     )
     .post('/system_configs/set_multiple', async ({ body: { data }, cacheControl, user, set, drizzle }) => {
-        if (!user) {
-            set.status = 401;
-            return {
-                message: "User not found",
-            };
-        }
-
-        if (!user.access.additionalPermissions.includes("system_configs.list")) {
-            set.status = 401;
-            return {
-                message: "You don't have permissions",
-            };
-        }
 
         await drizzle.transaction(async (transaction) => {
             for (const item of data) {
@@ -182,6 +122,7 @@ export const systemConfigsController = new Elysia({
 
         };
     }, {
+        permission: 'system_configs.create',
         body: t.Object({
             data: t.Array(t.Object({
                 name: t.String(),
@@ -192,19 +133,6 @@ export const systemConfigsController = new Elysia({
     .put(
         "/system_configs/:id",
         async ({ params: { id }, body: { data, fields }, drizzle, user, set, cacheControl }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
-
-            if (!user.access.additionalPermissions.includes("system_configs.edit")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
             let selectFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, system_configs, {});
@@ -220,6 +148,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
+            permission: 'system_configs.edit',
             params: t.Object({
                 id: t.String(),
             }),
@@ -235,19 +164,6 @@ export const systemConfigsController = new Elysia({
     .delete(
         "/system_configs/:id",
         async ({ params: { id }, drizzle, user, set, cacheControl }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
-
-            if (!user.access.additionalPermissions.includes("system_configs.delete")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
             const result = await drizzle
                 .delete(system_configs)
                 .where(eq(system_configs.id, id))
@@ -258,6 +174,7 @@ export const systemConfigsController = new Elysia({
             };
         },
         {
+            permission: 'system_configs.delete',
             params: t.Object({
                 id: t.String(),
             }),

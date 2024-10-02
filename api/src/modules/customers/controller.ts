@@ -12,20 +12,7 @@ export const CustomersController = new Elysia({
   .use(ctx)
   .get(
     "/customers",
-    async ({ query: { limit, offset, sort, filters }, drizzle, set, user }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("customers.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ query: { limit, offset, sort, filters }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (filters) {
         selectFields = parseSelectFields(filters, customers, {});
@@ -52,6 +39,7 @@ export const CustomersController = new Elysia({
       };
     },
     {
+      permission: 'customers.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -64,20 +52,7 @@ export const CustomersController = new Elysia({
   )
   .get(
     "/customers/:id",
-    async ({ params: { id }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("customers.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ params: { id }, drizzle }) => {
       const customer = await drizzle
         .select()
         .from(customers)
@@ -88,6 +63,7 @@ export const CustomersController = new Elysia({
       };
     },
     {
+      permission: 'customers.show',
       params: t.Object({
         id: t.String(),
       }),

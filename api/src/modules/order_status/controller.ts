@@ -13,20 +13,7 @@ export const OrderStatusController = new Elysia({
   .use(ctx)
   .get(
     "/order_status",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_status.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {
@@ -59,6 +46,7 @@ export const OrderStatusController = new Elysia({
       };
     },
     {
+      permission: 'order_status.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -71,20 +59,7 @@ export const OrderStatusController = new Elysia({
   )
   .get(
     "/order_status/cached",
-    async ({ redis, query: { organization_id }, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_status.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ redis, query: { organization_id } }) => {
       const res = await redis.get(
         `${process.env.PROJECT_PREFIX}_order_status`
       );
@@ -98,6 +73,7 @@ export const OrderStatusController = new Elysia({
       return result;
     },
     {
+      permission: 'order_status.list',
       query: t.Object({
         organization_id: t.Optional(t.String()),
       }),
@@ -105,20 +81,7 @@ export const OrderStatusController = new Elysia({
   )
   .get(
     "/order_status/:id",
-    async ({ params: { id }, drizzle, set, user }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_status.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ params: { id }, drizzle }) => {
       const orderStatus = await drizzle
         .select()
         .from(order_status)
@@ -129,6 +92,7 @@ export const OrderStatusController = new Elysia({
       };
     },
     {
+      permission: 'order_status.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -136,20 +100,7 @@ export const OrderStatusController = new Elysia({
   )
   .post(
     "/order_status",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_status.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {
@@ -166,6 +117,7 @@ export const OrderStatusController = new Elysia({
       };
     },
     {
+      permission: 'order_status.create',
       body: t.Object({
         data: t.Object({
           name: t.String(),
@@ -187,20 +139,7 @@ export const OrderStatusController = new Elysia({
   )
   .put(
     "/order_status/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, set, user }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_status.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {
@@ -218,6 +157,7 @@ export const OrderStatusController = new Elysia({
       };
     },
     {
+      permission: 'order_status.edit',
       params: t.Object({
         id: t.String(),
       }),

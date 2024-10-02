@@ -1,5 +1,5 @@
 import { cors } from "@elysiajs/cors";
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import { loggingMiddleware } from "./loggingMiddleware";
 import { staticPlugin } from '@elysiajs/static'
 import { apiController } from "./modules/controllers";
@@ -20,15 +20,28 @@ const app = new Elysia()
     //     ]
     //   })
     // )
-    .get("/", () => {
-        console.log('get /');
-        return 'Hello Davr';
-    })
+
     .get("/check_service", () => ({
         result: "ok",
     }))
     // .use(serverTiming())
-    .use(apiController);
+    .use(apiController)
+    .get("/davr", async ({
+        cookie: {
+            sessionId
+        }
+    }) => {
+        console.log('sessionId', sessionId.value);
+        console.log('get /');
+        return 'Hello Davr';
+    }, {
+        cookie: t.Cookie({
+            sessionId: t.Optional(t.String({
+            }))
+        }, {
+
+        })
+    });
 
 export default app;
 

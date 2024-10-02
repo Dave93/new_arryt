@@ -13,20 +13,7 @@ export const OrderActionsController = new Elysia({
     .use(ctx)
     .get(
         "/order_actions",
-        async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
-
-            if (!user.access.additionalPermissions.includes("orders.edit")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
+        async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
             let selectFields: SelectedFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, order_actions, {
@@ -62,6 +49,7 @@ export const OrderActionsController = new Elysia({
             };
         },
         {
+            permission: 'orders.edit',
             query: t.Object({
                 limit: t.String(),
                 offset: t.String(),

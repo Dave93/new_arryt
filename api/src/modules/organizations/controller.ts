@@ -13,19 +13,6 @@ export const OrganizationsController = new Elysia({
   .get(
     "/organization",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("organization.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, organization, {});
@@ -50,6 +37,7 @@ export const OrganizationsController = new Elysia({
       };
     },
     {
+      permission: 'organization.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -60,40 +48,16 @@ export const OrganizationsController = new Elysia({
     }
   )
   .get("/organizations/cached", async ({ redis, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("organization.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
     const res = await redis.get(
       `${process.env.PROJECT_PREFIX}_organizations`
     );
     return JSON.parse(res || "[]") as InferSelectModel<typeof organization>[];
+  }, {
+    permission: 'organization.list',
   })
   .get(
     "/organization/:id",
     async ({ params: { id }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("organization.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       const permissionsRecord = await drizzle
         .select()
         .from(organization)
@@ -104,6 +68,7 @@ export const OrganizationsController = new Elysia({
       };
     },
     {
+      permission: 'organization.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -112,19 +77,6 @@ export const OrganizationsController = new Elysia({
   .post(
     "/organization",
     async ({ body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("organization.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, organization, {});
@@ -139,6 +91,7 @@ export const OrganizationsController = new Elysia({
       };
     },
     {
+      permission: 'organization.create',
       body: t.Object({
         data: t.Object({
           name: t.String(),
@@ -168,19 +121,6 @@ export const OrganizationsController = new Elysia({
   .put(
     "/organization/:id",
     async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("organization.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, organization, {});
@@ -196,6 +136,7 @@ export const OrganizationsController = new Elysia({
       };
     },
     {
+      permission: 'organization.edit',
       params: t.Object({
         id: t.String(),
       }),

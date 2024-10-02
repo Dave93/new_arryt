@@ -14,19 +14,6 @@ export const constructedBonusPricingController = new Elysia({
     .get(
         "/constructed_bonus_pricing",
         async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set, cacheControl }) => {
-            if (!user) {
-                set.status = 401;
-                return {
-                    message: "User not found",
-                };
-            }
-
-            if (!user.access.additionalPermissions.includes("constructed_bonus_pricing.list")) {
-                set.status = 401;
-                return {
-                    message: "You don't have permissions",
-                };
-            }
             let selectFields: SelectedFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, constructed_bonus_pricing, {
@@ -60,6 +47,7 @@ export const constructedBonusPricingController = new Elysia({
             };
         },
         {
+            permission: 'constructed_bonus_pricing.list',
             query: t.Object({
                 limit: t.String(),
                 offset: t.String(),
@@ -70,19 +58,6 @@ export const constructedBonusPricingController = new Elysia({
         }
     )
     .get('/constructed_bonus_pricing/:id', async ({ params: { id }, drizzle, user, set }) => {
-        if (!user) {
-            set.status = 401;
-            return {
-                message: "User not found",
-            };
-        }
-
-        if (!user.access.additionalPermissions.includes("constructed_bonus_pricing.show")) {
-            set.status = 401;
-            return {
-                message: "You don't have permissions",
-            };
-        }
         const permissionsRecord = await drizzle
             .select()
             .from(constructed_bonus_pricing)
@@ -92,24 +67,12 @@ export const constructedBonusPricingController = new Elysia({
             data: permissionsRecord[0],
         };
     }, {
+        permission: 'constructed_bonus_pricing.show',
         params: t.Object({
             id: t.String(),
         }),
     })
-    .post('/constructed_bonus_pricing', async ({ body: { data }, drizzle, user, set, cacheControl }) => {
-        if (!user) {
-            set.status = 401;
-            return {
-                message: "User not found",
-            };
-        }
-
-        if (!user.access.additionalPermissions.includes("constructed_bonus_pricing.create")) {
-            set.status = 401;
-            return {
-                message: "You don't have permissions",
-            };
-        }
+    .post('/constructed_bonus_pricing', async ({ body: { data }, drizzle, cacheControl }) => {
         const result = await drizzle
             .insert(constructed_bonus_pricing)
             .values(data)
@@ -119,6 +82,7 @@ export const constructedBonusPricingController = new Elysia({
             data: result[0],
         };
     }, {
+        permission: 'constructed_bonus_pricing.create',
         body: t.Object({
             data: t.Object({
                 name: t.String(),
@@ -139,20 +103,7 @@ export const constructedBonusPricingController = new Elysia({
             fields: t.Optional(t.Array(t.String())),
         }),
     })
-    .put('/constructed_bonus_pricing/:id', async ({ params: { id }, body: { data }, drizzle, user, set, cacheControl }) => {
-        if (!user) {
-            set.status = 401;
-            return {
-                message: "User not found",
-            };
-        }
-
-        if (!user.access.additionalPermissions.includes("constructed_bonus_pricing.edit")) {
-            set.status = 401;
-            return {
-                message: "You don't have permissions",
-            };
-        }
+    .put('/constructed_bonus_pricing/:id', async ({ params: { id }, body: { data }, drizzle, cacheControl }) => {
         const result = await drizzle
             .update(constructed_bonus_pricing)
             .set(data)
@@ -164,6 +115,7 @@ export const constructedBonusPricingController = new Elysia({
             data: result[0],
         };
     }, {
+        permission: 'constructed_bonus_pricing.edit',
         params: t.Object({
             id: t.String(),
         }),

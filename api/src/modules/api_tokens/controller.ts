@@ -14,20 +14,6 @@ export const ApiTokensController = new Elysia({
   .get(
     "/api_tokens",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-
-      if (!user.access.additionalPermissions.includes("api_tokens.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
 
       let selectFields: SelectedFields = {};
       if (fields) {
@@ -60,6 +46,7 @@ export const ApiTokensController = new Elysia({
       };
     },
     {
+      permission: 'api_tokens.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -70,40 +57,14 @@ export const ApiTokensController = new Elysia({
     }
   )
   .get("/api_tokens/cached", async ({ redis, set, user }) => {
-
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("api_tokens.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
-
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_api_tokens`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof api_tokens>[];
+  }, {
+    permission: 'api_tokens.list',
   })
   .get(
     "/api_tokens/:id",
-    async ({ params: { id }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("api_tokens.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
         .from(api_tokens)
@@ -114,6 +75,7 @@ export const ApiTokensController = new Elysia({
       };
     },
     {
+      permission: 'api_tokens.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -122,19 +84,6 @@ export const ApiTokensController = new Elysia({
   .post(
     "/api_tokens",
     async ({ body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("api_tokens.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {});
@@ -149,6 +98,7 @@ export const ApiTokensController = new Elysia({
       };
     },
     {
+      permission: 'api_tokens.create',
       body: t.Object({
         data: t.Object({
           active: t.Boolean(),
@@ -162,19 +112,6 @@ export const ApiTokensController = new Elysia({
   .put(
     "/api_tokens/:id",
     async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("api_tokens.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {});
@@ -190,6 +127,7 @@ export const ApiTokensController = new Elysia({
       };
     },
     {
+      permission: 'api_tokens.edit',
       params: t.Object({
         id: t.String(),
       }),

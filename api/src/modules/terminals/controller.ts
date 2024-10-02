@@ -17,19 +17,6 @@ export const TerminalsController = new Elysia({
   .get(
     "/terminals",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("terminals.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, terminals, {
@@ -64,6 +51,7 @@ export const TerminalsController = new Elysia({
       };
     },
     {
+      permission: 'terminals.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -74,38 +62,14 @@ export const TerminalsController = new Elysia({
     }
   )
   .get("/terminals/cached", async ({ redis, user, set, cacheControl }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("terminals.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
     const res = await cacheControl.getTerminals();
     return res;
+  }, {
+    permission: 'terminals.list',
   })
   .get(
     "/terminals/:id",
     async ({ params: { id }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("terminals.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       const permissionsRecord = await drizzle
         .select()
         .from(terminals)
@@ -116,6 +80,7 @@ export const TerminalsController = new Elysia({
       };
     },
     {
+      permission: 'terminals.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -124,19 +89,6 @@ export const TerminalsController = new Elysia({
   .post(
     "/terminals",
     async ({ body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("terminals.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, terminals, {});
@@ -151,6 +103,7 @@ export const TerminalsController = new Elysia({
       };
     },
     {
+      permission: 'terminals.create',
       body: t.Object({
         data: t.Object({
           name: t.String(),
@@ -174,19 +127,6 @@ export const TerminalsController = new Elysia({
   .put(
     "/terminals/:id",
     async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("terminals.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, terminals, {});
@@ -202,6 +142,7 @@ export const TerminalsController = new Elysia({
       };
     },
     {
+      permission: 'terminals.edit',
       params: t.Object({
         id: t.String(),
       }),

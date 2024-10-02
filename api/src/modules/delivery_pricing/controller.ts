@@ -17,20 +17,7 @@ export const DeliveryPricingController = new Elysia({
   .use(ctx)
   .get(
     "/delivery_pricing",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("delivery_pricing.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, delivery_pricing, {
@@ -65,6 +52,7 @@ export const DeliveryPricingController = new Elysia({
       };
     },
     {
+      permission: 'delivery_pricing.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -74,41 +62,17 @@ export const DeliveryPricingController = new Elysia({
       }),
     }
   )
-  .get("/delivery_pricing/cached", async ({ redis, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("delivery_pricing.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
+  .get("/delivery_pricing/cached", async ({ redis }) => {
     const res = await redis.get(
       `${process.env.PROJECT_PREFIX}_delivery_pricing`
     );
     return JSON.parse(res || "[]") as InferSelectModel<typeof delivery_pricing>[];
+  }, {
+    permission: 'delivery_pricing.list',
   })
   .get(
     "/delivery_pricing/:id",
-    async ({ params: { id }, drizzle, set, user }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("delivery_pricing.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
         .from(delivery_pricing)
@@ -119,6 +83,7 @@ export const DeliveryPricingController = new Elysia({
       };
     },
     {
+      permission: 'delivery_pricing.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -126,20 +91,7 @@ export const DeliveryPricingController = new Elysia({
   )
   .post(
     "/delivery_pricing",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("delivery_pricing.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, delivery_pricing, {});
@@ -154,6 +106,7 @@ export const DeliveryPricingController = new Elysia({
       };
     },
     {
+      permission: 'delivery_pricing.create',
       body: t.Object({
         data: t.Object({
           active: t.Boolean(),
@@ -187,20 +140,7 @@ export const DeliveryPricingController = new Elysia({
   )
   .put(
     "/delivery_pricing/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, set, user }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("delivery_pricing.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, delivery_pricing, {});
@@ -225,6 +165,7 @@ export const DeliveryPricingController = new Elysia({
       };
     },
     {
+      permission: 'delivery_pricing.edit',
       params: t.Object({
         id: t.String(),
       }),

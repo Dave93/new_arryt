@@ -18,19 +18,6 @@ export const WorkSchedulesController = new Elysia({
   .get(
     "/work_schedules",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("work_schedules.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {
@@ -65,6 +52,7 @@ export const WorkSchedulesController = new Elysia({
       };
     },
     {
+      permission: 'work_schedules.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -75,38 +63,14 @@ export const WorkSchedulesController = new Elysia({
     }
   )
   .get("/work_schedules/cached", async ({ redis, user, set, cacheControl }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("work_schedules.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
     const res = await cacheControl.getWorkSchedules();
     return res;
+  }, {
+    permission: 'work_schedules.list',
   })
   .get(
     "/work_schedules/:id",
     async ({ params: { id }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("work_schedules.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       const permissionsRecord = await drizzle
         .select()
         .from(work_schedules)
@@ -117,6 +81,7 @@ export const WorkSchedulesController = new Elysia({
       };
     },
     {
+      permission: 'work_schedules.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -125,19 +90,6 @@ export const WorkSchedulesController = new Elysia({
   .post(
     "/work_schedules",
     async ({ body: { data, fields }, drizzle, user, set, cacheControl }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("work_schedules.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {});
@@ -164,6 +116,7 @@ export const WorkSchedulesController = new Elysia({
       };
     },
     {
+      permission: 'work_schedules.create',
       body: t.Object({
         data: t.Object({
           name: t.String(),
@@ -182,19 +135,6 @@ export const WorkSchedulesController = new Elysia({
   .put(
     "/work_schedules/:id",
     async ({ params: { id }, body: { data, fields }, drizzle, user, set, cacheControl }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("work_schedules.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {});
@@ -223,6 +163,7 @@ export const WorkSchedulesController = new Elysia({
       };
     },
     {
+      permission: 'work_schedules.edit',
       params: t.Object({
         id: t.String(),
       }),

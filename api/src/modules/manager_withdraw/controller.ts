@@ -17,20 +17,7 @@ export const ManagerWithdrawController = new Elysia({
   .use(ctx)
   .get(
     "/manager_withdraw",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, set, user }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("manager_withdraw.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       const couriers = alias(users, "couriers");
       const managers = alias(users, "managers");
       let selectFields: SelectedFields = {};
@@ -74,6 +61,7 @@ export const ManagerWithdrawController = new Elysia({
       };
     },
     {
+      permission: 'manager_withdraw.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -83,21 +71,7 @@ export const ManagerWithdrawController = new Elysia({
       }),
     }
   )
-  .get('/manager_withdraw/:id/transactions', async ({ params: { id }, drizzle, set, user }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("manager_withdraw.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
-
+  .get('/manager_withdraw/:id/transactions', async ({ params: { id }, drizzle }) => {
     const withdrawPrepare = await drizzle
       .select({
         id: manager_withdraw.id,
@@ -138,6 +112,7 @@ export const ManagerWithdrawController = new Elysia({
     });
     return items;
   }, {
+    permission: 'manager_withdraw.list',
     params: t.Object({
       id: t.String(),
     }),

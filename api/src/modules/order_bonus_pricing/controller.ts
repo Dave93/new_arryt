@@ -16,20 +16,7 @@ export const OrderBonusPricingController = new Elysia({
   .use(ctx)
   .get(
     "/order_bonus_pricing",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_bonus_pricing.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_bonus_pricing, {
@@ -70,6 +57,7 @@ export const OrderBonusPricingController = new Elysia({
       };
     },
     {
+      permission: 'order_bonus_pricing.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -79,41 +67,17 @@ export const OrderBonusPricingController = new Elysia({
       }),
     }
   )
-  .get("/order_bonus_pricing/cached", async ({ redis, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("order_bonus_pricing.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
+  .get("/order_bonus_pricing/cached", async ({ redis }) => {
     const res = await redis.get(
       `${process.env.PROJECT_PREFIX}_order_bonus_pricing`
     );
     return JSON.parse(res || "[]") as InferSelectModel<typeof order_bonus_pricing>[];
+  }, {
+    permission: 'order_bonus_pricing.list',
   })
   .get(
     "/order_bonus_pricing/:id",
-    async ({ params: { id }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_bonus_pricing.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
         .from(order_bonus_pricing)
@@ -124,6 +88,7 @@ export const OrderBonusPricingController = new Elysia({
       };
     },
     {
+      permission: 'order_bonus_pricing.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -131,20 +96,7 @@ export const OrderBonusPricingController = new Elysia({
   )
   .post(
     "/order_bonus_pricing",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_bonus_pricing.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_bonus_pricing, {});
@@ -159,6 +111,7 @@ export const OrderBonusPricingController = new Elysia({
       };
     },
     {
+      permission: 'order_bonus_pricing.create',
       body: t.Object({
         data: t.Object({
           active: t.Optional(t.Boolean()),
@@ -177,20 +130,7 @@ export const OrderBonusPricingController = new Elysia({
   )
   .put(
     "/order_bonus_pricing/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("order_bonus_pricing.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
+    async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, order_bonus_pricing, {});
@@ -206,6 +146,7 @@ export const OrderBonusPricingController = new Elysia({
       };
     },
     {
+      permission: 'order_bonus_pricing.edit',
       params: t.Object({
         id: t.String(),
       }),

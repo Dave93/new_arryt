@@ -49,7 +49,7 @@ import { sortBy, uniq } from "lodash";
 import { getSetting } from "@api/src/utils/settings";
 
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { ctx } from "@api/src/context";
+import { contextWitUser } from "@api/src/context";
 import { CourierEfficiencyReportItem, UsersModel, WalletStatus } from "./dto/list.dto";
 import { processPushCourierToQueue, processTrySetDailyGarant } from "@api/src/context/queues";
 dayjs.extend(customParseFormat);
@@ -129,7 +129,7 @@ const otpById = db.query.otp
 export const UsersController = new Elysia({
   name: "@app/users",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .post(
     "/users/send-otp",
     async ({ body: { phone }, drizzle }) => {
@@ -386,19 +386,6 @@ export const UsersController = new Elysia({
       user,
       set,
     }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("orders.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       const result = (await drizzle
         .select({
           id: courier_terminal_balance.id,
@@ -439,6 +426,7 @@ export const UsersController = new Elysia({
       return result;
     },
     {
+      permission: 'orders.edit',
       body: t.Object({
         terminal_id: t.Optional(t.Array(t.String())),
         courier_id: t.Optional(t.Array(t.String())),
@@ -498,12 +486,6 @@ export const UsersController = new Elysia({
       request,
       redis
     }) => {
-      if (!user) {
-        set.status = 400;
-        return {
-          message: "User not found",
-        };
-      }
 
       if (user.user.status != "active") {
         set.status = 400;
@@ -586,6 +568,7 @@ export const UsersController = new Elysia({
       return openedTimeEntry;
     },
     {
+      permission: 'orders.list',
       body: t.Object({
         lat_close: t.String(),
         lon_close: t.String(),
@@ -604,12 +587,6 @@ export const UsersController = new Elysia({
       drizzle,
       request,
     }) => {
-      if (!user) {
-        set.status = 400;
-        return {
-          message: "User not found",
-        };
-      }
 
       if (user.user.status != "active") {
         set.status = 400;
@@ -972,6 +949,7 @@ export const UsersController = new Elysia({
       return workScheduleEntry[0];
     },
     {
+      permission: 'orders.list',
       body: t.Object({
         lat_open: t.String(),
         lon_open: t.String(),
@@ -982,19 +960,6 @@ export const UsersController = new Elysia({
   .get(
     "/couriers/roll_coll",
     async ({ redis, query: { date }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("terminals.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       const terminalsRes = await redis.get(
         `${process.env.PROJECT_PREFIX}_terminals`
       );
@@ -1116,25 +1081,13 @@ export const UsersController = new Elysia({
       return sortBy(Object.values(res), ["name"]);
     },
     {
+      permission: 'terminals.list',
       query: t.Object({
         date: t.String(),
       }),
     }
   )
   .get('/couriers/roll_call/:id', async ({ params: { id }, query: { startDate, endDate }, drizzle, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("terminals.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
 
     const items = await drizzle.select({
       id: timesheet.id,
@@ -1150,6 +1103,7 @@ export const UsersController = new Elysia({
 
     return items;
   }, {
+    permission: 'terminals.list',
     params: t.Object({
       id: t.String()
     }),
@@ -1161,12 +1115,6 @@ export const UsersController = new Elysia({
   .get(
     "/couriers/search",
     async ({ query: { search }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
       const { password, ...fields } = getTableColumns(users);
       const couriersList = await drizzle
         .select({
@@ -1190,18 +1138,13 @@ export const UsersController = new Elysia({
       return couriersList;
     },
     {
+      permission: 'orders.list',
       query: t.Object({
         search: t.String(),
       }),
     }
   )
   .get("/couriers/all", async ({ drizzle, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
     const { password, ...fields } = getTableColumns(users);
     const couriersList = await drizzle
       .select(fields)
@@ -1211,6 +1154,8 @@ export const UsersController = new Elysia({
       .where(and(eq(users.status, "active"), eq(roles.code, "courier")))
       .execute() as InferSelectModel<typeof users>[];
     return couriersList;
+  }, {
+    permission: 'orders.list',
   })
   .get(
     "/couriers/my_unread_notifications",
@@ -1232,19 +1177,6 @@ export const UsersController = new Elysia({
       user,
       set,
     }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("users.list")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let res: {
         [key: string]: UsersModel;
       } = {};
@@ -1310,6 +1242,7 @@ export const UsersController = new Elysia({
       };
     },
     {
+      permission: 'users.list',
       query: t.Object({
         limit: t.String(),
         offset: t.String(),
@@ -1322,19 +1255,6 @@ export const UsersController = new Elysia({
   .get(
     "/users/:id",
     async ({ params: { id }, query: { fields }, drizzle, user, set }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("users.show")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let res: {
         [key: string]: UsersModel;
       } = {};
@@ -1432,6 +1352,7 @@ export const UsersController = new Elysia({
       };
     },
     {
+      permission: 'users.show',
       params: t.Object({
         id: t.String(),
       }),
@@ -1443,19 +1364,6 @@ export const UsersController = new Elysia({
   .post(
     "/users",
     async ({ body: { data, fields }, drizzle, user, set, cacheControl }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("users.create")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = { id: users.id };
       if (fields) {
         // @ts-ignore
@@ -1511,6 +1419,7 @@ export const UsersController = new Elysia({
       };
     },
     {
+      permission: 'users.create',
       body: t.Object({
         data: t.Object({
           first_name: t.String(),
@@ -1539,19 +1448,6 @@ export const UsersController = new Elysia({
   .put(
     "/users/:id",
     async ({ params: { id }, body: { data, fields }, drizzle, user, set, cacheControl }) => {
-      if (!user) {
-        set.status = 401;
-        return {
-          message: "User not found",
-        };
-      }
-
-      if (!user.access.additionalPermissions.includes("users.edit")) {
-        set.status = 401;
-        return {
-          message: "You don't have permissions",
-        };
-      }
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, users, {});
@@ -1608,6 +1504,7 @@ export const UsersController = new Elysia({
       };
     },
     {
+      permission: 'users.edit',
       params: t.Object({
         id: t.String(),
       }),
@@ -1639,19 +1536,6 @@ export const UsersController = new Elysia({
     }
   )
   .post('/couriers/efficiency', async ({ body: { startDate, endDate, courier_id, terminal_id, status }, drizzle, user, set, cacheControl }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("orders.edit")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
 
     const query = await db.execute<{
       courier_id: string;
@@ -1815,6 +1699,7 @@ export const UsersController = new Elysia({
 
     return res;
   }, {
+    permission: 'orders.edit',
     body: t.Object({
       startDate: t.String(),
       endDate: t.String(),
@@ -1824,19 +1709,6 @@ export const UsersController = new Elysia({
     })
   })
   .post('/couriers/efficiency/hour', async ({ body: { startDate, endDate, courierId }, drizzle, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("users.edit")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
 
 
     const usersTerminals = await drizzle.select({
@@ -1864,6 +1736,7 @@ export const UsersController = new Elysia({
     return data;
 
   }, {
+    permission: 'users.edit',
     body: t.Object({
       startDate: t.String(),
       endDate: t.String(),
@@ -1871,19 +1744,6 @@ export const UsersController = new Elysia({
     })
   })
   .post('/couriers/efficiency/period', async ({ body: { startDate, endDate, courierId }, drizzle, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("users.edit")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
 
 
     const usersTerminals = await drizzle.select({
@@ -1911,6 +1771,7 @@ export const UsersController = new Elysia({
     return data;
 
   }, {
+    permission: 'users.edit',
     body: t.Object({
       startDate: t.String(),
       endDate: t.String(),
@@ -1918,19 +1779,6 @@ export const UsersController = new Elysia({
     })
   })
   .get('/couriers/for_terminal', async ({ query: { terminal_id }, drizzle, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("users.edit")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
 
     const usersTerminals = await drizzle.select({
       user_id: users_terminals.user_id,
@@ -1960,17 +1808,12 @@ export const UsersController = new Elysia({
 
     return couriers;
   }, {
+    permission: 'users.edit',
     query: t.Object({
       terminal_id: t.String()
     })
   })
   .get('/couriers/my_profile_number', async ({ drizzle, user, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
     console.time('sqlScorePrepare');
     const sqlScorePrepare = await drizzle
       .select({
@@ -2055,15 +1898,10 @@ export const UsersController = new Elysia({
       not_paid_amount: sqlTotalBalance?.not_paid_amount || 0,
       fuel: sqlTotalFuel?.amount || 0
     };
+  }, {
+    permission: 'orders.list',
   })
   .get('/couriers/mob_stat', async ({ drizzle, user, set, redis, cacheControl }) => {
-
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
     let workStartHour = await getSetting(redis, "work_start_time");
     workStartHour = new Date(workStartHour).getHours();
 
@@ -2474,14 +2312,10 @@ export const UsersController = new Elysia({
         workScheduleBonus: sqlMonthWorkScheduleBonusQuery.amount ? Number(sqlMonthWorkScheduleBonusQuery.amount) : 0
       }
     }
+  }, {
+    permission: 'orders.list',
   })
   .get('/couriers/my_couriers', async ({ drizzle, user, set, cacheControl }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
 
     const managerRole = user.access.roles.find(role => role.code === "manager");
 
@@ -2525,14 +2359,10 @@ export const UsersController = new Elysia({
     );
 
     return uniqueCouriers;
+  }, {
+    permission: 'orders.list',
   })
   .post('/couriers/store-location', async ({ body: { lat, lon, app_version }, drizzle, user, set, processStoreLocationQueue }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
 
     if (!user.user.is_online) {
       return {
@@ -2555,6 +2385,7 @@ export const UsersController = new Elysia({
       success: true
     };
   }, {
+    permission: 'orders.list',
     body: t.Object({
       lat: t.String(),
       lon: t.String(),
@@ -2562,11 +2393,6 @@ export const UsersController = new Elysia({
     })
   })
   .get('/couriers/locations', async ({ user, redis }) => {
-    if (!user) {
-      return {
-        message: "User not found",
-      };
-    }
 
     const locations = await redis.hgetall(
       `${process.env.PROJECT_PREFIX}_user_location`
@@ -2605,21 +2431,10 @@ export const UsersController = new Elysia({
     }
 
     return res;
+  }, {
+    permission: 'orders.edit',
   })
   .get('/couriers/terminal_balance', async ({ user, drizzle, set }) => {
-    if (!user) {
-      set.status = 401;
-      return {
-        message: "User not found",
-      };
-    }
-
-    if (!user.access.additionalPermissions.includes("orders.list")) {
-      set.status = 401;
-      return {
-        message: "You don't have permissions",
-      };
-    }
     console.time('courierTerminalBalanceQuery');
     const courierTerminalBalancePrepare = drizzle
       .select({
@@ -2644,4 +2459,6 @@ export const UsersController = new Elysia({
     });
     console.timeEnd('courierTerminalBalanceQuery');
     return courierTerminalBalance;
+  }, {
+    permission: 'orders.list',
   })
