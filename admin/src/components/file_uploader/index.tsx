@@ -38,6 +38,7 @@ const FileUploader = ({ value, onChange, modelId }: MyInputProps) => {
     const response = await client.request(query, variables, {
       Authorization: `Bearer ${identity?.token.accessToken}`,
     });
+    // @ts-ignore
     return response.uploadFile;
   };
 
