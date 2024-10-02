@@ -1,6 +1,7 @@
 import { gql, useSubscription } from "@apollo/client";
 import { useGetIdentity } from "@refinedev/core";
 import { FC } from "react";
+import { apiClient } from "../../eden";
 
 const COMMENTS_SUBSCRIPTION = gql`
   subscription addedNewCurrentOrder($courier_id: String!) {

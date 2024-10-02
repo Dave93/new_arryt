@@ -309,7 +309,18 @@ export const OrdersList: React.FC = () => {
     }
   };
 
-  const updateOrderStatus = async (showId: string, id: string) => {
+  const updateOrderStatus = async (
+    showId: string,
+    id: string,
+    created_at: string
+  ) => {
+    const data = await apiClient.api.orders[showId!].set_status.post({
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+      status_id: id,
+      created_at: created_at,
+    });
     // const query = gql`
     //   mutation ($id: String!, $status: String!) {
     //     updateOrderStatus(orderId: $id, orderStatusId: $status) {
@@ -406,7 +417,11 @@ export const OrdersList: React.FC = () => {
                           textTransform: "uppercase",
                         }}
                         onClick={() => {
-                          updateOrderStatus(record.id, item.id);
+                          updateOrderStatus(
+                            record.id,
+                            item.id,
+                            record.created_at
+                          );
                         }}
                       >
                         {item.name}

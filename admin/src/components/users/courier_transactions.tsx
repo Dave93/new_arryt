@@ -65,14 +65,15 @@ const CourierTransactions = ({
       loadData();
     },
 
-    // defaultFormValues: {
-    //   courier_id: user.id,
-    //   transaction_type: "CUSTOM",
-    //   organization_id: organizations[0]?.id,
-    // },
+    initialValues: {
+      courier_id: user.id,
+    },
     meta: {
       pluralize: true,
       fields: ["id"],
+      hiddenValues: {
+        courier_id: user.id,
+      },
       requestHeaders: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
       },

@@ -210,7 +210,7 @@ export const OrdersShow = () => {
             {
               field: "order_created_at",
               operator: "eq",
-              value: record?.created_at,
+              value: dayjs(record?.created_at).toISOString(),
             },
           ]),
         },

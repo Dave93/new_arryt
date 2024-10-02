@@ -72,7 +72,6 @@ export const edenDataProvider: DataProvider = {
       } | null;
       error?: any;
     };
-    console.log('error', error);
     if (error) throw Error(error?.value);
     return {
       data: data?.data ?? [],
@@ -109,7 +108,7 @@ export const edenDataProvider: DataProvider = {
       `/api/${resource}`,
       {
         method: "POST",
-        body: { data: variables, fields: meta?.fields },
+        body: { data: meta?.hiddenValues ? { ...variables, ...meta?.hiddenValues } : variables, fields: meta?.fields },
         headers: meta?.requestHeaders,
       }
     );
