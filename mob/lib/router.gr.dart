@@ -9,79 +9,6 @@
 
 part of 'router.dart';
 
-abstract class _$AppRouter extends RootStackRouter {
-  // ignore: unused_element
-  _$AppRouter({super.navigatorKey});
-
-  @override
-  final Map<String, PageFactory> pagesMap = {
-    BrandsRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const BrandsPage(),
-      );
-    },
-    CallCenterOrganizationsListRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const CallCenterOrganizationsListPage(),
-      );
-    },
-    HomeRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const HomePage(),
-      );
-    },
-    InitialRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const InitialPage(),
-      );
-    },
-    LoginTypeOtpRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const LoginTypeOtpPage(),
-      );
-    },
-    LoginTypePhoneRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const LoginTypePhonePage(),
-      );
-    },
-    OrderCustomerCommentsRoute.name: (routeData) {
-      final pathParams = routeData.inheritedPathParams;
-      final args = routeData.argsAs<OrderCustomerCommentsRouteArgs>(
-          orElse: () => OrderCustomerCommentsRouteArgs(
-                customerId: pathParams.getString('customerId'),
-                orderId: pathParams.getString('orderId'),
-              ));
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: OrderCustomerCommentsPage(
-          key: args.key,
-          customerId: args.customerId,
-          orderId: args.orderId,
-        ),
-      );
-    },
-    PrivacyPolicyRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const PrivacyPolicyPage(),
-      );
-    },
-    QRRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const QRPage(),
-      );
-    },
-  };
-}
-
 /// generated route for
 /// [BrandsPage]
 class BrandsRoute extends PageRouteInfo<void> {
@@ -93,7 +20,12 @@ class BrandsRoute extends PageRouteInfo<void> {
 
   static const String name = 'BrandsRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BrandsPage();
+    },
+  );
 }
 
 /// generated route for
@@ -107,7 +39,12 @@ class CallCenterOrganizationsListRoute extends PageRouteInfo<void> {
 
   static const String name = 'CallCenterOrganizationsListRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const CallCenterOrganizationsListPage();
+    },
+  );
 }
 
 /// generated route for
@@ -121,7 +58,12 @@ class HomeRoute extends PageRouteInfo<void> {
 
   static const String name = 'HomeRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const HomePage();
+    },
+  );
 }
 
 /// generated route for
@@ -135,7 +77,12 @@ class InitialRoute extends PageRouteInfo<void> {
 
   static const String name = 'InitialRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const InitialPage();
+    },
+  );
 }
 
 /// generated route for
@@ -149,7 +96,12 @@ class LoginTypeOtpRoute extends PageRouteInfo<void> {
 
   static const String name = 'LoginTypeOtpRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const LoginTypeOtpPage();
+    },
+  );
 }
 
 /// generated route for
@@ -163,7 +115,12 @@ class LoginTypePhoneRoute extends PageRouteInfo<void> {
 
   static const String name = 'LoginTypePhoneRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const LoginTypePhonePage();
+    },
+  );
 }
 
 /// generated route for
@@ -191,8 +148,22 @@ class OrderCustomerCommentsRoute
 
   static const String name = 'OrderCustomerCommentsRoute';
 
-  static const PageInfo<OrderCustomerCommentsRouteArgs> page =
-      PageInfo<OrderCustomerCommentsRouteArgs>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<OrderCustomerCommentsRouteArgs>(
+          orElse: () => OrderCustomerCommentsRouteArgs(
+                customerId: pathParams.getString('customerId'),
+                orderId: pathParams.getString('orderId'),
+              ));
+      return OrderCustomerCommentsPage(
+        key: args.key,
+        customerId: args.customerId,
+        orderId: args.orderId,
+      );
+    },
+  );
 }
 
 class OrderCustomerCommentsRouteArgs {
@@ -225,19 +196,10 @@ class PrivacyPolicyRoute extends PageRouteInfo<void> {
 
   static const String name = 'PrivacyPolicyRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [QRPage]
-class QRRoute extends PageRouteInfo<void> {
-  const QRRoute({List<PageRouteInfo>? children})
-      : super(
-          QRRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'QRRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const PrivacyPolicyPage();
+    },
+  );
 }

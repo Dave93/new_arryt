@@ -2,8 +2,6 @@ import { Button, Input, Space, Form } from "antd";
 import { FC, useState } from "react";
 import { SaveOutlined } from "@ant-design/icons";
 import { useGetIdentity } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 
 const { TextArea } = Input;
 
@@ -20,19 +18,19 @@ const OrderNotes: FC<OrderNotesProps> = ({ orderId, notes }) => {
   }>();
   const saveNotes = async () => {
     setIsSaving(true);
-    let createQuery = gql`
-      mutation ($orderId: String!, $notes: String!) {
-        addOrderNotes(orderId: $orderId, notes: $notes)
-      }
-    `;
-    await client.request(
-      createQuery,
-      {
-        orderId,
-        notes: orderNotes,
-      },
-      { Authorization: `Bearer ${identity?.token.accessToken}` }
-    );
+    // let createQuery = gql`
+    //   mutation ($orderId: String!, $notes: String!) {
+    //     addOrderNotes(orderId: $orderId, notes: $notes)
+    //   }
+    // `;
+    // await client.request(
+    //   createQuery,
+    //   {
+    //     orderId,
+    //     notes: orderNotes,
+    //   },
+    //   { Authorization: `Bearer ${identity?.token.accessToken}` }
+    // );
     setIsSaving(false);
   };
 

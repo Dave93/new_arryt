@@ -1,7 +1,5 @@
-import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:arryt/helpers/api_server.dart';
 import 'package:flutter/material.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 
 class NotificationsCountBadge extends StatelessWidget {
   const NotificationsCountBadge({super.key});

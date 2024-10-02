@@ -1,8 +1,6 @@
 import { useForm, Edit } from "@refinedev/antd";
 import { Form, Input, Select, Row, Col, InputNumber } from "antd";
 import { useGetIdentity, useTranslate } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 import {
   IRoles,
   ITerminals,
@@ -10,7 +8,6 @@ import {
   IWorkSchedules,
 } from "@admin/src/interfaces";
 import { chain, sortBy } from "lodash";
-import * as gqlb from "gql-query-builder";
 import { useEffect, useState } from "react";
 import { drive_type, user_status } from "@admin/src/interfaces/enums";
 import FileUploaderMultiple from "@admin/src/components/file_uploader/multiple";
@@ -162,89 +159,87 @@ export const UsersEdit: React.FC = () => {
         disabled: saveButtonProps.disabled,
         loading: saveButtonProps.loading,
         onClick: async () => {
-          try {
-            let values: any = await formProps.form?.validateFields();
-            let users_terminals = values.users_terminals;
-            let work_schedules = values.users_work_schedules;
-            let roles = values.users_roles_usersTousers_roles_user_id;
-            delete values.users_terminals;
-            delete values.users_work_schedules;
-            delete values.users_roles_usersTousers_roles_user_id;
-
-            let createQuery = gql`
-              mutation (
-                $data: usersUncheckedUpdateInput!
-                $where: usersWhereUniqueInput!
-              ) {
-                updateUser(data: $data, where: $where) {
-                  id
-                }
-              }
-            `;
-            let { updateUser } = await client.request<{
-              updateUser: IUsers;
-            }>(
-              createQuery,
-              {
-                data: values,
-                where: { id },
-              },
-              { Authorization: `Bearer ${identity?.token.accessToken}` }
-            );
-
-            if (updateUser) {
-              let { query, variables } = gqlb.mutation([
-                {
-                  operation: "linkUserToRoles",
-                  variables: {
-                    userId: {
-                      value: updateUser.id,
-                      required: true,
-                    },
-                    roleId: {
-                      value: roles,
-                      required: true,
-                    },
-                  },
-                  fields: ["user_id"],
-                },
-                {
-                  operation: "linkUserToWorkSchedules",
-                  variables: {
-                    userId: {
-                      value: updateUser.id,
-                      required: true,
-                    },
-                    workScheduleId: {
-                      value: work_schedules,
-                      type: "[String!]",
-                      required: true,
-                    },
-                  },
-                  fields: ["count"],
-                },
-                {
-                  operation: "linkUserToTerminals",
-                  variables: {
-                    userId: {
-                      value: updateUser.id,
-                      required: true,
-                    },
-                    terminalId: {
-                      value: users_terminals,
-                      type: "[String!]",
-                      required: true,
-                    },
-                  },
-                  fields: ["count"],
-                },
-              ]);
-              await client.request(query, variables, {
-                Authorization: `Bearer ${identity?.token.accessToken}`,
-              });
-              redirect("list");
-            }
-          } catch (error) {}
+          // try {
+          //   let values: any = await formProps.form?.validateFields();
+          //   let users_terminals = values.users_terminals;
+          //   let work_schedules = values.users_work_schedules;
+          //   let roles = values.users_roles_usersTousers_roles_user_id;
+          //   delete values.users_terminals;
+          //   delete values.users_work_schedules;
+          //   delete values.users_roles_usersTousers_roles_user_id;
+          //   let createQuery = gql`
+          //     mutation (
+          //       $data: usersUncheckedUpdateInput!
+          //       $where: usersWhereUniqueInput!
+          //     ) {
+          //       updateUser(data: $data, where: $where) {
+          //         id
+          //       }
+          //     }
+          //   `;
+          //   let { updateUser } = await client.request<{
+          //     updateUser: IUsers;
+          //   }>(
+          //     createQuery,
+          //     {
+          //       data: values,
+          //       where: { id },
+          //     },
+          //     { Authorization: `Bearer ${identity?.token.accessToken}` }
+          //   );
+          //   if (updateUser) {
+          //     let { query, variables } = gqlb.mutation([
+          //       {
+          //         operation: "linkUserToRoles",
+          //         variables: {
+          //           userId: {
+          //             value: updateUser.id,
+          //             required: true,
+          //           },
+          //           roleId: {
+          //             value: roles,
+          //             required: true,
+          //           },
+          //         },
+          //         fields: ["user_id"],
+          //       },
+          //       {
+          //         operation: "linkUserToWorkSchedules",
+          //         variables: {
+          //           userId: {
+          //             value: updateUser.id,
+          //             required: true,
+          //           },
+          //           workScheduleId: {
+          //             value: work_schedules,
+          //             type: "[String!]",
+          //             required: true,
+          //           },
+          //         },
+          //         fields: ["count"],
+          //       },
+          //       {
+          //         operation: "linkUserToTerminals",
+          //         variables: {
+          //           userId: {
+          //             value: updateUser.id,
+          //             required: true,
+          //           },
+          //           terminalId: {
+          //             value: users_terminals,
+          //             type: "[String!]",
+          //             required: true,
+          //           },
+          //         },
+          //         fields: ["count"],
+          //       },
+          //     ]);
+          //     await client.request(query, variables, {
+          //       Authorization: `Bearer ${identity?.token.accessToken}`,
+          //     });
+          //     redirect("list");
+          //   }
+          // } catch (error) {}
         },
       }}
       title="Редактирование пользователя"

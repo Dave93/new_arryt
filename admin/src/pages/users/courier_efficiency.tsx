@@ -21,8 +21,6 @@ import {
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import dayjs from "dayjs";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { sortBy } from "lodash";
 import { Excel } from "@admin/src/components/export/src";
 import { rangePresets } from "@admin/src/components/dates/RangePresets";

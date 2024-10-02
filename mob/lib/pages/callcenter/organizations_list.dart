@@ -81,7 +81,7 @@ class _CallCenterOrganizationsListState
     // TODO: implement initState
     super.initState();
     // Enable virtual display.
-    if (Platform.isAndroid) WebView.platform = AndroidWebView();
+    // if (Platform.isAndroid) WebView.platform = AndroidWebView();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadOrganizations();
     });

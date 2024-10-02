@@ -1,32 +1,19 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/widgets/orders/orders_items.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:dio/dio.dart';
-import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:map_launcher/map_launcher.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
-import 'package:arryt/helpers/api_graphql_provider.dart';
-import 'package:arryt/main.dart';
-import 'package:arryt/models/order.dart';
-import 'package:arryt/widgets/orders/orders_items.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../helpers/urlLauncher.dart';
-import '../../models/customer.dart';
 import '../../models/new_order.dart';
-import '../../models/order_next_button.dart';
-import '../../models/order_status.dart';
-import '../../models/organizations.dart';
-import '../../models/terminals.dart';
-import '../../models/waiting_order.dart';
 import '../location_dialog.dart';
 
 class WaitingOrderCard extends StatefulWidget {
@@ -578,7 +565,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                             .toUpperCase(),
                         style: Theme.of(context)
                             .textTheme
-                            .button
+                            .titleMedium
                             ?.copyWith(fontSize: 14),
                       ),
                     ),
@@ -606,7 +593,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                               .toUpperCase(),
                           style: Theme.of(context)
                               .textTheme
-                              .button
+                              .titleMedium
                               ?.copyWith(fontSize: 14)),
                     ),
                   ),

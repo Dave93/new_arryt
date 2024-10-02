@@ -24,8 +24,6 @@ import {
 
 import dayjs from "dayjs";
 import { FC, useEffect, useMemo, useRef, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { YMaps, Map } from "react-yandex-maps";
 import { IGroupedLocations, IOrderLocation } from "@admin/src/interfaces";
 import "dayjs/locale/ru";

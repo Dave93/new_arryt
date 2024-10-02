@@ -9,8 +9,6 @@ import {
 } from "@admin/src/interfaces";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { ExportOutlined } from "@ant-design/icons";
 import { UsersModel } from "@api/src/modules/user/dto/list.dto";
 import { apiClient } from "@admin/src/eden";
@@ -43,7 +41,6 @@ const CourierEffectiveness = ({ user }: { user: UsersModel }) => {
     setIsLoading(true);
 
     const { created_at, per_hour } = getValues();
-    let query = gql``;
     if (per_hour) {
       const { data } = await apiClient.api.couriers.efficiency.hour.post({
         startDate: created_at[0].toISOString(),

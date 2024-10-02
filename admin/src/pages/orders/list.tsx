@@ -26,8 +26,6 @@ import {
 } from "@refinedev/core";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 
 import { sortBy } from "lodash";
 import {
@@ -312,23 +310,23 @@ export const OrdersList: React.FC = () => {
   };
 
   const updateOrderStatus = async (showId: string, id: string) => {
-    const query = gql`
-      mutation ($id: String!, $status: String!) {
-        updateOrderStatus(orderId: $id, orderStatusId: $status) {
-          created_at
-        }
-      }
-    `;
-    await client.request(
-      query,
-      {
-        id: showId,
-        status: id,
-      },
-      {
-        Authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
+    // const query = gql`
+    //   mutation ($id: String!, $status: String!) {
+    //     updateOrderStatus(orderId: $id, orderStatusId: $status) {
+    //       created_at
+    //     }
+    //   }
+    // `;
+    // await client.request(
+    //   query,
+    //   {
+    //     id: showId,
+    //     status: id,
+    //   },
+    //   {
+    //     Authorization: `Bearer ${identity?.token.accessToken}`,
+    //   }
+    // );
     queryClient.invalidateQueries(["default", "orders", "list"]);
   };
 

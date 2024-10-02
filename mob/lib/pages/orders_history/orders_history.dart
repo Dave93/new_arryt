@@ -9,8 +9,6 @@ import 'package:easy_refresh/easy_refresh.dart';
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:grouped_list/grouped_list.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -761,7 +759,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                       .toUpperCase(),
                                                   style: Theme.of(context)
                                                       .textTheme
-                                                      .button
+                                                      .titleMedium
                                                       ?.copyWith(fontSize: 14),
                                                 ),
                                               ),
@@ -795,7 +793,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                         .toUpperCase(),
                                                     style: Theme.of(context)
                                                         .textTheme
-                                                        .button
+                                                        .titleMedium
                                                         ?.copyWith(
                                                             fontSize: 14)),
                                               ),
@@ -1056,7 +1054,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                         .toUpperCase(),
                                                     style: Theme.of(context)
                                                         .textTheme
-                                                        .button
+                                                        .titleMedium
                                                         ?.copyWith(
                                                             fontSize: 14),
                                                   ),
@@ -1092,7 +1090,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                           .toUpperCase(),
                                                       style: Theme.of(context)
                                                           .textTheme
-                                                          .button
+                                                          .titleMedium
                                                           ?.copyWith(
                                                               fontSize: 14)),
                                                 ),

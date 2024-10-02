@@ -1,6 +1,4 @@
 import type { AuthBindings } from "@refinedev/core";
-import { gql } from "graphql-request";
-import { client } from "./graphConnect";
 import * as openpgp from 'openpgp';
 
 

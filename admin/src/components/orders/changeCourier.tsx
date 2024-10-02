@@ -2,8 +2,6 @@ import { Button, Modal, Select, Tooltip } from "antd";
 import { EditOutlined } from "@ant-design/icons";
 import { FC, useState } from "react";
 import { IUsers } from "@admin/src/interfaces";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { useGetIdentity } from "@refinedev/core";
 import { apiClient } from "@admin/src/eden";
 import { UsersModel } from "@api/src/modules/user/dto/list.dto";

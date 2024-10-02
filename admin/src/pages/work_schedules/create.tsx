@@ -9,8 +9,6 @@ import {
   Switch,
   TimePicker,
 } from "antd";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 import { IOrganization, IWorkSchedules } from "@admin/src/interfaces";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";

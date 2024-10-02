@@ -10,8 +10,6 @@ import 'package:arryt/models/user_data.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:load_switch/load_switch.dart';
-import 'package:arryt/bloc/block_imports.dart';
 
 import '../../../widgets/location_dialog.dart';
 

@@ -3,8 +3,6 @@ import { Show } from "@refinedev/antd";
 import { Typography, Tag, Switch } from "antd";
 
 import { useEffect, useState } from "react";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import { roles } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
@@ -28,26 +26,26 @@ export const RolesShow = () => {
   const record = data?.data;
 
   const loadPermissions = async () => {
-    let query = gql`
-      query ($id: String) {
-        manyRolePermissions(where: { role_id: { equals: $id } }) {
-          permissions {
-            description
-          }
-        }
-      }
-    `;
-    const variables = {
-      id: showId,
-    };
-    const chosenPermissionsData = await client.request(query, variables, {
-      Authorization: `Bearer ${identity?.token.accessToken}`,
-    });
-    setChosenPermissions(
-      chosenPermissionsData.manyRolePermissions.map(
-        (item: any) => item.permissions.description
-      )
-    );
+    // let query = gql`
+    //   query ($id: String) {
+    //     manyRolePermissions(where: { role_id: { equals: $id } }) {
+    //       permissions {
+    //         description
+    //       }
+    //     }
+    //   }
+    // `;
+    // const variables = {
+    //   id: showId,
+    // };
+    // const chosenPermissionsData = await client.request(query, variables, {
+    //   Authorization: `Bearer ${identity?.token.accessToken}`,
+    // });
+    // setChosenPermissions(
+    //   chosenPermissionsData.manyRolePermissions.map(
+    //     (item: any) => item.permissions.description
+    //   )
+    // );
   };
 
   useEffect(() => {

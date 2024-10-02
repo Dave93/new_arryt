@@ -3,18 +3,14 @@ import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:keframe/keframe.dart';
 import 'package:arryt/widgets/orders/waiting_order_card.dart';
 
-import '../../bloc/block_imports.dart';
-import '../../helpers/api_graphql_provider.dart';
 import '../../main.dart';
 import '../../models/new_order.dart';
-import '../../models/waiting_order.dart';
 
 class MyWaitingOrdersList extends StatelessWidget {
   const MyWaitingOrdersList({super.key});
@@ -164,7 +160,7 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
                             .toUpperCase(),
                         style: Theme.of(context)
                             .textTheme
-                            .headline5
+                            .titleLarge
                             ?.copyWith(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
@@ -174,7 +170,7 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
                       child: Text(
                         AppLocalizations.of(context)!
                             .notice_torn_on_work_schedule_subtitle,
-                        style: Theme.of(context).textTheme.subtitle1,
+                        style: Theme.of(context).textTheme.titleMedium,
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -217,7 +213,7 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
               }
             } else {
               return Text(AppLocalizations.of(context)!.you_are_not_courier,
-                  style: Theme.of(context).textTheme.headline6);
+                  style: Theme.of(context).textTheme.titleLarge);
             }
           } else {
             return const SizedBox();

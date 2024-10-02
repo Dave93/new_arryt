@@ -1,10 +1,7 @@
 import { Alert, Button, Col, Row, Select, Space } from "antd";
 import { useCan, useGetIdentity } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
 import { IOrders, IOrderStatus } from "@admin/src/interfaces";
-import * as gqlb from "gql-query-builder";
 import { FC, useState } from "react";
-import { gql } from "graphql-request";
 import { OrdersWithRelations } from "@api/src/modules/orders/dtos/list.dto";
 import { order_status } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
@@ -74,24 +71,24 @@ export const OrdersTableActions: FC<IOrdersTableActionsProps> = ({
 
   const applyStatusChange = async () => {
     setErrorMessage(null);
-    const { query, variables } = gqlb.mutation({
-      operation: "changeMultipleOrderStatus",
-      variables: {
-        orderIds: {
-          value: selectedOrders?.map((order) => order.id),
-          type: "[String!]!",
-        },
-        orderStatusId: {
-          value: chosenStatusId,
-          type: "String!",
-        },
-      },
-      fields: ["id"],
-    });
-    const response = await client.request(query, variables, {
-      Authorization: `Bearer ${identity?.token.accessToken}`,
-    });
-    setChosenStatusId(null);
+    // const { query, variables } = gqlb.mutation({
+    //   operation: "changeMultipleOrderStatus",
+    //   variables: {
+    //     orderIds: {
+    //       value: selectedOrders?.map((order) => order.id),
+    //       type: "[String!]!",
+    //     },
+    //     orderStatusId: {
+    //       value: chosenStatusId,
+    //       type: "String!",
+    //     },
+    //   },
+    //   fields: ["id"],
+    // });
+    // const response = await client.request(query, variables, {
+    //   Authorization: `Bearer ${identity?.token.accessToken}`,
+    // });
+    // setChosenStatusId(null);
     onFinishAction();
   };
 

@@ -3,9 +3,10 @@ import 'dart:ui';
 
 import 'package:arryt/main.dart';
 import 'package:auto_route/auto_route.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:arryt/bloc/block_imports.dart';
@@ -17,7 +18,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:month_year_picker/month_year_picker.dart';
 import 'package:provider/provider.dart';
 
-import 'notifications/notification_controller.dart';
+import 'widgets/home/order_accept_slider.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -46,43 +47,21 @@ class _AppViewState extends State<AppView> {
   static const String _isolateName = "LocatorIsolate";
   ReceivePort port = ReceivePort();
   final _rootRouter = getIt<AppRouter>();
+  late BuildContext _context;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-
-    // Only after at least the action method is set, the notification events are delivered
-    NotificationController.initializeNotificationListeners();
-
-    IsolateNameServer.registerPortWithName(port.sendPort, _isolateName);
-    port.listen((dynamic data) {
-      // do something with data
-    });
-    initPlatformState();
   }
 
   @override
   void dispose() {
-    AwesomeNotifications().dispose();
     super.dispose();
   }
 
   Future<void> initPlatformState() async {
     // await BackgroundLocator.initialize();
   }
-
-//   @pragma('vm:entry-point')
-//   static void callback(LocationDto locationDto) async {
-//     final SendPort? send = IsolateNameServer.lookupPortByName(_isolateName);
-//     send?.send(locationDto);
-//   }
-
-// //Optional
-//   @pragma('vm:entry-point')
-//   static void initCallback(dynamic _) {
-//     print('Background Locator Plugin initialization');
-//   }
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +85,7 @@ class _AppViewState extends State<AppView> {
               builder: (context, child) {
                 return Consumer<LocaleProvider>(
                     builder: (context, provider, child) {
+                  _context = context; // Store the context here
                   return MaterialApp.router(
                       debugShowCheckedModeBanner: false,
                       localizationsDelegates: const [
@@ -118,59 +98,66 @@ class _AppViewState extends State<AppView> {
                       supportedLocales: L10n.support,
                       locale: provider.locale,
                       theme: ThemeData(
-                          backgroundColor: Colors.white,
-                          primarySwatch: Colors.deepPurple,
-                          primaryColor: Colors.deepPurple.shade400,
+                          colorScheme: ColorScheme.fromSeed(
+                            seedColor: Colors.deepPurple,
+                            brightness: Brightness.light,
+                          ),
+                          useMaterial3: true,
                           fontFamily: GoogleFonts.nunito().fontFamily,
+                          iconTheme: const IconThemeData(color: Colors.white),
                           textTheme: TextTheme(
-                            headline1: GoogleFonts.nunito(
+                            displayLarge: GoogleFonts.nunito(
                                 fontSize: 97,
                                 fontWeight: FontWeight.w300,
                                 letterSpacing: -1.5),
-                            headline2: GoogleFonts.nunito(
+                            displayMedium: GoogleFonts.nunito(
                                 fontSize: 61,
                                 fontWeight: FontWeight.w300,
                                 letterSpacing: -0.5),
-                            headline3: GoogleFonts.nunito(
+                            displaySmall: GoogleFonts.nunito(
                                 fontSize: 48, fontWeight: FontWeight.w400),
-                            headline4: GoogleFonts.nunito(
+                            headlineLarge: GoogleFonts.nunito(
                                 fontSize: 30,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.25),
-                            headline5: GoogleFonts.nunito(
+                            headlineMedium: GoogleFonts.nunito(
                                 fontSize: 24, fontWeight: FontWeight.w400),
-                            headline6: GoogleFonts.nunito(
+                            headlineSmall: GoogleFonts.nunito(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 0.15),
-                            subtitle1: GoogleFonts.nunito(
+                            titleLarge: GoogleFonts.nunito(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
                                 letterSpacing: 0.15),
-                            subtitle2: GoogleFonts.nunito(
+                            titleMedium: GoogleFonts.nunito(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 0.1),
-                            bodyText1: GoogleFonts.nunito(
+                            titleSmall: GoogleFonts.nunito(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.1),
+                            bodyLarge: GoogleFonts.nunito(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
                                 letterSpacing: 0.5),
-                            bodyText2: GoogleFonts.nunito(
+                            bodyMedium: GoogleFonts.nunito(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
                                 letterSpacing: 0.25),
-                            button: GoogleFonts.nunito(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
+                            bodySmall: GoogleFonts.nunito(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
                                 letterSpacing: 1.25,
                                 color: Colors.white),
-                            caption: GoogleFonts.nunito(
+                            labelSmall: GoogleFonts.nunito(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
                                 letterSpacing: 0.4),
-                            overline: GoogleFonts.nunito(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
+                            labelLarge: GoogleFonts.nunito(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
                                 letterSpacing: 1.5),
                           )),
                       routerDelegate: _rootRouter.delegate(

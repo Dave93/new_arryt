@@ -3,12 +3,10 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  awesome_notifications
-  awesome_notifications_core
   dynamic_color
+  emoji_picker_flutter
   file_selector_linux
   objectbox_flutter_libs
-  record_linux
   url_launcher_linux
 )
 

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/riverpods/otp_phone/provider.dart';
@@ -13,7 +11,6 @@ import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:arryt/bloc/block_imports.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
-import 'package:http/http.dart' as http;
 
 import '../../widgets/wave/wave_widget.dart';
 
@@ -113,7 +110,7 @@ class _LoginTypePhonePageState extends ConsumerState<LoginTypePhonePage> {
                       BlocProvider.of<ApiClientsBloc>(context);
                   apiClientsBloc
                       .add(const ApiClientsRemoveAllIsServiceDefault());
-                  AutoRouter.of(context).pop();
+                  AutoRouter.of(context).maybePop();
                 },
                 child: const Icon(
                   Icons.arrow_back_ios_new_rounded,
@@ -187,7 +184,7 @@ class _LoginTypePhonePageState extends ConsumerState<LoginTypePhonePage> {
                         AppLocalizations.of(context)!.send_code.toUpperCase(),
                         style: Theme.of(context)
                             .textTheme
-                            .button!
+                            .titleMedium!
                             .copyWith(color: Colors.white)),
                   )
                 ],

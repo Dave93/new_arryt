@@ -19,8 +19,6 @@ import { useGetIdentity, useTranslate } from "@refinedev/core";
 import { DateTime } from "luxon";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { gql } from "graphql-request";
-import { client } from "@admin/src/graphConnect";
 import dayjs from "dayjs";
 import { GarantReportItem, IUsers } from "@admin/src/interfaces";
 import { ExportOutlined } from "@ant-design/icons";
@@ -768,40 +766,39 @@ const OrdersGarantReport = () => {
             disabled: saveButtonProps.disabled,
             loading: saveButtonProps.loading,
             onClick: async () => {
-              try {
-                let values: any = await formProps.form?.validateFields();
-                let users_terminals = values.users_terminals;
-                let work_schedules = values.users_work_schedules;
-                let roles = values.users_roles_usersTousers_roles_user_id;
-                delete values.users_terminals;
-                delete values.users_work_schedules;
-                delete values.users_roles_usersTousers_roles_user_id;
-
-                let createQuery = gql`
-                  mutation (
-                    $data: usersUncheckedUpdateInput!
-                    $where: usersWhereUniqueInput!
-                  ) {
-                    updateUser(data: $data, where: $where) {
-                      id
-                    }
-                  }
-                `;
-                let { updateUser } = await client.request<{
-                  updateUser: IUsers;
-                }>(
-                  createQuery,
-                  {
-                    data: values,
-                    where: { id },
-                  },
-                  { Authorization: `Bearer ${identity?.token.accessToken}` }
-                );
-                if (updateUser) {
-                  close();
-                  loadData();
-                }
-              } catch (error) {}
+              // try {
+              //   let values: any = await formProps.form?.validateFields();
+              //   let users_terminals = values.users_terminals;
+              //   let work_schedules = values.users_work_schedules;
+              //   let roles = values.users_roles_usersTousers_roles_user_id;
+              //   delete values.users_terminals;
+              //   delete values.users_work_schedules;
+              //   delete values.users_roles_usersTousers_roles_user_id;
+              //   let createQuery = gql`
+              //     mutation (
+              //       $data: usersUncheckedUpdateInput!
+              //       $where: usersWhereUniqueInput!
+              //     ) {
+              //       updateUser(data: $data, where: $where) {
+              //         id
+              //       }
+              //     }
+              //   `;
+              //   let { updateUser } = await client.request<{
+              //     updateUser: IUsers;
+              //   }>(
+              //     createQuery,
+              //     {
+              //       data: values,
+              //       where: { id },
+              //     },
+              //     { Authorization: `Bearer ${identity?.token.accessToken}` }
+              //   );
+              //   if (updateUser) {
+              //     close();
+              //     loadData();
+              //   }
+              // } catch (error) {}
             },
           }}
           deleteButtonProps={deleteButtonProps}

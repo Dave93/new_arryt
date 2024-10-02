@@ -1,8 +1,6 @@
 import 'package:arryt/helpers/api_graphql_provider.dart';
-import 'package:arryt/main.dart';
 import 'package:arryt/models/manager_couriers_model.dart';
 import 'package:arryt/pages/manager/withdraw_for_courier.dart';
-import 'package:arryt/widgets/manager/qr_scan.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:easy_refresh/easy_refresh.dart';

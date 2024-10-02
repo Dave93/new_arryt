@@ -1,6 +1,4 @@
 import { useGetIdentity } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 import { FC, useMemo, useRef, useState } from "react";
 import { Map, Placemark, YMaps } from "@pbe/react-yandex-maps";
 

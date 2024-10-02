@@ -7,8 +7,6 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
-import '../../models/order.dart';
-
 class GarantOrderHistory extends StatelessWidget {
   DateTime dateFrom;
   DateTime dateTo;

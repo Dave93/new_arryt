@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/helpers/hive_helper.dart'; // Add this import
@@ -7,12 +6,11 @@ import 'package:arryt/models/user_data.dart';
 import 'package:arryt/riverpods/otp_phone/provider.dart';
 import 'package:arryt/riverpods/otp_token/provider.dart';
 import 'package:auto_route/auto_route.dart';
-import 'package:awesome_notifications_fcm/awesome_notifications_fcm.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:arryt/bloc/block_imports.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -41,6 +39,7 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
 
   @override
   Widget build(BuildContext context) {
+    final messaging = FirebaseMessaging.instance;
     final size = MediaQuery.of(context).size;
     final bool keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     String code = "";
@@ -87,7 +86,15 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
       String? fcmToken;
 
       try {
-        fcmToken = await AwesomeNotificationsFcm().requestFirebaseAppToken();
+        // Request permission (required for iOS)
+        await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+
+        // Get the token
+        fcmToken = await messaging.getToken();
       } catch (e) {
         fcmToken = null;
       }
@@ -272,7 +279,7 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
               padding: const EdgeInsets.only(top: 50, left: 20),
               child: GestureDetector(
                 onTap: () {
-                  AutoRouter.of(context).pop();
+                  AutoRouter.of(context).maybePop();
                 },
                 child: const Icon(
                   Icons.arrow_back_ios_new_rounded,
@@ -337,7 +344,7 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
                       AppLocalizations.of(context)!.sigin_in.toUpperCase(),
                       style: Theme.of(context)
                           .textTheme
-                          .button!
+                          .titleMedium!
                           .copyWith(color: Colors.white)),
                 )
               ],

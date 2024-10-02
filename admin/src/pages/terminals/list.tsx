@@ -7,8 +7,6 @@ import {
 } from "@refinedev/antd";
 import { Table, Switch, Space, Form, Select, Button } from "antd";
 import { CrudFilters, HttpError, useGetIdentity } from "@refinedev/core";
-import { client } from "@admin/src/graphConnect";
-import { gql } from "graphql-request";
 
 import { IOrganization, ITerminals } from "@admin/src/interfaces";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
@@ -98,18 +96,18 @@ export const TerminalsList: React.FC = () => {
   };
 
   const loadTerminals = async () => {
-    const query = gql`
-      mutation {
-        loadTerminals
-      }
-    `;
-    await client.request(
-      query,
-      {},
-      {
-        authorization: `Bearer ${identity?.token.accessToken}`,
-      }
-    );
+    // const query = gql`
+    //   mutation {
+    //     loadTerminals
+    //   }
+    // `;
+    // await client.request(
+    //   query,
+    //   {},
+    //   {
+    //     authorization: `Bearer ${identity?.token.accessToken}`,
+    //   }
+    // );
   };
 
   useEffect(() => {
