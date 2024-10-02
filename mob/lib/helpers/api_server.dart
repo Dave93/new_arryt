@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:arryt/helpers/hive_helper.dart';
 
 class ApiServer {
-  static String url = 'https://newapi.arryt.uz';
+  static String url = 'https://api.arryt.uz';
   late Dio dio;
 
   // create constructor function

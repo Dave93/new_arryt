@@ -1,11 +1,11 @@
-import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/manager_couriers_model.dart';
 import 'package:arryt/pages/manager/withdraw_for_courier.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:currency_formatter/currency_formatter.dart';
+import 'package:dio/dio.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ManagerCouriersList extends StatelessWidget {
@@ -13,7 +13,7 @@ class ManagerCouriersList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(child: const ManagerCouriersListView());
+    return const ManagerCouriersListView();
   }
 }
 
@@ -38,31 +38,14 @@ class _ManagerCouriersListViewState extends State<ManagerCouriersListView> {
   List<ManagerCouriersModel> couriers = [];
 
   Future<void> _loadData() async {
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      query {
-        managerCouriersBalance {
-          id
-          first_name
-          last_name
-          phone
-          balance
-          terminal_id
-          courier_id
-          terminal_name
-        }
-      }
-    ''';
-    var data = await client.query(
-      QueryOptions(document: gql(query), fetchPolicy: FetchPolicy.noCache),
-    );
-    if (data.data?['managerCouriersBalance'] != null) {
-      List<ManagerCouriersModel> items = [];
-      data.data?['managerCouriersBalance'].forEach((order) {
-        items.add(ManagerCouriersModel.fromMap(order));
-      });
+    ApiServer apiServer = ApiServer();
+    Response response =
+        await apiServer.get("/api/couriers/my_couriers/balance", {});
+    if (response.statusCode == 200) {
       setState(() {
-        couriers = items;
+        couriers = (response.data as List)
+            .map((e) => ManagerCouriersModel.fromMap(e))
+            .toList();
       });
     }
   }

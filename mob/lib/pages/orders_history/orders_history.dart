@@ -331,7 +331,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
     _isLastPage = false;
     _loading = true;
     _error = false;
-    _numberOfPostsPerRequest = 200;
+    _numberOfPostsPerRequest = 100;
     _scrollController = ScrollController();
     // TODO: implement initState
     super.initState();
@@ -760,7 +760,9 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                   style: Theme.of(context)
                                                       .textTheme
                                                       .titleMedium
-                                                      ?.copyWith(fontSize: 14),
+                                                      ?.copyWith(
+                                                          fontSize: 14,
+                                                          color: Colors.white),
                                                 ),
                                               ),
                                             ),
@@ -795,7 +797,9 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                                         .textTheme
                                                         .titleMedium
                                                         ?.copyWith(
-                                                            fontSize: 14)),
+                                                            fontSize: 14,
+                                                            color:
+                                                                Colors.white)),
                                               ),
                                             ),
                                           ],

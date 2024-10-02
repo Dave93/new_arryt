@@ -1,12 +1,12 @@
-import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/transactions.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:currency_text_input_formatter/currency_text_input_formatter.dart';
 import 'package:data_table_2/data_table_2.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_overlay/loading_overlay.dart';
 
@@ -24,13 +24,12 @@ class WithdrawForCourier extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(
-        child: WithdrawForCourierView(
+    return WithdrawForCourierView(
       balance: balance,
       courierId: courierId,
       terminalId: terminalId,
       refresh: refresh,
-    ));
+    );
   }
 }
 
@@ -73,48 +72,14 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
   List<Transactions> transactions = [];
 
   Future<void> _loadTransactions() async {
-    var client = GraphQLProvider.of(context).value;
-    var query = r'''
-      query($courierId: String!, $terminalId: String!) {
-        orderTransactions(where: {
-            courier_id: {
-                equals: $courierId
-            }
-            status: {
-                equals: pending
-            }
-            terminal_id: {
-                equals: $terminalId
-            }
-        }) {
-            not_paid_amount
-            transaction_type
-            order_transactions_orders {
-                order_number
-            }
-            order_transactions_terminals {
-                name
-            }
-            created_at
-        }
-    }
-    ''';
-    var data = await client.query(
-      QueryOptions(
-          document: gql(query),
-          variables: <String, dynamic>{
-            'courierId': widget.courierId,
-            'terminalId': widget.terminalId
-          },
-          fetchPolicy: FetchPolicy.noCache),
-    );
-    if (data.data?['orderTransactions'] != null) {
-      List<Transactions> items = [];
-      data.data?['orderTransactions'].forEach((order) {
-        items.add(Transactions.fromMap(order));
-      });
+    ApiServer apiServer = ApiServer();
+    Response response = await apiServer.get(
+        "/api//couriers/${widget.courierId}/${widget.terminalId}/balance", {});
+    if (response.statusCode == 200) {
       setState(() {
-        transactions = items;
+        transactions = (response.data as List)
+            .map((e) => Transactions.fromMap(e))
+            .toList();
       });
     }
   }
@@ -294,7 +259,7 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20)),
                           minimumSize: const Size.fromHeight(55)),
-                      onPressed: () {
+                      onPressed: () async {
                         RegExp whitespaceRegex = RegExp(r'\s+');
                         int number =
                             int.parse(value.replaceAll(whitespaceRegex, ''));
@@ -302,32 +267,27 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                           setState(() {
                             _isLoading = true;
                           });
-                          var client = GraphQLProvider.of(context).value;
-                          var query = r'''
-                    mutation withdrawCourierBalance($amount: Int!, $courier_id: String!, $terminal_id: String!) {
-                      withdrawCourierBalance(amount: $amount, courier_id: $courier_id, terminal_id: $terminal_id) {
-                        id
-                      }
-                    }
-                  ''';
-                          client.mutate(MutationOptions(
-                              document: gql(query),
-                              variables: {
-                                'amount': number,
-                                'courier_id': widget.courierId,
-                                'terminal_id': widget.terminalId
-                              },
-                              onCompleted: (dynamic resultData) {
-                                setState(() {
-                                  _isLoading = false;
-                                });
-                                widget.refresh();
-                                Navigator.pop(context);
-                              }));
+
+                          ApiServer apiServer = ApiServer();
+                          Response response =
+                              await apiServer.post("/api/couriers/withdraw", {
+                            "amount": number,
+                            'courier_id': widget.courierId,
+                            'terminal_id': widget.terminalId
+                          });
+
+                          if (response.statusCode == 200) {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                            widget.refresh();
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       child: Text(
-                          AppLocalizations.of(context)!.withdrawButtonLabel)),
+                          AppLocalizations.of(context)!.withdrawButtonLabel,
+                          style: TextStyle(color: Colors.white))),
                 ),
               ],
             ),

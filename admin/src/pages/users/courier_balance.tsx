@@ -197,7 +197,7 @@ const CourierBalance = () => {
     loadData();
 
     return () => {};
-  }, []);
+  }, [identity]);
 
   return (
     <div>
