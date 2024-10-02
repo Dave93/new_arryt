@@ -297,7 +297,6 @@ export const OrdersController = new Elysia({
             return [];
         }
 
-        console.time('usersTerminals');
         const usersTerminalsListPrepare = await drizzle
             .select({
                 terminal_id: users_terminals.terminal_id
@@ -308,8 +307,6 @@ export const OrdersController = new Elysia({
             ).prepare('usersTerminalsList');
         // @ts-ignore
         const usersTerminalsList = await usersTerminalsListPrepare.execute({ user_id: user.user.id });
-        console.timeEnd('usersTerminals');
-        console.time('cacheWorks');
         const orderStatuses = await cacheControl.getOrderStatuses();
 
         const newOrderStatuses = orderStatuses.filter((orderStatus) => orderStatus.sort === 1);
@@ -323,9 +320,6 @@ export const OrdersController = new Elysia({
 
         const organizations = cacheOrganizations.filter((organization) => terminalsOrganizations.includes(organization.id));
 
-        console.timeEnd('cacheWorks');
-
-        console.time('userAdditionalData');
         const userMaxActiveOrderCountPrepare = await drizzle
             .select({
                 max_active_order_count: users.max_active_order_count,
@@ -337,7 +331,6 @@ export const OrdersController = new Elysia({
         // @ts-ignore
         const userAdditionalData = await userMaxActiveOrderCountPrepare.execute({ user_id: user.user.id });
 
-        console.timeEnd('userAdditionalData');
         let maxActiveOrderCount = 0;
 
         if (userAdditionalData.length > 0 && userAdditionalData[0].max_active_order_count) {
@@ -350,7 +343,6 @@ export const OrdersController = new Elysia({
         const fromDate = dayjs().subtract(2, 'days').toISOString();
         const toDate = dayjs().add(2, 'days').toISOString();
 
-        console.time('ordersCount');
         const currentOrdersCount = await drizzle
             .select({
                 count: sql<number>`count(*)`
@@ -362,11 +354,9 @@ export const OrdersController = new Elysia({
                 gte(orders.created_at, fromDate),
                 lte(orders.created_at, toDate),
             )).execute();
-        console.timeEnd('ordersCount');
 
         let possibleOrdersCount = maxActiveOrderCount - currentOrdersCount[0].count;
 
-        console.time('ordersList');
 
         const ordersList = await drizzle.select({
             id: orders.id,
@@ -430,7 +420,6 @@ export const OrdersController = new Elysia({
             .limit(100)
             .execute();
 
-        console.timeEnd('ordersList');
         return ordersList;
     }, {
         permission: 'orders.list',
@@ -447,7 +436,6 @@ export const OrdersController = new Elysia({
 
         const fromDate = dayjs().subtract(2, 'days').format('YYYY-MM-DD HH:mm:ss');
         const toDate = dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss');
-        console.time('existingOrder');
         const existingOrder = await drizzle
             .select({
                 id: orders.id,
@@ -470,7 +458,6 @@ export const OrdersController = new Elysia({
                 )
             )
             .execute();
-        console.timeEnd('existingOrder');
         if (existingOrder.length === 0) {
             set.status = 400;
             return {
@@ -488,7 +475,6 @@ export const OrdersController = new Elysia({
         }
 
         const organization = await cacheControl.getOrganization(order.organization_id);
-        console.time('distance');
         const distance = getDistance(
             { latitude: order.orders_terminals!.latitude, longitude: order.orders_terminals!.longitude },
             { latitude, longitude },
@@ -499,15 +485,10 @@ export const OrdersController = new Elysia({
                 message: "You are too far from terminal",
             };
         }
-
-        console.timeEnd('distance');
-
-        console.time('usersTerminals');
         const usersTerminalsList = await drizzle.select({
             terminal_id: users_terminals.terminal_id
             // @ts-ignore
         }).from(users_terminals).where(eq(users_terminals.user_id, user.user.id)).execute();
-        console.timeEnd('usersTerminals');
         const orderStatuses = await cacheControl.getOrderStatuses();
 
         const newOrderStatuses = orderStatuses.filter((orderStatus) => orderStatus.sort === 1);
@@ -520,12 +501,10 @@ export const OrdersController = new Elysia({
         const cacheOrganizations = await cacheControl.getOrganizations();
 
         const organizations = cacheOrganizations.filter((organization) => terminalsOrganizations.includes(organization.id));
-        console.time('userAdditionalData')
         const userAdditionalData = await drizzle.select({
             max_active_order_count: users.max_active_order_count,
             // @ts-ignore
         }).from(users).where(eq(users.id, user.user.id)).execute();
-        console.timeEnd('userAdditionalData');
 
         let maxActiveOrderCount = 0;
 
@@ -536,7 +515,6 @@ export const OrdersController = new Elysia({
             maxActiveOrderCount = Math.max(...organizations.map((organization) => organization.max_active_order_count));
         }
 
-        console.time('currentOrdersCount');
         const currentOrdersCount = await drizzle.select({
             count: sql<number>`count(*)`
         }).from(orders).where(and(
@@ -556,7 +534,6 @@ export const OrdersController = new Elysia({
                 message: "You can't take more orders",
             };
         }
-        console.timeEnd('currentOrdersCount');
 
         const organizationStatuses = orderStatuses.filter((orderStatus) => orderStatus.organization_id === order.organization_id);
         const sortedOrderStatuses = sort(organizationStatuses, (i) => +i.sort);
@@ -564,13 +541,11 @@ export const OrdersController = new Elysia({
         const currentStatusIndex = sortedOrderStatuses.findIndex((orderStatus) => orderStatus.id === order.order_status_id);
 
         const nextStatus = sortedOrderStatuses[currentStatusIndex + 1];
-        console.time('updateOrder');
         await drizzle.update(orders).set({
             // @ts-ignore
             courier_id: user.user.id,
             order_status_id: nextStatus.id,
         }).where(eq(orders.id, order_id)).execute();
-        console.timeEnd('updateOrder');
 
         await processOrderChangeCourierQueue.add(order.id, {
             order_id: order_id,
@@ -613,8 +588,6 @@ export const OrdersController = new Elysia({
         const fromDate = dayjs().subtract(4, 'days').format('YYYY-MM-DD HH:mm:ss');
         const toDate = dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss');
 
-        console.time('existingOrder');
-
         const existingOrderPrepare = drizzle
             .select({
                 id: orders.id,
@@ -642,7 +615,6 @@ export const OrdersController = new Elysia({
             toDate,
         });
 
-        console.timeEnd('existingOrder');
         if (existingOrder.length === 0) {
             set.status = 400;
             return {
@@ -661,7 +633,6 @@ export const OrdersController = new Elysia({
         }
 
 
-        console.time('in_terminal');
         const ordersStatuses = await cacheControl.getOrderStatuses();
         const currentStatus = ordersStatuses.find((orderStatus) => orderStatus.id === status_id);
 
@@ -688,9 +659,7 @@ export const OrdersController = new Elysia({
                 };
             }
         }
-        console.timeEnd('in_terminal');
         if (currentStatus?.waiting || currentStatus?.finish) {
-            console.time('waitingLocation');
             if (!latitude) {
                 set.status = 400;
                 return {
@@ -703,7 +672,6 @@ export const OrdersController = new Elysia({
                 { latitude: order.to_lat, longitude: order.to_lon },
                 { latitude: latitude!, longitude: longitude! },
             );
-            console.timeEnd('waitingLocation');
             if (distance > organization.max_order_close_distance) {
                 set.status = 400;
                 return {
@@ -712,7 +680,6 @@ export const OrdersController = new Elysia({
             }
         }
 
-        console.time('updateOrder');
         if (currentStatus?.finish || currentStatus?.cancel) {
             const updateOrderStatusFinish = drizzle.update(orders).set({
                 order_status_id: status_id,
@@ -741,9 +708,6 @@ export const OrdersController = new Elysia({
                 .execute();
 
         }
-        console.timeEnd('updateOrder');
-
-        console.time('orderActions');
         const lastOrderActionsPrepapre = drizzle
             .select({
                 id: order_actions.id,
@@ -767,13 +731,11 @@ export const OrdersController = new Elysia({
             fromDate,
             toDate,
         });
-        console.timeEnd('orderActions');
         let duration = 0;
 
         if (lastOrderActions.length > 0) {
             duration = dayjs().diff(lastOrderActions[0].created_at, 'second');
         }
-        console.time('insertOrderActions');
         await drizzle.insert(order_actions).values({
             terminal_id: order.terminal_id,
             order_id,
@@ -784,10 +746,6 @@ export const OrdersController = new Elysia({
             created_by: user.user.id,
             action_text: `Статус заказа изменен на "${currentStatus!.name}"`,
         }).execute();
-        console.timeEnd('insertOrderActions');
-
-        console.time('ordersList');
-
         const ordersListPrepare = drizzle
             .select({
                 id: orders.id,
@@ -858,11 +816,7 @@ export const OrdersController = new Elysia({
             toDate,
         });
 
-        console.timeEnd('ordersList');
-
-        console.time('prepareOrdersNextButton');
         const result = await prepareOrdersNextButton(ordersList, cacheControl);
-        console.timeEnd('prepareOrdersNextButton');
 
         if (currentStatus?.finish) {
 
@@ -1417,8 +1371,6 @@ export const OrdersController = new Elysia({
                 terminalsRes || "[]"
             ) as InferSelectModel<typeof terminals>[];
 
-            console.time('prev_month');
-            console.log('prev_month');
             const courierIdCondition = courierId
                 ? sql`and o.courier_id in (${sql.raw(courierId.map((id) => `'${id}'`).join(","))})`
                 : sql``;
@@ -1437,7 +1389,6 @@ export const OrdersController = new Elysia({
                                and u.phone not in ('+998908251218', '+998908249891') ${courierIdCondition}
                              group by o.courier_id
                              order by o.courier_id;`)).rows;
-            console.timeEnd('prev_month');
 
 
             let query = (await drizzle.execute<GarantReportItem>(
@@ -1459,7 +1410,6 @@ export const OrdersController = new Elysia({
                              group by o.courier_id, u.first_name, u.last_name
                              order by courier;`
             )).rows;
-            console.time('bonusQuery');
             let bonusQuery = (await drizzle.execute<{
                 total_amount: number;
                 courier_id: string;
@@ -1468,7 +1418,6 @@ export const OrdersController = new Elysia({
                              where status = 'success'
                                and transaction_type != 'order' and created_at >= '${drizzleSqlStartDate}' and created_at <= '${drizzleSqlEndDate}'
                              group by courier_id;`)).rows;
-            console.timeEnd('bonusQuery');
 
 
             const couriersByTerminalById: Record<
@@ -1479,7 +1428,6 @@ export const OrdersController = new Elysia({
                     children: ReportCouriersByTerminal[];
                 }[]
             > = {};
-            console.time('couriersByTerminal');
             const couriersByTerminal = (await drizzle.execute<ReportCouriersByTerminal>(sql`select sum(o.delivery_price)                  as delivery_price,
                                     concat(u.first_name, ' ', u.last_name) as courier,
                                     o.courier_id,
@@ -1494,7 +1442,6 @@ export const OrdersController = new Elysia({
                                and os.finish = true ${courierIdCondition}
                              group by o.courier_id, o.terminal_id, o.organization_id, u.first_name, u.last_name
                              order by courier;`)).rows;
-            console.timeEnd('couriersByTerminal');
 
             couriersByTerminal.forEach((item) => {
                 if (!couriersByTerminalById[item.courier_id]) {
@@ -1875,7 +1822,6 @@ export const OrdersController = new Elysia({
             let workStartHour = await getSetting(redis, "work_start_time");
             workStartHour = new Date(workStartHour).getHours();
 
-            console.time('balanceQueryDuck');
             const courierSqlMap = sql.raw(courierIds.map((id) => `'${id}'`).join(","));
             const balanceQuery = (await drizzle.execute<{
                 courier_id: string;
@@ -1889,7 +1835,6 @@ export const OrdersController = new Elysia({
                              group by courier_id`)).rows;
 
 
-            console.timeEnd('balanceQueryDuck');
 
             const balanceById: {
                 [key: string]: number;
@@ -2259,7 +2204,6 @@ export const OrdersController = new Elysia({
                     couriers,
                 });
             }
-            console.log('davr');
             const permissionsRecord = await drizzle
                 .select(selectFields)
                 .from(orders)
@@ -2378,7 +2322,6 @@ export const OrdersController = new Elysia({
                 users
             });
         }
-        console.time('orderTransactionsQuery');
         const transactions = await drizzle
             .select({
                 id: order_transactions.id,
@@ -2402,7 +2345,6 @@ export const OrdersController = new Elysia({
             .leftJoin(users, eq(order_transactions.created_by, users.id))
             .where(and(...whereClause))
             .execute();
-        console.timeEnd('orderTransactionsQuery');
 
         // const transactionsResponse = await fetch(`${process.env.DUCK_API}/order_transactions`, {
         //     method: 'POST',
@@ -2617,7 +2559,6 @@ export const OrdersController = new Elysia({
     })
     .get('/orders/:id/comments', async ({ params: { id }, drizzle, set, user }) => {
 
-        console.time('orderCommentsQuery');
 
         const orderPrepare = drizzle
             .select({
@@ -2665,7 +2606,6 @@ export const OrdersController = new Elysia({
             });
         }
 
-        console.timeEnd('orderCommentsQuery');
 
         res.push({
             id: order[0].id,
@@ -2993,7 +2933,6 @@ export const OrdersController = new Elysia({
         }),
     })
     .post('/orders/:id/locations', async ({ params: { id }, body: { created_at }, drizzle, set, user }) => {
-        console.time('locationsGetting');
         const locations = (await drizzle
             .select({
                 ...getTableColumns(order_locations),
@@ -3013,7 +2952,6 @@ export const OrdersController = new Elysia({
             .orderBy(asc(order_locations.created_at))
             .execute()) as OrderLocationsWithRelations[];
 
-        console.timeEnd('locationsGetting');
 
         return locations;
     }, {

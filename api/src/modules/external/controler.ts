@@ -505,7 +505,6 @@ export const externalControler = new Elysia({
         const currentTime = new Date().getHours();
         let activeDeliveryPricing = [];
         activeDeliveryPricing = deliveryPricing.filter((d) => {
-            console.log('start_time', d.start_time)
             let res = false;
             const currentTime = new Date();
             const now = getMinutesNow();

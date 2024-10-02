@@ -79,7 +79,6 @@ export const MissedOrdersController = new Elysia({
                 const activeTerminalIds = terminals.filter((terminal) => terminal.active).map(t => t.id);
                 whereClause.push(inArray(orders.terminal_id, activeTerminalIds));
             }
-            console.time('missed_orders');
             const rolesCount = await drizzle
                 .select({ count: sql<number>`count(*)` })
                 .from(orders)
@@ -97,7 +96,6 @@ export const MissedOrdersController = new Elysia({
                 .offset(+offset)
                 .orderBy(desc(orders.created_at))
                 .execute() as MissedOrders[];
-            console.timeEnd('missed_orders');
             return {
                 total: rolesCount[0].count,
                 data: rolesList,

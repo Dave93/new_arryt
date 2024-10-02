@@ -773,6 +773,7 @@ export const UsersController = new Elysia({
       const currentDate = new Date();
       let isLate = false;
       let lateMinutes = 0;
+      console.log('minStartTime', minStartTime);
       if (currentDate > minStartTime!) {
         isLate = true;
         lateMinutes = Math.round(
@@ -788,7 +789,7 @@ export const UsersController = new Elysia({
           `${schedule.max_start_time}`,
           "HH:mm:ss"
         ).toDate();
-        const endTime = dayjs(`${schedule.end_time}`, "HH:mm:ss").toDate();
+        const endTime = dayjs(`${schedule.end_time}`, "HH:mm:ss").add(5, 'hours').toDate();
         if (currentHours < settingsWorkEndTime) {
           endTime.setMonth(new Date().getMonth());
           endTime.setDate(new Date().getDate());
@@ -840,7 +841,7 @@ export const UsersController = new Elysia({
             "HH:mm:ss"
           ).toDate();
           const endTime = dayjs(`${schedule.end_time}`, "HH:mm:ss").toDate();
-          startTime.setHours(startTime.getHours() - 2);
+          startTime.setHours(startTime.getHours() - 8);
           if (currentHours < settingsWorkEndTime) {
             endTime.setMonth(new Date().getMonth());
             endTime.setDate(new Date().getDate());
@@ -1838,7 +1839,6 @@ export const UsersController = new Elysia({
     })
   })
   .get('/couriers/my_profile_number', async ({ drizzle, user, set }) => {
-    console.time('sqlScorePrepare');
     const sqlScorePrepare = await drizzle
       .select({
         avg_score: sql<number>`avg(score)`,
@@ -1860,9 +1860,6 @@ export const UsersController = new Elysia({
       endDate: dayjs().endOf('month').add(1, 'day').toISOString()
     }))[0];
 
-    console.timeEnd('sqlScorePrepare');
-
-    console.time('sqlTotalBalancePrepare');
     const sqlTotalBalancePrepare = await drizzle
       .select({
         not_paid_amount: sql<number>`sum(not_paid_amount)`,
@@ -1883,9 +1880,6 @@ export const UsersController = new Elysia({
       startDate: dayjs().subtract(45, 'day').toISOString(),
       endDate: dayjs().add(10, 'day').toISOString()
     }))[0];
-    console.timeEnd('sqlTotalBalancePrepare');
-
-    console.time('sqlTotalFuelPrepare');
     const sqlTotalFuelPrepare = await drizzle
       .select({
         amount: sql<number>`sum(amount)`,
@@ -1906,7 +1900,6 @@ export const UsersController = new Elysia({
       startDate: dayjs().subtract(45, 'day').toISOString(),
       endDate: dayjs().add(10, 'day').toISOString()
     }))[0];
-    console.timeEnd('sqlTotalFuelPrepare');
 
     // const numbersResponse = await fetch(`${process.env.DUCK_API}/couriers/profile_numbers`, {
     //   method: 'POST',
@@ -1941,37 +1934,27 @@ export const UsersController = new Elysia({
     const canceledStatusIds = orderStatuses.filter((status) => status.cancel).map((status) => status.id);
 
     const currentHour = dayjs().hour();
-    console.time('totalQueires');
     // today queries
     let fromDate = dayjs().startOf("day").hour(workStartHour);
     let toDate = dayjs().add(1, 'day').startOf("day").hour(workEndHour);
-    console.log('workStartHour', workStartHour);
-    console.log('currentHour', currentHour);
     if (currentHour < workStartHour) {
       fromDate = fromDate.subtract(1, "day").startOf('day').hour(workStartHour);
       toDate = dayjs().startOf("day").hour(workEndHour);
     }
-    console.log('finishedstatusSql', `AND order_status_id in ('${finishedStatusIds.join("','")}')`);
     const finishedStatusIdsSql = sql.raw(`order_status_id in ('${finishedStatusIds.join("','")}')`);
     const canceledStatusIdsSql = sql.raw(`order_status_id in ('${canceledStatusIds.join("','")}')`);
 
     // @ts-ignore
     const courierIdSql = sql.raw(user.user.id);
 
-    console.log('fromDate', fromDate.toISOString());
-    console.log('toDate', toDate.toISOString());
     const fromTodayDateSql = sql.raw(fromDate.toISOString());
     const toTodayDateSql = sql.raw(toDate.toISOString());
-    console.time('sqlTodayFinishedOrdersCountQuery');
     const sqlTodayFinishedOrdersCountQuery = (await drizzle.execute<{ count: number }>(
       sql`SELECT count(*) as count
                 FROM orders
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
     )).rows[0];
-    console.timeEnd('sqlTodayFinishedOrdersCountQuery');
-
-    console.time('sqlTodayCanceledOrdersCountQuery');
     const sqlTodayCanceledOrdersCountQuery = (await drizzle
       .execute<
         { count: number }
@@ -1981,9 +1964,6 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${canceledStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlTodayCanceledOrdersCountQuery');
-
-    console.time('sqlTodayFinishedOrdersAmountQuery');
     const sqlTodayFinishedOrdersAmountQuery = (await drizzle
       .execute<
         { amount: number }
@@ -1993,7 +1973,6 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlTodayFinishedOrdersAmountQuery');
 
     // yesterday queries
     fromDate = dayjs().subtract(1, "day").startOf("day").hour(workStartHour);
@@ -2007,7 +1986,6 @@ export const UsersController = new Elysia({
     const fromYesterdayDateSql = sql.raw(fromDate.toISOString());
     const toYesterdayDateSql = sql.raw(toDate.toISOString());
 
-    console.time('sqlYesterdayFinishedOrdersCountQuery');
     const sqlYesterdayFinishedOrdersCountQuery = (await drizzle
       .execute<
         { count: number }
@@ -2017,9 +1995,6 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlYesterdayFinishedOrdersCountQuery');
-
-    console.time('sqlYesterdayCanceledOrdersCountQuery');
     const sqlYesterdayCanceledOrdersCountQuery = (await drizzle
       .execute<
         { count: number }
@@ -2030,9 +2005,6 @@ export const UsersController = new Elysia({
                 AND ${canceledStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
       )).rows[0];
 
-    console.timeEnd('sqlYesterdayCanceledOrdersCountQuery');
-
-    console.time('sqlYesterdayFinishedOrdersAmountQuery');
     const sqlYesterdayFinishedOrdersAmountQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2042,7 +2014,6 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlYesterdayFinishedOrdersAmountQuery');
 
     // week queries
     fromDate = dayjs().startOf("week").hour(workStartHour);
@@ -2051,7 +2022,6 @@ export const UsersController = new Elysia({
     const fromWeekDateSql = sql.raw(fromDate.toISOString());
     const toWeekDateSql = sql.raw(toDate.toISOString());
 
-    console.time('sqlWeekFinishedOrdersCountQuery');
     const sqlWeekFinishedOrdersCountQuery = (await drizzle
       .execute<
         { count: number }
@@ -2061,9 +2031,7 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlWeekFinishedOrdersCountQuery');
 
-    console.time('sqlWeekCanceledOrdersCountQuery');
     const sqlWeekCanceledOrdersCountQuery = (await drizzle
       .execute<
         { count: number }
@@ -2073,9 +2041,7 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${canceledStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlWeekCanceledOrdersCountQuery');
 
-    console.time('sqlWeekFinishedOrdersAmountQuery');
     const sqlWeekFinishedOrdersAmountQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2085,7 +2051,6 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlWeekFinishedOrdersAmountQuery');
 
     // month queries
     fromDate = dayjs().startOf("month").hour(workStartHour);
@@ -2094,7 +2059,6 @@ export const UsersController = new Elysia({
     const fromMonthDateSql = sql.raw(fromDate.toISOString());
     const toMonthDateSql = sql.raw(toDate.toISOString());
 
-    console.time('sqlMonthFinishedOrdersCountQuery');
     const sqlMonthFinishedOrdersCountQuery = (await drizzle
       .execute<
         { count: number }
@@ -2104,9 +2068,7 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlMonthFinishedOrdersCountQuery');
 
-    console.time('sqlMonthCanceledOrdersCountQuery');
     const sqlMonthCanceledOrdersCountQuery = (await drizzle
       .execute<
         { count: number }
@@ -2116,9 +2078,7 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${canceledStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlMonthCanceledOrdersCountQuery');
 
-    console.time('sqlMonthFinishedOrdersAmountQuery');
     const sqlMonthFinishedOrdersAmountQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2128,10 +2088,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
       )).rows[0];
-    console.timeEnd('sqlMonthFinishedOrdersAmountQuery');
 
     // today bonus queries
-    console.time('sqlTodayBonusQuery');
     const sqlTodayBonusQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2141,10 +2099,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'order_bonus'`
       )).rows[0];
-    console.timeEnd('sqlTodayBonusQuery');
 
     // yesterday bonus queries
-    console.time('sqlYesterdayBonusQuery');
     const sqlYesterdayBonusQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2154,10 +2110,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'order_bonus'`
       )).rows[0];
-    console.timeEnd('sqlYesterdayBonusQuery');
 
     // week bonus queries
-    console.time('sqlWeekBonusQuery');
     const sqlWeekBonusQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2167,10 +2121,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'order_bonus'`
       )).rows[0];
-    console.timeEnd('sqlWeekBonusQuery');
 
     // month bonus queries
-    console.time('sqlMonthBonusQuery');
     const sqlMonthBonusQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2180,10 +2132,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'order_bonus'`
       )).rows[0];
-    console.timeEnd('sqlMonthBonusQuery');
 
     // today daily garant queries
-    console.time('sqlTodayDailyGarantQuery');
     const sqlTodayDailyGarantQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2193,10 +2143,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'daily_garant'`
       )).rows[0];
-    console.timeEnd('sqlTodayDailyGarantQuery');
 
     // yesterday daily garant queries
-    console.time('sqlYesterdayDailyGarantQuery');
     const sqlYesterdayDailyGarantQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2206,10 +2154,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'daily_garant'`
       )).rows[0];
-    console.timeEnd('sqlYesterdayDailyGarantQuery');
 
     // week daily garant queries
-    console.time('sqlWeekDailyGarantQuery');
     const sqlWeekDailyGarantQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2219,10 +2165,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'daily_garant'`
       )).rows[0];
-    console.timeEnd('sqlWeekDailyGarantQuery');
 
     // month daily garant queries
-    console.time('sqlMonthDailyGarantQuery');
     const sqlMonthDailyGarantQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2232,10 +2176,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'daily_garant'`
       )).rows[0];
-    console.timeEnd('sqlMonthDailyGarantQuery');
 
     // today work_schedule_bonus queries
-    console.time('sqlTodayWorkScheduleBonusQuery');
     const sqlTodayWorkScheduleBonusQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2245,10 +2187,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'work_schedule_bonus'`
       )).rows[0];
-    console.timeEnd('sqlTodayWorkScheduleBonusQuery');
 
     // yesterday work_schedule_bonus queries
-    console.time('sqlYesterdayWorkScheduleBonusQuery');
     const sqlYesterdayWorkScheduleBonusQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2258,10 +2198,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'work_schedule_bonus'`
       )).rows[0];
-    console.timeEnd('sqlYesterdayWorkScheduleBonusQuery');
 
     // week work_schedule_bonus queries
-    console.time('sqlWeekWorkScheduleBonusQuery');
     const sqlWeekWorkScheduleBonusQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2271,10 +2209,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'work_schedule_bonus'`
       )).rows[0];
-    console.timeEnd('sqlWeekWorkScheduleBonusQuery');
 
     // month work_schedule_bonus queries
-    console.time('sqlMonthWorkScheduleBonusQuery');
     const sqlMonthWorkScheduleBonusQuery = (await drizzle
       .execute<
         { amount: number }
@@ -2284,10 +2220,8 @@ export const UsersController = new Elysia({
                 WHERE courier_id = '${courierIdSql}' 
                 AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'work_schedule_bonus'`
       )).rows[0];
-    console.timeEnd('sqlMonthWorkScheduleBonusQuery');
 
 
-    console.timeEnd('totalQueires');
     // const numbersResponse = await fetch(`${process.env.DUCK_API}/couriers/mobile_stats`, {
     //   method: 'POST',
     //   headers: {
@@ -2402,7 +2336,6 @@ export const UsersController = new Elysia({
       eq(users_terminals.user_id, user.user.id)
     ).execute();
 
-    console.time('courierTerminalBalanceQuery');
     const courierTerminalBalance = await drizzle
       .select({
         id: courier_terminal_balance.id,
@@ -2424,7 +2357,6 @@ export const UsersController = new Elysia({
         )
       )
       .execute();
-    console.timeEnd('courierTerminalBalanceQuery');
     return courierTerminalBalance;
   }, {
     permission: 'orders.list',
@@ -2504,7 +2436,6 @@ export const UsersController = new Elysia({
     permission: 'orders.edit',
   })
   .get('/couriers/terminal_balance', async ({ user, drizzle, set }) => {
-    console.time('courierTerminalBalanceQuery');
     const courierTerminalBalancePrepare = drizzle
       .select({
         id: courier_terminal_balance.id,
@@ -2527,7 +2458,6 @@ export const UsersController = new Elysia({
       // @ts-ignore
       courier_id: user.user.id
     });
-    console.timeEnd('courierTerminalBalanceQuery');
     return courierTerminalBalance;
   }, {
     permission: 'orders.list',
@@ -2561,7 +2491,7 @@ export const UsersController = new Elysia({
       terminal_id: terminal_id
     });
 
-    const orderIds = courierTerminalBalance.map((transaction) => transaction.order_id).filter((orderId) => orderId !== null);
+    const orderIds = courierTerminalBalance.map((transaction) => transaction.order_id).filter((orderId) => orderId !== null) as string[];
 
     console.log('orderIds', orderIds);
     // get min and max created_at
@@ -2705,7 +2635,7 @@ export const UsersController = new Elysia({
 
           await drizzle.insert(manager_withdraw_transactions).values({
             amount: order_transaction.not_paid_amount,
-            withdraw_id: managerWithdraw.id,
+            withdraw_id: managerWithdraw[0].id,
             transaction_id: order_transaction.id,
             transaction_created_at: order_transaction.created_at,
             payed_date: currentDate,
@@ -2720,7 +2650,7 @@ export const UsersController = new Elysia({
         } else {
           await drizzle.insert(manager_withdraw_transactions).values({
             amount: amountToWithdraw,
-            withdraw_id: managerWithdraw.id,
+            withdraw_id: managerWithdraw[0].id,
             transaction_id: order_transaction.id,
             payed_date: currentDate,
             transaction_created_at: order_transaction.created_at,
