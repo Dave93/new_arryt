@@ -497,7 +497,7 @@ export const UsersController = new Elysia({
           message: "User is not active",
         };
       }
-
+      console.log('closing time entry', user);
       let openedTime = await drizzle
         .select({
           id: work_schedule_entries.id,
@@ -2493,12 +2493,9 @@ export const UsersController = new Elysia({
 
     const orderIds = courierTerminalBalance.map((transaction) => transaction.order_id).filter((orderId) => orderId !== null) as string[];
 
-    console.log('orderIds', orderIds);
     // get min and max created_at
     const maxCreatedAt = dayjs(courierTerminalBalance[0].created_at).add(1, 'day').toISOString();
     const minCreatedAt = dayjs(courierTerminalBalance[courierTerminalBalance.length - 1].created_at).subtract(1, 'day').toISOString();
-    console.log('minCreatedAt', minCreatedAt);
-    console.log('maxCreatedAt', maxCreatedAt);
     const ordersList = await drizzle.select({
       id: orders.id,
       order_number: orders.order_number,
@@ -2511,7 +2508,6 @@ export const UsersController = new Elysia({
         )
       )
       .execute();
-    console.log('ordersList', ordersList);
 
     courierTerminalBalance.forEach((balance) => {
       const orderNumber = ordersList.find((order) => order.id === balance.order_id)?.order_number;

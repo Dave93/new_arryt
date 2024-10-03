@@ -63,7 +63,7 @@ export const MissedOrdersController = new Elysia({
                 gte(orders.created_at, dayjs().subtract(2, 'hour').minute(0).second(0).format('YYYY-MM-DD HH:mm:ss')),
                 lte(orders.created_at, dayjs().subtract(laterMinutes, 'minute').format('YYYY-MM-DD HH:mm:ss')),
                 isNull(orders.courier_id),
-                not(order_status.cancel, true)
+                not(eq(order_status.cancel, true))
             ]);
 
             let isFilteredByTerminal = false;
