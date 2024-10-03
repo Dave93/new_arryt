@@ -871,7 +871,6 @@ export const OrdersList: React.FC = () => {
             </div>
           ),
         }}
-        style={{ height: "calc(100vh - 100px)" }} // Adjust this value as needed
       >
         <Form
           layout="vertical"
