@@ -871,6 +871,7 @@ export const OrdersList: React.FC = () => {
             </div>
           ),
         }}
+        style={{ height: "calc(100vh - 100px)" }} // Adjust this value as needed
       >
         <Form
           layout="vertical"
@@ -992,20 +993,21 @@ export const OrdersList: React.FC = () => {
         </Form>
         <div
           style={{
+            height: "calc(100vh - 300px)",
             overflow: "auto",
+            position: "relative",
           }}
+          className="relative"
         >
           <Table
             {...tableProps}
             rowKey="id"
             bordered
             size="small"
-            virtual
-            scroll={
-              window.innerWidth < 768
-                ? undefined
-                : { y: "calc(100vh - 390px)", x: "calc(100vw - 350px)" }
-            }
+            scroll={{
+              y: "calc(100vh - 300px)", // Adjust this value as needed
+              x: "100%",
+            }}
             onRow={(record: any) => ({
               onDoubleClick: () => {
                 show("orders", record.id);
