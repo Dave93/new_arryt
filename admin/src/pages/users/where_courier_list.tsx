@@ -66,7 +66,7 @@ const WhereCourierListView: FC<IWhereCourierListViewProps> = (props) => {
     "/where_couriers",
     getCouriers,
     {
-      refreshInterval: 30000,
+      refreshInterval: 3000,
     }
   );
 
