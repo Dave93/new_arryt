@@ -265,7 +265,7 @@ export const OrdersList: React.FC = () => {
     },
 
     pagination: {
-      pageSize: 1000,
+      pageSize: 100,
     },
 
     filters: {
@@ -698,7 +698,7 @@ export const OrdersList: React.FC = () => {
     filters,
     sorter,
     columns,
-    pageSize: 1000,
+    pageSize: 100,
   });
 
   const getAllFilterData = async () => {
