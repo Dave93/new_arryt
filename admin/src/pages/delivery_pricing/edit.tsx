@@ -283,7 +283,7 @@ export const DeliveryPricingEdit: React.FC = () => {
                 },
               ]}
               getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
+                value: value ? dayjs(value, "HH:mm:ss") : "",
               })}
             >
               <TimePicker format={format} />
@@ -299,7 +299,7 @@ export const DeliveryPricingEdit: React.FC = () => {
                 },
               ]}
               getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
+                value: value ? dayjs(value, "HH:mm:ss") : "",
               })}
             >
               <TimePicker format={format} />
