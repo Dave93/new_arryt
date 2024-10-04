@@ -209,7 +209,7 @@ export const OrdersShow = () => {
             },
             {
               field: "order_created_at",
-              operator: "eq",
+              operator: "gte",
               value: dayjs(record?.created_at).toISOString(),
             },
           ]),
