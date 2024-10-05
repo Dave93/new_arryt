@@ -652,7 +652,7 @@ function App() {
               reactQuery: {
                 clientConfig: queryClient,
               },
-
+              disableTelemetry: true,
               projectId: "7UjA0s-GtR2fw-90I5AE",
             }}
             accessControlProvider={{
