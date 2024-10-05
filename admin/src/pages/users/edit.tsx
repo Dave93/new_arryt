@@ -16,7 +16,7 @@ import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { WorkScheduleWithRelations } from "@api/src/modules/work_schedules/dto/list.dto";
 import { apiClient } from "@admin/src/eden";
 
-export const UsersEdit: React.FC = () => {
+export default function UsersEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -412,4 +412,4 @@ export const UsersEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

@@ -7,7 +7,7 @@ import { apiClient } from "@admin/src/eden";
 import { terminals, organization } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
-export const TerminalsCreate = () => {
+export default function TerminalsCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -170,4 +170,4 @@ export const TerminalsCreate = () => {
       </Form>
     </Create>
   );
-};
+}

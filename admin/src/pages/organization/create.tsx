@@ -10,7 +10,7 @@ import { InferInsertModel } from "drizzle-orm";
 
 const { TextArea } = Input;
 
-export const OrganizationsCreate = () => {
+export default function OrganizationsCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -191,4 +191,4 @@ export const OrganizationsCreate = () => {
       </Form>
     </Create>
   );
-};
+}

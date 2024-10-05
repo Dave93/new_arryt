@@ -47,7 +47,7 @@ dayjs.tz.setDefault("Asia/Tashkent");
 
 dayjs.extend(isBetween);
 
-export const DeliveryPricingCreate = () => {
+export default function DeliveryPricingCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -342,4 +342,4 @@ export const DeliveryPricingCreate = () => {
       </Form>
     </Create>
   );
-};
+}

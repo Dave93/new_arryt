@@ -14,7 +14,7 @@ import { delivery_pricing } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { DeliveryPricingWithRelations } from "@api/src/modules/delivery_pricing/dto/list.dto";
 
-export const DeliveryPricingList: React.FC = () => {
+export default function DeliveryPricingList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -82,4 +82,4 @@ export const DeliveryPricingList: React.FC = () => {
       </List>
     </>
   );
-};
+}

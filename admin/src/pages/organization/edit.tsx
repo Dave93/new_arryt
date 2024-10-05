@@ -10,7 +10,7 @@ import { organization } from "@api/drizzle/schema";
 import { InferInsertModel } from "drizzle-orm";
 const { TextArea } = Input;
 
-export const OrganizationsEdit: React.FC = () => {
+export default function OrganizationsEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -207,4 +207,4 @@ export const OrganizationsEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

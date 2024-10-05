@@ -39,7 +39,7 @@ dayjs.tz.setDefault("Asia/Tashkent");
 
 dayjs.extend(isBetween);
 
-export const ConstructedBonusPricingCreate = () => {
+export default function ConstructedBonusPricingCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -315,4 +315,4 @@ export const ConstructedBonusPricingCreate = () => {
       </Form>
     </Create>
   );
-};
+}

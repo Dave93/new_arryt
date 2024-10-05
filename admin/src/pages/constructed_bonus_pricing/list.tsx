@@ -13,7 +13,7 @@ import { constructed_bonus_pricing } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { ConstructedBonusPricingListWithRelations } from "@api/src/modules/constructed_bonus_pricing/dtos/list.dto";
 
-export const ConstructedBonusPricingList: React.FC = () => {
+export default function ConstructedBonusPricingList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -81,4 +81,4 @@ export const ConstructedBonusPricingList: React.FC = () => {
       </List>
     </>
   );
-};
+}

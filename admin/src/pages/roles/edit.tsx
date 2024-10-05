@@ -8,7 +8,7 @@ import { apiClient } from "@admin/src/eden";
 
 const { Option } = Select;
 
-export const RolesEdit: React.FC = () => {
+export default function RolesEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -162,4 +162,4 @@ export const RolesEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

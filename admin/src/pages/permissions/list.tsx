@@ -13,7 +13,7 @@ import { defaultDateTimeFormat } from "@admin/src/localConstants";
 import { permissions } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
-export const PermissionsList: React.FC = () => {
+export default function PermissionsList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -139,4 +139,4 @@ export const PermissionsList: React.FC = () => {
       </Drawer>
     </>
   );
-};
+}

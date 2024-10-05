@@ -81,7 +81,7 @@ const IOrdersListPropsDuration: FC<IOrdersListProps> = ({
   );
 };
 
-export const OrdersList: React.FC = () => {
+export default function OrdersList() {
   const invalidate = useInvalidate();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
@@ -1118,4 +1118,4 @@ export const OrdersList: React.FC = () => {
       </List>
     </>
   );
-};
+}

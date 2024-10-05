@@ -13,7 +13,7 @@ dayjs.extend(timezone);
 dayjs.tz.setDefault("Asia/Tashkent");
 
 const format = "HH:mm";
-export const DailyGarantEdit: React.FC = () => {
+export default function DailyGarantEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -80,4 +80,4 @@ export const DailyGarantEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

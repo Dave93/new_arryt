@@ -35,7 +35,7 @@ import { InferSelectModel } from "drizzle-orm";
 
 const { TabPane } = Tabs;
 
-export const SystemConfigsList: React.FC = () => {
+export default function SystemConfigsList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();

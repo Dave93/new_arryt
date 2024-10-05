@@ -4,7 +4,7 @@ import { useGetIdentity } from "@refinedev/core";
 import { permissions } from "@api/drizzle/schema";
 import { InferInsertModel } from "drizzle-orm";
 
-export const PermissionsEdit: React.FC = () => {
+export default function PermissionsEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -49,4 +49,4 @@ export const PermissionsEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

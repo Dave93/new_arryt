@@ -73,7 +73,7 @@ const OrderShowHeader: FC<OrderShowHeaderProps> = ({
   );
 };
 
-export const OrdersShow = () => {
+export default function OrdersShow() {
   const map = useRef<any>(null);
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
@@ -686,4 +686,4 @@ export const OrdersShow = () => {
       </Tabs>
     </Show>
   );
-};
+}

@@ -8,7 +8,7 @@ import { apiClient } from "@admin/src/eden";
 import { order_status, organization } from "@api/drizzle/schema";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
-export const OrderStatusEdit: React.FC = () => {
+export default function OrderStatusEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -194,4 +194,4 @@ export const OrderStatusEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

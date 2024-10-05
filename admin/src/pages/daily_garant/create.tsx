@@ -7,7 +7,7 @@ import { InferInsertModel } from "drizzle-orm";
 
 const format = "HH:mm";
 
-export const DailyGarantCreate = () => {
+export default function DailyGarantCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -73,4 +73,4 @@ export const DailyGarantCreate = () => {
       </Form>
     </Create>
   );
-};
+}

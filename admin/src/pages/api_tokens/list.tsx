@@ -8,7 +8,7 @@ import { api_tokens } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { ApiTokensWithRelations } from "@api/src/modules/api_tokens/dto/list.dto";
 
-export const ApiTokensList: React.FC = () => {
+export default function ApiTokensList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -85,4 +85,4 @@ export const ApiTokensList: React.FC = () => {
       </List>
     </>
   );
-};
+}

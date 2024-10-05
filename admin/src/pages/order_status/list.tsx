@@ -4,7 +4,7 @@ import { useGetIdentity } from "@refinedev/core";
 
 import { OrderStatusWithRelations } from "@api/src/modules/order_status/dto/list.dto";
 
-export const OrderStatusList: React.FC = () => {
+export default function OrderStatusList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -124,4 +124,4 @@ export const OrderStatusList: React.FC = () => {
       </List>
     </>
   );
-};
+}

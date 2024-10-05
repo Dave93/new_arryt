@@ -11,7 +11,7 @@ import { useGetIdentity } from "@refinedev/core";
 import { defaultDateTimeFormat } from "@admin/src/localConstants";
 import { OrderBonusPricingWithRelations } from "@api/src/modules/order_bonus_pricing/dto/list.dto";
 
-export const OrderBonusPricingList: React.FC = () => {
+export default function OrderBonusPricingList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -81,4 +81,4 @@ export const OrderBonusPricingList: React.FC = () => {
       </List>
     </>
   );
-};
+}

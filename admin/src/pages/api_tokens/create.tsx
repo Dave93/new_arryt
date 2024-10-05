@@ -7,7 +7,7 @@ import { api_tokens, organization } from "@api/drizzle/schema";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { apiClient } from "@admin/src/eden";
 
-export const ApiTokensCreate = () => {
+export default function ApiTokensCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();

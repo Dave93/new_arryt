@@ -7,7 +7,7 @@ import { apiClient } from "@admin/src/eden";
 import { terminals } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
-export const TerminalsEdit: React.FC = () => {
+export default function TerminalsEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -179,4 +179,4 @@ export const TerminalsEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

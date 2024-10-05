@@ -6,7 +6,7 @@ import { useGetIdentity } from "@refinedev/core";
 import { brands } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
-export const BrandsList: React.FC = () => {
+export default function BrandsList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -55,4 +55,4 @@ export const BrandsList: React.FC = () => {
       </List>
     </>
   );
-};
+}

@@ -6,7 +6,7 @@ import { ICustomers } from "@admin/src/interfaces";
 import { customers } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
-export const CustomersList: React.FC = () => {
+export default function CustomersList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -60,4 +60,4 @@ export const CustomersList: React.FC = () => {
       </List>
     </>
   );
-};
+}

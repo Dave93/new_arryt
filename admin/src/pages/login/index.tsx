@@ -30,7 +30,7 @@ export interface ILoginForm {
   deviceToken: string | undefined;
 }
 
-export const Login: React.FC = () => {
+export default function Login() {
   const [current, setCurrent] = useState<"gsmNumber" | "code">("gsmNumber");
   const [otpSecret, setOtpSecret] = useState("");
   const [gsmNumber, setGsmNumber] = useState<string>("");
@@ -213,4 +213,4 @@ export const Login: React.FC = () => {
       </Row>
     </AntdLayout>
   );
-};
+}
