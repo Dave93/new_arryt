@@ -33,6 +33,7 @@ export default function TerminalsEdit() {
         "address",
         "fuel_bonus",
         "time_to_yandex",
+        "allow_close_anywhere",
       ],
       pluralize: true,
       updateInputName: "terminalsUncheckedUpdateInput",
@@ -65,6 +66,18 @@ export default function TerminalsEdit() {
         <Form.Item
           label="Активность"
           name="active"
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+          valuePropName="checked"
+        >
+          <Switch />
+        </Form.Item>
+        <Form.Item
+          label="Разрешить закрытие заказа в любом месте"
+          name="allow_close_anywhere"
           rules={[
             {
               required: true,

@@ -84,6 +84,18 @@ export default function TerminalsCreate() {
           <Switch />
         </Form.Item>
         <Form.Item
+          label="Разрешить закрытие заказа в любом месте"
+          name="allow_close_anywhere"
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+          valuePropName="checked"
+        >
+          <Switch />
+        </Form.Item>
+        <Form.Item
           label="Название"
           name="name"
           rules={[
