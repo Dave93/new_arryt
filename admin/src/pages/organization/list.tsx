@@ -12,7 +12,7 @@ import { defaultDateTimeFormat } from "@admin/src/localConstants";
 import { organization } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
-export const OrganizationList: React.FC = () => {
+export default function OrganizationList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -95,4 +95,4 @@ export const OrganizationList: React.FC = () => {
       </List>
     </>
   );
-};
+}

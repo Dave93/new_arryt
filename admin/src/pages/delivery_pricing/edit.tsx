@@ -38,7 +38,7 @@ let daysOfWeekRu = {
 
 const format = "HH:mm";
 
-export const DeliveryPricingEdit: React.FC = () => {
+export default function DeliveryPricingEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -283,7 +283,7 @@ export const DeliveryPricingEdit: React.FC = () => {
                 },
               ]}
               getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
+                value: value ? dayjs(value, "HH:mm:ss") : "",
               })}
             >
               <TimePicker format={format} />
@@ -299,7 +299,7 @@ export const DeliveryPricingEdit: React.FC = () => {
                 },
               ]}
               getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
+                value: value ? dayjs(value, "HH:mm:ss") : "",
               })}
             >
               <TimePicker format={format} />
@@ -495,4 +495,4 @@ export const DeliveryPricingEdit: React.FC = () => {
       </div>
     </Edit>
   );
-};
+}

@@ -4,7 +4,7 @@ import { Typography, Row, Col, Tabs } from "antd";
 
 const { Title, Text } = Typography;
 
-export const CustomersShow = () => {
+export default function CustomersShow() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -55,4 +55,4 @@ export const CustomersShow = () => {
       </Tabs>
     </Show>
   );
-};
+}

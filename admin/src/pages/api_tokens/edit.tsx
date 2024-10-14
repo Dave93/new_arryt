@@ -5,7 +5,7 @@ import { useGetIdentity } from "@refinedev/core";
 import { IOrderStatus } from "@admin/src/interfaces";
 import { Colorpicker } from "antd-colorpicker";
 
-export const OrderStatusEdit: React.FC = () => {
+export default function ApiTokensEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -128,4 +128,4 @@ export const OrderStatusEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

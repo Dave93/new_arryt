@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@admin/src/eden";
 import { order_status, organization } from "@api/drizzle/schema";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
-export const OrderStatusCreate = () => {
+
+export default function OrderStatusCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -147,4 +148,4 @@ export const OrderStatusCreate = () => {
       </Form>
     </Create>
   );
-};
+}

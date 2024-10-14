@@ -34,7 +34,7 @@ dayjs.extend(timezone);
 
 dayjs.tz.setDefault("Asia/Tashkent");
 
-export const OrderBonusPricingEdit: React.FC = () => {
+export default function OrderBonusPricingEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -328,4 +328,4 @@ export const OrderBonusPricingEdit: React.FC = () => {
       </div>
     </Edit>
   );
-};
+}

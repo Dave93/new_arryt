@@ -5,7 +5,7 @@ import { useGetIdentity } from "@refinedev/core";
 import { permissions } from "@api/drizzle/schema";
 import { InferInsertModel } from "drizzle-orm";
 
-export const PermissionsCreate = () => {
+export default function PermissionsCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -61,4 +61,4 @@ export const PermissionsCreate = () => {
       </Form>
     </Create>
   );
-};
+}

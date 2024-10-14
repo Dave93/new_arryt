@@ -16,7 +16,7 @@ import { organization, terminals } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { TerminalsWithRelations } from "@api/src/modules/terminals/dto/list.dto";
 
-export const TerminalsList: React.FC = () => {
+export default function TerminalsList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -193,4 +193,4 @@ export const TerminalsList: React.FC = () => {
       </List>
     </>
   );
-};
+}

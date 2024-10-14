@@ -17,81 +17,326 @@ import routerProvider, {
 import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 import { useTranslation } from "react-i18next";
 import { authProvider, TOKEN_KEY } from "./authProvider";
-import {
-  ApiTokensCreate,
-  ApiTokensList,
-  OrderStatusEdit,
-} from "@admin/src/pages/api_tokens";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, lazy, Suspense } from "react";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
-import { RolesCreate, RolesEdit, RolesList, RolesShow } from "./pages/roles";
 import queryClient from "./dataprovider/reactQueryClient";
-import { BrandsList, BrandsCreate, BrandsEdit } from "./pages/brands";
-import {
-  ConstructedBonusPricingList,
-  ConstructedBonusPricingCreate,
-  ConstructedBonusPricingEdit,
-} from "./pages/constructed_bonus_pricing";
-import { CustomersList, CustomersShow } from "./pages/customers";
-import {
-  DailyGarantList,
-  DailyGarantCreate,
-  DailyGarantEdit,
-} from "./pages/daily_garant";
-import {
-  DeliveryPricingList,
-  DeliveryPricingCreate,
-  DeliveryPricingEdit,
-} from "./pages/delivery_pricing";
-import { Login } from "./pages/login";
-import { MainPage } from "./pages/main/list";
-import { ManagerWithdrawList } from "./pages/manager_withdraw";
-import MissedOrdersList from "./pages/missed_orders/list";
-import NotificationsList from "./pages/notifications/list";
-import {
-  OrderBonusPricingList,
-  OrderBonusPricingCreate,
-  OrderBonusPricingEdit,
-} from "./pages/order_bonus_pricing";
-import { OrderStatusList, OrderStatusCreate } from "./pages/order_status";
-import { OrdersList } from "./pages/orders";
-import OrdersGarantReport from "./pages/orders/orders_garant_report";
-import { OrdersShow } from "./pages/orders/show";
-import YuriyOrdersGarantReport from "./pages/orders/yuriy_orders_garant_report";
-import {
-  OrganizationList,
-  OrganizationsCreate,
-  OrganizationsEdit,
-} from "./pages/organization";
-import {
-  PermissionsList,
-  PermissionsCreate,
-  PermissionsEdit,
-} from "./pages/permissions";
-import PrivacyPage from "./pages/privacy";
-import { SystemConfigsList } from "./pages/system_configs/list";
-import {
-  TerminalsList,
-  TerminalsCreate,
-  TerminalsEdit,
-} from "./pages/terminals";
-import { UsersList, UsersCreate, UsersEdit } from "./pages/users";
-import CourierBalance from "./pages/users/courier_balance";
-import CourierEfficiency from "./pages/users/courier_efficiency";
-import { RollCallList } from "./pages/users/roll_call_list";
-import UsersShow from "./pages/users/show";
-import WhereCourierList from "./pages/users/where_courier_list";
-import { WorkSchedulesReport } from "./pages/work_schedule_entries_report";
-import {
-  WorkSchedulesList,
-  WorkSchedulesCreate,
-  WorkSchedulesEdit,
-} from "./pages/work_schedules";
+import Login from "./pages/login";
+import MainPage from "./pages/main/list";
 import { ThemedLayoutV2 } from "@refinedev/antd";
 import { edenDataProvider } from "./dataprovider/edenDataProvider";
 import { App as AntdApp } from "antd";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import * as openpgp from "openpgp";
+
+// Lazy load components
+const ApiTokensCreate = lazy(() =>
+  import("@admin/src/pages/api_tokens/create").then((module) => ({
+    default: module.default,
+  }))
+);
+const ApiTokensList = lazy(() =>
+  import("@admin/src/pages/api_tokens/list").then((module) => ({
+    default: module.default,
+  }))
+);
+const OrderStatusEdit = lazy(() =>
+  import("@admin/src/pages/api_tokens/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+const RolesCreate = lazy(() =>
+  import("./pages/roles/create").then((module) => ({ default: module.default }))
+);
+const RolesEdit = lazy(() =>
+  import("./pages/roles/edit").then((module) => ({ default: module.default }))
+);
+const RolesList = lazy(() =>
+  import("./pages/roles/list").then((module) => ({ default: module.default }))
+);
+const RolesShow = lazy(() =>
+  import("./pages/roles/show").then((module) => ({ default: module.default }))
+);
+const BrandsList = lazy(() =>
+  import("./pages/brands/list").then((module) => ({ default: module.default }))
+);
+const BrandsCreate = lazy(() =>
+  import("./pages/brands/create").then((module) => ({
+    default: module.default,
+  }))
+);
+const BrandsEdit = lazy(() =>
+  import("./pages/brands/edit").then((module) => ({ default: module.default }))
+);
+
+const PrivacyPage = lazy(() =>
+  import("./pages/privacy").then((module) => ({ default: module.default }))
+);
+
+const OrdersList = lazy(() =>
+  import("./pages/orders/list").then((module) => ({ default: module.default }))
+);
+
+const OrdersShow = lazy(() =>
+  import("./pages/orders/show").then((module) => ({ default: module.default }))
+);
+
+const MissedOrdersList = lazy(() =>
+  import("./pages/missed_orders/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrdersGarantReport = lazy(() =>
+  import("./pages/orders/orders_garant_report").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const YuriyOrdersGarantReport = lazy(() =>
+  import("./pages/orders/yuriy_orders_garant_report").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const ManagerWithdrawList = lazy(() =>
+  import("./pages/manager_withdraw/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const UsersList = lazy(() =>
+  import("./pages/users/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const UsersShow = lazy(() =>
+  import("./pages/users/show").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const UsersCreate = lazy(() =>
+  import("./pages/users/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const UsersEdit = lazy(() =>
+  import("./pages/users/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const RollCallList = lazy(() =>
+  import("./pages/users/roll_call_list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const CourierBalance = lazy(() =>
+  import("./pages/users/courier_balance").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const CourierEfficiency = lazy(() =>
+  import("./pages/users/courier_efficiency").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrderBonusPricingList = lazy(() =>
+  import("./pages/order_bonus_pricing/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrderBonusPricingCreate = lazy(() =>
+  import("./pages/order_bonus_pricing/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrderBonusPricingEdit = lazy(() =>
+  import("./pages/order_bonus_pricing/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const ConstructedBonusPricingList = lazy(() =>
+  import("./pages/constructed_bonus_pricing/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const ConstructedBonusPricingCreate = lazy(() =>
+  import("./pages/constructed_bonus_pricing/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const ConstructedBonusPricingEdit = lazy(() =>
+  import("./pages/constructed_bonus_pricing/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const DailyGarantList = lazy(() =>
+  import("./pages/daily_garant/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const DailyGarantCreate = lazy(() =>
+  import("./pages/daily_garant/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const DailyGarantEdit = lazy(() =>
+  import("./pages/daily_garant/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const NotificationsList = lazy(() =>
+  import("./pages/notifications/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const CustomersList = lazy(() =>
+  import("./pages/customers/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const CustomersShow = lazy(() =>
+  import("./pages/customers/show").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrderStatusList = lazy(() =>
+  import("./pages/order_status/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrderStatusCreate = lazy(() =>
+  import("./pages/order_status/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const PermissionsCreate = lazy(() =>
+  import("./pages/permissions/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const PermissionsList = lazy(() =>
+  import("./pages/permissions/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const PermissionsEdit = lazy(() =>
+  import("./pages/permissions/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const WhereCourierList = lazy(() =>
+  import("./pages/users/where_courier_list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrganizationsList = lazy(() =>
+  import("./pages/organization/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrganizationsCreate = lazy(() =>
+  import("./pages/organization/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const OrganizationsEdit = lazy(() =>
+  import("./pages/organization/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const TerminalsList = lazy(() =>
+  import("./pages/terminals/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const TerminalsCreate = lazy(() =>
+  import("./pages/terminals/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const TerminalsEdit = lazy(() =>
+  import("./pages/terminals/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const DeliveryPricingList = lazy(() =>
+  import("./pages/delivery_pricing/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const DeliveryPricingCreate = lazy(() =>
+  import("./pages/delivery_pricing/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const DeliveryPricingEdit = lazy(() =>
+  import("./pages/delivery_pricing/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const WorkSchedulesList = lazy(() =>
+  import("./pages/work_schedules/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const WorkSchedulesCreate = lazy(() =>
+  import("./pages/work_schedules/create").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const WorkSchedulesEdit = lazy(() =>
+  import("./pages/work_schedules/edit").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const SystemConfigsList = lazy(() =>
+  import("./pages/system_configs/list").then((module) => ({
+    default: module.default,
+  }))
+);
+
+const WorkSchedulesReport = lazy(() =>
+  import("./pages/work_schedule_entries_report/list").then((module) => ({
+    default: module.default,
+  }))
+);
 
 const CustomTitle = () => {
   return (
@@ -399,252 +644,301 @@ function App() {
     <BrowserRouter>
       <RefineKbarProvider>
         <AntdApp>
-          <DevtoolsProvider>
-            <Refine
-              notificationProvider={notificationProvider}
-              options={{
-                syncWithLocation: true,
+          <Refine
+            notificationProvider={notificationProvider}
+            options={{
+              syncWithLocation: true,
 
-                reactQuery: {
-                  clientConfig: queryClient,
-                },
-
-                projectId: "7UjA0s-GtR2fw-90I5AE",
-              }}
-              accessControlProvider={{
-                can: async ({ action, params, resource }: CanParams) => {
-                  if (
-                    action === "list" &&
-                    Object.values({ ...params }).length === 0
-                  ) {
-                    return Promise.resolve({
-                      can: true,
-                    });
-                  }
-                  if (!params?.resource?.route) {
-                    return Promise.resolve({
-                      can: true,
-                    });
-                  }
-
-                  if (
-                    params?.resource?.children &&
-                    params?.resource?.children.length > 0 &&
-                    !params?.resource?.parentName
-                  ) {
-                    return Promise.resolve({
-                      can: true,
-                    });
-                  }
-
-                  if (resource === "dashboard") {
-                    return Promise.resolve({
-                      can: true,
-                    });
-                  }
-                  const token = localStorage.getItem(TOKEN_KEY);
-                  if (token) {
-                    let password = import.meta.env.VITE_CRYPTO_KEY!;
-                    const encryptedMessage = await openpgp.readMessage({
-                      armoredMessage: token,
-                    });
-                    const { data: decrypted } = await openpgp.decrypt({
-                      message: encryptedMessage,
-                      passwords: [password], // decrypt with password
-                      format: "binary", // output as Uint8Array
-                    });
-
-                    // binary to string
-                    const decryptedString = new TextDecoder().decode(decrypted);
-
-                    var decryptedData = JSON.parse(decryptedString);
-                    const {
-                      access: { additionalPermissions },
-                    } = decryptedData;
-                    let resourceName =
-                      params?.resource?.meta?.resource ?? resource;
-                    return Promise.resolve({
-                      can: additionalPermissions.includes(
-                        `${resourceName}.${action}`
-                      ),
-                      reason: additionalPermissions.includes(
-                        `${resourceName}.${action}`
-                      )
-                        ? undefined
-                        : "You are not allowed to do this",
-                    });
-                  }
+              reactQuery: {
+                clientConfig: queryClient,
+              },
+              disableTelemetry: true,
+              projectId: "7UjA0s-GtR2fw-90I5AE",
+            }}
+            accessControlProvider={{
+              can: async ({ action, params, resource }: CanParams) => {
+                if (
+                  action === "list" &&
+                  Object.values({ ...params }).length === 0
+                ) {
                   return Promise.resolve({
                     can: true,
                   });
-                },
-              }}
-              routerProvider={routerProvider}
-              dataProvider={edenDataProvider}
-              authProvider={authProvider}
-              i18nProvider={i18nProvider}
-              // syncWithLocation={true}
-              resources={resources}
-            >
-              <Routes>
-                <Route path="/privacy" element={<PrivacyPage />} />
-                <Route
-                  element={
-                    <Authenticated
-                      key="authenticated-inner"
-                      fallback={<CatchAllNavigate to="/login" />}
-                    >
-                      <ThemedLayoutV2 Sider={CustomSider}>
-                        <Outlet />
-                      </ThemedLayoutV2>
-                    </Authenticated>
-                  }
-                >
-                  <Route index element={<MainPage />} />
-                  <Route path="/orders">
-                    <Route index element={<OrdersList />} />
-                    <Route path="show/:id" element={<OrdersShow />} />
-                  </Route>
-                  <Route path="/missed_orders">
-                    <Route index element={<MissedOrdersList />} />
-                  </Route>
-                  <Route
-                    path="/orders_garant_report"
-                    element={<OrdersGarantReport />}
-                  />
-                  <Route
-                    path="/yuriy_orders_garant_report"
-                    element={<YuriyOrdersGarantReport />}
-                  />
-                  <Route path="/manager_withdraw">
-                    <Route index element={<ManagerWithdrawList />} />
-                  </Route>
-                  <Route path="/users">
-                    <Route index element={<UsersList />} />
-                    <Route path="show/:id" element={<UsersShow />} />
-                    <Route path="create" element={<UsersCreate />} />
-                    <Route path="edit/:id" element={<UsersEdit />} />
-                  </Route>
-                  <Route path="/roll_call">
-                    <Route index element={<RollCallList />} />
-                  </Route>
-                  <Route path="/courier_balance">
-                    <Route index element={<CourierBalance />} />
-                  </Route>
-                  <Route path="/courier_efficiency">
-                    <Route index element={<CourierEfficiency />} />
-                  </Route>
-                  <Route path="/customers">
-                    <Route index element={<CustomersList />} />
-                    <Route path="show/:id" element={<CustomersShow />} />
-                  </Route>
-                  <Route path="/order_status">
-                    <Route index element={<OrderStatusList />} />
-                    <Route path="create" element={<OrderStatusCreate />} />
-                    <Route path="edit/:id" element={<OrderStatusEdit />} />
-                  </Route>
-                  <Route path="/roles">
-                    <Route index element={<RolesList />} />
-                    <Route path="create" element={<RolesCreate />} />
-                    <Route path="edit/:id" element={<RolesEdit />} />
-                    <Route path="show/:id" element={<RolesShow />} />
-                  </Route>
-                  <Route path="/permissions">
-                    <Route index element={<PermissionsList />} />
-                    <Route path="create" element={<PermissionsCreate />} />
-                    <Route path="edit/:id" element={<PermissionsEdit />} />
-                  </Route>
-                  <Route path="/where_courier">
-                    <Route index element={<WhereCourierList />} />
-                  </Route>
-                  <Route path="/organizations">
-                    <Route index element={<OrganizationList />} />
-                    <Route path="create" element={<OrganizationsCreate />} />
-                    <Route path="edit/:id" element={<OrganizationsEdit />} />
-                  </Route>
-                  <Route path="/terminals">
-                    <Route index element={<TerminalsList />} />
-                    <Route path="create" element={<TerminalsCreate />} />
-                    <Route path="edit/:id" element={<TerminalsEdit />} />
-                  </Route>
-                  <Route path="/delivery_pricing">
-                    <Route index element={<DeliveryPricingList />} />
-                    <Route path="create" element={<DeliveryPricingCreate />} />
-                    <Route path="edit/:id" element={<DeliveryPricingEdit />} />
-                  </Route>
-                  <Route path="/order_bonus_pricing">
-                    <Route index element={<OrderBonusPricingList />} />
-                    <Route
-                      path="create"
-                      element={<OrderBonusPricingCreate />}
-                    />
-                    <Route
-                      path="edit/:id"
-                      element={<OrderBonusPricingEdit />}
-                    />
-                  </Route>
-                  <Route path="/constructed_bonus_pricing">
-                    <Route index element={<ConstructedBonusPricingList />} />
-                    <Route
-                      path="create"
-                      element={<ConstructedBonusPricingCreate />}
-                    />
-                    <Route
-                      path="edit/:id"
-                      element={<ConstructedBonusPricingEdit />}
-                    />
-                  </Route>
-                  <Route path="/work_schedules">
-                    <Route index element={<WorkSchedulesList />} />
-                    <Route path="create" element={<WorkSchedulesCreate />} />
-                    <Route path="edit/:id" element={<WorkSchedulesEdit />} />
-                  </Route>
-                  <Route path="/work_schedule_entries_report">
-                    <Route index element={<WorkSchedulesReport />} />
-                  </Route>
-                  <Route path="/api_tokens">
-                    <Route index element={<ApiTokensList />} />
-                    <Route path="create" element={<ApiTokensCreate />} />
-                  </Route>
-                  <Route path="/system_configs">
-                    <Route index element={<SystemConfigsList />} />
-                  </Route>
-                  <Route path="/brands">
-                    <Route index element={<BrandsList />} />
-                    <Route path="create" element={<BrandsCreate />} />
-                    <Route path="edit/:id" element={<BrandsEdit />} />
-                  </Route>
-                  <Route path="/notifications">
-                    <Route index element={<NotificationsList />} />
-                    {/* <Route path="create" element={<NotificationsCreate />} />
-                    <Route path="edit/:id" element={<NotificationsEdit />} /> */}
-                  </Route>
-                  <Route path="/daily_garant">
-                    <Route index element={<DailyGarantList />} />
-                    <Route path="create" element={<DailyGarantCreate />} />
-                    <Route path="edit/:id" element={<DailyGarantEdit />} />
-                  </Route>
-                  <Route path="*" element={<ErrorComponent />} />
-                </Route>
-                <Route
-                  element={
-                    <Authenticated
-                      key="authenticated-outer"
-                      fallback={<Outlet />}
-                    >
-                      <NavigateToResource />
-                    </Authenticated>
-                  }
-                >
-                  <Route path="/login" element={<Login />} />
-                </Route>
-              </Routes>
+                }
+                if (!params?.resource?.route) {
+                  return Promise.resolve({
+                    can: true,
+                  });
+                }
 
-              <ReactQueryDevtools initialIsOpen={false} />
-              <RefineKbar />
-            </Refine>
-            <DevtoolsPanel />
-          </DevtoolsProvider>
+                if (
+                  params?.resource?.children &&
+                  params?.resource?.children.length > 0 &&
+                  !params?.resource?.parentName
+                ) {
+                  return Promise.resolve({
+                    can: true,
+                  });
+                }
+
+                if (resource === "dashboard") {
+                  return Promise.resolve({
+                    can: true,
+                  });
+                }
+                const token = localStorage.getItem(TOKEN_KEY);
+                if (token) {
+                  let password = import.meta.env.VITE_CRYPTO_KEY!;
+                  const encryptedMessage = await openpgp.readMessage({
+                    armoredMessage: token,
+                  });
+                  const { data: decrypted } = await openpgp.decrypt({
+                    message: encryptedMessage,
+                    passwords: [password], // decrypt with password
+                    format: "binary", // output as Uint8Array
+                  });
+
+                  // binary to string
+                  const decryptedString = new TextDecoder().decode(decrypted);
+
+                  var decryptedData = JSON.parse(decryptedString);
+                  const {
+                    access: { additionalPermissions },
+                  } = decryptedData;
+                  let resourceName =
+                    params?.resource?.meta?.resource ?? resource;
+                  return Promise.resolve({
+                    can: additionalPermissions.includes(
+                      `${resourceName}.${action}`
+                    ),
+                    reason: additionalPermissions.includes(
+                      `${resourceName}.${action}`
+                    )
+                      ? undefined
+                      : "You are not allowed to do this",
+                  });
+                }
+                return Promise.resolve({
+                  can: true,
+                });
+              },
+            }}
+            routerProvider={routerProvider}
+            dataProvider={edenDataProvider}
+            authProvider={authProvider}
+            i18nProvider={i18nProvider}
+            // syncWithLocation={true}
+            resources={resources}
+          >
+            <Routes>
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route
+                element={
+                  <Authenticated
+                    key="authenticated-inner"
+                    fallback={<CatchAllNavigate to="/login" />}
+                  >
+                    <ThemedLayoutV2 Sider={CustomSider}>
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <Outlet />
+                      </Suspense>
+                    </ThemedLayoutV2>
+                  </Authenticated>
+                }
+              >
+                <Route index element={<MainPage />} />
+                <Route path="/orders">
+                  <Route
+                    index
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <OrdersList />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="show/:id"
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <OrdersShow />
+                      </Suspense>
+                    }
+                  />
+                </Route>
+                <Route path="/missed_orders">
+                  <Route index element={<MissedOrdersList />} />
+                </Route>
+                <Route
+                  path="/orders_garant_report"
+                  element={<OrdersGarantReport />}
+                />
+                <Route
+                  path="/yuriy_orders_garant_report"
+                  element={<YuriyOrdersGarantReport />}
+                />
+                <Route path="/manager_withdraw">
+                  <Route index element={<ManagerWithdrawList />} />
+                </Route>
+                <Route path="/users">
+                  <Route index element={<UsersList />} />
+                  <Route path="show/:id" element={<UsersShow />} />
+                  <Route path="create" element={<UsersCreate />} />
+                  <Route path="edit/:id" element={<UsersEdit />} />
+                </Route>
+                <Route path="/roll_call">
+                  <Route index element={<RollCallList />} />
+                </Route>
+                <Route path="/courier_balance">
+                  <Route index element={<CourierBalance />} />
+                </Route>
+                <Route path="/courier_efficiency">
+                  <Route index element={<CourierEfficiency />} />
+                </Route>
+                <Route path="/customers">
+                  <Route index element={<CustomersList />} />
+                  <Route path="show/:id" element={<CustomersShow />} />
+                </Route>
+                <Route path="/order_status">
+                  <Route index element={<OrderStatusList />} />
+                  <Route path="create" element={<OrderStatusCreate />} />
+                  <Route path="edit/:id" element={<OrderStatusEdit />} />
+                </Route>
+                <Route path="/roles">
+                  <Route index element={<RolesList />} />
+                  <Route path="create" element={<RolesCreate />} />
+                  <Route path="edit/:id" element={<RolesEdit />} />
+                  <Route path="show/:id" element={<RolesShow />} />
+                </Route>
+                <Route path="/permissions">
+                  <Route index element={<PermissionsList />} />
+                  <Route path="create" element={<PermissionsCreate />} />
+                  <Route path="edit/:id" element={<PermissionsEdit />} />
+                </Route>
+                <Route path="/where_courier">
+                  <Route index element={<WhereCourierList />} />
+                </Route>
+                <Route path="/organizations">
+                  <Route index element={<OrganizationsList />} />
+                  <Route path="create" element={<OrganizationsCreate />} />
+                  <Route path="edit/:id" element={<OrganizationsEdit />} />
+                </Route>
+                <Route path="/terminals">
+                  <Route index element={<TerminalsList />} />
+                  <Route path="create" element={<TerminalsCreate />} />
+                  <Route path="edit/:id" element={<TerminalsEdit />} />
+                </Route>
+                <Route path="/delivery_pricing">
+                  <Route index element={<DeliveryPricingList />} />
+                  <Route path="create" element={<DeliveryPricingCreate />} />
+                  <Route path="edit/:id" element={<DeliveryPricingEdit />} />
+                </Route>
+                <Route path="/order_bonus_pricing">
+                  <Route index element={<OrderBonusPricingList />} />
+                  <Route path="create" element={<OrderBonusPricingCreate />} />
+                  <Route path="edit/:id" element={<OrderBonusPricingEdit />} />
+                </Route>
+                <Route path="/constructed_bonus_pricing">
+                  <Route index element={<ConstructedBonusPricingList />} />
+                  <Route
+                    path="create"
+                    element={<ConstructedBonusPricingCreate />}
+                  />
+                  <Route
+                    path="edit/:id"
+                    element={<ConstructedBonusPricingEdit />}
+                  />
+                </Route>
+                <Route path="/work_schedules">
+                  <Route index element={<WorkSchedulesList />} />
+                  <Route path="create" element={<WorkSchedulesCreate />} />
+                  <Route path="edit/:id" element={<WorkSchedulesEdit />} />
+                </Route>
+                <Route path="/work_schedule_entries_report">
+                  <Route index element={<WorkSchedulesReport />} />
+                </Route>
+                <Route path="/api_tokens">
+                  <Route
+                    index
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <ApiTokensList />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="create"
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <ApiTokensCreate />
+                      </Suspense>
+                    }
+                  />
+                </Route>
+                <Route path="/system_configs">
+                  <Route
+                    index
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <SystemConfigsList />
+                      </Suspense>
+                    }
+                  />
+                </Route>
+                <Route path="/brands">
+                  <Route
+                    index
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <BrandsList />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="create"
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <BrandsCreate />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="edit/:id"
+                    element={
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <BrandsEdit />
+                      </Suspense>
+                    }
+                  />
+                </Route>
+                <Route path="/notifications">
+                  <Route index element={<NotificationsList />} />
+                  {/* <Route path="create" element={<NotificationsCreate />} />
+                    <Route path="edit/:id" element={<NotificationsEdit />} /> */}
+                </Route>
+                <Route path="/daily_garant">
+                  <Route index element={<DailyGarantList />} />
+                  <Route path="create" element={<DailyGarantCreate />} />
+                  <Route path="edit/:id" element={<DailyGarantEdit />} />
+                </Route>
+                <Route path="*" element={<ErrorComponent />} />
+              </Route>
+              <Route
+                element={
+                  <Authenticated
+                    key="authenticated-outer"
+                    fallback={<Outlet />}
+                  >
+                    <NavigateToResource />
+                  </Authenticated>
+                }
+              >
+                <Route path="/login" element={<Login />} />
+              </Route>
+            </Routes>
+
+            <ReactQueryDevtools initialIsOpen={false} />
+            <RefineKbar />
+          </Refine>
         </AntdApp>
       </RefineKbarProvider>
     </BrowserRouter>

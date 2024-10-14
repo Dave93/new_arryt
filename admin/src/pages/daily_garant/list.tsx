@@ -16,7 +16,7 @@ import {
 import { daily_garant } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
-export const DailyGarantList: React.FC = () => {
+export default function DailyGarantList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -98,4 +98,4 @@ export const DailyGarantList: React.FC = () => {
       </List>
     </>
   );
-};
+}

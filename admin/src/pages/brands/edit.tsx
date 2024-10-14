@@ -6,7 +6,7 @@ import FileUploader from "@admin/src/components/file_uploader";
 import { brands } from "@api/drizzle/schema";
 import { InferInsertModel } from "drizzle-orm";
 
-export const BrandsEdit: React.FC = () => {
+export default function BrandsEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -76,4 +76,4 @@ export const BrandsEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

@@ -2214,7 +2214,6 @@ export const OrdersController = new Elysia({
                 .leftJoin(couriers, eq(orders.courier_id, couriers.id))
                 .where(eq(orders.id, id))
                 .execute() as OrdersWithRelations[];
-            console.log(permissionsRecord);
             return {
                 data: permissionsRecord[0],
             };

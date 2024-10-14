@@ -10,7 +10,7 @@ import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { apiClient } from "@admin/src/eden";
 import { WorkScheduleWithRelations } from "@api/src/modules/work_schedules/dto/list.dto";
 
-export const UsersCreate = () => {
+export default function UsersCreate() {
   const { open } = useNotification();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
@@ -334,4 +334,4 @@ export const UsersCreate = () => {
       </Form>
     </Create>
   );
-};
+}

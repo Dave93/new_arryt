@@ -31,9 +31,9 @@ export const orderTransactionsController = new Elysia({
             terminal_id,
             amount,
             comment,
-            organization_id: terminal?.organization_id,
+            organization_id: terminal!.organization_id!,
             balance_before: courierTerminalBalance[0]?.balance || 0,
-            balance_after: courierTerminalBalance[0]?.balance || 0 + amount,
+            balance_after: (courierTerminalBalance[0]?.balance || 0) + amount,
             transaction_type: 'courier_terminal_balance'
         }).execute();
 
@@ -52,7 +52,7 @@ export const orderTransactionsController = new Elysia({
                 courier_id,
                 terminal_id,
                 balance: amount,
-                organization_id: terminal?.organization_id || null,
+                organization_id: terminal!.organization_id!,
                 // @ts-ignore
                 created_by: user.user.id
             }).execute();

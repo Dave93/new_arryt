@@ -25,7 +25,7 @@ import CourierDriveTypeIcon from "@admin/src/components/users/courier_drive_type
 import { apiClient } from "@admin/src/eden";
 
 const { Search } = Input;
-export const RollCallList = () => {
+export default function RollCallList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -194,4 +194,4 @@ export const RollCallList = () => {
       </ColGrid>
     </Space>
   );
-};
+}

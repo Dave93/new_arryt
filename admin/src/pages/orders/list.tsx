@@ -81,7 +81,7 @@ const IOrdersListPropsDuration: FC<IOrdersListProps> = ({
   );
 };
 
-export const OrdersList: React.FC = () => {
+export default function OrdersList() {
   const invalidate = useInvalidate();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
@@ -265,7 +265,7 @@ export const OrdersList: React.FC = () => {
     },
 
     pagination: {
-      pageSize: 1000,
+      pageSize: 100,
     },
 
     filters: {
@@ -698,7 +698,7 @@ export const OrdersList: React.FC = () => {
     filters,
     sorter,
     columns,
-    pageSize: 1000,
+    pageSize: 100,
   });
 
   const getAllFilterData = async () => {
@@ -992,20 +992,21 @@ export const OrdersList: React.FC = () => {
         </Form>
         <div
           style={{
+            height: "calc(100vh - 300px)",
             overflow: "auto",
+            position: "relative",
           }}
+          className="relative"
         >
           <Table
             {...tableProps}
             rowKey="id"
             bordered
             size="small"
-            virtual
-            scroll={
-              window.innerWidth < 768
-                ? undefined
-                : { y: "calc(100vh - 390px)", x: "calc(100vw - 350px)" }
-            }
+            scroll={{
+              y: "calc(100vh - 300px)", // Adjust this value as needed
+              x: "100%",
+            }}
             onRow={(record: any) => ({
               onDoubleClick: () => {
                 show("orders", record.id);
@@ -1023,6 +1024,10 @@ export const OrdersList: React.FC = () => {
               />
             )}
             summary={(pageData) => {
+              if (!pageData || pageData.length === 0) {
+                return null;
+              }
+
               let total = 0;
               total = pageData.reduce(
                 (sum, record) => sum + record.delivery_price,
@@ -1058,15 +1063,19 @@ export const OrdersList: React.FC = () => {
               });
               totalMinutes = totalMinutes / deliveredOrdersCount;
               totalCookedMinutes = totalCookedMinutes / cookedOrdersCount;
-              const totalHours = parseInt((totalMinutes / 60).toString());
-              const totalMins = dayjs().minute(totalMinutes).format("mm");
+              const totalHours = totalMinutes
+                ? parseInt((totalMinutes / 60).toString())
+                : "00";
+              const totalMins = totalMinutes
+                ? dayjs().minute(totalMinutes).format("mm")
+                : "00";
 
-              const totalCookedHours = parseInt(
-                (totalCookedMinutes / 60).toString()
-              );
-              const totalCookedMins = dayjs()
-                .minute(totalCookedMinutes)
-                .format("mm");
+              const totalCookedHours = totalCookedMinutes
+                ? parseInt((totalCookedMinutes / 60).toString())
+                : "00";
+              const totalCookedMins = totalCookedMinutes
+                ? dayjs().minute(totalCookedMinutes).format("mm")
+                : "00";
 
               const totalDistances = pageData.reduce(
                 (sum, record) => sum + record.pre_distance,
@@ -1075,34 +1084,32 @@ export const OrdersList: React.FC = () => {
               // return `${totalHours}:${totalMins}`;
 
               return (
-                <>
-                  <Table.Summary fixed>
-                    <Table.Summary.Row>
-                      <Table.Summary.Cell index={0} colSpan={2}>
-                        <b>Итого</b>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell
-                        index={1}
-                        colSpan={11}
-                      ></Table.Summary.Cell>
-                      <Table.Summary.Cell index={12}>
-                        <b>{`${totalCookedHours}:${totalCookedMins}`} </b>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={13}>
-                        <b>{`${totalHours}:${totalMins}`} </b>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={14}>
-                        <b>{new Intl.NumberFormat("ru").format(totalBonus)} </b>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={15}>
-                        <b>{`${totalDistances.toFixed(2)} км`} </b>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={16}>
-                        <b>{new Intl.NumberFormat("ru").format(total)} </b>
-                      </Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  </Table.Summary>
-                </>
+                <Table.Summary fixed>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={0} colSpan={2}>
+                      <b>Итого</b>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell
+                      index={1}
+                      colSpan={11}
+                    ></Table.Summary.Cell>
+                    <Table.Summary.Cell index={12}>
+                      <b>{`${totalCookedHours}:${totalCookedMins}`} </b>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={13}>
+                      <b>{`${totalHours}:${totalMins}`} </b>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={14}>
+                      <b>{new Intl.NumberFormat("ru").format(totalBonus)} </b>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={15}>
+                      <b>{`${totalDistances.toFixed(2)} км`} </b>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={16}>
+                      <b>{new Intl.NumberFormat("ru").format(total)} </b>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                </Table.Summary>
               );
             }}
             columns={columns}
@@ -1111,4 +1118,4 @@ export const OrdersList: React.FC = () => {
       </List>
     </>
   );
-};
+}

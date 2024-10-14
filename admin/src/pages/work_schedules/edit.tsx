@@ -36,7 +36,7 @@ let daysOfWeekRu = {
 };
 
 const format = "HH:mm";
-export const WorkSchedulesEdit: React.FC = () => {
+export default function WorkSchedulesEdit() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -206,4 +206,4 @@ export const WorkSchedulesEdit: React.FC = () => {
       </Form>
     </Edit>
   );
-};
+}

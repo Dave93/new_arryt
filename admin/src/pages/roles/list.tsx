@@ -12,7 +12,7 @@ import { defaultDateTimeFormat } from "@admin/src/localConstants";
 import { roles } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
-export const RolesList: React.FC = () => {
+export default function RolesList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -72,4 +72,4 @@ export const RolesList: React.FC = () => {
       </List>
     </>
   );
-};
+}

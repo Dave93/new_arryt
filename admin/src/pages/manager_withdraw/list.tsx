@@ -31,7 +31,7 @@ dayjs.extend(duration);
 
 const { RangePicker } = DatePicker;
 
-export const ManagerWithdrawList: React.FC = () => {
+export default function ManagerWithdrawList() {
   const invalidate = useInvalidate();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
@@ -438,4 +438,4 @@ export const ManagerWithdrawList: React.FC = () => {
       </List>
     </>
   );
-};
+}

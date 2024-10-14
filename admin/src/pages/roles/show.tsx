@@ -8,7 +8,7 @@ import { InferSelectModel } from "drizzle-orm";
 
 const { Title, Text } = Typography;
 
-export const RolesShow = () => {
+export default function RolesShow() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -69,4 +69,4 @@ export const RolesShow = () => {
       </Text>
     </Show>
   );
-};
+}

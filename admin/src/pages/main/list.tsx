@@ -33,10 +33,10 @@ const COMMENTS_SUBSCRIPTION = gql`
   }
 `;
 
-export const MainPage: FC = () => {
+export default function MainPage() {
   return (
     <>
       <h1>Home Page</h1>
     </>
   );
-};
+}

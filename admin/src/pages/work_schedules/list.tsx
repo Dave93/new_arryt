@@ -22,7 +22,7 @@ const daysOfWeekRu = {
   "7": "Воскресенье",
 };
 
-export const WorkSchedulesList: React.FC = () => {
+export default function WorkSchedulesList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -145,4 +145,4 @@ export const WorkSchedulesList: React.FC = () => {
       </List>
     </>
   );
-};
+}

@@ -5,7 +5,7 @@ import { useGetIdentity } from "@refinedev/core";
 import { brands } from "@api/drizzle/schema";
 import { InferInsertModel } from "drizzle-orm";
 
-export const BrandsCreate = () => {
+export default function BrandsCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -59,4 +59,4 @@ export const BrandsCreate = () => {
       </Form>
     </Create>
   );
-};
+}

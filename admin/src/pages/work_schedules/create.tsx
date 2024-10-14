@@ -30,7 +30,7 @@ let daysOfWeekRu = {
 
 const format = "HH:mm";
 
-export const WorkSchedulesCreate = () => {
+export default function WorkSchedulesCreate() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -200,4 +200,4 @@ export const WorkSchedulesCreate = () => {
       </Form>
     </Create>
   );
-};
+}

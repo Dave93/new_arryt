@@ -58,7 +58,7 @@ const OnlineStatus = ({ value }: { value: boolean }) => {
   );
 };
 
-export const UsersList: React.FC = () => {
+export default function UsersList() {
   const { open } = useNotification();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
@@ -825,4 +825,4 @@ export const UsersList: React.FC = () => {
       </List>
     </>
   );
-};
+}

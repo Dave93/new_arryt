@@ -15,7 +15,7 @@ dayjs.extend(duration);
 
 const dateFormat = "DD.MM.YYYY";
 
-export const WorkSchedulesReport: React.FC = () => {
+export default function WorkSchedulesReport() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -231,4 +231,4 @@ export const WorkSchedulesReport: React.FC = () => {
       </List>
     </>
   );
-};
+}

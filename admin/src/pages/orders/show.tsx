@@ -38,6 +38,7 @@ import { order_items, order_status } from "@api/drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { apiClient } from "@admin/src/eden";
 import { OrderActionsWithRelations } from "@api/src/modules/order_actions/dto/list.dto";
+import { useInvalidate } from "@refinedev/core";
 
 dayjs.locale("ru");
 dayjs.extend(duration);
@@ -73,8 +74,9 @@ const OrderShowHeader: FC<OrderShowHeaderProps> = ({
   );
 };
 
-export const OrdersShow = () => {
+export default function OrdersShow() {
   const map = useRef<any>(null);
+  const invalidate = useInvalidate();
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
   }>();
@@ -209,7 +211,7 @@ export const OrdersShow = () => {
             },
             {
               field: "order_created_at",
-              operator: "eq",
+              operator: "gte",
               value: dayjs(record?.created_at).toISOString(),
             },
           ]),
@@ -269,7 +271,13 @@ export const OrdersShow = () => {
       created_at: record?.created_at,
     });
 
-    window.location.reload();
+    // window.location.reload();
+
+    invalidate({
+      resource: "orders",
+      invalidates: ["detail"],
+      id: showId!,
+    });
   };
 
   const clearCourier = async (id: string | undefined) => {
@@ -686,4 +694,4 @@ export const OrdersShow = () => {
       </Tabs>
     </Show>
   );
-};
+}
