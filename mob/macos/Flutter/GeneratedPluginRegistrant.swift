@@ -26,7 +26,7 @@ import objectbox_flutter_libs
 import package_info_plus
 import path_provider_foundation
 import shared_preferences_foundation
-import sqflite
+import sqflite_darwin
 import url_launcher_macos
 import webview_flutter_wkwebview
 
