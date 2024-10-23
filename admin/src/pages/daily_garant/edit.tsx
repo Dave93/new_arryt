@@ -55,7 +55,7 @@ export default function DailyGarantEdit() {
                 },
               ]}
               getValueProps={(value) => ({
-                value: value ? dayjs(value) : "",
+                value: value ? dayjs(value, "HH:mm:ss") : "",
               })}
             >
               <TimePicker format={format} />
