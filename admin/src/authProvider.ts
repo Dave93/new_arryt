@@ -79,19 +79,22 @@ export const authProvider: AuthBindings = {
         ).minus({ minutes: 20 });
         if (DateTime.local() >= expiration) {
           try {
-            const { data } = await apiClient.api.users["refresh-token"].post({
-              refreshToken: decryptedData.token.refreshToken,
+            const { data } = await apiClient.api.users["refresh_token"].post({
+              refresh_token: decryptedData.token.refreshToken,
             });
 
             if (data) {
+              let newData = {
+                token: data
+              }
               let expirationAddition = parseInt(
-                ms(data.token.accessTokenExpires).toString()
+                ms(newData.token.accessTokenExpires).toString()
               );
               let expiration = DateTime.local().plus({
                 milliseconds: expirationAddition,
               });
-              data.token.expirationMillis = expiration.toMillis();
-              let credentials = JSON.stringify(data);
+              newData.token.expirationMillis = expiration.toMillis();
+              let credentials = JSON.stringify(newData);
               let password = import.meta.env.VITE_CRYPTO_KEY!;
               const message = await openpgp.createMessage({ text: credentials });
               const encrypted = await openpgp.encrypt({

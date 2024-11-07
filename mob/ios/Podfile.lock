@@ -29,7 +29,7 @@ PODS:
   - Firebase/RemoteConfig (11.2.0):
     - Firebase/CoreOnly
     - FirebaseRemoteConfig (~> 11.2.0)
-  - firebase_analytics (11.3.2):
+  - firebase_analytics (11.3.3):
     - Firebase/Analytics (= 11.2.0)
     - firebase_core
     - Flutter
@@ -48,11 +48,11 @@ PODS:
     - Firebase/Performance (= 11.2.0)
     - firebase_core
     - Flutter
-  - firebase_remote_config (5.1.2):
+  - firebase_remote_config (5.1.3):
     - Firebase/RemoteConfig (= 11.2.0)
     - firebase_core
     - Flutter
-  - FirebaseABTesting (11.3.0):
+  - FirebaseABTesting (11.4.0):
     - FirebaseCore (~> 11.0)
   - FirebaseAnalytics (11.2.0):
     - FirebaseAnalytics/AdIdSupport (= 11.2.0)
@@ -76,9 +76,9 @@ PODS:
     - FirebaseCoreInternal (~> 11.0)
     - GoogleUtilities/Environment (~> 8.0)
     - GoogleUtilities/Logger (~> 8.0)
-  - FirebaseCoreExtension (11.3.0):
+  - FirebaseCoreExtension (11.4.1):
     - FirebaseCore (~> 11.0)
-  - FirebaseCoreInternal (11.3.0):
+  - FirebaseCoreInternal (11.4.2):
     - "GoogleUtilities/NSData+zlib (~> 8.0)"
   - FirebaseCrashlytics (11.2.0):
     - FirebaseCore (~> 11.0)
@@ -89,7 +89,7 @@ PODS:
     - GoogleUtilities/Environment (~> 8.0)
     - nanopb (~> 3.30910.0)
     - PromisesObjC (~> 2.4)
-  - FirebaseInstallations (11.3.0):
+  - FirebaseInstallations (11.4.0):
     - FirebaseCore (~> 11.0)
     - GoogleUtilities/Environment (~> 8.0)
     - GoogleUtilities/UserDefaults (~> 8.0)
@@ -121,7 +121,7 @@ PODS:
     - FirebaseSharedSwift (~> 11.0)
     - GoogleUtilities/Environment (~> 8.0)
     - "GoogleUtilities/NSData+zlib (~> 8.0)"
-  - FirebaseRemoteConfigInterop (11.3.0)
+  - FirebaseRemoteConfigInterop (11.4.0)
   - FirebaseSessions (11.3.0):
     - FirebaseCore (~> 11.0)
     - FirebaseCoreExtension (~> 11.0)
@@ -131,7 +131,7 @@ PODS:
     - GoogleUtilities/UserDefaults (~> 8.0)
     - nanopb (~> 3.30910.0)
     - PromisesSwift (~> 2.1)
-  - FirebaseSharedSwift (11.3.0)
+  - FirebaseSharedSwift (11.4.0)
   - Flutter (1.0.0)
   - flutter_background_service_ios (0.0.3):
     - Flutter
@@ -241,10 +241,10 @@ PODS:
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
-  - ObjectBox (2.0.0)
+  - ObjectBox (4.0.1)
   - objectbox_flutter_libs (0.0.1):
     - Flutter
-    - ObjectBox (= 2.0.0)
+    - ObjectBox (= 4.0.1)
   - OrderedSet (6.0.3)
   - package_info_plus (0.4.5):
     - Flutter
@@ -267,7 +267,7 @@ PODS:
     - FlutterMacOS
   - sms_autofill (0.0.1):
     - Flutter
-  - sqflite (0.0.3):
+  - sqflite_darwin (0.0.4):
     - Flutter
     - FlutterMacOS
   - Toast (4.1.1)
@@ -311,7 +311,7 @@ DEPENDENCIES:
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sms_autofill (from `.symlinks/plugins/sms_autofill/ios`)
-  - sqflite (from `.symlinks/plugins/sqflite/darwin`)
+  - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
   - workmanager (from `.symlinks/plugins/workmanager/ios`)
@@ -406,8 +406,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   sms_autofill:
     :path: ".symlinks/plugins/sms_autofill/ios"
-  sqflite:
-    :path: ".symlinks/plugins/sqflite/darwin"
+  sqflite_darwin:
+    :path: ".symlinks/plugins/sqflite_darwin/darwin"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
   webview_flutter_wkwebview:
@@ -418,29 +418,29 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   app_settings: 017320c6a680cdc94c799949d95b84cb69389ebc
   audio_waveforms: cd736909ebc6b6a164eb74701d8c705ce3241e1c
-  connectivity_plus: ddd7f30999e1faaef5967c23d5b6d503d10434db
+  connectivity_plus: 4c41c08fc6d7c91f63bc7aec70ffe3730b04f563
   device_info_plus: 97af1d7e84681a90d0693e63169a5d50e0839a0d
   emoji_picker_flutter: fe2e6151c5b548e975d546e6eeb567daf0962a58
   Firebase: 98e6bf5278170668a7983e12971a66b2cd57fc8c
-  firebase_analytics: 1bf2e0bdc37475dc6df897ae985829ad307a0436
+  firebase_analytics: fbc57838bdb94eef1e0ff504f127d974ff2981ad
   firebase_core: 2bedc3136ec7c7b8561c6123ed0239387b53f2af
   firebase_crashlytics: 37d104d457b51760b48504a93a12b3bf70995d77
   firebase_messaging: 15d114e1a41fc31e4fbabcd48d765a19eec94a38
   firebase_performance: 26ad47755d3e8d7b04b9bb36bdfbf1cec8d8dfcc
-  firebase_remote_config: cbe1694de1d1c13a253ad8e0761670397ebcd49c
-  FirebaseABTesting: c4559fcd2eba9f6bdaf0599e2c37ded01c343e4c
+  firebase_remote_config: d522653d828836503715498f1662901a6efcd809
+  FirebaseABTesting: aef1719704fade00b200827e7973f352efc4caee
   FirebaseAnalytics: c36efd5710c60c17558650fa58c2066eca7e9265
   FirebaseCore: a282032ae9295c795714ded2ec9c522fc237f8da
-  FirebaseCoreExtension: 30bb063476ef66cd46925243d64ad8b2c8ac3264
-  FirebaseCoreInternal: ac26d09a70c730e497936430af4e60fb0c68ec4e
+  FirebaseCoreExtension: f1bc67a4702931a7caa097d8e4ac0a1b0d16720e
+  FirebaseCoreInternal: 35731192cab10797b88411be84940d2beb33a238
   FirebaseCrashlytics: cfc69af5b53565dc6a5e563788809b5778ac4eac
-  FirebaseInstallations: 58cf94dabf1e2bb2fa87725a9be5c2249171cda0
+  FirebaseInstallations: 6ef4a1c7eb2a61ee1f74727d7f6ce2e72acf1414
   FirebaseMessaging: c9ec7b90c399c7a6100297e9d16f8a27fc7f7152
   FirebasePerformance: c39138c0700b8ef6040f0b80b5707320808e2862
   FirebaseRemoteConfig: fca0b2d017fc1de52b28a4e5bcf2007c1a840457
-  FirebaseRemoteConfigInterop: c3a5c31b3c22079f41ba1dc645df889d9ce38cb9
+  FirebaseRemoteConfigInterop: e76f46ffa4d6a65e273d4dfebb6a79e588cec136
   FirebaseSessions: 655ff17f3cc1a635cbdc2d69b953878001f9e25b
-  FirebaseSharedSwift: d39c2ad64a11a8d936ce25a42b00df47078bb59c
+  FirebaseSharedSwift: 505dae2d05969dbf6d43749a642bb1bf230f0252
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_background_service_ios: e30e0d3ee69e4cee66272d0c78eacd48c2e94aac
   flutter_inappwebview_ios: 6f63631e2c62a7c350263b13fa5427aedefe81d4
@@ -460,10 +460,10 @@ SPEC CHECKSUMS:
   location: d5cf8598915965547c3f36761ae9cc4f4e87d22e
   map_launcher: 5fde49ac9a52672bf99da746599f507b4490d7b5
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
-  ObjectBox: f5319bd9ad2ea960796eff7227e86471867e9ef0
-  objectbox_flutter_libs: c7748f6c6fda47d22f15c8062fb8208063fd948a
+  ObjectBox: 0bc4bb75eea85f6af06b369148b334c2056bbc29
+  objectbox_flutter_libs: 2ce0da386c780878687c736b528ceaf371573efb
   OrderedSet: e539b66b644ff081c73a262d24ad552a69be3a94
-  package_info_plus: 58f0028419748fad15bf008b270aaa8e54380b1c
+  package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   permission_handler_apple: e76247795d700c14ea09e3a2d8855d41ee80a2e6
   PhoneNumberKit: ced55861269312a5e3bc2ef82a58d6255b1c976a
@@ -471,7 +471,7 @@ SPEC CHECKSUMS:
   PromisesSwift: 9d77319bbe72ebf6d872900551f7eeba9bce2851
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
   sms_autofill: c461043483362c3f1709ee76eaae6eb570b31686
-  sqflite: 673a0e54cc04b7d6dba8d24fb8095b31c3a99eec
+  sqflite_darwin: a553b1fd6fe66f53bbb0fe5b4f5bab93f08d7a13
   Toast: 1f5ea13423a1e6674c4abdac5be53587ae481c4e
   url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
   webview_flutter_wkwebview: 0982481e3d9c78fd5c6f62a002fcd24fc791f1e4
