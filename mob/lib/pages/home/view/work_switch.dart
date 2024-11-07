@@ -90,9 +90,9 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
           e.toString(),
           type: AnimatedSnackBarType.error,
         ).show(context);
-        setState(() {
-          value = true;
-        });
+        // setState(() {
+        //   value = true;
+        // });
       }
     } else {
       try {
