@@ -537,6 +537,7 @@ export default function UsersList() {
                   let usersTerminals = values.terminals;
                   let usersWorkSchedules = values.work_schedules;
                   let roles = values.roles;
+                  console.log(values);
                   delete values.terminals;
                   delete values.roles;
                   delete values.work_schedules;
@@ -553,7 +554,7 @@ export default function UsersList() {
                     );
                   }
 
-                  if (roles && "id" in roles) {
+                  if (roles && typeof roles == "object" && "id" in roles) {
                     roles = roles.id;
                   }
 
@@ -589,7 +590,9 @@ export default function UsersList() {
                       message: e.message,
                     });
                   }
-                } catch (error) {}
+                } catch (error) {
+                  console.log(error);
+                }
               },
             }}
             deleteButtonProps={deleteButtonProps}
