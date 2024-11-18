@@ -34,6 +34,7 @@ export default function TerminalsEdit() {
         "fuel_bonus",
         "time_to_yandex",
         "allow_close_anywhere",
+        "region",
       ],
       pluralize: true,
       updateInputName: "terminalsUncheckedUpdateInput",
@@ -99,6 +100,8 @@ export default function TerminalsEdit() {
         >
           <Switch />
         </Form.Item>
+        <Row gutter={16}>
+        <Col span={12}>
         <Form.Item
           label="Название"
           name="name"
@@ -109,7 +112,17 @@ export default function TerminalsEdit() {
           ]}
         >
           <Input />
-        </Form.Item>
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item label="Региональность" name="region">
+              <Select showSearch optionFilterProp="children">
+                <Select.Option value="capital">Столица</Select.Option>
+                <Select.Option value="region">Регион</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
         {/* <Form.Item
           label="Организация"
           name="organization_id"

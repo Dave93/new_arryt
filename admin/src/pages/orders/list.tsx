@@ -124,6 +124,7 @@ export default function OrdersList() {
       courier_id: any;
       order_number: number;
       orders_couriers: string;
+      region: string;
     }
   >({
     // queryOptions: {
@@ -179,6 +180,7 @@ export default function OrdersList() {
         courier_id,
         order_number,
         orders_couriers,
+        region,
       } = params;
 
       localFilters.push(
@@ -257,6 +259,15 @@ export default function OrdersList() {
           },
         });
       }
+
+
+      if (region) {
+        localFilters.push({
+          field: "terminals.region",
+          operator: "eq",
+          value: region,
+        });
+      }
       // invalidate({
       //   resource: "orders",
       //   invalidates: ["list"],
@@ -279,6 +290,11 @@ export default function OrdersList() {
           field: "created_at",
           operator: "lte",
           value: dayjs().endOf("d").toDate(),
+        },
+        {
+          field: "region",
+          operator: "eq",
+          value: "capital",
         },
       ],
 
@@ -892,6 +908,24 @@ export default function OrdersList() {
             <Col xs={12} sm={12} md={3}>
               <Form.Item name="customer_phone" label="Телефон клиента">
                 <Input />
+              </Form.Item>
+            </Col>
+
+            <Col xs={12} sm={12} md={3}>
+              <Form.Item name="region" label="Региональность" initialValue="capital">
+                <Select
+                  allowClear
+                  options={[
+                    {
+                      label: "Столица",
+                      value: "capital",
+                    },
+                    {
+                      label: "Регион",
+                      value: "region",
+                    }
+                  ]}
+                />
               </Form.Item>
             </Col>
             <Col xs={12} sm={12} md={3}>

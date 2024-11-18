@@ -28,6 +28,7 @@ export default function TerminalsCreate() {
         "latitude",
         "longitude",
         "external_id",
+        "region",
       ],
       pluralize: true,
       requestHeaders: {
@@ -106,23 +107,36 @@ export default function TerminalsCreate() {
         >
           <Input />
         </Form.Item>
-        <Form.Item
-          label="Организация"
-          name="organization_id"
-          rules={[
-            {
-              required: true,
-            },
-          ]}
-        >
-          <Select showSearch optionFilterProp="children">
-            {organizations.map((organization) => (
-              <Select.Option key={organization.id} value={organization.id}>
-                {organization.name}
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              label="Организация"
+              name="organization_id"
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
+            >
+              <Select showSearch optionFilterProp="children">
+                {organizations.map((organization) => (
+                  <Select.Option key={organization.id} value={organization.id}>
+                    {organization.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="Региональность" name="region">
+              <Select showSearch optionFilterProp="children">
+                <Select.Option value="capital">Столица</Select.Option>
+                <Select.Option value="region">Регион</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
         <Form.Item label="Телефон" name="phone">
           <Input />
         </Form.Item>
