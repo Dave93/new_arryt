@@ -53,11 +53,12 @@ import { sortBy, uniq } from "lodash";
 import { getSetting } from "@api/src/utils/settings";
 
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import isoWeek from "dayjs/plugin/isoWeek";
 import { contextWitUser } from "@api/src/context";
 import { CourierEfficiencyReportItem, UsersModel, WalletStatus } from "./dto/list.dto";
 import { processPushCourierToQueue, processTrySetDailyGarant } from "@api/src/context/queues";
 dayjs.extend(customParseFormat);
-
+dayjs.extend(isoWeek);
 
 type RollCallCourier = {
   id: string;
@@ -459,6 +460,7 @@ export const UsersController = new Elysia({
           phone,
         });
       } catch (e) {
+        // console.log('refresh error', e)
         set.status = 400;
         return {
           message: "Token is invalid",
@@ -497,7 +499,6 @@ export const UsersController = new Elysia({
           message: "User is not active",
         };
       }
-      console.log('closing time entry', user);
       let openedTime = await drizzle
         .select({
           id: work_schedule_entries.id,
@@ -689,7 +690,6 @@ export const UsersController = new Elysia({
           message: "You are too far from terminal",
         };
       }
-
       const workSchedules = await drizzle
         .select({
           id: work_schedules.id,
@@ -709,7 +709,7 @@ export const UsersController = new Elysia({
           and(
             // @ts-ignore
             eq(users_work_schedules.user_id, user.user.id),
-            arrayContains(work_schedules.days, [dayjs().day().toString()])
+            arrayContains(work_schedules.days, [dayjs().isoWeekday().toString()])
           )
         )
         .execute();
@@ -773,7 +773,6 @@ export const UsersController = new Elysia({
       const currentDate = new Date();
       let isLate = false;
       let lateMinutes = 0;
-      console.log('minStartTime', minStartTime);
       if (currentDate > minStartTime!) {
         isLate = true;
         lateMinutes = Math.round(
@@ -1419,7 +1418,7 @@ export const UsersController = new Elysia({
         })
         .execute();
 
-      if (usersTerminals) {
+      if (usersTerminals && usersTerminals.length > 0) {
         await drizzle
           .insert(users_terminals)
           .values(usersTerminals.map(terminal_id => ({
@@ -1429,7 +1428,7 @@ export const UsersController = new Elysia({
           .execute();
       }
 
-      if (usersWorkSchedules) {
+      if (usersWorkSchedules && usersWorkSchedules.length > 0) {
         await drizzle
           .insert(users_work_schedules)
           .values(usersWorkSchedules.map(work_schedule_id => ({
@@ -1457,7 +1456,7 @@ export const UsersController = new Elysia({
           ]),
           drive_type: t.Optional(t.Union([t.Literal("car"), t.Literal("bike"), t.Literal("foot"), t.Literal("bycicle")])),
           roles: t.String(),
-          usersTerminals: t.Array(t.String()),
+          usersTerminals: t.Optional(t.Array(t.String())),
           usersWorkSchedules: t.Optional(t.Array(t.String())),
           daily_garant_id: t.Optional(t.String()),
           max_active_order_count: t.Optional(t.Number()),
@@ -1547,14 +1546,14 @@ export const UsersController = new Elysia({
           roles: t.String(),
           usersTerminals: t.Array(t.String()),
           usersWorkSchedules: t.Optional(t.Array(t.String())),
-          daily_garant_id: t.Optional(t.String()),
+          daily_garant_id: t.Optional(t.Nullable(t.String())),
           max_active_order_count: t.Optional(t.Nullable(t.Number())),
           card_name: t.Optional(t.Nullable(t.String())),
           card_number: t.Optional(t.Nullable(t.String())),
           car_model: t.Optional(t.Nullable(t.String())),
           car_number: t.Optional(t.Nullable(t.String())),
           order_start_date: t.Optional(t.Nullable(t.String())),
-          doc_files: t.Optional(t.Array(t.String())),
+          doc_files: t.Optional(t.Nullable(t.Array(t.String()))),
         }),
         fields: t.Optional(t.String()),
       }),
@@ -1914,9 +1913,9 @@ export const UsersController = new Elysia({
     // const numbers = await numbersResponse.json();
 
     return {
-      score: sqlSqore?.avg_score || 0,
-      not_paid_amount: sqlTotalBalance?.not_paid_amount || 0,
-      fuel: sqlTotalFuel?.amount || 0
+      score: +sqlSqore?.avg_score || 0,
+      not_paid_amount: +sqlTotalBalance?.not_paid_amount || 0,
+      fuel: +sqlTotalFuel?.amount || 0
     };
   }, {
     permission: 'orders.list',
@@ -2570,7 +2569,6 @@ export const UsersController = new Elysia({
     );
 
     const currentTime = dayjs().hour();
-    console.log('currentTime', currentTime);
 
     let currentDate = dayjs().toISOString();
 

@@ -1,12 +1,69 @@
-import { courier_terminal_balance, order_transactions } from "@api/drizzle/schema";
+import { courier_terminal_balance, order_transactions, orders, terminals, users } from "@api/drizzle/schema";
 import { ctx } from "@api/src/context";
-import { eq, and } from "drizzle-orm";
+import { parseFilterFields } from "@api/src/lib/parseFilterFields";
+import { eq, and, desc, SQLWrapper } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 
 export const orderTransactionsController = new Elysia({
     name: "@app/order_transactions",
 })
     .use(ctx)
+    .get('/order_transactions', async ({ drizzle, set, user, query: {
+        filters
+    } }) => {
+        let whereClause: (SQLWrapper | undefined)[] = [];
+        if (filters) {
+            whereClause = parseFilterFields(filters, order_transactions, {
+                orders,
+                terminals,
+                users
+            });
+        }
+        const transactions = await drizzle
+            .select({
+                id: order_transactions.id,
+                order_id: order_transactions.order_id,
+                created_at: order_transactions.created_at,
+                amount: order_transactions.amount,
+                status: order_transactions.status,
+                balance_before: order_transactions.balance_before,
+                balance_after: order_transactions.balance_after,
+                comment: order_transactions.comment,
+                not_paid_amount: order_transactions.not_paid_amount,
+                transaction_type: order_transactions.transaction_type,
+                order_number: orders.order_number,
+                terminal_name: terminals.name,
+                first_name: users.first_name,
+                last_name: users.last_name
+            })
+            .from(order_transactions)
+            .leftJoin(orders, eq(order_transactions.order_id, orders.id))
+            .leftJoin(terminals, eq(order_transactions.terminal_id, terminals.id))
+            .leftJoin(users, eq(order_transactions.created_by, users.id))
+            .where(and(...whereClause))
+            .orderBy(desc(order_transactions.created_at))
+            .execute();
+
+        // const transactionsResponse = await fetch(`${process.env.DUCK_API}/order_transactions`, {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify({
+        //         filter: JSON.parse(filters)
+        //     })
+        // });
+
+        // const transactions = await transactionsResponse.json();
+
+        return transactions;
+    },
+        {
+            permission: 'order_transactions.list',
+            query: t.Object({
+                filters: t.String(),
+            }),
+        })
     .post('/order_transactions', async ({ body: { data: { terminal_id, amount, comment, courier_id } }, redis, cacheControl, drizzle, user }) => {
         const terminals = await cacheControl.getTerminals();
         const terminal = terminals.find((t) => t.id === terminal_id);

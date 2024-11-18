@@ -1,9 +1,9 @@
-import { delivery_pricing, order_locations, order_status, orders, users } from "@api/drizzle/schema";
+import { delivery_pricing, manager_withdraw, order_locations, order_status, orders, users } from "@api/drizzle/schema";
 import { processSendNotificationQueue, processYandexCallbackQueue } from "@api/src/context/queues";
 import { ctx } from "@api/src/context";
 import { getMinutes, getMinutesNow } from "@api/src/lib/dates";
 import dayjs from "dayjs";
-import { InferSelectModel, and, desc, eq } from "drizzle-orm";
+import { InferSelectModel, and, desc, eq, gte, lte, sum, inArray } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { max, sort } from "radash";
 import { DeliveryPricingRulesDto } from "../delivery_pricing/dto/rules.dto";
@@ -118,10 +118,8 @@ export const externalControler = new Elysia({
                         const currentTime = new Date().getHours();
                         const activeDeliveryPricing = deliveryPricing.filter((d) => {
                             let res = false;
-                            const startTime = dayjs(d.start_time, 'HH:mm:ss').format('HH:mm');
-                            const endTime = dayjs(d.end_time, 'HH:mm:ss').format('HH:mm');
                             const currentTime = new Date();
-                            const now = getMinutes(d.start_time);
+                            const now = getMinutesNow();
                             let start = getMinutes(d.start_time);
                             let end = getMinutes(d.end_time);
 
@@ -238,11 +236,21 @@ export const externalControler = new Elysia({
                                 Math.floor(distance) * minDeliveryPricing!.price_per_km;
                             price += pricePerKm + additional;
                         }
-
+                        // console.log('location change update data', {
+                        //     delivery_price: onWay ? order[0].delivery_price + price : price,
+                        //     pre_distance: onWay ? order[0].pre_distance + minDistance : minDistance,
+                        //     pre_duration: onWay ? Math.round(order[0].pre_duration + minDuration) : Math.round(minDuration),
+                        //     to_lat: +lat,
+                        //     to_lon: +lon,
+                        //     delivery_pricing_id: minDeliveryPricing!.id,
+                        //     wrong_lat: onWay ? order[0].to_lat : undefined,
+                        //     wrong_lon: onWay ? order[0].to_lon : undefined,
+                        // });
+                        // console.log('location change update order', order[0]);
                         await drizzle.update(orders).set({
                             delivery_price: onWay ? order[0].delivery_price + price : price,
                             pre_distance: onWay ? order[0].pre_distance + minDistance : minDistance,
-                            pre_duration: onWay ? order[0].pre_duration + minDuration : minDuration,
+                            pre_duration: onWay ? Math.round(order[0].pre_duration + minDuration) : Math.round(minDuration),
                             to_lat: +lat,
                             to_lon: +lon,
                             delivery_pricing_id: minDeliveryPricing!.id,
@@ -262,8 +270,8 @@ export const externalControler = new Elysia({
             }
         } catch (e) {
             set.status = 403;
-
-            return { error: `Forbidden` };
+            console.log('error', e);
+            return { error: `Forbidden`, stack: e };
         }
     }, {
         body: t.Object({
@@ -305,12 +313,17 @@ export const externalControler = new Elysia({
                     }).from(orders).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
+                        gte(orders.created_at, dayjs().subtract(15, 'day').toISOString())
                     )).limit(1).execute();
 
                     if (order.length > 0) {
                         const terminalsList = await cacheControl.getTerminals();
-                        const terminal = terminalsList.find((terminal) => terminal.id === terminal_id);
+                        const terminal = terminalsList.find((terminal) => terminal.external_id === terminal_id);
+                        if (!terminal) {
+                            set.status = 403;
 
+                            return { error: `Terminal not found` };
+                        }
                         const deliveryPricing = await cacheControl.getOrganizationDeliveryPricing(currentOrganization.id);
 
                         let onWay = false;
@@ -319,16 +332,14 @@ export const externalControler = new Elysia({
                         const organizationStatuses = orderStatuses.filter((orderStatus) => orderStatus.organization_id === currentOrganization.id);
 
                         const sortedOrderStatuses = sort(organizationStatuses, (i) => +i.sort);
-                        const firstOrderStatus = sortedOrderStatuses[0];
+                        const firstOrderStatus = sortedOrderStatuses[1];
 
                         const currentDay = new Date().getDay() == 0 ? 7 : new Date().getDay();
                         const currentTime = new Date().getHours();
                         const activeDeliveryPricing = deliveryPricing.filter((d) => {
                             let res = false;
-                            const startTime = dayjs(d.start_time, 'HH:mm:ss').format('HH:mm');
-                            const endTime = dayjs(d.end_time, 'HH:mm:ss').format('HH:mm');
                             const currentTime = new Date();
-                            const now = getMinutes(d.start_time);
+                            const now = getMinutesNow();
                             let start = getMinutes(d.start_time);
                             let end = getMinutes(d.end_time);
 
@@ -355,7 +366,21 @@ export const externalControler = new Elysia({
 
                         let activeDeliveryPricingSorted = sort(activeDeliveryPricing, (i) => +i.default);
                         activeDeliveryPricingSorted = sort(activeDeliveryPricingSorted, (i) => +i.price_per_km);
-                        activeDeliveryPricingSorted = sort(activeDeliveryPricingSorted, (i) => i.min_price ? +i.min_price! : 0, true);
+
+                        activeDeliveryPricingSorted = sort(activeDeliveryPricingSorted, (i) => +i.min_price!, true);
+
+
+                        const terminalDeliveryPricing = activeDeliveryPricing.filter((d) => d.terminal_id === terminal.id);
+                        let terminalDeliveryPricingSorted = sort(terminalDeliveryPricing, (i) => +i.default);
+                        terminalDeliveryPricingSorted = sort(terminalDeliveryPricingSorted, (i) => +i.price_per_km);
+                        terminalDeliveryPricingSorted = sort(terminalDeliveryPricingSorted, (i) => +i.min_price!, true);
+                        // console.log('terminalDeliveryPricingSorted', terminalDeliveryPricingSorted);
+                        const otherDeliveryPricing = activeDeliveryPricing.filter((d) => d.terminal_id !== terminal.id);
+                        let otherDeliveryPricingSorted = sort(otherDeliveryPricing, (i) => +i.default);
+                        otherDeliveryPricingSorted = sort(otherDeliveryPricingSorted, (i) => +i.price_per_km);
+                        otherDeliveryPricingSorted = sort(otherDeliveryPricingSorted, (i) => +i.min_price!, true);
+                        // console.log('otherDeliveryPricingSorted', otherDeliveryPricingSorted);
+                        activeDeliveryPricingSorted = [...terminalDeliveryPricingSorted, ...otherDeliveryPricingSorted];
 
                         let minDistance = 0;
                         let minDuration = 0;
@@ -537,10 +562,26 @@ export const externalControler = new Elysia({
 
         activeDeliveryPricingSorted = sort(activeDeliveryPricingSorted, (i) => +i.min_price!, true);
 
+
+        const terminalDeliveryPricing = activeDeliveryPricing.filter((d) => d.terminal_id === terminal.id);
+        let terminalDeliveryPricingSorted = sort(terminalDeliveryPricing, (i) => +i.default);
+        terminalDeliveryPricingSorted = sort(terminalDeliveryPricingSorted, (i) => +i.price_per_km);
+        terminalDeliveryPricingSorted = sort(terminalDeliveryPricingSorted, (i) => +i.min_price!, true);
+        // console.log('terminalDeliveryPricingSorted', terminalDeliveryPricingSorted);
+        const otherDeliveryPricing = activeDeliveryPricing.filter((d) => d.terminal_id !== terminal.id);
+        let otherDeliveryPricingSorted = sort(otherDeliveryPricing, (i) => +i.default);
+        otherDeliveryPricingSorted = sort(otherDeliveryPricingSorted, (i) => +i.price_per_km);
+        otherDeliveryPricingSorted = sort(otherDeliveryPricingSorted, (i) => +i.min_price!, true);
+        // console.log('otherDeliveryPricingSorted', otherDeliveryPricingSorted);
+        activeDeliveryPricingSorted = [...terminalDeliveryPricingSorted, ...otherDeliveryPricingSorted];
+        // console.log('activeDeliveryPricingSorted', activeDeliveryPricingSorted);
+
         let minDistance = 0;
         let minDuration = 0;
         let minDeliveryPricing = null;
-
+        // if (terminal_id == '24448fa6-63e0-46bf-953f-ba24af65e19e') {
+        //     console.log('activeDeliveryPricingSorted before', activeDeliveryPricingSorted);
+        // }
         if (activeDeliveryPricingSorted.length == 0) {
             set.status = 400;
             return { error: `No active delivery pricing` };
@@ -559,7 +600,9 @@ export const externalControler = new Elysia({
         //     actualLon = geocodingData.data[0].lon;
         //   }
         // } catch (e) {}
-
+        // if (terminal_id == '24448fa6-63e0-46bf-953f-ba24af65e19e') {
+        //     console.log('activeDeliveryPricingSorted', activeDeliveryPricingSorted);
+        // }
         for (const d of activeDeliveryPricingSorted) {
             if (d.drive_type == 'foot') {
                 const responseJson = await fetch(
@@ -929,4 +972,153 @@ export const externalControler = new Elysia({
         body: t.Object({
             claim_id: t.Optional(t.String()),
         }),
+    })
+    .post('/external/cancel-order', async ({ body, set, request: { headers }, drizzle, cacheControl }) => {
+        console.log('body', body);
+
+        const token = headers.get('authorization')?.split(' ')[1] ?? null;
+
+        const apiTokens = await cacheControl.getApiTokens();
+        const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
+        if (!apiToken) {
+            set.status = 403;
+
+            return { error: `Forbidden` };
+        }
+
+        const organizations = await cacheControl.getOrganization(apiToken.organization_id);
+
+        const statuses = await cacheControl.getOrderStatuses();
+        const organizationStatuses = statuses.filter((s) => s.organization_id === organizations.id);
+        const canceledStatus = organizationStatuses.find((s) => s.cancel);
+
+        if (!canceledStatus) {
+            set.status = 400;
+
+            return { error: `Canceled status not found` };
+        }
+
+        const order = await drizzle.select({
+            id: orders.id,
+        }).from(orders).where(and(
+            eq(orders.order_number, body.order_id),
+            eq(orders.organization_id, organizations.id),
+        )).execute();
+
+        if (order.length == 0) {
+            set.status = 404;
+
+            return { error: `Order not found` };
+        }
+
+        await drizzle.update(orders).set({
+            order_status_id: canceledStatus.id,
+        }).where(and(
+            eq(orders.id, order[0].id)
+        )).execute();
+
+        return {
+            success: true,
+        };
+    }, {
+        body: t.Object({
+            order_id: t.String(),
+        }),
+    })
+    .post('/external/terminal-period-withdraws', async ({ body: { terminal_id, date_from, date_to }, error, request: { headers }, drizzle, cacheControl }) => {
+
+        const token = headers.get('authorization')?.split(' ')[1] ?? null;
+
+        const apiTokens = await cacheControl.getApiTokens();
+        const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
+        if (!apiToken) {
+            return error(403, 'Forbidden');
+        }
+
+        const organization = await cacheControl.getOrganization(apiToken.organization_id);
+
+        const terminals = await cacheControl.getTerminals();
+        const terminal = terminals.find((t) => t.external_id === terminal_id && t.organization_id === organization.id);
+
+
+        if (!terminal) {
+            return error(404, 'Terminal not found');
+        }
+
+        let result: {
+            withdraws: {
+                amount: number;
+                first_name: string;
+                last_name: string;
+            }[];
+            customerPrice: number;
+        } = {
+            withdraws: [],
+            customerPrice: 0
+        }
+
+        const withdraws = await drizzle
+            .select({
+                amount: sum(manager_withdraw.amount),
+                first_name: users.first_name,
+                last_name: users.last_name,
+            })
+            .from(manager_withdraw)
+            .leftJoin(users, eq(manager_withdraw.courier_id, users.id))
+            .where(and(
+                eq(manager_withdraw.terminal_id, terminal.id),
+                gte(manager_withdraw.created_at, date_from),
+                lte(manager_withdraw.created_at, date_to),
+            ))
+            .groupBy(manager_withdraw.courier_id, manager_withdraw.terminal_id, users.first_name, users.last_name)
+            .execute();
+
+        result.withdraws = withdraws.map((w) => ({
+            amount: w.amount ? +w.amount : 0,
+            first_name: w.first_name ?? '',
+            last_name: w.last_name ?? '',
+        }));
+
+
+        const yandexCourier = await drizzle.query.users.findFirst({
+            where: eq(users.phone, '+998908251218'),
+            columns: {
+                id: true,
+            },
+        });
+
+        if (yandexCourier) {
+
+            const orderStatuses = await cacheControl.getOrderStatuses();
+
+            const finishedStatusIds = orderStatuses
+                .filter((s) => s.organization_id === organization.id && s.finish)
+                .map((s) => s.id);
+
+            const ordersList = await drizzle.select({
+                customer_delivery_price: sum(orders.customer_delivery_price),
+            })
+                .from(orders)
+                .where(and(
+                    eq(orders.courier_id, yandexCourier.id),
+                    eq(orders.terminal_id, terminal.id),
+                    inArray(orders.order_status_id, finishedStatusIds),
+                    gte(orders.created_at, date_from),
+                    lte(orders.created_at, date_to),
+                ))
+                .groupBy(orders.courier_id)
+                .execute();
+
+            console.log('orders', ordersList);
+
+            result.customerPrice = ordersList[0].customer_delivery_price ? +ordersList[0].customer_delivery_price : 0;
+        }
+
+        return result;
+    }, {
+        body: t.Object({
+            terminal_id: t.String(),
+            date_from: t.String(),
+            date_to: t.String(),
+        })
     })

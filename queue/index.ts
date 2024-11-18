@@ -107,7 +107,7 @@ const updateUserCacheWorker = new Worker(
 const orderCompleteWorker = new Worker(
     `${process.env.TASKS_PREFIX}_order_complete`,
     async (job) => {
-        console.log('order_complete', job.data);
+        // console.log('order_complete', job.data);
         await processOrderComplete(db, cacheControl, job.data);
         return 'order_complete';
     },
@@ -119,7 +119,7 @@ const orderCompleteWorker = new Worker(
 const orderEcommerceWebhookWorker = new Worker(
     `${process.env.TASKS_PREFIX}_order_ecommerce_webhook`,
     async (job) => {
-        console.log('order_ecommerce_webhook', job.data);
+        // console.log('order_ecommerce_webhook', job.data);
         return 'order_ecommerce_webhook';
     },
     {
@@ -130,7 +130,7 @@ const orderEcommerceWebhookWorker = new Worker(
 const orderChangeStatusWorker = new Worker(
     `${process.env.TASKS_PREFIX}_order_change_status`,
     async (job) => {
-        console.log('order_change_status', job.data);
+        // console.log('order_change_status', job.data);
         await processChangeStatus(redisClient, db, cacheControl, job.data, processOrderCompleteQueue);
         return 'order_change_status';
     },
@@ -154,7 +154,7 @@ const orderClearCourierWorker = new Worker(
 const orderChangeCourierWorker = new Worker(
     `${process.env.TASKS_PREFIX}_order_change_courier`,
     async (job) => {
-        console.log('order_change_courier', job.data);
+        // console.log('order_change_courier', job.data);
         await processChangeCourier(redisClient, db, cacheControl, job.data);
         return 'order_change_courier';
     },
@@ -166,7 +166,7 @@ const orderChangeCourierWorker = new Worker(
 const courierStoreLocationWorker = new Worker(
     `${process.env.TASKS_PREFIX}_courier_store_location`,
     async (job) => {
-        console.log('courier_store_location', job.data);
+        // console.log('courier_store_location', job.data);
         await processStoreLocation(redisClient, db, cacheControl, job.data);
         return 'courier_store_location';
     },
@@ -235,7 +235,7 @@ const tryAssignCourierQueue = new Queue(
 const tryAssignCourierWorker = new Worker(
     `${process.env.TASKS_PREFIX}_try_assign_courier`,
     async (job) => {
-        console.log('try_assign_courier', job.data);
+        // console.log('try_assign_courier', job.data);
         await processTryAssignCourier(redisClient, db, cacheControl, job.data, tryAssignCourierQueue);
         return 'try_assign_courier';
     },
@@ -248,7 +248,7 @@ const tryAssignCourierWorker = new Worker(
 const trySetDailyGarantWorker = new Worker(
     `${process.env.TASKS_PREFIX}_try_set_daily_garant`,
     async (job) => {
-        console.log('try_set_daily_garant', job.data);
+        // console.log('try_set_daily_garant', job.data);
         await processTrySetDailyGarant(redisClient, db, cacheControl, job.data);
         return 'try_set_daily_garant';
     },

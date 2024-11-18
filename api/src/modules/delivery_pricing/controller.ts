@@ -6,7 +6,7 @@ import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
 import dayjs from "dayjs";
-import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
+import { InferSelectModel, SQLWrapper, and, eq, sql, asc } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 import { DeliveryPricingWithRelations } from "./dto/list.dto";
@@ -45,6 +45,7 @@ export const DeliveryPricingController = new Elysia({
         .where(and(...whereClause))
         .limit(+limit)
         .offset(+offset)
+        .orderBy(asc(delivery_pricing.name))
         .execute() as DeliveryPricingWithRelations[];
       return {
         total: rolesCount[0].count,
@@ -96,6 +97,24 @@ export const DeliveryPricingController = new Elysia({
       if (fields) {
         selectFields = parseSelectFields(fields, delivery_pricing, {});
       }
+
+      if (data.start_time && data.start_time.length > 8) {
+        console.log('data.start_time', data.start_time);
+        try {
+          data.start_time = dayjs(data.start_time).format("HH:mm:ss");
+        } catch (e) {
+          console.log('data.start_time', data.start_time);
+        }
+      }
+
+      if (data.end_time && data.end_time.length > 8) {
+        try {
+          data.end_time = dayjs(data.end_time).format("HH:mm:ss");
+        } catch (e) {
+          console.log('data.end_time', data.end_time);
+        }
+      }
+
       const result = await drizzle
         .insert(delivery_pricing)
         .values(data)
@@ -123,12 +142,12 @@ export const DeliveryPricingController = new Elysia({
             to: t.Number(),
           })),
           price_per_km: t.Number(),
-          customer_rules: t.Array(t.Object({
+          customer_rules: t.Optional(t.Array(t.Object({
             from: t.Number(),
             price: t.Number(),
             to: t.Number(),
-          })),
-          customer_price_per_km: t.Number(),
+          }))),
+          customer_price_per_km: t.Optional(t.Number()),
           min_distance_km: t.Number(),
           organization_id: t.String(),
           terminal_id: t.String(),
@@ -140,25 +159,38 @@ export const DeliveryPricingController = new Elysia({
   )
   .put(
     "/delivery_pricing/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, delivery_pricing, {});
       }
 
-      if (data.start_time) {
-        data.start_time = dayjs(data.start_time).format("HH:mm:ss");
+      if (data.start_time && data.start_time.length > 8) {
+        console.log('data.start_time', data.start_time);
+        try {
+          data.start_time = dayjs(data.start_time).format("HH:mm:ss");
+        } catch (e) {
+          console.log('data.start_time', data.start_time);
+        }
       }
 
-      if (data.end_time) {
-        data.end_time = dayjs(data.end_time).format("HH:mm:ss");
+      if (data.end_time && data.end_time.length > 8) {
+        try {
+          data.end_time = dayjs(data.end_time).format("HH:mm:ss");
+        } catch (e) {
+          console.log('data.end_time', data.end_time);
+        }
       }
 
       const result = await drizzle
         .update(delivery_pricing)
         .set(data)
         .where(eq(delivery_pricing.id, id))
-        .returning(selectFields);
+        .returning({
+          id: delivery_pricing.id,
+        });
+
+      await cacheControl.cacheDeliveryPricing();
 
       return {
         data: result[0],
@@ -193,7 +225,7 @@ export const DeliveryPricingController = new Elysia({
           customer_price_per_km: t.Number(),
           min_distance_km: t.Number(),
           organization_id: t.String(),
-          terminal_id: t.String(),
+          terminal_id: t.Optional(t.Nullable(t.String())),
           payment_type: t.Union([t.Literal("client"), t.Literal("card"), t.Literal("cash")]),
         }),
         fields: t.Optional(t.Array(t.String())),

@@ -12,6 +12,7 @@ export const status = pgEnum("status", ['archived', 'published', 'draft'])
 export const type = pgEnum("type", ['json', 'enum', 'datetime', 'date', 'boolean', 'float', 'integer', 'string'])
 export const user_status = pgEnum("user_status", ['inactive', 'blocked', 'active'])
 export const work_schedule_entry_status = pgEnum("work_schedule_entry_status", ['closed', 'open'])
+export const terminals_region = pgEnum("terminals_region", ['capital', 'region'])
 
 export const api_tokens = pgTable("api_tokens", {
 	id: uuid("id").defaultRandom().primaryKey().notNull(),
@@ -386,8 +387,10 @@ export const terminals = pgTable("terminals", {
 	linked_terminal_id: uuid("linked_terminal_id"),
 	time_to_yandex: integer("time_to_yandex").default(0).notNull(),
 	allow_yandex: boolean("allow_yandex").default(true).notNull(),
+	region: terminals_region("region").default('capital').notNull(),
 	created_at: timestamp("created_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	allow_close_anywhere: boolean("allow_close_anywhere").default(false).notNull()
 },
 	(table) => {
 		return {

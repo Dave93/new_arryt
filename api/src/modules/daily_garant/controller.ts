@@ -5,6 +5,7 @@ import {
 import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import dayjs from "dayjs";
 import { SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
@@ -84,6 +85,13 @@ export const DailyGarantController = new Elysia({
       if (fields) {
         selectFields = parseSelectFields(fields, daily_garant, {});
       }
+      if (data.date && data.date.length > 8) {
+        try {
+          data.date = dayjs(data.date).format("HH:mm:ss");
+        } catch (e) {
+          console.log('data.date', data.date);
+        }
+      }
       const result = await drizzle
         .insert(daily_garant)
         .values(data)
@@ -113,6 +121,15 @@ export const DailyGarantController = new Elysia({
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {});
       }
+
+      if (data.date && data.date.length > 8) {
+        try {
+          data.date = dayjs(data.date).format("HH:mm:ss");
+        } catch (e) {
+          console.log('data.date', data.date);
+        }
+      }
+
       const result = await drizzle
         .update(daily_garant)
         .set(data)

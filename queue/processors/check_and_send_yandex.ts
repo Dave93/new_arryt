@@ -38,8 +38,13 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
 
         let orderPrice = 0;
         if (order.payment_type == 'Наличными') {
-            orderPrice = +order.order_price;
+            orderPrice += +order.order_price;
         }
+        if (orderId == '1179932') {
+            console.log('orderData', order);
+        }
+        
+            orderPrice += +order.customer_delivery_price;
 
         const organization = await cacheControl.getOrganization(order.organization_id);
 
@@ -51,25 +56,24 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
 
         let comment = 'Savollar: +998 71 2050642 ';
 
-        comment += `${organization.name} \n`;
+        comment += `${organization.name} // sotib olish uchun naqd pul olib yuring / иметь с собой наличные для выкупа `;
 
-        comment += `// Klient uchun yetkazish BEPUL!!!\n`;
-        if (isClient) {
-            orderPrice += +order.delivery_price;
-            comment += `// Naqd pul kerak: ${new Intl.NumberFormat('ru').format(orderPrice)} so'm\nID: ${order.order_number
-                } \n`;
-        } else {
-            if (order.payment_type == 'Наличными') {
-                comment += `// Naqd pul kerak: ${new Intl.NumberFormat('ru').format(orderPrice)} so'm\nID: ${order.order_number
-                    }\n`;
-            } else {
-                comment += ` ID: ${order.order_number}\n`;
-            }
+        if (orderPrice > 0) {
+            comment += `// цена ${new Intl.NumberFormat('ru').format(orderPrice)} сум`;
         }
+
+        comment += `//ID: ${order.order_number}`;
+
+        let clientComment = '';
 
         if (order.additional_phone) {
-            comment += `// Qo'shimcha raqam: ${order.additional_phone}\n`;
+            comment += `// Mijozning qo'shimcha raqami: ${order.additional_phone}\n`;
+            clientComment += ` ${order.additional_phone} Mijoz asosiy raqami bo'yicha javob berolmagan bo'lsa Qo'shimcha raqam. +998 71 2050642 Muammolar chiqgan bo'lsa yoki savollar paydo bo'lgan bo'lsa\n`;
+        } else {
+            clientComment += `  +998 99 444-90-06 Mijoz asosiy raqami bo'yicha javob berolmagan bo'lsa Qo'shimcha raqam. +998 71 2050642 Muammolar chiqgan bo'lsa yoki savollar paydo bo'lgan bo'lsa\n`;
         }
+
+        comment += 'Savollar: +998 71 2050642';
 
         const expressTerminals = ['419b466b-a575-4e2f-b771-7206342bc242'];
 
@@ -79,11 +83,11 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         const orderPriceLabel = new Intl.NumberFormat('ru').format(orderPrice);
 
         let cargo_options = ['thermobag'];
-        console.log('yandexSenderName', yandexSenderName);
-        console.log('yandexSenderPhone', yandexSenderPhone);
-        console.log('order!.orders_terminals!.manager_name', order!.orders_terminals!.manager_name);
-        console.log('order!.orders_terminals!.phone', order!.orders_terminals!.phone);
-        console.log('isClient', isClient);
+        // console.log('yandexSenderName', yandexSenderName);
+        // console.log('yandexSenderPhone', yandexSenderPhone);
+        // console.log('order!.orders_terminals!.manager_name', order!.orders_terminals!.manager_name);
+        // console.log('order!.orders_terminals!.phone', order!.orders_terminals!.phone);
+        // console.log('isClient', isClient);
         const yandexData = {
             auto_accept: true,
             callback_properties: {
@@ -130,11 +134,21 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                         building: order.house,
                         porch: order.entrance,
                         flat: order.flat ? +order.flat : null,
+                        comment: clientComment,
                     },
                     contact: {
                         name: order!.orders_customers!.name,
                         phone: order!.orders_customers!.phone,
                     },
+                    // payment_on_delivery:
+                    //     order.payment_type == 'Наличными' && orderPrice <= 500000
+                    //     ? {
+                    //         customer: {
+                    //             phone: order!.orders_customers!.phone,
+                    //         },
+                    //         payment_method: 'cash',
+                    //         }
+                    //     : undefined,
                     external_order_id: order.order_number,
                     point_id: 2,
                     skip_confirmation: true,
@@ -180,6 +194,14 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                 title: item.name,
                 quantity: item.quantity,
                 weight: 0,
+                fiscalization:
+                    order.payment_type == 'Наличными' && orderPrice <= 500000
+                        ? {
+                            article: 'артикул',
+                            supplier_inn: '1111111111',
+                            vat_code_str: 'vat12',
+                        }
+                        : undefined,
             });
         });
 
@@ -225,7 +247,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             });
 
             const approveJson = await approveResponse.json();
-            console.log('approveJson', approveJson);
+            // console.log('approveJson', approveJson);
             // await searchService.indexYandexDeliveryOrder(order.id, {
             //     // @ts-ignore
             //     ...yandexJson,

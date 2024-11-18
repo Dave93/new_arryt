@@ -59,7 +59,7 @@ export default async function processChangeStatus(redis: Redis, db: DB, cacheCon
         duration: lastOrderActionCreatedAtDifference,
         created_by: data.user_id,
     }).execute();
-    console.log('processChangeStatus', data.order_id, data.before_status_id, data.after_status_id, data.user_id, lastOrderActionCreatedAtDifference);
+    // console.log('processChangeStatus', data.order_id, data.before_status_id, data.after_status_id, data.user_id, lastOrderActionCreatedAtDifference);
     if (afterStatus.finish || afterStatus.cancel) {
         await db.update(orders).set({
             finished_date: new Date().toISOString(),

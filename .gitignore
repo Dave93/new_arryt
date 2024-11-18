@@ -10,3 +10,6 @@ api/app
 queue/queue
 api/arryt_api
 firebase.json
+crons/close_opened_time
+queue/queue
+crons/balance_report_send

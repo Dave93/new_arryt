@@ -49,7 +49,6 @@ export const BrandsController = new Elysia({
     }
   )
   .get("/brands/cached", async ({ redis }) => {
-    console.log('brands/cached', `${process.env.PROJECT_PREFIX}_brands`);
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_brands`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof brands>[];
   })

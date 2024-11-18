@@ -29,14 +29,12 @@ export const OrderActionsController = new Elysia({
             const orderActionsCount = await drizzle
                 .select({ count: sql<number>`count(*)` })
                 .from(order_actions)
-                .leftJoin(orders, eq(order_actions.order_id, orders.id))
                 .leftJoin(users, eq(order_actions.created_by, users.id))
                 .where(and(...whereClause))
                 .execute();
             const orderActionsList = await drizzle
                 .select(selectFields)
                 .from(order_actions)
-                .leftJoin(orders, eq(order_actions.order_id, orders.id))
                 .leftJoin(users, eq(order_actions.created_by, users.id))
                 .where(and(...whereClause))
                 .limit(+limit)

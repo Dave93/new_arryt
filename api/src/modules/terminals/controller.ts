@@ -5,7 +5,7 @@ import {
 import { ctx } from "@api/src/context";
 import { parseFilterFields } from "@api/src/lib/parseFilterFields";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { SQLWrapper, and, eq, sql } from "drizzle-orm";
+import { SQLWrapper, and, asc, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 import { TerminalsWithRelations } from "./dto/list.dto";
@@ -44,6 +44,7 @@ export const TerminalsController = new Elysia({
         .where(and(...whereClause))
         .limit(+limit)
         .offset(+offset)
+        .orderBy(asc(terminals.name))
         .execute() as TerminalsWithRelations[];
       return {
         total: rolesCount[0].count,
@@ -96,7 +97,9 @@ export const TerminalsController = new Elysia({
       const result = await drizzle
         .insert(terminals)
         .values(data)
-        .returning(selectFields);
+        .returning({
+          id: terminals.id,
+        });
 
       return {
         data: result[0],
@@ -119,6 +122,7 @@ export const TerminalsController = new Elysia({
           linked_terminal_id: t.Optional(t.String()),
           time_to_yandex: t.Optional(t.Number()),
           allow_yandex: t.Optional(t.Boolean()),
+          allow_close_anywhere: t.Optional(t.Boolean()),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),
@@ -133,9 +137,12 @@ export const TerminalsController = new Elysia({
       }
       const result = await drizzle
         .update(terminals)
+        // @ts-ignore
         .set(data)
         .where(eq(terminals.id, id))
-        .returning(selectFields);
+        .returning({
+          id: terminals.id,
+        });
 
       return {
         data: result[0],
@@ -150,17 +157,20 @@ export const TerminalsController = new Elysia({
         data: t.Object({
           name: t.String(),
           active: t.Optional(t.Boolean()),
-          phone: t.Optional(t.String()),
-          address: t.Optional(t.String()),
+          phone: t.Optional(t.Nullable(t.String())),
+          address: t.Optional(t.Nullable(t.String())),
           latitude: t.Number(),
           longitude: t.Number(),
           external_id: t.String(),
-          organization_id: t.String(),
-          manager_name: t.Optional(t.String()),
-          fuel_bonus: t.Optional(t.Boolean()),
-          linked_terminal_id: t.Optional(t.String()),
-          time_to_yandex: t.Optional(t.Number()),
-          allow_yandex: t.Optional(t.Boolean()),
+          organization_id: t.Optional(t.String()),
+          manager_name: t.Optional(t.Nullable(t.String())),
+          fuel_bonus: t.Optional(t.Nullable(t.Boolean({
+            default: false,
+          }))),
+          linked_terminal_id: t.Optional(t.Nullable(t.String())),
+          time_to_yandex: t.Optional(t.Nullable(t.Number())),
+          allow_yandex: t.Optional(t.Nullable(t.Boolean())),
+          allow_close_anywhere: t.Optional(t.Nullable(t.Boolean())),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),
