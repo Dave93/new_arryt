@@ -351,7 +351,7 @@ const CustomSider = () => {
 };
 
 function App() {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation('common');
 
   const i18nProvider = {
     translate: (key: string, params: object) => t(key, params),
