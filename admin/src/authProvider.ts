@@ -85,6 +85,7 @@ export const authProvider: AuthBindings = {
 
             if (data) {
               let newData = {
+                ...decryptedData,
                 token: data
               }
               let expirationAddition = parseInt(
