@@ -49,6 +49,7 @@ const MissedOrdersList: React.FC = () => {
       terminal_id: string;
       need_action: boolean;
       order_number: number;
+      region: string;
     }
   >({
     queryOptions: {
@@ -82,7 +83,8 @@ const MissedOrdersList: React.FC = () => {
 
 
       // queryClient.invalidateQueries();
-      const { created_at, terminal_id, need_action, order_number } = params;
+      const { created_at, terminal_id, need_action, order_number,
+        region } = params;
 
       localFilters.push(
         {
@@ -120,6 +122,15 @@ const MissedOrdersList: React.FC = () => {
         });
       }
 
+
+      if (region) {
+        localFilters.push({
+          field: "terminals.region",
+          operator: "eq",
+          value: region,
+        });
+      }
+
       return localFilters;
     },
 
@@ -138,6 +149,11 @@ const MissedOrdersList: React.FC = () => {
           field: "created_at",
           operator: "lte",
           value: dayjs().endOf("d").toDate(),
+        },
+        {
+          field: "region",
+          operator: "eq",
+          value: "capital",
         },
       ],
 
@@ -294,6 +310,23 @@ const MissedOrdersList: React.FC = () => {
                   format={"DD.MM.YYYY HH:mm"}
                   showTime
                   presets={rangePresets}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={12} sm={12} md={3}>
+              <Form.Item name="region" label="Региональность" initialValue="capital">
+                <Select
+                  allowClear
+                  options={[
+                    {
+                      label: "Столица",
+                      value: "capital",
+                    },
+                    {
+                      label: "Регион",
+                      value: "region",
+                    }
+                  ]}
                 />
               </Form.Item>
             </Col>
