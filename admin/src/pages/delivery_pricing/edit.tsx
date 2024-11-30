@@ -65,6 +65,7 @@ export default function DeliveryPricingEdit() {
         "min_distance_km",
         "customer_price_per_km",
         "customer_rules",
+        "source_type",
       ],
       pluralize: true,
       updateInputName: "delivery_pricingUncheckedUpdateInput",
@@ -246,15 +247,28 @@ export default function DeliveryPricingEdit() {
           </Col>
         </Row>
 
-        <Form.Item label="Тип оплаты" name="payment_type">
-          <Select>
-            {Object.keys(organization_payment_types).map((type: string) => (
-              <Select.Option key={type} value={type}>
-                {tr(`organizations.paymentType.${type}`)}
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="Тип оплаты" name="payment_type">
+              <Select>
+                {Object.keys(organization_payment_types).map((type: string) => (
+                  <Select.Option key={type} value={type}>
+                    {tr(`organizations.paymentType.${type}`)}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+
+          <Col span={12}>
+            <Form.Item
+              label="Источник заказа"
+              name="source_type"
+            >
+              <Input />
+            </Form.Item>
+          </Col>
+        </Row>
         <Form.Item
           label="Дни недели"
           name="days"
