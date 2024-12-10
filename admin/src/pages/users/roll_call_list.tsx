@@ -1,6 +1,6 @@
 import { Button, Card, DatePicker, Form, Input, Space } from "antd";
 import { useGetIdentity } from "@refinedev/core";
-import { PhoneOutlined } from "@ant-design/icons";
+import { PhoneOutlined, CalculatorOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import dayjs from "dayjs";
@@ -25,6 +25,45 @@ import CourierDriveTypeIcon from "@admin/src/components/users/courier_drive_type
 import { apiClient } from "@admin/src/eden";
 
 const { Search } = Input;
+
+const DailyGarant = ({
+  day,
+  user_id
+}: {
+  day: dayjs.Dayjs;
+  user_id: string;
+}) => {
+  const { data: identity } = useGetIdentity<{
+    token: { accessToken: string };
+  }>();
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const setDailyGarant = async () => {
+    setIsLoading(true);
+    const { data } = await apiClient.api.couriers.try_set_daily_garant.post({
+      $body: {
+        date: day.toISOString(),
+        courier_id: user_id,
+      },
+      $headers: {
+        Authorization: `Bearer ${identity?.token.accessToken}`,
+      },
+    });
+    setIsLoading(false);
+  };
+
+  return (
+    <Button
+      type="primary"
+      icon={<CalculatorOutlined />}
+      size="small"
+      loading={isLoading}
+      onClick={setDailyGarant}
+    />
+  );
+};
+
 export default function RollCallList() {
   const { data: identity } = useGetIdentity<{
     token: { accessToken: string };
@@ -185,6 +224,12 @@ export default function RollCallList() {
                         )}`)
                       }
                     />
+                    {courier.daily_garant_id && (
+                      <DailyGarant
+                        day={filteredDate}
+                        user_id={courier.id}
+                      />
+                    )}
                   </Space>
                 </ListItem>
               ))}
