@@ -224,7 +224,9 @@ export default function RollCallList() {
                         )}`)
                       }
                     />
-                    {courier.daily_garant_id && (
+                    {
+                      // @ts-ignore
+                    courier.daily_garant_id && (
                       <DailyGarant
                         day={filteredDate}
                         user_id={courier.id}
