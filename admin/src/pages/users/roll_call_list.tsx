@@ -42,10 +42,8 @@ const DailyGarant = ({
   const setDailyGarant = async () => {
     setIsLoading(true);
     const { data } = await apiClient.api.couriers.try_set_daily_garant.post({
-      $body: {
-        date: day.toISOString(),
+        day: day.toISOString(),
         courier_id: user_id,
-      },
       $headers: {
         Authorization: `Bearer ${identity?.token.accessToken}`,
       },
