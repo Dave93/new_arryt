@@ -1,6 +1,6 @@
 import { DataProvider, GetListParams } from "@refinedev/core";
 import { apiFetch } from "../eden";
-
+import { refreshToken } from "./refreshToken";
 export const edenDataProvider: DataProvider = {
   getList: async ({
     resource,
@@ -72,7 +72,20 @@ export const edenDataProvider: DataProvider = {
       } | null;
       error?: any;
     };
-    if (error) throw Error(error?.value);
+    console.log('getlist error', JSON.stringify(error));
+    
+    if (error) {
+      if (error.value) {
+        let isAuthError = false;
+        if (error.value.message && error.value.message === 'Unauthorized') {
+          isAuthError = true;
+        }
+        if (isAuthError) {
+          await refreshToken();
+        }
+      }
+      throw Error(error?.value);
+    }
     return {
       data: data?.data ?? [],
       total: data?.total ?? 0,
