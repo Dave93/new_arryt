@@ -1,8 +1,8 @@
+import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/transactions.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:currency_text_input_formatter/currency_text_input_formatter.dart';
-import 'package:data_table_2/data_table_2.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -74,7 +74,7 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
   Future<void> _loadTransactions() async {
     ApiServer apiServer = ApiServer();
     Response response = await apiServer.get(
-        "/api//couriers/${widget.courierId}/${widget.terminalId}/balance", {});
+        "/api/couriers/${widget.courierId}/${widget.terminalId}/balance", {});
     if (response.statusCode == 200) {
       setState(() {
         transactions = (response.data as List)
@@ -183,69 +183,121 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 Expanded(
-                  child: DataTable2(
-                    columnSpacing: 12,
-                    // minWidth: 600,
-                    columns: const [
-                      DataColumn2(
-                          label: Text("Дата"),
-                          size: ColumnSize.L,
-                          fixedWidth: 100),
-                      DataColumn2(
-                        label: Text("Заказ"),
-                        size: ColumnSize.L,
-                      ),
-                      DataColumn2(label: Text("Сумма"), fixedWidth: 70),
-                      DataColumn(
-                        label: Text("Филиал"),
-                      ),
-                      DataColumn(
-                        label: Text("Тип"),
-                      ),
-                    ],
-                    rows: List<DataRow>.generate(
-                      transactions.length,
-                      (index) {
-                        String typeText = '';
-                        switch (transactions[index].transaction_type) {
-                          case 'daily_garant':
-                            typeText = 'Дневной гарант';
-                            break;
-                          case 'bonus':
-                            typeText = 'Бонус';
-                            break;
-                          case 'order':
-                            typeText = 'Доставка';
-                            break;
-                        }
-                        return DataRow(
-                          cells: [
-                            DataCell(
-                              Text(DateFormat('dd MMMM yyyy', 'ru_RU').format(
-                                  DateTime.parse(
-                                      transactions[index].created_at))),
-                            ),
-                            DataCell(
-                              Text(transactions[index]
-                                      ?.order_transactions_orders
-                                      ?.order_number ??
-                                  ''),
-                            ),
-                            DataCell(
-                              Text(CurrencyFormatter.format(
-                                  transactions[index].not_paid_amount,
-                                  sumSettings)),
-                            ),
-                            DataCell(
-                              Text(transactions[index]
-                                  .order_transactions_terminals
-                                  .name),
-                            ),
-                            DataCell(Text(typeText))
-                          ],
-                        );
-                      },
-                    ),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: transactions.length,
+                    itemBuilder: (context, index) {
+                      String typeText = '';
+                      switch (transactions[index].transaction_type) {
+                        case 'daily_garant':
+                          typeText = 'Дневной гарант';
+                          break;
+                        case 'bonus':
+                          typeText = 'Бонус';
+                          break;
+                        case 'order':
+                          typeText = 'Доставка';
+                          break;
+                      }
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    DateFormat('dd MMMM yyyy', 'ru_RU').format(
+                                        DateTime.parse(
+                                            transactions[index].created_at)),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .primaryColor
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      CurrencyFormatter.format(
+                                        transactions[index].not_paid_amount,
+                                        sumSettings,
+                                      ),
+                                      style: TextStyle(
+                                        color: Theme.of(context).primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Заказ: ',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                  Text(
+                                    transactions[index]
+                                            .order_transactions_orders
+                                            ?.order_number ??
+                                        '',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Филиал: ',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      transactions[index]
+                                          .order_transactions_terminals
+                                          .name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Тип: ',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                  Text(
+                                    typeText,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Padding(
@@ -268,20 +320,30 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                             _isLoading = true;
                           });
 
-                          ApiServer apiServer = ApiServer();
-                          Response response =
-                              await apiServer.post("/api/couriers/withdraw", {
-                            "amount": number,
-                            'courier_id': widget.courierId,
-                            'terminal_id': widget.terminalId
-                          });
+                          try {
+                            ApiServer apiServer = ApiServer();
+                            Response response =
+                                await apiServer.post("/api/couriers/withdraw", {
+                              "amount": number,
+                              'courier_id': widget.courierId,
+                              'terminal_id': widget.terminalId
+                            });
 
-                          if (response.statusCode == 200) {
+                            if (response.statusCode == 200) {
+                              setState(() {
+                                _isLoading = false;
+                              });
+                              widget.refresh();
+                              Navigator.pop(context);
+                            }
+                          } on DioException catch (e) {
                             setState(() {
                               _isLoading = false;
                             });
-                            widget.refresh();
-                            Navigator.pop(context);
+                            AnimatedSnackBar.material(
+                              e.error.toString(),
+                              type: AnimatedSnackBarType.error,
+                            ).show(context);
                           }
                         }
                       },

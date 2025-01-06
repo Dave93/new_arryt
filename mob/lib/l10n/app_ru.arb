@@ -120,5 +120,10 @@
     "additional_phone_label": "Дополнительный номер",
     "house_label": "Дом",
     "entrance_label": "Подъезд",
-    "flat_label": "Квартира"
+    "flat_label": "Квартира",
+    "rating_label": "Рейтинг",
+    "deliveries_label": "Доставки",
+    "avg_time_label": "Ср. время",
+    "position_label": "Позиция",
+    "total_active_couriers_label": "Всего активных курьеров"
 }

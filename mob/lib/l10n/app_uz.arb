@@ -120,5 +120,10 @@
     "additional_phone_label": "Qo'shimcha telefon raqami",
     "house_label": "Uy",
     "entrance_label": "Kirish",
-    "flat_label": "Xonadon"
+    "flat_label": "Xonadon",
+    "rating_label": "Reyting",
+    "deliveries_label": "Yetkazishlar",
+    "avg_time_label": "O'rtacha vaqt",
+    "position_label": "Pozitsiya",
+    "total_active_couriers_label": "Umumiy aktiv kuryerlar"
 }

@@ -11,11 +11,13 @@ class OrderStatus {
   final String name;
   final bool cancel;
   final bool finish;
+  final bool onWay;
   OrderStatus({
     required this.identity,
     required this.name,
     required this.cancel,
     required this.finish,
+    required this.onWay,
   });
 
   OrderStatus copyWith({
@@ -27,6 +29,7 @@ class OrderStatus {
       name: name ?? this.name,
       cancel: cancel,
       finish: finish,
+      onWay: onWay,
     );
   }
 
@@ -36,6 +39,7 @@ class OrderStatus {
       'name': name,
       'cancel': cancel,
       'finish': finish,
+      'on_way': onWay,
     };
   }
 
@@ -45,6 +49,7 @@ class OrderStatus {
       name: map['name'] as String,
       cancel: map['cancel'] as bool,
       finish: map['finish'] as bool,
+      onWay: map['on_way'] as bool,
     );
   }
 
@@ -55,7 +60,7 @@ class OrderStatus {
 
   @override
   String toString() =>
-      'OrderStatus(id: $identity, name: $name, cancel: $cancel, finish: $finish)';
+      'OrderStatus(id: $identity, name: $name, cancel: $cancel, finish: $finish, onWay: $onWay)';
 
   @override
   bool operator ==(covariant OrderStatus other) {
@@ -64,10 +69,15 @@ class OrderStatus {
     return other.identity == identity &&
         other.name == name &&
         other.cancel == cancel &&
-        other.finish == finish;
+        other.finish == finish &&
+        other.onWay == onWay;
   }
 
   @override
   int get hashCode =>
-      identity.hashCode ^ name.hashCode ^ cancel.hashCode ^ finish.hashCode;
+      identity.hashCode ^
+      name.hashCode ^
+      cancel.hashCode ^
+      finish.hashCode ^
+      onWay.hashCode;
 }

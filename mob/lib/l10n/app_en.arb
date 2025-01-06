@@ -121,5 +121,10 @@
     "additional_phone_label": "Additional phone number",
     "house_label": "House",
     "entrance_label": "Entrance",
-    "flat_label": "Flat"
+    "flat_label": "Flat",
+    "rating_label": "Rating",
+    "deliveries_label": "Deliveries",
+    "avg_time_label": "Avg. Time",
+    "position_label": "Position",
+    "total_active_couriers_label": "Total active couriers"
 }

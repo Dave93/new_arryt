@@ -13,6 +13,7 @@ import 'package:arryt/helpers/hive_helper.dart';
 
 import '../../models/orderMobilePeriodStat.dart';
 import '../../widgets/profile/logout.dart';
+import '../../widgets/profile/my_performance.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -220,6 +221,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
                 icon: const Icon(
                   Icons.refresh_outlined,
                   size: 30,
+                  color: Colors.white,
                 ),
                 onPressed: () {
                   _loadData();
@@ -227,41 +229,58 @@ class _ProfilePageViewState extends State<ProfilePageView>
               )
             ],
             flexibleSpace: FlexibleSpaceBar(
-                // centerTitle: true,
                 collapseMode: CollapseMode.parallax,
-                title: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    user?.userProfile?.last_name != null
-                        ? AutoSizeText(
-                            "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 25.0,
-                                fontWeight: FontWeight.bold),
-                          )
-                        : const SizedBox(
-                            height: 0,
-                          ),
-                    user?.userProfile?.phone != null
-                        ? AutoSizeText(
-                            user?.userProfile?.phone ?? '',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.0,
+                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+                title: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    final bool isCollapsed =
+                        constraints.maxHeight <= kToolbarHeight + 30;
+                    final textColor = isCollapsed ? Colors.black : Colors.white;
+
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (user?.userProfile?.last_name != null) ...[
+                          Flexible(
+                            child: AutoSizeText(
+                              "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 20.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              minFontSize: 14,
                             ),
-                          )
-                        : const SizedBox(
-                            height: 0,
                           ),
-                  ],
+                        ],
+                        if (user?.userProfile?.phone != null) ...[
+                          const SizedBox(height: 4),
+                          AutoSizeText(
+                            user?.userProfile?.phone ?? '',
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 14.0,
+                            ),
+                            maxLines: 1,
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
                 background: Container(
-                  color: Theme.of(context).primaryColor,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Theme.of(context).primaryColor,
+                        Theme.of(context).primaryColor.withOpacity(0.8),
+                      ],
+                    ),
+                  ),
                 )),
           ),
           SliverList(
@@ -340,7 +359,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(rating.toString(),
+                              Text(rating.toStringAsFixed(2),
                                   style: const TextStyle(
                                       fontSize: 30,
                                       color: Colors.black,
@@ -354,207 +373,105 @@ class _ProfilePageViewState extends State<ProfilePageView>
                   const SizedBox(
                     height: 10,
                   ),
+                  const MyPerformance(),
+                  const SizedBox(
+                    height: 10,
+                  ),
                   ..._ordersStat
                       .map((e) => Container(
                             margin: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 5),
                             child: Card(
-                              elevation: 6,
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    color: Theme.of(context).primaryColor,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 8.0),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(cardLabel(e.labelCode),
-                                              style: const TextStyle(
-                                                  fontSize: 20,
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold)),
-                                        ],
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).primaryColor,
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(12),
+                                      ),
+                                    ),
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
+                                    child: Text(
+                                      cardLabel(e.labelCode),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 15.0, vertical: 5),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
                                       children: [
-                                        Text(
+                                        _buildStatRow(
+                                          AppLocalizations.of(context)!
+                                              .successOrderLabel
+                                              .toUpperCase(),
+                                          e.successCount.toString(),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _buildStatRow(
+                                          AppLocalizations.of(context)!
+                                              .failedOrderLabel
+                                              .toUpperCase(),
+                                          e.failedCount.toString(),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _buildStatRow(
+                                          AppLocalizations.of(context)!
+                                              .orderStatOrderPrice
+                                              .toUpperCase(),
+                                          CurrencyFormatter.format(
+                                              e.orderPrice, euroSettings),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _buildStatRow(
+                                          AppLocalizations.of(context)!
+                                              .orderStatBonusPrice
+                                              .toUpperCase(),
+                                          CurrencyFormatter.format(
+                                              e.bonusPrice, euroSettings),
+                                        ),
+                                        if (e.dailyGarantPrice != null) ...[
+                                          const SizedBox(height: 8),
+                                          _buildStatRow(
                                             AppLocalizations.of(context)!
-                                                .successOrderLabel
+                                                .orderStatDailyGarantPrice
                                                 .toUpperCase(),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold)),
-                                        Text(e.successCount.toString(),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold))
-                                      ],
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 15.0, vertical: 5),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                            AppLocalizations.of(context)!
-                                                .failedOrderLabel
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold)),
-                                        Text(e.failedCount.toString(),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold))
-                                      ],
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 15.0, vertical: 5),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                            AppLocalizations.of(context)!
-                                                .orderStatOrderPrice
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold)),
-                                        Text(
                                             CurrencyFormatter.format(
-                                                e.orderPrice, euroSettings),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold))
-                                      ],
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 15.0, vertical: 5),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                            AppLocalizations.of(context)!
-                                                .orderStatBonusPrice
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold)),
-                                        Text(
-                                            CurrencyFormatter.format(
-                                                e.bonusPrice, euroSettings),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold))
-                                      ],
-                                    ),
-                                  ),
-                                  e.dailyGarantPrice != null
-                                      ? Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 15.0, vertical: 5),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              AutoSizeText(
-                                                  AppLocalizations.of(context)!
-                                                      .orderStatDailyGarantPrice
-                                                      .toUpperCase(),
-                                                  style: const TextStyle(
-                                                      fontSize: 16,
-                                                      color: Colors.black,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                  maxLines: 2),
-                                              Text(
-                                                  CurrencyFormatter.format(
-                                                      e.dailyGarantPrice,
-                                                      euroSettings),
-                                                  style: const TextStyle(
-                                                      fontSize: 16,
-                                                      color: Colors.black,
-                                                      fontWeight:
-                                                          FontWeight.bold))
-                                            ],
+                                                e.dailyGarantPrice!,
+                                                euroSettings),
                                           ),
-                                        )
-                                      : SizedBox(),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 15.0, vertical: 5),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                            AppLocalizations.of(context)!
-                                                .orderStatFuelPrice
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold)),
-                                        Text(
-                                            CurrencyFormatter.format(
-                                                e.fuelPrice, euroSettings),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold))
-                                      ],
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 15.0, vertical: 5),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                            AppLocalizations.of(context)!
-                                                .orderStatTotalPrice
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold)),
-                                        Text(
-                                            CurrencyFormatter.format(
-                                                e.totalPrice, euroSettings),
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold))
+                                        ],
+                                        const SizedBox(height: 8),
+                                        _buildStatRow(
+                                          AppLocalizations.of(context)!
+                                              .orderStatFuelPrice
+                                              .toUpperCase(),
+                                          CurrencyFormatter.format(
+                                              e.fuelPrice, euroSettings),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Divider(color: Colors.grey.shade300),
+                                        const SizedBox(height: 8),
+                                        _buildStatRow(
+                                          AppLocalizations.of(context)!
+                                              .orderStatTotalPrice
+                                              .toUpperCase(),
+                                          CurrencyFormatter.format(
+                                              e.totalPrice, euroSettings),
+                                          isTotal: true,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -577,6 +494,32 @@ class _ProfilePageViewState extends State<ProfilePageView>
         ]),
       ],
     ));
+  }
+
+  Widget _buildStatRow(String label, String value, {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: isTotal ? Colors.black : Colors.grey.shade700,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isTotal ? 16 : 14,
+            color: Colors.black,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+      ],
+    );
   }
 
   @override

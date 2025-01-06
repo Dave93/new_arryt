@@ -355,7 +355,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
       id: const obx_int.IdUid(7, 7714239418338821462),
       name: 'OrderStatus',
-      lastPropertyId: const obx_int.IdUid(5, 161192711299955867),
+      lastPropertyId: const obx_int.IdUid(6, 8247046388510205858),
       flags: 0,
       properties: <obx_int.ModelProperty>[
         obx_int.ModelProperty(
@@ -381,6 +381,11 @@ final _entities = <obx_int.ModelEntity>[
         obx_int.ModelProperty(
             id: const obx_int.IdUid(5, 161192711299955867),
             name: 'finish',
+            type: 1,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(6, 8247046388510205858),
+            name: 'onWay',
             type: 1,
             flags: 0)
       ],
@@ -1006,12 +1011,13 @@ obx_int.ModelDefinition getObjectBoxModel() {
         objectToFB: (OrderStatus object, fb.Builder fbb) {
           final identityOffset = fbb.writeString(object.identity);
           final nameOffset = fbb.writeString(object.name);
-          fbb.startTable(6);
+          fbb.startTable(7);
           fbb.addInt64(0, object.id);
           fbb.addOffset(1, identityOffset);
           fbb.addOffset(2, nameOffset);
           fbb.addBool(3, object.cancel);
           fbb.addBool(4, object.finish);
+          fbb.addBool(5, object.onWay);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -1026,11 +1032,14 @@ obx_int.ModelDefinition getObjectBoxModel() {
               const fb.BoolReader().vTableGet(buffer, rootOffset, 10, false);
           final finishParam =
               const fb.BoolReader().vTableGet(buffer, rootOffset, 12, false);
+          final onWayParam =
+              const fb.BoolReader().vTableGet(buffer, rootOffset, 14, false);
           final object = OrderStatus(
               identity: identityParam,
               name: nameParam,
               cancel: cancelParam,
-              finish: finishParam)
+              finish: finishParam,
+              onWay: onWayParam)
             ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
 
           return object;
@@ -1503,6 +1512,10 @@ class OrderStatus_ {
   /// See [OrderStatus.finish].
   static final finish =
       obx.QueryBooleanProperty<OrderStatus>(_entities[5].properties[4]);
+
+  /// See [OrderStatus.onWay].
+  static final onWay =
+      obx.QueryBooleanProperty<OrderStatus>(_entities[5].properties[5]);
 }
 
 /// [Organizations] entity fields to define ObjectBox queries.
