@@ -96,6 +96,8 @@ class ListenNewCurrentOrder extends StatelessWidget {
                         ['orders_order_status']['cancel'],
                     finish: result.data?['addedNewCurrentOrder']
                         ['orders_order_status']['finish'],
+                    onWay: result.data?['addedNewCurrentOrder']
+                        ['orders_order_status']['on_way'],
                   );
                   Terminals terminals = Terminals(
                     identity: result.data?['addedNewCurrentOrder']

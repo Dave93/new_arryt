@@ -35,6 +35,11 @@ class HiveHelper {
     return box.get('userData');
   }
 
+  static void clearUserData() {
+    final box = getUserDataBox();
+    box.clear();
+  }
+
   static void setUserData(UserData userData) {
     final box = getUserDataBox();
     box.put('userData', userData);

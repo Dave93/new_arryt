@@ -35,6 +35,8 @@
     "antd": "^5.0.5",
     "antd-table-saveas-excel": "^2.2.1",
     "bun-types": "^1.0.6",
+    "chart.js": "^4.4.7",
+    "chartjs-plugin-zoom": "^2.2.0",
     "cryptlib": "^1.0.3",
     "crypto": "^1.0.1",
     "crypto-js": "^4.1.1",
@@ -57,6 +59,7 @@
     "pluralize": "^8.0.0",
     "radash": "^10.8.1",
     "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.0",
     "react-debounce-input": "^3.3.0",
     "react-dom": "^18.2.0",
     "react-export-table-to-excel": "^1.0.6",
@@ -75,7 +78,8 @@
     "superjson": "^2.0.0",
     "swr": "^2.0.0",
     "usehooks-ts": "^2.6.0",
-    "web-vitals": "^1.1.1"
+    "web-vitals": "^1.1.1",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
     "@openpgp/web-stream-tools": "0.0.11-patch-0",

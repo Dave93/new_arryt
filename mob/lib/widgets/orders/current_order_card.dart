@@ -210,6 +210,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
             name: order['orders_order_status']['name'],
             cancel: order['orders_order_status']['cancel'],
             finish: order['orders_order_status']['finish'],
+            onWay: order['orders_order_status']['on_way'],
           );
           Terminals terminals = Terminals(
             identity: order['orders_terminals']['id'],
@@ -246,6 +247,10 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
               orderModel.orderStatus.target!.cancel) {
             objectBox.deleteCurrentOrder(widget.order.identity);
           } else {
+            if (orderModel.orderStatus.target!.onWay) {
+              _buildRoute();
+            }
+
             objectBox.updateCurrentOrder(widget.order.identity, orderModel);
           }
         }

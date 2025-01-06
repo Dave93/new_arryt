@@ -1,4 +1,5 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -22,27 +23,28 @@ class _ProfileLogoutButtonState extends State<ProfileLogoutButton> {
     _btnController.start();
 
     try {
-      var client = GraphQLProvider.of(context).value;
-      var query = gql('''
-      mutation {
-        logout()
-      }
-    ''');
-      QueryResult result =
-          await client.mutate(MutationOptions(document: query));
-      if (result.hasException) {
-        _btnController.error();
-        AnimatedSnackBar.material(
-          result.exception?.graphqlErrors[0].message ?? "Error",
-          type: AnimatedSnackBarType.error,
-        ).show(context);
+      //   var client = GraphQLProvider.of(context).value;
+      //   var query = gql('''
+      //   mutation {
+      //     logout()
+      //   }
+      // ''');
+      //   QueryResult result =
+      //       await client.mutate(MutationOptions(document: query));
+      //   if (result.hasException) {
+      //     _btnController.error();
+      //     AnimatedSnackBar.material(
+      //       result.exception?.graphqlErrors[0].message ?? "Error",
+      //       type: AnimatedSnackBarType.error,
+      //     ).show(context);
 
-        Future.delayed(const Duration(milliseconds: 1000)).then((value) {
-          _btnController.reset();
-        });
-        return;
-      }
-      context.read<UserDataBloc>().add(UserDataEventLogout());
+      //     Future.delayed(const Duration(milliseconds: 1000)).then((value) {
+      //       _btnController.reset();
+      //     });
+      //     return;
+      //   }
+      //   context.read<UserDataBloc>().add(UserDataEventLogout());
+      HiveHelper.clearUserData();
       _btnController.success();
     } on PlatformException catch (e) {
       _btnController.error();

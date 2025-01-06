@@ -362,6 +362,13 @@ function App() {
   const resources = useMemo(() => {
     const res = [
       {
+        name: "home",
+        list: "/",
+        meta: {
+          label: "Главная",
+        },
+      },
+      {
         name: "orders",
         meta: {
           label: "Заказы",
@@ -681,7 +688,7 @@ function App() {
                   });
                 }
 
-                if (resource === "dashboard") {
+                if (resource === "home") {
                   return Promise.resolve({
                     can: true,
                   });

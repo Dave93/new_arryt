@@ -1,4 +1,5 @@
 import { useGetIdentity } from "@refinedev/core";
+import { Link } from "react-router-dom";
 
 // It is recommended to use explicit import as seen below to reduce bundle size.
 // import { IconName } from "@ant-design/icons";
@@ -23,6 +24,8 @@ export const Header: React.FC = () => {
   });
   const [qrModalOpen, setQrModalOpen] = useState(false);
 
+  
+
   return (
     <AntdLayout.Header
       style={{
@@ -43,14 +46,16 @@ export const Header: React.FC = () => {
           </Space>
         </Button>
       </Dropdown> */}
-      <Space style={{ marginLeft: "8px" }}>
-        {user?.name && (
-          <Text ellipsis strong>
-            {user.name}
-          </Text>
-        )}
-        {user?.avatar && <Avatar src={user?.avatar} alt={user?.name} />}
-      </Space>
+      <Link to="/">
+        <Space style={{ marginLeft: "8px" }}>
+          {user?.name && (
+            <Text ellipsis strong>
+              {user.name}
+            </Text>
+          )}
+          {user?.avatar && <Avatar src={user?.avatar} alt={user?.name} />}
+        </Space>
+      </Link>
     </AntdLayout.Header>
   );
 };

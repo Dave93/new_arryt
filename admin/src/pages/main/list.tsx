@@ -1,46 +1,23 @@
-import { gql, useSubscription } from "@apollo/client";
-import { useGetIdentity } from "@refinedev/core";
-import { FC } from "react";
-import { apiClient } from "../../eden";
-import * as openpgp from 'openpgp';
-import { DateTime } from "luxon";
-import ms from "ms";
+import DashboardDatePicker from "@admin/src/components/dashboard/filters/date-filter/picker";
+import { OrdersCountBarChart } from '../../components/dashboard/charts/OrdersCountBarChart';
+import { DeliveryTimeBarChart } from '../../components/dashboard/charts/DeliveryTimeBarChart';
+import { Col, Row, Space } from "antd";
 
-
-const COMMENTS_SUBSCRIPTION = gql`
-  subscription addedNewCurrentOrder($courier_id: String!) {
-    addedNewCurrentOrder(courier_id: $courier_id) {
-      id
-      to_lat
-      to_lon
-      pre_distance
-      order_number
-      order_price
-      delivery_price
-      delivery_address
-      delivery_comment
-      created_at
-      orders_customers {
-        id
-        name
-        phone
-      }
-      orders_terminals {
-        id
-        name
-      }
-      orders_order_status {
-        id
-        name
-      }
-    }
-  }
-`;
-
-export default function MainPage() {
+export default function DashboardPage() {
   return (
-    <>
+    <div>
       <h1>Home Page</h1>
-    </>
+      <Space direction="vertical" style={{ width: '100%' }}>
+        <DashboardDatePicker />
+        <Row gutter={[16, 16]}>
+          <Col span={12}>
+            <OrdersCountBarChart />
+          </Col>
+          <Col span={12}>
+            <DeliveryTimeBarChart />
+          </Col>
+        </Row>
+      </Space>
+    </div>
   );
 }
