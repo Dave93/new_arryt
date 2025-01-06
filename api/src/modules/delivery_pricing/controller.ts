@@ -227,6 +227,7 @@ export const DeliveryPricingController = new Elysia({
           organization_id: t.String(),
           terminal_id: t.Optional(t.Nullable(t.String())),
           payment_type: t.Union([t.Literal("client"), t.Literal("card"), t.Literal("cash")]),
+          source_type: t.Optional(t.String()),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),

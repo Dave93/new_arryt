@@ -20,6 +20,7 @@ import { externalControler } from "./external/controler";
 import { constructedBonusPricingController } from "./constructed_bonus_pricing/controller";
 import { systemConfigsController } from "./system_configs/controller";
 import { orderTransactionsController } from "./order_transactions/controller";
+import { chartControlller } from "./chart/controller";
 // @ts-ignore
 export const apiController = new Elysia({
   prefix: "/api",
@@ -46,3 +47,4 @@ export const apiController = new Elysia({
   .use(constructedBonusPricingController)
   .use(systemConfigsController)
   .use(orderTransactionsController)
+  .use(chartControlller);

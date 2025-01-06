@@ -96,6 +96,7 @@ export const TerminalsController = new Elysia({
       }
       const result = await drizzle
         .insert(terminals)
+        // @ts-ignore
         .values(data)
         .returning({
           id: terminals.id,
