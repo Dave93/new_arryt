@@ -96,6 +96,7 @@ export const TerminalsController = new Elysia({
       }
       const result = await drizzle
         .insert(terminals)
+        // @ts-ignore
         .values(data)
         .returning({
           id: terminals.id,
@@ -123,6 +124,7 @@ export const TerminalsController = new Elysia({
           time_to_yandex: t.Optional(t.Number()),
           allow_yandex: t.Optional(t.Boolean()),
           allow_close_anywhere: t.Optional(t.Boolean()),
+          region: t.Optional(t.Nullable(t.String())),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),
@@ -171,6 +173,7 @@ export const TerminalsController = new Elysia({
           time_to_yandex: t.Optional(t.Nullable(t.Number())),
           allow_yandex: t.Optional(t.Nullable(t.Boolean())),
           allow_close_anywhere: t.Optional(t.Nullable(t.Boolean())),
+          region: t.Optional(t.Nullable(t.String())),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),

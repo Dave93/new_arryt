@@ -502,7 +502,7 @@ export const externalControler = new Elysia({
             terminal_id: t.String(),
         })
     })
-    .post('/external/calculate-customer-price', async ({ body: { terminal_id, toLat, toLon, phone, price: priceToCalculate }, set, request: { headers }, cacheControl }) => {
+    .post('/external/calculate-customer-price', async ({ body: { terminal_id, toLat, toLon, phone, price: priceToCalculate, source_type }, set, request: { headers }, cacheControl }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
@@ -529,6 +529,7 @@ export const externalControler = new Elysia({
         const currentDay = new Date().getDay() == 0 ? 7 : new Date().getDay();
         const currentTime = new Date().getHours();
         let activeDeliveryPricing = [];
+        // console.log('deliveryPricing', deliveryPricing);
         activeDeliveryPricing = deliveryPricing.filter((d) => {
             let res = false;
             const currentTime = new Date();
@@ -550,12 +551,32 @@ export const externalControler = new Elysia({
             ) {
                 if (d.terminal_id === null) {
                     res = true;
+                    if (d.source_type && d.source_type.length > 0 && source_type && source_type.length > 0) {
+                        const sourceTypes = d.source_type.split(',').map((s) => s.trim());
+                        if (sourceTypes.includes(source_type)) {
+                            res = true;
+                        } else {
+                            res = false;
+                        }
+                    }
                 } else if (d.terminal_id === terminal.id) {
                     res = true;
+                    if (d.source_type && d.source_type.length > 0 && source_type && source_type.length > 0) {
+                        const sourceTypes = d.source_type.split(',').map((s) => s.trim());
+                        if (sourceTypes.includes(source_type)) {
+                            res = true;
+                        } else {
+                            res = false;
+                        }
+                    }
                 }
+
+
             }
             return res;
         });
+
+        console.log('activeDeliveryPricing', JSON.stringify(activeDeliveryPricing));
 
         let activeDeliveryPricingSorted = sort(activeDeliveryPricing, (i) => +i.default);
         activeDeliveryPricingSorted = sort(activeDeliveryPricingSorted, (i) => +i.price_per_km);
@@ -697,6 +718,7 @@ export const externalControler = new Elysia({
             toLon: t.String(),
             phone: t.Optional(t.String()),
             price: t.Number(),
+            source_type: t.Optional(t.String()),
         })
     })
     .get('/track/:id', async ({ params: { id }, set, request: { headers }, cacheControl, drizzle }) => {

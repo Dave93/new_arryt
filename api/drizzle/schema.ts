@@ -161,6 +161,7 @@ export const delivery_pricing = pgTable("delivery_pricing", {
 	min_distance_km: integer("min_distance_km").default(0).notNull(),
 	customer_price_per_km: integer("customer_price_per_km").default(0).notNull(),
 	customer_rules: jsonb("customer_rules"),
+	source_type: text("source_type"),
 },
 	(table) => {
 		return {
@@ -750,6 +751,7 @@ export const orders = pgTable("orders", {
 	flat: text("flat"),
 	entrance: text("entrance"),
 	yandex_pincode: text("yandex_pincode"),
+	source_type: text("source_type").default('bitrix'),
 	created_at: timestamp("created_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	created_by: uuid("created_by"),
@@ -766,3 +768,17 @@ export const orders = pgTable("orders", {
 			orders_id_created_at: primaryKey({ columns: [table.id, table.created_at], name: "orders_id_created_at" }),
 		}
 	});
+
+
+export const courier_performances = pgTable("courier_performances", {
+	id: uuid("id").defaultRandom().notNull(),
+	courier_id: uuid("courier_id").notNull().references(() => users.id, { onUpdate: "cascade" }),
+	terminal_keys: text("terminal_keys"),
+	rating: integer("rating").notNull(),
+	delivery_count: integer("delivery_count").notNull(),
+	delivery_average_time: integer("delivery_average_time").notNull(),
+	position: integer("position").notNull(),
+	total_active_couriers: integer("total_active_couriers").notNull(),
+	created_at: timestamp("created_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	created_by: uuid("created_by").references(() => users.id, { onUpdate: "cascade" }),
+});

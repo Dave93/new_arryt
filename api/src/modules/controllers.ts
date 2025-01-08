@@ -47,4 +47,4 @@ export const apiController = new Elysia({
   .use(constructedBonusPricingController)
   .use(systemConfigsController)
   .use(orderTransactionsController)
-  .use(chartControlller)
+  .use(chartControlller);

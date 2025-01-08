@@ -1,7 +1,6 @@
 import { cors } from "@elysiajs/cors";
 import Elysia, { t } from "elysia";
 import { loggingMiddleware } from "./loggingMiddleware";
-import { staticPlugin } from '@elysiajs/static'
 import { apiController } from "./modules/controllers";
 
 const app = new Elysia()

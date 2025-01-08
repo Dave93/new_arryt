@@ -6,7 +6,9 @@ import { and, desc, eq, gte } from "drizzle-orm";
 import Redis from "ioredis";
 
 export default async function processYandexCallback(redis: Redis, db: DB, cacheControl: CacheControlService, data: any) {
+
     console.log('processYandexCallback', data);
+    console.log('time', dayjs().format('DD.MM.YYYY HH:mm:ss'));
     const claimId = data.claim_id;
     const order = await db.query.orders.findFirst({
         where: and(
@@ -72,6 +74,7 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
                 },
             });
             yandexResponse = await yandexFetch.json();
+            console.log('yandexResponse', yandexResponse);
         } catch (error) {
             console.log('yandexResponseError', error);
             return {

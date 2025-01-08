@@ -169,7 +169,7 @@ export function OrdersCountBarChart() {
             enabled: true,
             backgroundColor: 'rgba(225,225,225,0.3)',
             threshold: 10,
-            modifierKey: null
+            modifierKey: undefined
           }
         }
       }
@@ -211,6 +211,7 @@ export function OrdersCountBarChart() {
           onChange={handleOrganizationChange}
         />
         <div style={{ position: 'relative' }}>
+          {/* @ts-ignore */}
           <Bar ref={chartRef} options={chartOptions} data={chartDataConfig} />
           <Button 
             size="small" 
