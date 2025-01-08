@@ -27,6 +27,7 @@ import { edenDataProvider } from "./dataprovider/edenDataProvider";
 import { App as AntdApp } from "antd";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import * as openpgp from "openpgp";
+import OrdersInMaps from "./pages/orders/in_maps";
 
 // Lazy load components
 const ApiTokensCreate = lazy(() =>
@@ -384,6 +385,13 @@ function App() {
         list: "/missed_orders",
       },
       {
+        name: "orders_in_maps",
+        meta: {
+          label: "Заказы на карте",
+        },
+        list: "/orders_in_maps",
+      },
+      {
         name: "orders_garant_report",
         meta: {
           label: "Фин. Гарант",
@@ -688,7 +696,7 @@ function App() {
                   });
                 }
 
-                if (resource === "home") {
+                if (resource && ["home", "orders_in_maps"].includes(resource)) {
                   return Promise.resolve({
                     can: true,
                   });
@@ -771,6 +779,9 @@ function App() {
                       </Suspense>
                     }
                   />
+                </Route>
+                <Route path="/orders_in_maps">
+                  <Route index element={<OrdersInMaps />} />
                 </Route>
                 <Route path="/missed_orders">
                   <Route index element={<MissedOrdersList />} />
