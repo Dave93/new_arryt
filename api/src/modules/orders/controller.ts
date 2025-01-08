@@ -165,25 +165,29 @@ export const OrdersController = new Elysia({
             }
 
             if (rolesList.length > 0) {
+
+                const firstOrder = rolesList[0];
+                const lastOrder = rolesList[rolesList.length - 1];
                 // find order_transactions with transaction_type = 'order_bonus'
                 const orderTransactions = await drizzle.select({
                     order_id: order_transactions.order_id,
                     amount: order_transactions.amount,
                 }).from(order_transactions).where(and(
-                    inArray(order_transactions.order_id, rolesList.map((order) => order.id)),
+                    // inArray(order_transactions.order_id, rolesList.map((order) => order.id)),
                     eq(order_transactions.transaction_type, 'order_bonus'),
+                    gte(order_transactions.created_at, dayjs(lastOrder.created_at).subtract(1, 'day').toISOString()),
+                    lte(order_transactions.created_at, dayjs(firstOrder.created_at).add(5, 'day').toISOString()),
                 )).execute();
+                // Create a map for O(1) lookup instead of using find()
+                const orderTransactionsMap = new Map(
+                    orderTransactions.map(transaction => [transaction.order_id, transaction.amount])
+                );
 
-                // add order_bonus to order
-                rolesList = rolesList.map((order) => {
-                    const orderTransaction = orderTransactions.find((orderTransaction) => orderTransaction.order_id == order.id);
-                    if (orderTransaction) {
-                        order.bonus = orderTransaction.amount;
-                    } else {
-                        order.bonus = 0;
-                    }
-                    return order;
-                });
+                // Update rolesList more efficiently
+                rolesList = rolesList.map((order) => ({
+                    ...order,
+                    bonus: orderTransactionsMap.get(order.id) || 0
+                }));
             }
 
 
@@ -200,7 +204,7 @@ export const OrdersController = new Elysia({
                 sort: t.Optional(t.String()),
                 filters: t.Optional(t.String()),
                 fields: t.Optional(t.String()),
-                ext_all: t.Optional(t.Nullable(t.String()))
+                ext_all: t.Optional(t.Nullable(t.String())),
             }),
         }
     )
@@ -433,6 +437,41 @@ export const OrdersController = new Elysia({
         });
     }, {
         permission: 'orders.list',
+    })
+    .get('/orders/list_in_map', async ({ user, drizzle, query, cacheControl }) => {
+        const { terminal_id } = query;
+
+        const orderStatuses = await cacheControl.getOrderStatuses();
+        const orderStatusIds = orderStatuses.filter(orderStatus => !orderStatus.finish && !orderStatus.cancel).map((orderStatus) => orderStatus.id);
+
+        const ordersList = await drizzle.select({
+            id: orders.id,
+            order_number: orders.order_number,
+            to_lat: orders.to_lat,
+            to_lon: orders.to_lon,
+            created_at: orders.created_at,
+            courier_id: orders.courier_id,
+            terminal_id: orders.terminal_id,
+        })
+            .from(orders)
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+            .where(
+                and(
+                    terminal_id ? inArray(orders.terminal_id, terminal_id.split(',')) : undefined,
+                    gte(orders.created_at, dayjs().subtract(2, 'days').toISOString()),
+                    lte(orders.created_at, dayjs().add(2, 'days').toISOString()),
+                    inArray(orders.order_status_id, orderStatusIds),
+                    eq(terminals.region, 'capital'),
+                    eq(terminals.active, true),
+                )
+            )
+            .execute();
+        return ordersList;
+    }, {
+        permission: 'orders.list',
+        query: t.Object({
+            terminal_id: t.Optional(t.String()),
+        })
     })
     .post('/orders/approve', async ({
         body: { order_id, latitude, longitude },
@@ -827,7 +866,12 @@ export const OrdersController = new Elysia({
             toDate,
         });
 
-        const result = await prepareOrdersNextButton(ordersList, cacheControl);
+        const result = await prepareOrdersNextButton(ordersList.map((order) => {
+            if (order.orders_organization && order.orders_organization.icon_url) {
+                order.orders_organization.icon_url = order.orders_organization.icon_url.replace('model_uploads', 'public/model_uploads');
+            }
+            return order;
+        }), cacheControl);
 
         if (currentStatus?.finish) {
 
@@ -878,8 +922,8 @@ export const OrdersController = new Elysia({
             house,
             entrance,
             flat,
-            orderItems
-
+            orderItems,
+            source_type,
         },
         cacheControl,
         redis,
@@ -951,8 +995,24 @@ export const OrdersController = new Elysia({
                         ) {
                             if (d.terminal_id === null) {
                                 res = true;
+                                if (d.source_type && d.source_type.length > 0 && source_type && source_type.length > 0) {
+                                    const sourceTypes = d.source_type.split(',').map((s) => s.trim());
+                                    if (sourceTypes.includes(source_type)) {
+                                        res = true;
+                                    } else {
+                                        res = false;
+                                    }
+                                }
                             } else if (d.terminal_id === currentTerminal.id) {
                                 res = true;
+                                if (d.source_type && d.source_type.length > 0 && source_type && source_type.length > 0) {
+                                    const sourceTypes = d.source_type.split(',').map((s) => s.trim());
+                                    if (sourceTypes.includes(source_type)) {
+                                        res = true;
+                                    } else {
+                                        res = false;
+                                    }
+                                }
                             }
                         }
                         return res;
@@ -1317,6 +1377,7 @@ export const OrdersController = new Elysia({
             house: t.Optional(t.Nullable(t.String())),
             entrance: t.Optional(t.Nullable(t.String())),
             flat: t.Optional(t.Nullable(t.String())),
+            source_type: t.Optional(t.Nullable(t.String())),
             orderItems: t.Array(t.Object({
                 productId: t.Number(),
                 quantity: t.Number(),
@@ -2709,7 +2770,12 @@ export const OrdersController = new Elysia({
             .execute();
 
         return {
-            orders: ordersList,
+            orders: ordersList.map((order) => {
+                if (order.orders_organization && order.orders_organization.icon_url) {
+                    order.orders_organization.icon_url = order.orders_organization.icon_url.replace('model_uploads', 'public/model_uploads');
+                }
+                return order;
+            }),
             totalCount: ordersCount[0].count,
         };
     }, {
