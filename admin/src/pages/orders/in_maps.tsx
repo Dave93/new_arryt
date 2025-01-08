@@ -165,7 +165,14 @@ interface IOrdersInMapsProps {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
             <div>Курьеры</div>
-                <DebounceSelect fetchOptions={fetchCourier} allowClear onChange={(value) => value ? setSelectedCourier(value.value) : setSelectedCourier(undefined)} />
+            <DebounceSelect fetchOptions={fetchCourier} allowClear onChange={(value) => {
+              if (value) {
+                // @ts-ignore
+                setSelectedCourier(value.value)
+              } else {
+                setSelectedCourier(undefined)
+              }
+            }} />
           </div>
           </div>
         </Card>
