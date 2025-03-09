@@ -858,7 +858,7 @@ export const externalControler = new Elysia({
             terminal_id: orders.terminal_id,
             delivery_schedule: orders.delivery_schedule,
         }).from(orders).where(and(
-            eq(orders.id, id),
+            eq(orders.order_number, id),
             eq(orders.organization_id, apiToken.organization_id!),
         ))
             .leftJoin(users, eq(orders.courier_id, users.id))

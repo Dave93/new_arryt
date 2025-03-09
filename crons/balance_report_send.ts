@@ -26,53 +26,61 @@ async function main() {
             left join terminals t on ctb.terminal_id = t.id
             where ctb.balance > 0 and u.status = 'active' and u.phone != '+998908251218'
             order by ctb.balance desc`))).rows;
-    // console.log('courierTerminalBalance', courierTerminalBalance);
-    // group by terminal name using lodash
-    const groupedByTerminal = _.groupBy(courierTerminalBalance, 'terminal_id');
+        // console.log('courierTerminalBalance', courierTerminalBalance);
+        // group by terminal name using lodash
+        const groupedByTerminal = _.groupBy(courierTerminalBalance, 'terminal_id');
 
-    let html = `<b>Список курьеров с положительным балансом</b>`;
-    // loop through each terminal
-    for (const terminal_id in groupedByTerminal) {
-        if (groupedByTerminal.hasOwnProperty(terminal_id)) {
-            const terminal = groupedByTerminal[terminal_id];
-            html += `\n\n<b>${terminal[0].name}</b>\n`;
-            // loop through each courier
-            for (const courier of terminal) {
-                html += `${courier.first_name} ${courier.last_name
-                    } -- ${Intl.NumberFormat('ru-RU', {
-                        style: 'currency',
-                        currency: 'UZS',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                    }).format(courier.balance)}\n`;
+        let html = `<b>Список курьеров с положительным балансом</b>`;
+        // loop through each terminal
+        for (const terminal_id in groupedByTerminal) {
+            if (groupedByTerminal.hasOwnProperty(terminal_id)) {
+                const terminal = groupedByTerminal[terminal_id];
+                html += `\n\n<b>${terminal[0].name}</b>\n`;
+                // loop through each courier
+                for (const courier of terminal) {
+                    html += `${courier.first_name} ${courier.last_name
+                        } -- ${Intl.NumberFormat('ru-RU', {
+                            style: 'currency',
+                            currency: 'UZS',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                        }).format(courier.balance)}\n`;
+                }
             }
         }
-    }
 
-    const apiToken = process.env.BOT_API_TOKEN;
+        const apiToken = process.env.BOT_API_TOKEN;
 
-    const buff = Buffer.from(`${apiToken}`);
-    const base64data = buff.toString('base64');
-    // random string with 6 characters
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const hexBuffer = Buffer.from(`${randomString}${base64data}`);
-    const hex = hexBuffer.toString('hex');
+        const buff = Buffer.from(`${apiToken}`);
+        const base64data = buff.toString('base64');
+        // random string with 6 characters
+        const randomString = Math.random().toString(36).substring(2, 8);
+        const hexBuffer = Buffer.from(`${randomString}${base64data}`);
+        const hex = hexBuffer.toString('hex');
 
-    const chatIds = process.env.BALANCE_REPORT_GROUPS?.split(',') ?? [];
-    for (const chatId of chatIds) {
-        await fetch(`https://order-tg.choparpizza.uz/message`, {
-            method: 'POST',
-            headers: {
-                'Accept-Language': 'ru',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${hex}`,
-            },
-            body: JSON.stringify({
-                chat_id: +chatId,
-                text: html,
-            }),
-        });
-    }
+        const chatIds = process.env.BALANCE_REPORT_GROUPS?.split(',') ?? [];
+        for (const chatId of chatIds) {
+            const response = await fetch(`https://order-tg.choparpizza.uz/message`, {
+                method: 'POST',
+                headers: {
+                    'Accept-Language': 'ru',
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${hex}`,
+                },
+                body: JSON.stringify({
+                    chat_id: +chatId,
+                    text: html,
+                }),
+            });
+
+            if (!response.ok) {
+                console.error(`Failed to send message to chat ${chatId}`);
+                console.log(await response.text());
+            } else {
+                console.log(await response.json());
+                console.log(`Message sent to chat ${chatId}`);
+            }
+        }
 
         console.log('Everything is done');
     } catch (error) {

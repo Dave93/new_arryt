@@ -25,8 +25,10 @@ const app = new Elysia()
     }))
     // .use(serverTiming())
     .use(apiController)
-    .get("/davr", async () => {
-        console.log('get /');
+    .get("/davr", async ({
+        headers
+    }) => {
+        console.log('get /', headers['x-real-ip']);
         return 'Hello Davr';
     });
 

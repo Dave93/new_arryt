@@ -2663,39 +2663,7 @@ export const OrdersController = new Elysia({
         // @ts-ignore
         const managerRole = user.access.roles.find(role => role.code === "manager");
 
-        if (courierRole) {
-            // @ts-ignore
-            courierIds.push(user.user.id);
-        } else if (managerRole) {
-            const userTerminalsList = await drizzle
-                .select({
-                    terminal_id: users_terminals.terminal_id
-                })
-                .from(users_terminals)
-                // @ts-ignore
-                .where(eq(users_terminals.user_id, user.user.id))
-                .execute() as InferSelectModel<typeof users_terminals>[];
 
-            const terminalIds = userTerminalsList.map(item => item.terminal_id);
-
-            const couriersList = await drizzle
-                .select({
-                    id: users.id
-                })
-                .from(users)
-                .leftJoin(users_terminals, eq(users.id, users_terminals.user_id))
-                .leftJoin(users_roles, eq(users.id, users_roles.user_id))
-                .leftJoin(roles, eq(users_roles.role_id, roles.id))
-                .where(and(
-                    inArray(users_terminals.terminal_id, terminalIds),
-                    eq(roles.code, "courier"),
-                    eq(users.status, "active")
-                ))
-                .execute() as InferSelectModel<typeof users>[];
-            courierIds.push(...couriersList.filter(courier => courier.id).map(courier => courier.id));
-        } else {
-            return [];
-        }
 
         const orderStatuses = await cacheControl.getOrderStatuses();
 
@@ -2709,75 +2677,163 @@ export const OrdersController = new Elysia({
         const offset = (page - 1) * limit;
         const couriers = alias(users, "couriers");
 
-        const ordersCount = await drizzle.select({
-            count: sql<number>`count(*)`
-        }).from(orders).where(and(
-            inArray(orders.courier_id, courierIds),
-            inArray(orders.order_status_id, finishedOrderStatuses),
-            gte(orders.created_at, startDate),
-            lte(orders.created_at, endDate)
-        )).execute();
-
-        const ordersList = await drizzle
-            .select({
-                ...getTableColumns(orders),
-                orders_organization: {
-                    id: organization.id,
-                    name: organization.name,
-                    icon_url: organization.icon_url,
-                    active: organization.active,
-                    external_id: organization.external_id,
-                    support_chat_url: organization.support_chat_url,
-                },
-                orders_customers: {
-                    id: customers.id,
-                    name: customers.name,
-                    phone: customers.phone,
-                },
-                orders_order_status: {
-                    id: order_status.id,
-                    name: order_status.name,
-                    finish: order_status.finish,
-                    cancel: order_status.cancel,
-                    on_way: order_status.on_way,
-                    in_terminal: order_status.in_terminal
-                },
-                orders_terminals: {
-                    id: terminals.id,
-                    name: terminals.name
-                },
-                orders_couriers: {
-                    id: couriers.id,
-                    first_name: couriers.first_name,
-                    last_name: couriers.last_name,
-                },
-            })
-            .from(orders)
-            .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
-            .leftJoin(couriers, eq(orders.courier_id, couriers.id))
-            .leftJoin(organization, eq(orders.organization_id, organization.id))
-            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
-            .leftJoin(customers, eq(orders.customer_id, customers.id))
-            .where(and(
+        if (courierRole) {
+            // @ts-ignore
+            courierIds.push(user.user.id);
+            const ordersCount = await drizzle.select({
+                count: sql<number>`count(*)`
+            }).from(orders).where(and(
                 inArray(orders.courier_id, courierIds),
                 inArray(orders.order_status_id, finishedOrderStatuses),
                 gte(orders.created_at, startDate),
                 lte(orders.created_at, endDate)
-            ))
-            .orderBy(desc(orders.created_at))
-            .limit(limit)
-            .offset(offset)
-            .execute();
+            )).execute();
 
-        return {
-            orders: ordersList.map((order) => {
-                if (order.orders_organization && order.orders_organization.icon_url) {
-                    order.orders_organization.icon_url = order.orders_organization.icon_url.replace('model_uploads', 'public/model_uploads');
-                }
-                return order;
-            }),
-            totalCount: ordersCount[0].count,
-        };
+            const ordersList = await drizzle
+                .select({
+                    ...getTableColumns(orders),
+                    orders_organization: {
+                        id: organization.id,
+                        name: organization.name,
+                        icon_url: organization.icon_url,
+                        active: organization.active,
+                        external_id: organization.external_id,
+                        support_chat_url: organization.support_chat_url,
+                    },
+                    orders_customers: {
+                        id: customers.id,
+                        name: customers.name,
+                        phone: customers.phone,
+                    },
+                    orders_order_status: {
+                        id: order_status.id,
+                        name: order_status.name,
+                        finish: order_status.finish,
+                        cancel: order_status.cancel,
+                        on_way: order_status.on_way,
+                        in_terminal: order_status.in_terminal
+                    },
+                    orders_terminals: {
+                        id: terminals.id,
+                        name: terminals.name
+                    },
+                    orders_couriers: {
+                        id: couriers.id,
+                        first_name: couriers.first_name,
+                        last_name: couriers.last_name,
+                    },
+                })
+                .from(orders)
+                .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+                .leftJoin(couriers, eq(orders.courier_id, couriers.id))
+                .leftJoin(organization, eq(orders.organization_id, organization.id))
+                .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+                .leftJoin(customers, eq(orders.customer_id, customers.id))
+                .where(and(
+                    inArray(orders.courier_id, courierIds),
+                    inArray(orders.order_status_id, finishedOrderStatuses),
+                    gte(orders.created_at, startDate),
+                    lte(orders.created_at, endDate)
+                ))
+                .orderBy(desc(orders.created_at))
+                .limit(limit)
+                .offset(offset)
+                .execute();
+            return {
+                orders: ordersList.map((order) => {
+                    if (order.orders_organization && order.orders_organization.icon_url) {
+                        order.orders_organization.icon_url = order.orders_organization.icon_url.replace('model_uploads', 'public/model_uploads');
+                    }
+                    return order;
+                }),
+                totalCount: ordersCount[0].count,
+            };
+        } else if (managerRole) {
+            const userTerminalsList = await drizzle
+                .select({
+                    terminal_id: users_terminals.terminal_id
+                })
+                .from(users_terminals)
+                // @ts-ignore
+                .where(eq(users_terminals.user_id, user.user.id))
+                .execute() as InferSelectModel<typeof users_terminals>[];
+            const terminalIds = userTerminalsList.map(item => item.terminal_id);
+            const ordersCount = await drizzle.select({
+                count: sql<number>`count(*)`
+            }).from(orders).where(and(
+                inArray(orders.terminal_id, terminalIds),
+                inArray(orders.order_status_id, finishedOrderStatuses),
+                gte(orders.created_at, startDate),
+                lte(orders.created_at, endDate)
+            )).execute();
+
+            const ordersList = await drizzle
+                .select({
+                    ...getTableColumns(orders),
+                    orders_organization: {
+                        id: organization.id,
+                        name: organization.name,
+                        icon_url: organization.icon_url,
+                        active: organization.active,
+                        external_id: organization.external_id,
+                        support_chat_url: organization.support_chat_url,
+                    },
+                    orders_customers: {
+                        id: customers.id,
+                        name: customers.name,
+                        phone: customers.phone,
+                    },
+                    orders_order_status: {
+                        id: order_status.id,
+                        name: order_status.name,
+                        finish: order_status.finish,
+                        cancel: order_status.cancel,
+                        on_way: order_status.on_way,
+                        in_terminal: order_status.in_terminal
+                    },
+                    orders_terminals: {
+                        id: terminals.id,
+                        name: terminals.name
+                    },
+                    orders_couriers: {
+                        id: couriers.id,
+                        first_name: couriers.first_name,
+                        last_name: couriers.last_name,
+                    },
+                })
+                .from(orders)
+                .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+                .leftJoin(couriers, eq(orders.courier_id, couriers.id))
+                .leftJoin(organization, eq(orders.organization_id, organization.id))
+                .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+                .leftJoin(customers, eq(orders.customer_id, customers.id))
+                .where(and(
+                    inArray(orders.terminal_id, terminalIds),
+                    inArray(orders.order_status_id, finishedOrderStatuses),
+                    gte(orders.created_at, startDate),
+                    lte(orders.created_at, endDate)
+                ))
+                .orderBy(desc(orders.created_at))
+                .limit(limit)
+                .offset(offset)
+                .execute();
+            return {
+                orders: ordersList.map((order) => {
+                    if (order.orders_organization && order.orders_organization.icon_url) {
+                        order.orders_organization.icon_url = order.orders_organization.icon_url.replace('model_uploads', 'public/model_uploads');
+                    }
+                    return order;
+                }),
+                totalCount: ordersCount[0].count,
+            };
+        } else {
+            return {
+                orders: [],
+                totalCount: 0,
+            };
+        }
+
+
     }, {
         permission: 'orders.list',
         body: t.Object({

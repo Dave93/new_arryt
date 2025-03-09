@@ -695,7 +695,8 @@ export const UsersController = new Elysia({
       processUpdateUserCache,
       drizzle,
       request,
-      error
+      error,
+      headers
     }) => {
       // @ts-ignore
       if (user.user.status != "active") {
@@ -714,6 +715,21 @@ export const UsersController = new Elysia({
         return {
           message: "User is not courier",
         };
+      }
+
+      const ip = headers['x-real-ip'] || '127.0.0.1';
+
+      const existingOpenTimeEntry = await redis.get(`${process.env.PROJECT_PREFIX}_courier_open_time_entry_${ip}`);
+
+      if (existingOpenTimeEntry) {
+        if (existingOpenTimeEntry != user.user.id) {
+          set.status = 400;
+          return {
+            message: "Time entry already opened by another courier",
+          };
+        }
+      } else {
+        await redis.set(`${process.env.PROJECT_PREFIX}_courier_open_time_entry_${ip}`, user.user.id, 'EX', 60 * 30); // 10 minutes
       }
 
       const openedTimeEntry = await drizzle
@@ -1046,8 +1062,6 @@ export const UsersController = new Elysia({
         },
         { attempts: 3, removeOnComplete: true }
       );
-
-      const ip = request.headers.get("x-real-ip") || "127.0.0.1";
 
       const workScheduleEntry = await drizzle
         .insert(work_schedule_entries)

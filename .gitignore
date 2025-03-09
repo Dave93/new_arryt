@@ -13,3 +13,5 @@ firebase.json
 crons/close_opened_time
 queue/queue
 crons/balance_report_send
+crons/calculate_courier_performance
+crons/send_courier_withdraws_report

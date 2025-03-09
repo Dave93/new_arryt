@@ -3,6 +3,7 @@ import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { orders, users } from "@api/drizzle/schema";
 import Redis from "ioredis";
 import { CacheControlService } from "@api/src/modules/cache/service";
+import getFirebaseAccessToken from "@queue/lib";
 
 export default async function processNewOrderNotify(redis: Redis, db: DB, cacheControl: CacheControlService, order: typeof orders.$inferSelect) {
     const orderStatuses = await cacheControl.getOrderStatuses();
@@ -81,7 +82,7 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
                         },
                     },
                 },
-                to: '',
+                token: '',
                 content: {
                     channelKey: 'new_order',
                 },
@@ -89,25 +90,24 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
 
             let deviceIds = onlineUsers.map((user) => user.fcm_token).filter((deviceId) => deviceId !== null && deviceId !== undefined && deviceId !== '');
             console.log('deviceIds', deviceIds)
+
+            const accessToken = await getFirebaseAccessToken();
             if (deviceIds.length > 0) {
                 for (const deviceId of deviceIds) {
-                    message.to = deviceId!;
+                    message.token = deviceId!;
                     try {
-                        const responseJson = await fetch('https://fcm.googleapis.com/fcm/send', {
+                        const responseJson = await fetch('https://fcm.googleapis.com/v1/projects/arryt-b201e/messages:send', {
                             method: 'POST',
                             body: JSON.stringify(message),
                             headers: {
                                 'Content-Type': 'application/json',
-                                Authorization: `key=${serverKey}`,
+                                Authorization: `Bearer ${accessToken}`,
                             }
                         });
 
                         const response = await responseJson.json();
                         console.log('response', response);
-                        return {
-                            failureCount: response.failure,
-                            successCount: response.success,
-                        };
+                        return true;
                     } catch (e) {
                         console.log(e);
                     }
