@@ -722,6 +722,7 @@ export const UsersController = new Elysia({
       const existingOpenTimeEntry = await redis.get(`${process.env.PROJECT_PREFIX}_courier_open_time_entry_${ip}`);
 
       if (existingOpenTimeEntry) {
+        // @ts-ignore
         if (existingOpenTimeEntry != user.user.id) {
           set.status = 400;
           return {
@@ -729,6 +730,7 @@ export const UsersController = new Elysia({
           };
         }
       } else {
+        // @ts-ignore
         await redis.set(`${process.env.PROJECT_PREFIX}_courier_open_time_entry_${ip}`, user.user.id, 'EX', 60 * 30); // 10 minutes
       }
 

@@ -1,4 +1,4 @@
-import { List, useTable, ExportButton } from "@refinedev/antd";
+import { List, useTable, ExportButton, ShowButton } from "@refinedev/antd";
 import {
   Table,
   Space,
@@ -369,11 +369,7 @@ export default function OrdersList() {
       exportable: false,
       width: 50,
       render: (_text: any, record: OrdersWithRelations): React.ReactNode => (
-        <Button
-          size="small"
-          onClick={() => window.open(`/orders/show/${record.id}`)}
-          icon={<EyeOutlined />}
-        />
+        <ShowButton resource="orders" size="small" recordItemId={record.id} hideText />
       ),
     },
     {

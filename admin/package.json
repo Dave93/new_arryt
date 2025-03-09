@@ -127,5 +127,11 @@
   },
   "refine": {
     "projectId": "7UjA0s-GtR2fw-90I5AE"
-  }
+  },
+  "trustedDependencies": [
+    "@pankod/refine-core",
+    "core-js",
+    "core-js-pure",
+    "protobufjs"
+  ]
 }
