@@ -1,6 +1,6 @@
 import { LoginForm, User } from "./auth-types";
 import { verifyOtp } from "./user";
-import { TOKEN_KEY } from "./auth-store";
+import { storage } from "./storage";
 import ms from "ms";
 import { addMilliseconds, isBefore, parseISO } from "date-fns";
 
@@ -17,7 +17,8 @@ export const authProvider: AuthProviderMethods = {
     try {
       // Используем apiClient для отправки запроса на верификацию OTP
       const { data, error } = await verifyOtp(phone, code, otpSecret, undefined);
-
+      console.log('authProvider', data);
+      
       if (error) {
         throw new Error(error.value.message || "Login failed");
       }
@@ -29,16 +30,21 @@ export const authProvider: AuthProviderMethods = {
           : 24 * 60 * 60 * 1000; // 24 часа по умолчанию
 
         const expiration = addMilliseconds(new Date(), expirationAddition).toISOString();
-
-        // Сохраняем данные в localStorage
-        localStorage.setItem(
-          TOKEN_KEY,
-          JSON.stringify({
-            user: data.user,
-            token: data.token?.accessToken,
-            expiration,
-          })
-        );
+        console.log('Expiration:', expiration);
+        
+        // Подготовка данных для сохранения
+        const authData = {
+          user: data.user ?? null,
+          token: data.token?.accessToken ?? null,
+          expiration,
+        };
+        
+        // Сохраняем данные в IndexedDB
+        try {
+          await storage.setAuthData(authData);
+        } catch (error) {
+          console.error('Failed to save auth data:', error);
+        }
 
         return data.user!;
       }
@@ -46,72 +52,79 @@ export const authProvider: AuthProviderMethods = {
       throw new Error("Login failed");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed";
+      console.error('Login error:', errorMessage);
       throw new Error(errorMessage);
     }
   },
 
   logout: async () => {
-    localStorage.removeItem(TOKEN_KEY);
+    try {
+      await storage.removeAuthData();
+    } catch (error) {
+      console.error('Error in logout:', error);
+    }
     return Promise.resolve();
   },
 
   check: async () => {
-    const authData = localStorage.getItem(TOKEN_KEY);
-    
-    if (!authData) {
-      return false;
-    }
-
     try {
-      const { expiration } = JSON.parse(authData);
+      // Получаем данные из IndexedDB
+      const authData = await storage.getAuthData();
+      
+      if (!authData) {
+        return false;
+      }
+
+      const { expiration } = authData;
 
       if (!expiration) {
-        localStorage.removeItem(TOKEN_KEY);
+        await storage.removeAuthData();
         return false;
       }
       
-      if (expiration) {
-        const isExpired = isBefore(parseISO(expiration), new Date());
-        
-        if (isExpired) {
-          localStorage.removeItem(TOKEN_KEY);
-          return false;
-        }
+      const isExpired = isBefore(parseISO(expiration), new Date());
+      
+      if (isExpired) {
+        await storage.removeAuthData();
+        return false;
       }
       
       return true;
     } catch (error) {
-      localStorage.removeItem(TOKEN_KEY);
+      console.error('Error checking auth:', error);
       return false;
     }
   },
 
   getPermissions: async () => {
-    const authData = localStorage.getItem(TOKEN_KEY);
-    
-    if (!authData) {
-      return [];
-    }
-
     try {
-      const { user } = JSON.parse(authData);
-      return user?.permissions || [];
+      // Получаем данные из IndexedDB
+      const authData = await storage.getAuthData();
+      
+      if (!authData || !authData.user) {
+        return [];
+      }
+      
+      // Используем индексную нотацию для доступа к свойству permissions, которое может не быть в типе
+      return (authData.user as any)['permissions'] || [];
     } catch (error) {
+      console.error('Error getting permissions:', error);
       return [];
     }
   },
 
   getIdentity: async () => {
-    const authData = localStorage.getItem(TOKEN_KEY);
-    
-    if (!authData) {
-      return null;
-    }
-
     try {
-      const { user } = JSON.parse(authData);
-      return user;
+      // Получаем данные из IndexedDB
+      const authData = await storage.getAuthData();
+      
+      if (!authData) {
+        return null;
+      }
+      
+      return authData.user;
     } catch (error) {
+      console.error('Error getting identity:', error);
       return null;
     }
   },

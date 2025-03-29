@@ -4,6 +4,7 @@
     "@grpc/proto-loader": "^0.7.13",
     "@tanstack/react-query": "^5.67.3",
     "@types/leaflet": "^1.9.17",
+    "dexie": "^4.0.11",
     "drizzle-orm": "^0.28.6",
     "leaflet": "^1.9.4",
     "lodash": "^4.17.21",

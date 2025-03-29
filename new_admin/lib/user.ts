@@ -14,5 +14,6 @@ export const verifyOtp = async (phone: string, code: string, otpSecret: string, 
     verificationKey: otpSecret,
     tgId: tgId,
   });
+  console.log('verifyOtp', response);
   return response;
 };
