@@ -60,6 +60,7 @@ export const authProvider: AuthProviderMethods = {
   logout: async () => {
     try {
       await storage.removeAuthData();
+      window.location.href = "/auth/login";
     } catch (error) {
       console.error('Error in logout:', error);
     }
