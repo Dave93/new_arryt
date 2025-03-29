@@ -29,11 +29,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuthStore } from "@/lib/auth-store"
-
+import { authProvider } from "@/lib/auth-provider"
 export function NavUser() {
   const { isMobile } = useSidebar()
   const user = useAuthStore((state) => state.user)
-  const logout = useAuthStore((state) => state.logout)
+  const logout = () => {
+    authProvider.logout();
+  }
   
   // Handle case when user is not logged in
   if (!user) {
