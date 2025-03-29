@@ -1,7 +1,7 @@
-import { order_actions, users, orders } from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { order_actions, users, orders } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { sql, eq, SQLWrapper, and, desc } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { Elysia, t } from "elysia";
@@ -9,10 +9,11 @@ import { OrderActionsWithRelations } from "./dto/list.dto";
 
 export const OrderActionsController = new Elysia({
     name: "@app/order_actions",
+    prefix: "/api/order_actions",
 })
-    .use(ctx)
+    .use(contextWitUser)
     .get(
-        "/order_actions",
+        "/",
         async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
             let selectFields: SelectedFields = {};
             if (fields) {

@@ -1,18 +1,19 @@
-import { permissions } from "@api/drizzle/schema";
+import { permissions } from "../../../drizzle/schema";
 import { InferSelectModel, SQLWrapper, eq, sql } from "drizzle-orm";
 import Elysia, { t } from "elysia";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
 
 export const PermissionsController = new Elysia({
   name: "@app/permissions",
+  prefix: "/api/permissions",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/permissions",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, set, user }) => {
+    "/",
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});
@@ -47,15 +48,15 @@ export const PermissionsController = new Elysia({
       }),
     }
   )
-  .get("/permissions/cached", async ({ redis, user, set }) => {
+  .get("/cached", async ({ redis }) => {
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_permissions`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof permissions>[];
   }, {
     permission: 'permissions.list',
   })
   .get(
-    "/permissions/:id",
-    async ({ params: { id }, drizzle, user, set }) => {
+    "/:id",
+    async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
         .from(permissions)
@@ -73,8 +74,8 @@ export const PermissionsController = new Elysia({
     }
   )
   .post(
-    "/permissions",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
+    "/",
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});
@@ -101,8 +102,8 @@ export const PermissionsController = new Elysia({
     }
   )
   .put(
-    "/permissions/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+    "/:id",
+    async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});

@@ -1,18 +1,19 @@
-import { order_status, organization } from "@api/drizzle/schema";
+import { order_status, organization } from "../../../drizzle/schema";
 import { eq, sql, InferSelectModel, SQLWrapper } from "drizzle-orm";
 import Elysia, { t } from "elysia";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { ctx } from "@api/src/context";
+import { contextWitUser } from "../../context";
 import { OrderStatusWithRelations } from "./dto/list.dto";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
+import { parseFilterFields } from "../../lib/parseFilterFields";
 
 export const OrderStatusController = new Elysia({
   name: "@app/order_status",
+  prefix: "/api/order_status",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/order_status",
+    "/",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
@@ -58,7 +59,7 @@ export const OrderStatusController = new Elysia({
     }
   )
   .get(
-    "/order_status/cached",
+    "/cached",
     async ({ redis, query: { organization_id } }) => {
       const res = await redis.get(
         `${process.env.PROJECT_PREFIX}_order_status`
@@ -80,7 +81,7 @@ export const OrderStatusController = new Elysia({
     }
   )
   .get(
-    "/order_status/:id",
+    "/:id",
     async ({ params: { id }, drizzle }) => {
       const orderStatus = await drizzle
         .select()
@@ -99,7 +100,7 @@ export const OrderStatusController = new Elysia({
     }
   )
   .post(
-    "/order_status",
+    "/",
     async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
@@ -138,7 +139,7 @@ export const OrderStatusController = new Elysia({
     }
   )
   .put(
-    "/order_status/:id",
+    "/:id",
     async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {

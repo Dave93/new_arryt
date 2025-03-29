@@ -1,0 +1,888 @@
+# Rules for new_admin application
+
+1. File Organization:
+   - Place React components in the `/components` directory
+   - Group shared UI components in `/components/ui`
+   - Layout components should go in `/components/layout`
+   - Feature-specific components should be organized by feature
+   - Place page components in the `/app` directory following Next.js app router conventions
+   - Keep utility functions and API clients in the `/lib` directory
+   - Store TypeScript types in the `/types` directory
+   - Place React hooks in the `/hooks` directory
+
+2. Component Structure:
+   - Use "use client" directive for client components
+   - Place imports at the top of the file, grouped by:
+     - React/Next.js imports
+     - Third-party libraries
+     - Internal components and utilities
+   - Export components as named exports
+   - Use TypeScript for type definitions
+   - Use React.ComponentProps for component props that extend existing components
+   - Follow a functional component pattern
+
+3. Styling:
+   - Use Tailwind CSS for styling
+   - Follow utility-first approach
+   - Use the class-variance-authority (cva) for component variants
+   - Use clsx/tailwind-merge for conditional class names
+   - Follow shadcn/ui component patterns
+
+4. State Management:
+   - Use Zustand for global state management
+   - Use React Query for server state management
+   - Follow the pattern of '-store.ts' files in the lib directory
+
+5. Authentication:
+   - Follow the AuthGuard pattern for protected routes
+   - Use the authentication providers and stores from lib directory
+
+6. Code Style:
+   - Use double quotes for strings
+   - Use trailing commas in objects and arrays
+   - Use explicit return types for functions
+   - Use destructuring for props
+   - Use spread props for component extension
+   - Follow React best practices for hooks and state management
+
+7. UI Components:
+   - Leverage Radix UI primitives for accessible components
+   - Follow the shadcn/ui pattern for component composition
+   - Use semantic HTML elements
+   - Ensure components are responsive
+
+8. Routing:
+   - Use Next.js App Router patterns
+   - Place page components in appropriate `/app` subdirectories
+   - Use layout components for shared layouts
+
+9. Data Fetching:
+   - Use React Query for data fetching and caching
+   - Use the API client patterns defined in lib/api.ts
+   - Follow the pattern established in the eden-client for API communication
+
+10. Error Handling:
+    - Use React Query error handling patterns
+    - Use toast notifications for user feedback
+    - Implement proper error boundaries
+
+
+11. CRUD Operations:
+    - Use React Query hooks for data fetching and state management
+    - Follow RESTful patterns with apiClient from lib/eden-client.ts
+    - Implement standard CRUD operations using the api utility from lib/api.ts
+    - Structure CRUD endpoints as:
+      - list.tsx for listing entities (with pagination and filtering)
+      - create.tsx for creating new entities
+      - edit.tsx for updating existing entities
+      - show.tsx for viewing entity details
+    - Use dynamic routes with [id] folders for entity detail pages
+    - Implement form validation using Zod schemas
+    - Use react-hook-form for form state management
+    - Follow the pattern of displaying toast notifications for success/error feedback
+    - Implement loading states with skeleton components
+    - Structure CRUD components to have consistent layout with Card components
+    - Use Tabs for organizing different sections of entity details
+
+12. Sidebar Navigation:
+    - Add new menu items by updating the data object in app-sidebar.tsx
+    - Follow the established pattern in the navMain array for main navigation items
+    - Each menu item should include:
+      - title: Display name for the menu item
+      - url: Route path for the menu item
+      - icon: Component from @tabler/icons-react library
+    - For submenu items, add them to the appropriate section (navClouds, documents)
+    - Group related menu items logically
+    - Use the SidebarMenu, SidebarMenuItem, and SidebarMenuButton components
+    - For collapsible state management, use the sidebar-store.ts Zustand store
+    - Ensure new routes are properly implemented in the app directory structure
+    - Follow established patterns for layout components in nested routes
+
+## 1. Структура файлов и компонентов
+
+```tsx
+// Пример структуры компонента (components/example-component.tsx)
+"use client"
+
+import * as React from "react"
+import { useEffect, useState } from "react"
+import { SomeThirdPartyComponent } from "third-party-lib"
+
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { useCustomHook } from "@/hooks/use-custom-hook"
+
+export function ExampleComponent({ prop1, prop2 }: ExampleComponentProps) {
+  const [state, setState] = useState<string>("")
+  
+  // Логика компонента
+  
+  return (
+    <Card className="p-4">
+      <h2 className="text-lg font-semibold">Заголовок</h2>
+      <div className="mt-2">
+        <Button onClick={() => {}}>Действие</Button>
+      </div>
+    </Card>
+  )
+}
+
+interface ExampleComponentProps {
+  prop1: string
+  prop2?: number
+}
+```
+
+## 2. Стилизация с Tailwind CSS
+
+```tsx
+// Пример использования Tailwind и cva (components/ui/custom-button.tsx)
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input hover:bg-accent hover:text-accent-foreground",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 px-3",
+        lg: "h-11 px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  VariantProps<typeof buttonVariants> {}
+
+export function Button({ className, variant, size, ...props }: ButtonProps) {
+  return (
+    <button
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+    />
+  )
+}
+```
+
+## 3. Управление состоянием с Zustand
+
+```typescript
+// Пример store (lib/example-store.ts)
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
+
+interface ExampleState {
+  items: Item[]
+  selectedItemId: string | null
+  addItem: (item: Item) => void
+  removeItem: (id: string) => void
+  selectItem: (id: string) => void
+}
+
+type Item = {
+  id: string
+  name: string
+}
+
+export const useExampleStore = create<ExampleState>()(
+  persist(
+    (set) => ({
+      items: [],
+      selectedItemId: null,
+      addItem: (item) => set((state) => ({ 
+        items: [...state.items, item] 
+      })),
+      removeItem: (id) => set((state) => ({ 
+        items: state.items.filter(item => item.id !== id) 
+      })),
+      selectItem: (id) => set({ selectedItemId: id }),
+    }),
+    {
+      name: "example-storage",
+    }
+  )
+)
+```
+
+## 4. CRUD - Список (list)
+
+```tsx
+// Пример реализации списка (app/dashboard/example/list.tsx)
+"use client"
+
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
+
+import { DataTable } from "@/components/ui/data-table"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { apiClient, useGetAuthHeaders } from "@/lib/eden-client"
+import { ColumnDef } from "@tanstack/react-table"
+import Link from "next/link"
+import { Eye, Plus } from "lucide-react"
+
+// Определение типа данных
+interface ExampleItem {
+  id: string
+  name: string
+  status: string
+}
+
+// Определение колонок таблицы
+const columns: ColumnDef<ExampleItem>[] = [
+  {
+    accessorKey: "name",
+    header: "Название",
+    cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+  },
+  {
+    accessorKey: "status",
+    header: "Статус",
+    cell: ({ row }) => <div>{row.getValue("status")}</div>,
+  },
+  {
+    id: "actions",
+    cell: ({ row }) => (
+      <div className="flex justify-end">
+        <Button asChild size="sm" variant="ghost">
+          <Link href={`/dashboard/example/${row.original.id}`}>
+            <Eye className="h-4 w-4 mr-2" />
+            Просмотр
+          </Link>
+        </Button>
+      </div>
+    ),
+  },
+]
+
+export default function ExampleList() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const authHeaders = useGetAuthHeaders()
+  
+  const { data = { total: 0, data: [] }, isLoading } = useQuery({
+    queryKey: ["examples", searchQuery],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.api.examples.get({
+          query: {
+            search: searchQuery,
+          },
+          headers: authHeaders,
+        })
+        
+        return {
+          total: response.data?.total || 0,
+          data: response.data?.data || [],
+        }
+      } catch (error) {
+        toast.error("Ошибка загрузки данных")
+        throw error
+      }
+    },
+  })
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Список примеров</CardTitle>
+        <div className="flex items-center space-x-2">
+          <Input
+            placeholder="Поиск..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-[250px]"
+          />
+          <Button asChild>
+            <Link href="/dashboard/example/create">
+              <Plus className="h-4 w-4 mr-2" />
+              Создать
+            </Link>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <DataTable 
+          columns={columns} 
+          data={data.data} 
+          loading={isLoading}
+        />
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+## 5. CRUD - Создание (create)
+
+```tsx
+// Пример формы создания (app/dashboard/example/create.tsx)
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { apiClient, useGetAuthHeaders } from "@/lib/eden-client"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
+// Схема формы с валидацией Zod
+const formSchema = z.object({
+  name: z.string().min(1, { message: "Название обязательно" }),
+  status: z.string().min(1, { message: "Статус обязателен" }),
+  description: z.string().optional(),
+})
+
+export default function ExampleCreate() {
+  const router = useRouter()
+  const authHeaders = useGetAuthHeaders()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Инициализация формы
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      status: "",
+      description: "",
+    },
+  })
+
+  // Обработка отправки формы
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true)
+    try {
+      await apiClient.api.examples.post({
+        body: values,
+        headers: authHeaders,
+      })
+      
+      toast.success("Запись успешно создана")
+      router.push("/dashboard/example")
+    } catch (error) {
+      toast.error("Ошибка создания записи")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center">
+        <Button variant="ghost" size="sm" asChild className="mr-4">
+          <Link href="/dashboard/example">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Назад к списку
+          </Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Создать новую запись</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Название</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Статус</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите статус" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="active">Активный</SelectItem>
+                        <SelectItem value="inactive">Неактивный</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Создание..." : "Создать"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+```
+
+## 6. CRUD - Редактирование (edit)
+
+```tsx
+// Пример редактирования (app/dashboard/example/[id]/edit.tsx)
+"use client"
+
+import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { apiClient, useGetAuthHeaders } from "@/lib/eden-client"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Схема формы с валидацией
+const formSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, { message: "Название обязательно" }),
+  status: z.string().min(1, { message: "Статус обязателен" }),
+  description: z.string().optional(),
+})
+
+export default function ExampleEdit() {
+  const params = useParams()
+  const id = params.id as string
+  const router = useRouter()
+  const authHeaders = useGetAuthHeaders()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Инициализация формы
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      id: "",
+      name: "",
+      status: "",
+      description: "",
+    },
+  })
+
+  // Запрос данных
+  const { data, isLoading } = useQuery({
+    queryKey: ["example", id],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.api.examples({id}).get({
+          headers: authHeaders,
+        })
+        return response.data
+      } catch (error) {
+        toast.error("Ошибка загрузки данных")
+        throw error
+      }
+    },
+    enabled: !!id,
+  })
+
+  // Заполнение формы данными
+  useEffect(() => {
+    if (data) {
+      form.reset({
+        id: data.id,
+        name: data.name,
+        status: data.status,
+        description: data.description || "",
+      })
+    }
+  }, [data, form])
+
+  // Обработка отправки формы
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true)
+    try {
+      await apiClient.api.examples({id}).put({
+        body: values,
+        headers: authHeaders,
+      })
+      
+      toast.success("Запись успешно обновлена")
+      router.push("/dashboard/example")
+    } catch (error) {
+      toast.error("Ошибка обновления записи")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isLoading) {
+    return <ExampleSkeleton />
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center">
+        <Button variant="ghost" size="sm" asChild className="mr-4">
+          <Link href="/dashboard/example">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Назад к списку
+          </Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Редактировать запись</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {/* Поля формы аналогичны create.tsx */}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Сохранение..." : "Сохранить"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ExampleSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-8 w-1/3" />
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-1/4 mb-2" />
+          <Skeleton className="h-10 w-full" />
+          
+          <Skeleton className="h-4 w-1/4 mb-2" />
+          <Skeleton className="h-10 w-full" />
+          
+          <Skeleton className="h-10 w-[100px] mt-6" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+## 7. CRUD - Детальная страница (show)
+
+```tsx
+// Пример компонента просмотра (app/dashboard/example/show.tsx)
+"use client"
+
+import { useParams } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { apiClient, useGetAuthHeaders } from "@/lib/eden-client"
+import Link from "next/link"
+import { ArrowLeft, Edit } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+
+interface ExampleItem {
+  id: string
+  name: string
+  status: string
+  description?: string
+  createdAt: string
+}
+
+export default function ExampleShow() {
+  const params = useParams()
+  const id = params.id as string
+  const authHeaders = useGetAuthHeaders()
+  
+  const { data, isLoading } = useQuery({
+    queryKey: ["example", id],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.api.examples({id}).get({
+          headers: authHeaders,
+        })
+        return response.data
+      } catch (error) {
+        toast.error("Ошибка загрузки данных")
+        throw error
+      }
+    },
+    enabled: !!id,
+  })
+
+  if (isLoading) {
+    return <ExampleSkeleton />
+  }
+
+  const item = data as ExampleItem
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/dashboard/example">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Назад к списку
+          </Link>
+        </Button>
+        
+        <Button asChild>
+          <Link href={`/dashboard/example/${id}/edit`}>
+            <Edit className="h-4 w-4 mr-2" />
+            Редактировать
+          </Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{item.name}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="details">
+            <TabsList>
+              <TabsTrigger value="details">Детали</TabsTrigger>
+              <TabsTrigger value="history">История</TabsTrigger>
+            </TabsList>
+            <TabsContent value="details" className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Статус</h3>
+                  <p className="mt-1">{item.status}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Дата создания</h3>
+                  <p className="mt-1">{new Date(item.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+              
+              {item.description && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium text-muted-foreground">Описание</h3>
+                  <p className="mt-1">{item.description}</p>
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="history">
+              <p className="text-muted-foreground">История изменений будет здесь</p>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ExampleSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-8 w-1/3" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-10 w-1/4 mb-6" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Skeleton className="h-4 w-16 mb-2" />
+              <Skeleton className="h-6 w-24" />
+            </div>
+            <div>
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <Skeleton className="h-4 w-20 mb-2" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+## 8. Добавление пунктов меню в sidebar
+
+```tsx
+// Пример добавления пункта меню (components/app-sidebar.tsx)
+// Добавление нового пункта в массив navMain
+const data = {
+  // ... существующие данные
+  navMain: [
+    // ... существующие пункты меню
+    {
+      title: "Dashboard",
+      url: "#",
+      icon: IconDashboard,
+    },
+    // Новый пункт меню
+    {
+      title: "Примеры",
+      url: "/dashboard/example",
+      icon: IconListDetails,
+    },
+    // ... остальные пункты меню
+  ],
+  // ... остальные секции меню
+}
+
+// Затем использование в компоненте
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  return (
+    <Sidebar collapsible="offcanvas" {...props}>
+      <SidebarHeader>
+        {/* ... */}
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain items={data.navMain} />
+        {/* ... */}
+      </SidebarContent>
+      <SidebarFooter>
+        {/* ... */}
+      </SidebarFooter>
+    </Sidebar>
+  )
+}
+```
+
+## 9. API-клиент для CRUD операций
+
+```typescript
+// Пример использования api-клиента (lib/api.ts)
+import { apiClient } from "./eden-client";
+
+// Создание новой записи
+const createItem = async (data) => {
+  try {
+    const response = await apiClient.api.examples.post({
+      body: data,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Получение списка записей
+const getItems = async (filters) => {
+  try {
+    const response = await apiClient.api.examples.get({
+      query: filters,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Получение одной записи
+const getItem = async (id) => {
+  try {
+    const response = await apiClient.api.examples[id].get({
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Обновление записи
+const updateItem = async (id, data) => {
+  try {
+    const response = await apiClient.api.examples[id].put({
+      body: data,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Удаление записи
+const deleteItem = async (id) => {
+  try {
+    const response = await apiClient.api.examples[id].delete({
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+```
+

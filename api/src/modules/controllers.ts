@@ -21,30 +21,54 @@ import { constructedBonusPricingController } from "./constructed_bonus_pricing/c
 import { systemConfigsController } from "./system_configs/controller";
 import { orderTransactionsController } from "./order_transactions/controller";
 import { chartControlller } from "./chart/controller";
-// @ts-ignore
-export const apiController = new Elysia({
-  prefix: "/api",
-  name: "api",
-})
+import { CouriersController } from "./couriers/controller";
+// User-related controllers
+const userGroup = new Elysia({ name: "@app/users-group" })
   .use(UsersController)
+  .use(CouriersController)
   .use(CustomersController)
-  .use(OrderStatusController)
-  .use(OrganizationsController)
   .use(RolesController)
   .use(PermissionsController)
+  .as("global");
+
+const systemGroup = new Elysia({ name: "@app/system-group" })
+  .use(OrganizationsController)
+  .use(WorkSchedulesController)
   .use(TerminalsController)
   .use(DeliveryPricingController)
-  .use(WorkSchedulesController)
   .use(ApiTokensController)
   .use(BrandsController)
   .use(DailyGarantController)
-  .use(OrderBonusPricingController)
-  .use(OrdersController)
-  .use(MissedOrdersController)
   .use(ManagerWithdrawController)
-  .use(OrderActionsController)
   .use(externalControler)
   .use(constructedBonusPricingController)
   .use(systemConfigsController)
+  .use(chartControlller)
+  .use(OrderBonusPricingController)
+  .as("global");
+
+const ordersGroup = new Elysia({ name: "@app/orders-group" })
+  .use(OrderStatusController)
+  .use(OrdersController)
+  .use(MissedOrdersController)
+  .use(OrderActionsController)
   .use(orderTransactionsController)
-  .use(chartControlller);
+  .as("global");
+
+// Create the base API controller with explicit type annotation to prevent deep type instantiation
+const apiController = new Elysia({
+  name: "api",
+})
+
+// .use(UsersController)
+  .use(userGroup)
+  .use(systemGroup)
+  .use(ordersGroup)
+  .get("/api/check_service", () => ({
+    result: "ok",
+  }))
+  .as("global")
+
+
+
+export default apiController;

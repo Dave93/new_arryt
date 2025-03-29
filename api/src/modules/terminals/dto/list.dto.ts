@@ -1,4 +1,4 @@
-import { terminals, organization } from "@api/drizzle/schema";
+import { terminals, organization } from "../../../../drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
 export type TerminalsWithRelations = InferSelectModel<typeof terminals> & {

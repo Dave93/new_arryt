@@ -1,10 +1,10 @@
 import {
   organization,
   terminals,
-} from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+} from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { SQLWrapper, and, asc, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
@@ -12,11 +12,12 @@ import { TerminalsWithRelations } from "./dto/list.dto";
 
 export const TerminalsController = new Elysia({
   name: "@app/terminals",
+  prefix: "/api/terminals",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/terminals",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+    "/",
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, terminals, {
@@ -62,15 +63,15 @@ export const TerminalsController = new Elysia({
       }),
     }
   )
-  .get("/terminals/cached", async ({ redis, user, set, cacheControl }) => {
+  .get("/cached", async ({ redis, cacheControl }) => {
     const res = await cacheControl.getTerminals();
     return res;
   }, {
     permission: 'terminals.list',
   })
   .get(
-    "/terminals/:id",
-    async ({ params: { id }, drizzle, user, set }) => {
+    "/:id",
+    async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
         .from(terminals)
@@ -88,8 +89,8 @@ export const TerminalsController = new Elysia({
     }
   )
   .post(
-    "/terminals",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
+    "/",
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, terminals, {});
@@ -131,8 +132,8 @@ export const TerminalsController = new Elysia({
     }
   )
   .put(
-    "/terminals/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+    "/:id",
+    async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, terminals, {});

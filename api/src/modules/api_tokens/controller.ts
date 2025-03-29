@@ -1,7 +1,7 @@
-import { api_tokens, organization } from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { api_tokens, organization } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
@@ -9,11 +9,12 @@ import { ApiTokensWithRelations } from "./dto/list.dto";
 
 export const ApiTokensController = new Elysia({
   name: "@app/api_tokens",
+  prefix: "/api/api_tokens",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/api_tokens",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+    "/",
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
 
       let selectFields: SelectedFields = {};
       if (fields) {
@@ -56,14 +57,14 @@ export const ApiTokensController = new Elysia({
       }),
     }
   )
-  .get("/api_tokens/cached", async ({ redis, set, user }) => {
+  .get("/cached", async ({ redis }) => {
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_api_tokens`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof api_tokens>[];
   }, {
     permission: 'api_tokens.list',
   })
   .get(
-    "/api_tokens/:id",
+    "/:id",
     async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
@@ -82,8 +83,8 @@ export const ApiTokensController = new Elysia({
     }
   )
   .post(
-    "/api_tokens",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
+    "/",
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {});
@@ -110,8 +111,8 @@ export const ApiTokensController = new Elysia({
     }
   )
   .put(
-    "/api_tokens/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+    "/:id",
+    async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, api_tokens, {});

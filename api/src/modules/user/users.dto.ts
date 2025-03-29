@@ -1,6 +1,5 @@
 import { PermissionResponseDto } from "../permissions/permissions.dto";
 import { RoleResponseDto } from "../roles/roles.dto";
-import { user_status } from "@api/drizzle/schema";
 
 export interface UserResponseDto {
   id: string;

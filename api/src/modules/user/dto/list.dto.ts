@@ -1,4 +1,4 @@
-import { roles, terminals, users } from "@api/drizzle/schema";
+import { roles, terminals, users } from "../../../../drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
 export type WalletStatus = {

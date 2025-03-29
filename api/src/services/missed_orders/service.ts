@@ -1,5 +1,5 @@
-import {CacheControlService} from "@api/src/modules/cache/service";
-import {SearchService} from "@api/src/services/search/service";
+import {CacheControlService} from "../../modules/cache/service";
+import {SearchService} from "../../services/search/service";
 
 export class MissedOrderService {
     constructor(

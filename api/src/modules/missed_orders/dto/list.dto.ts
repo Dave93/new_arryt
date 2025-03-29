@@ -1,4 +1,4 @@
-import { orders, order_status, terminals } from "@api/drizzle/schema";
+import { orders, order_status, terminals } from "../../../../drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
 export type MissedOrders = InferSelectModel<typeof orders> & {

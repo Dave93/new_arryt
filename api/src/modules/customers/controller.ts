@@ -1,17 +1,18 @@
-import { customers } from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { customers } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 
 export const CustomersController = new Elysia({
   name: "@app/customers",
+  prefix: "/api/customers",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/customers",
+    "/",
     async ({ query: { limit, offset, sort, filters }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (filters) {
@@ -51,7 +52,7 @@ export const CustomersController = new Elysia({
     }
   )
   .get(
-    "/customers/:id",
+    "/:id",
     async ({ params: { id }, drizzle }) => {
       const customer = await drizzle
         .select()

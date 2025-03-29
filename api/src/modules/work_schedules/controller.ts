@@ -1,10 +1,10 @@
 import {
   organization,
   work_schedules,
-} from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+} from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import dayjs from "dayjs";
 import { SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
@@ -13,11 +13,12 @@ import { WorkScheduleWithRelations } from "./dto/list.dto";
 
 export const WorkSchedulesController = new Elysia({
   name: "@app/work_schedules",
+  prefix: "/api/work_schedules",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/work_schedules",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+    "/",
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {
@@ -62,15 +63,15 @@ export const WorkSchedulesController = new Elysia({
       }),
     }
   )
-  .get("/work_schedules/cached", async ({ redis, user, set, cacheControl }) => {
+  .get("/cached", async ({ redis, cacheControl }) => {
     const res = await cacheControl.getWorkSchedules();
     return res;
   }, {
     permission: 'work_schedules.list',
   })
   .get(
-    "/work_schedules/:id",
-    async ({ params: { id }, drizzle, user, set }) => {
+    "/:id",
+    async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
         .from(work_schedules)
@@ -88,8 +89,8 @@ export const WorkSchedulesController = new Elysia({
     }
   )
   .post(
-    "/work_schedules",
-    async ({ body: { data, fields }, drizzle, user, set, cacheControl }) => {
+    "/",
+    async ({ body: { data, fields }, drizzle, cacheControl }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {});
@@ -133,8 +134,8 @@ export const WorkSchedulesController = new Elysia({
     }
   )
   .put(
-    "/work_schedules/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, user, set, cacheControl }) => {
+    "/:id",
+    async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {});

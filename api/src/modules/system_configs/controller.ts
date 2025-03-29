@@ -1,18 +1,19 @@
-import { system_configs } from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { system_configs } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { InferSelectModel, SQLWrapper, and, desc, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 
 export const systemConfigsController = new Elysia({
     name: "@app/system_configs",
+    prefix: "/api/system_configs",
 })
-    .use(ctx)
+    .use(contextWitUser)
     .get(
-        "/system_configs",
-        async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+        "/",
+        async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
             let selectFields: SelectedFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, system_configs, {});
@@ -50,7 +51,7 @@ export const systemConfigsController = new Elysia({
             })
         }
     )
-    .get("/system_configs/cached", async ({ redis, user, set }) => {
+    .get("/cached", async ({ redis }) => {
         const res = await redis.get(
             `${process.env.PROJECT_PREFIX}_system_configs`
         );
@@ -59,8 +60,8 @@ export const systemConfigsController = new Elysia({
         permission: 'system_configs.list',
     })
     .get(
-        "/system_configs/:id",
-        async ({ params: { id }, drizzle, user, set }) => {
+        "/:id",
+        async ({ params: { id }, drizzle }) => {
             const permissionsRecord = await drizzle
                 .select()
                 .from(system_configs)
@@ -78,8 +79,8 @@ export const systemConfigsController = new Elysia({
         }
     )
     .post(
-        "/system_configs",
-        async ({ body: { data, fields }, drizzle, user, set, cacheControl }) => {
+        "/",
+        async ({ body: { data, fields }, drizzle, cacheControl }) => {
             let selectFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, system_configs, {});
@@ -104,7 +105,7 @@ export const systemConfigsController = new Elysia({
             }),
         }
     )
-    .post('/system_configs/set_multiple', async ({ body: { data }, cacheControl, user, set, drizzle }) => {
+    .post('/set_multiple', async ({ body: { data }, cacheControl, drizzle }) => {
 
         await drizzle.transaction(async (transaction) => {
             for (const item of data) {
@@ -131,8 +132,8 @@ export const systemConfigsController = new Elysia({
         }),
     })
     .put(
-        "/system_configs/:id",
-        async ({ params: { id }, body: { data, fields }, drizzle, user, set, cacheControl }) => {
+        "/:id",
+        async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
             let selectFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, system_configs, {});
@@ -162,8 +163,8 @@ export const systemConfigsController = new Elysia({
         }
     )
     .delete(
-        "/system_configs/:id",
-        async ({ params: { id }, drizzle, user, set, cacheControl }) => {
+        "/:id",
+        async ({ params: { id }, drizzle, cacheControl }) => {
             const result = await drizzle
                 .delete(system_configs)
                 .where(eq(system_configs.id, id))

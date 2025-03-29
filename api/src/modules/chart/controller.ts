@@ -1,7 +1,7 @@
 import Elysia, { t } from "elysia";
-import { contextWitUser } from "@api/src/context";
+import { contextWitUser } from "../../context";
 import { sql, and, gte, lte, eq } from 'drizzle-orm';
-import { orders } from '@api/drizzle/schema';
+import { orders } from '../../../drizzle/schema';
 
 const periodQuerySchema = t.Object({
     start_date: t.String(),
@@ -24,10 +24,10 @@ const intervalMap = {
 
 export const chartControlller = new Elysia({
     name: '@api/chart',
-    prefix: '/chart'
+    prefix: '/api/chart'
 })
     .use(contextWitUser)
-    .get('/orders_count_per_period', async ({ user, drizzle, query }) => {
+    .get('/orders_count_per_period', async ({ drizzle, query }) => {
         const { start_date, end_date, period, organization_id } = query;
         const interval = intervalMap[period];
         const timeBucket = sql`time_bucket(${interval}, ${orders.created_at}) as bucket_time`;
@@ -51,7 +51,7 @@ export const chartControlller = new Elysia({
         permission: 'orders.list',
         query: periodQuerySchema
     })
-    .get('/delivery_time_per_period', async ({ user, drizzle, query }) => {
+    .get('/delivery_time_per_period', async ({ drizzle, query }) => {
         const { start_date, end_date, period, organization_id } = query;
         const interval = intervalMap[period];
         const timeBucket = sql`time_bucket(${interval}, ${orders.created_at}) as bucket_time`;

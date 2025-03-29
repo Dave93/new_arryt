@@ -1,18 +1,19 @@
-import { roles, roles_permissions, permissions } from "@api/drizzle/schema";
+import { permissions, roles, roles_permissions } from "../../../drizzle/schema";
 import { InferSelectModel, SQLWrapper, eq, sql } from "drizzle-orm";
 import Elysia, { t } from "elysia";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { SelectedFields } from "drizzle-orm/pg-core";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
 
 export const RolesController = new Elysia({
   name: "@app/roles",
+  prefix: "/api/roles",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/roles",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, set, user }) => {
+    "/",
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, roles, {});
@@ -47,13 +48,13 @@ export const RolesController = new Elysia({
       }),
     }
   )
-  .get("/roles/cached", async ({ redis, user, set }) => {
+  .get("/cached", async ({ redis }) => {
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_roles`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof roles>[];
   }, {
     permission: 'roles.list',
   })
-  .get('/roles/:id/permissions', async ({ params: { id }, drizzle, user, set }) => {
+  .get('/:id/permissions', async ({ params: { id }, drizzle }) => {
     const permissionsList = await drizzle
       .select({
         permission_id: roles_permissions.permission_id,
@@ -74,8 +75,8 @@ export const RolesController = new Elysia({
     }),
   })
   .get(
-    "/roles/:id",
-    async ({ params: { id }, drizzle, user, set }) => {
+    "/:id",
+    async ({ params: { id }, drizzle }) => {
       const rolesRecord = await drizzle
         .select()
         .from(roles)
@@ -93,8 +94,8 @@ export const RolesController = new Elysia({
     }
   )
   .post(
-    "/roles",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
+    "/",
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, roles, {});
@@ -121,8 +122,8 @@ export const RolesController = new Elysia({
     }
   )
   .put(
-    "/roles/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+    "/:id",
+    async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, roles, {});

@@ -14,8 +14,8 @@ import {
   constructed_bonus_pricing,
   work_schedules,
   daily_garant,
-} from "@api/drizzle/schema";
-import { DB } from "@api/src/lib/db";
+} from "../../../drizzle/schema";
+import { DB } from "../../lib/db";
 import { eq, getTableColumns, InferSelectModel, sql } from "drizzle-orm";
 import { Redis } from "ioredis";
 import { UserResponseDto } from "../user/users.dto";

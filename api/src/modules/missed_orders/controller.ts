@@ -2,9 +2,9 @@ import {
     order_status,
     orders,
     terminals,
-} from "@api/drizzle/schema";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+} from "../../../drizzle/schema";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import dayjs from "dayjs";
 import {
     SQLWrapper,
@@ -26,8 +26,8 @@ import isToday from "dayjs/plugin/isToday";
 import isBetween from "dayjs/plugin/isBetween";
 
 import timezone from "dayjs/plugin/timezone";
-import { getSetting } from "@api/src/utils/settings";
-import { ctx } from "@api/src/context";
+import { getSetting } from "../../utils/settings";
+import { contextWitUser } from "../../context";
 import { MissedOrders } from "./dto/list.dto";
 
 dayjs.extend(utc);
@@ -37,10 +37,11 @@ dayjs.extend(isToday);
 
 export const MissedOrdersController = new Elysia({
     name: "@app/missed_orders",
+    prefix: "/api/missed_orders",
 })
-    .use(ctx)
+    .use(contextWitUser)
     .get(
-        "/missed_orders",
+        "/",
         async ({ query: { limit, offset, sort, filters, fields, ext_all }, redis, cacheControl, drizzle }) => {
 
             const laterMinutes = await getSetting(redis, 'late_order_time');
@@ -113,7 +114,9 @@ export const MissedOrdersController = new Elysia({
             }),
         }
     )
-    .post('/missed_orders/send_yandex', async ({ processCheckAndSendYandex, body: {
+    .post('/send_yandex', async ({ queues: {
+        processCheckAndSendYandex
+    }, body: {
         id
     } }) => {
         await processCheckAndSendYandex.add('checkAndSendYandex', {
