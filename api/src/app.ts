@@ -1,8 +1,6 @@
 import { cors } from "@elysiajs/cors";
-import Elysia, { t } from "elysia";
-import { loggingMiddleware } from "./loggingMiddleware";
-import { apiController } from "./modules/controllers";
-
+import Elysia from "elysia";
+import apiController from "./modules/controllers";
 const app = new Elysia()
     .use(
         cors({
@@ -20,14 +18,15 @@ const app = new Elysia()
     //   })
     // )
 
-    .get("/check_service", () => ({
-        result: "ok",
-    }))
+    // .get("/", () => ({
+    //     result: "ok",
+    // }))
     // .use(serverTiming())
     .use(apiController)
-    .get("/davr", async () => {
-        return 'Hello Davr';
-    });
+    // .use(OrdersController)
+    .get("/check_service", () => ({
+        result: "ok",
+    }));
 
 export default app;
 

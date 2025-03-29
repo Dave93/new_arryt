@@ -1,19 +1,20 @@
-import { constructed_bonus_pricing, organization } from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
-import { SQLWrapper, and, asc, eq, sql } from "drizzle-orm";
+import { constructed_bonus_pricing, organization } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
+import { SQLWrapper, and, asc, eq, getTableColumns, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import { Elysia, t } from "elysia";
 import { ConstructedBonusPricingListWithRelations } from "./dtos/list.dto";
 
 export const constructedBonusPricingController = new Elysia({
     name: "@app/constructed_bonus_pricing",
+    prefix: "/api/constructed_bonus_pricing",
 })
-    .use(ctx)
+    .use(contextWitUser)
     .get(
-        "/constructed_bonus_pricing",
-        async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set, cacheControl }) => {
+        "/",
+        async ({ query: { limit, offset, sort, filters, fields }, drizzle, cacheControl }) => {
             let selectFields: SelectedFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, constructed_bonus_pricing, {
@@ -57,10 +58,17 @@ export const constructedBonusPricingController = new Elysia({
             })
         }
     )
-    .get('/constructed_bonus_pricing/:id', async ({ params: { id }, drizzle, user, set }) => {
+    .get('/:id', async ({ params: { id }, drizzle }) => {
         const permissionsRecord = await drizzle
-            .select()
+            .select({
+                ...getTableColumns(constructed_bonus_pricing),
+                organization: {
+                    id: organization.id,
+                    name: organization.name,
+                },
+            })
             .from(constructed_bonus_pricing)
+            .leftJoin(organization, eq(constructed_bonus_pricing.organization_id, organization.id))
             .where(eq(constructed_bonus_pricing.id, id))
             .execute();
         return {
@@ -72,7 +80,7 @@ export const constructedBonusPricingController = new Elysia({
             id: t.String(),
         }),
     })
-    .post('/constructed_bonus_pricing', async ({ body: { data }, drizzle, cacheControl }) => {
+    .post('/', async ({ body: { data }, drizzle, cacheControl }) => {
         const result = await drizzle
             .insert(constructed_bonus_pricing)
             .values(data)
@@ -103,7 +111,7 @@ export const constructedBonusPricingController = new Elysia({
             fields: t.Optional(t.Array(t.String())),
         }),
     })
-    .put('/constructed_bonus_pricing/:id', async ({ params: { id }, body: { data }, drizzle, cacheControl }) => {
+    .put('/:id', async ({ params: { id }, body: { data }, drizzle, cacheControl }) => {
         const result = await drizzle
             .update(constructed_bonus_pricing)
             .set(data)

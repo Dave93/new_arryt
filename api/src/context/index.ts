@@ -1,212 +1,309 @@
-import { db } from "@api/src/lib/db";
-import Elysia from "elysia";
+import { db } from "../lib/db";
+import { Elysia } from "elysia";
 import { bearer } from "@elysiajs/bearer";
-import { CacheControlService } from "@api/src/modules/cache/service";
+import { CacheControlService } from "../modules/cache/service";
 import { verifyJwt } from "../utils/bcrypt";
 import { SearchService } from "../services/search/service";
 import { UserResponseDto } from "../modules/user/users.dto";
 import { client } from "./redis";
-import { processFromBasketToCouriers, processCheckAndSendYandex, processUpdateUserCache, processOrderCompleteQueue, processOrderChangeStatusQueue, processClearCourierQueue, processOrderChangeCourierQueue, processStoreLocationQueue } from "./queues";
-
-
+import { Queue } from "bullmq";
+// Initialize services
 export const cacheControlService = new CacheControlService(db, client);
-
 const searchService = new SearchService(cacheControlService, db, client);
 
+// Define user context type for better type safety
+type UserContext = {
+  user: UserResponseDto;
+  access: {
+    additionalPermissions: string[];
+    roles: {
+      name: string;
+      code: string;
+      active: boolean;
+    }[];
+  };
+} | null;
 
-type DeriveUserResponse = {
-  user: {
-    user: UserResponseDto;
-    access: {
-      additionalPermissions: string[];
-      roles: {
-        name: string;
-        code: string;
-        active: boolean;
-      }[];
-    };
-  } | null;
-};
 
-const decorateApp = new Elysia({
-  name: "@app/decorate",
+export const newOrderNotify = new Queue(
+  `${process.env.TASKS_PREFIX}_new_order_notify`,
+  {
+      connection: client,
+  }
+);
+
+
+export const processFromBasketToCouriers = new Queue(
+  `${process.env.TASKS_PREFIX}_from_basket_to_couriers`,
+  {
+      connection: client,
+  }
+);
+
+export const processCheckAndSendYandex = new Queue(
+  `${process.env.TASKS_PREFIX}_check_and_send_yandex`,
+  {
+      connection: client,
+  }
+);
+
+export const processUpdateUserCache = new Queue(
+  `${process.env.TASKS_PREFIX}_update_user_cache`,
+  {
+      connection: client,
+  }
+);
+
+export const processOrderCompleteQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_order_complete`,
+  {
+      connection: client,
+  }
+);
+
+export const processOrderEcommerceWebhookQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_order_ecommerce_webhook`,
+  {
+      connection: client,
+  }
+);
+
+export const processOrderChangeStatusQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_order_change_status`,
+  {
+      connection: client,
+  }
+);
+
+export const processClearCourierQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_order_clear_courier`,
+  {
+      connection: client,
+  }
+);
+
+export const processOrderChangeCourierQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_order_change_courier`,
+  {
+      connection: client,
+  }
+);
+
+export const processStoreLocationQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_courier_store_location`,
+  {
+      connection: client,
+  }
+);
+
+export const processYandexCallbackQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_yandex_callback`,
+  {
+      connection: client,
+  }
+);
+
+export const processSendNotificationQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_send_notification`,
+  {
+      connection: client,
+  }
+);
+
+export const processPushCourierToQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_push_courier_to_queue`,
+  {
+      connection: client,
+  }
+);
+
+export const processSetQueueLastCourier = new Queue(
+  `${process.env.TASKS_PREFIX}_set_queue_last_courier`,
+  {
+      connection: client,
+  }
+);
+
+export const processTryAssignCourier = new Queue(
+  `${process.env.TASKS_PREFIX}_try_assign_courier`,
+  {
+      connection: client,
+  }
+);
+
+export const processTrySetDailyGarant = new Queue(
+  `${process.env.TASKS_PREFIX}_try_set_daily_garant`,
+  {
+      connection: client,
+  }
+);
+
+
+const queues = {
+  newOrderNotify,
+  processFromBasketToCouriers,
+  processCheckAndSendYandex,
+  processUpdateUserCache,
+  processOrderCompleteQueue,
+  processOrderEcommerceWebhookQueue,
+  processOrderChangeStatusQueue,
+  
+  processClearCourierQueue,
+  processOrderChangeCourierQueue,
+  processStoreLocationQueue,
+  processYandexCallbackQueue,
+  processSendNotificationQueue,
+  processPushCourierToQueue,
+  processSetQueueLastCourier,
+  processTryAssignCourier,
+  processTrySetDailyGarant
+}
+const baseContext = new Elysia({
+  name: "baseContext"
 })
   .decorate("redis", client)
   .decorate("drizzle", db)
   .decorate("cacheControl", cacheControlService)
   .decorate("searchService", searchService)
-  .decorate("processFromBasketToCouriers", processFromBasketToCouriers)
-  .decorate("processCheckAndSendYandex", processCheckAndSendYandex)
-  .decorate("processUpdateUserCache", processUpdateUserCache)
-  .decorate("processOrderCompleteQueue", processOrderCompleteQueue)
-  .decorate("processOrderChangeStatusQueue", processOrderChangeStatusQueue)
-  .decorate("processClearCourierQueue", processClearCourierQueue)
-  .decorate("processOrderChangeCourierQueue", processOrderChangeCourierQueue)
-  .decorate("processStoreLocationQueue", processStoreLocationQueue)
-  .as('global');
-
-
-
-export const ctx = new Elysia({
-  name: "@app/ctx"
+  ;
+const queueContext = new Elysia({
+  name: "queueContext"
 })
-  .use(decorateApp)
-  .derive({ as: 'global' }, async ({ redis, cacheControl }): Promise<DeriveUserResponse> => {
-    return {
-      user: null,
-    };
-  })
-  .macro(({ onBeforeHandle }) => ({
-    permission(permission: string) {
-      if (!permission) return;
-      onBeforeHandle(async ({ redis, error, cacheControl, user, headers: { authorization } }) => {
-        if (!authorization) {
-          return error(401, {
-            message: "Unauthorized",
-          });
-        }
+  .decorate("queues", queues);
 
-        const token = authorization.split(' ')[1];
-        let jwtResult = await verifyJwt(token);
-        let userData = await redis.hget(
-          `${process.env.PROJECT_PREFIX}_user`,
-          jwtResult.payload.id as string
-        );
-        let userRes = null as {
-          user: UserResponseDto;
-          access: {
-            additionalPermissions: string[];
-            roles: {
-              name: string;
-              code: string;
-              active: boolean;
-            }[];
+// Create the context with user authentication
+export const contextWitUser = baseContext
+  .use(queueContext)
+  .macro({
+      permission(permission: string) {
+        if (!permission) {
+          return {
+            resolve: () => ({
+              user: null
+            })
           };
-        } | null;
-        if (userData) {
-          userRes = JSON.parse(userData);
         }
-
-        if (!userRes) {
-          return error(401, {
-            message: "Unauthorized",
-          });
-        }
-
-        if (!userRes.access.additionalPermissions.includes(permission)) {
-          return error(403, {
-            message: "Forbidden",
-          });
-        }
-
-        user = userRes;
-      })
-    }
-  }))
-  .as('global');
-
-
-
-
-export const contextWitUser = new Elysia({
-  name: "@app/ctx"
-})
-  .use(decorateApp)
-  .derive({ as: 'global' }, async ({ redis, cacheControl, headers: { authorization } }): Promise<DeriveUserResponse> => {
-    if (!authorization) {
-      return {
-        user: null,
-      }
-    }
-
-    try {
-      const token = authorization.split(' ')[1];
-      let jwtResult = await verifyJwt(token);
-      let userData = await redis.hget(
-        `${process.env.PROJECT_PREFIX}_user`,
-        jwtResult.payload.id as string
-      );
-      let userRes = null as {
-        user: UserResponseDto;
-        access: {
-          additionalPermissions: string[];
-          roles: {
-            name: string;
-            code: string;
-            active: boolean;
-          }[];
-        };
-      } | null;
-      if (userData) {
-        userRes = JSON.parse(userData);
-      }
-
-      if (!userRes) {
+        
         return {
-          user: null,
+          beforeHandle: async ({ redis, error, headers: {
+            authorization
+          } }) => {
+            
+            if (!authorization) {
+              return error(401, {
+                message: "Unauthorized"
+              });
+            }
+
+            const bearer = authorization.split(" ")[1];
+
+            if (!bearer) {
+              return error(401, {
+                message: "Unauthorized"
+              });
+            }
+            
+            try {
+              const jwtResult = await verifyJwt(bearer);
+              const userData = await redis.hget(
+                `${process.env.PROJECT_PREFIX}_user`,
+                jwtResult.payload.id as string
+              );
+              
+              if (!userData) {
+                return error(401, {
+                  message: "Unauthorized"
+                });
+              }
+              
+              const userRes = JSON.parse(userData) as UserContext;
+              
+              if (!userRes || !userRes.access.additionalPermissions.includes(permission)) {
+                return error(403, {
+                  message: "Forbidden"
+                });
+              }
+            } catch (e) {
+              return error(401, {
+                message: "Unauthorized"
+              });
+            }
+          },
+          
+          resolve: async ({ redis, headers: {
+            authorization
+          } }) => {
+            
+            if (!authorization) {
+              return { user: null };
+            }
+
+            const bearer = authorization.split(" ")[1];
+
+            if (!bearer) {
+              return { user: null };
+            }
+
+            try {
+              const jwtResult = await verifyJwt(bearer);
+              const userData = await redis.hget(
+                `${process.env.PROJECT_PREFIX}_user`,
+                jwtResult.payload.id as string
+              );
+              
+              if (!userData) {
+                return { user: null };
+              }
+              
+              const userRes = JSON.parse(userData) as UserContext;
+              return { user: userRes };
+            } catch (e) {
+              return { user: null };
+            }
+          }
+        };
+      },
+      userAuth(enabled: boolean) {
+        if (!enabled) {
+          return {
+            resolve: () => ({
+              user: null
+            })
+          };
         }
+        
+        return {
+          resolve: async ({ redis, headers: {
+            authorization
+          } }) => {
+            
+            if (!authorization) {
+              return { user: null };
+            }
+
+            const bearer = authorization.split(" ")[1];
+
+            if (!bearer) {
+              return { user: null };
+            }
+            
+            try {
+              const jwtResult = await verifyJwt(bearer);
+              const userData = await redis.hget(
+                `${process.env.PROJECT_PREFIX}_user`,
+                jwtResult.payload.id as string
+              );
+              
+              if (!userData) {
+                return { user: null };
+              }
+              
+              const userRes = JSON.parse(userData) as UserContext;
+              return { user: userRes };
+            } catch (e) {
+              return { user: null };
+            }
+          }
+        };
       }
-
-      return {
-        user: userRes,
-      };
-    } catch (e) {
-      return {
-        user: null,
-      }
-
-    }
-  })
-  .macro(({ onBeforeHandle }) => ({
-    permission(permission: string) {
-      if (!permission) return;
-      onBeforeHandle(async ({ redis, error, cacheControl, user, headers: { authorization } }) => {
-        if (!authorization) {
-          return error(401, {
-            message: "Unauthorized",
-          });
-        }
-
-        try {
-          const token = authorization.split(' ')[1];
-          let jwtResult = await verifyJwt(token);
-          let userData = await redis.hget(
-            `${process.env.PROJECT_PREFIX}_user`,
-            jwtResult.payload.id as string
-          );
-          let userRes = null as {
-            user: UserResponseDto;
-            access: {
-              additionalPermissions: string[];
-              roles: {
-                name: string;
-                code: string;
-                active: boolean;
-              }[];
-            };
-          } | null;
-          if (userData) {
-            userRes = JSON.parse(userData);
-          }
-
-          if (!userRes) {
-            return error(401, {
-              message: "Unauthorized",
-            });
-          }
-
-          if (!userRes.access.additionalPermissions.includes(permission)) {
-            return error(403, {
-              message: "Forbidden",
-            });
-          }
-        } catch (e) {
-          return error(401, {
-            message: "Unauthorized",
-          });
-        }
-
-      })
-    }
-  }))
-  .as('global');
+    });

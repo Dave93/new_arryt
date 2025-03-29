@@ -1,17 +1,18 @@
-import { brands } from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { brands } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 
 export const BrandsController = new Elysia({
   name: "@app/brands",
+  prefix: "/api/brands",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/brands",
+    "/",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
@@ -48,12 +49,12 @@ export const BrandsController = new Elysia({
       }),
     }
   )
-  .get("/brands/cached", async ({ redis }) => {
+  .get("/cached", async ({ redis }) => {
     const res = await redis.get(`${process.env.PROJECT_PREFIX}_brands`);
     return JSON.parse(res || "[]") as InferSelectModel<typeof brands>[];
   })
   .get(
-    "/brands/:id",
+    "/:id",
     async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
@@ -72,8 +73,8 @@ export const BrandsController = new Elysia({
     }
   )
   .post(
-    "/brands",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
+    "/",
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, brands, {});
@@ -100,7 +101,7 @@ export const BrandsController = new Elysia({
     }
   )
   .put(
-    "/brands/:id",
+    "/:id",
     async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {

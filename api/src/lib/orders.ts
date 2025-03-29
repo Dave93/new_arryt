@@ -1,4 +1,4 @@
-import { order_status, orders } from "@api/drizzle/schema";
+import { order_status } from "../../drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { CacheControlService } from "../modules/cache/service";
 

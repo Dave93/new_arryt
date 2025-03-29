@@ -1,18 +1,18 @@
-import { organization } from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+import { organization } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { InferSelectModel, SQLWrapper, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 
 export const OrganizationsController = new Elysia({
-  name: '@app/organizations',
+  name: '@app/organizations'
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/organization",
-    async ({ query: { limit, offset, sort, filters, fields }, drizzle, user, set }) => {
+    "/api/organization/",
+    async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, organization, {});
@@ -47,7 +47,7 @@ export const OrganizationsController = new Elysia({
       }),
     }
   )
-  .get("/organizations/cached", async ({ redis, user, set }) => {
+  .get("/api/organizations/cached", async ({ redis }) => {
     const res = await redis.get(
       `${process.env.PROJECT_PREFIX}_organizations`
     );
@@ -56,8 +56,8 @@ export const OrganizationsController = new Elysia({
     permission: 'organization.list',
   })
   .get(
-    "/organization/:id",
-    async ({ params: { id }, drizzle, user, set }) => {
+    "/api/organization/:id",
+    async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
         .from(organization)
@@ -75,8 +75,8 @@ export const OrganizationsController = new Elysia({
     }
   )
   .post(
-    "/organization",
-    async ({ body: { data, fields }, drizzle, user, set }) => {
+    "/api/organization/",
+    async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, organization, {});
@@ -119,8 +119,8 @@ export const OrganizationsController = new Elysia({
     }
   )
   .put(
-    "/organization/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, user, set }) => {
+    "/api/organization/:id",
+    async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, organization, {});

@@ -1,8 +1,7 @@
 import {
-  createHash,
   createCipheriv,
   createDecipheriv,
-  scryptSync,
+  scryptSync
 } from "crypto";
 export const encode = (string: string) => {
   let password = process.env.CRYPTO_KEY!;

@@ -1,22 +1,23 @@
 import {
   manager_withdraw, manager_withdraw_transactions, order_transactions, orders, terminals,
   users
-} from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+} from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { SQLWrapper, and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { SelectedFields, alias } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
-import { ManagerWithdrawTransactionsWithRelations, ManagerWithdrawWithRelations } from "./dto/list.dto";
+import { ManagerWithdrawWithRelations } from "./dto/list.dto";
 import dayjs from "dayjs";
 
 export const ManagerWithdrawController = new Elysia({
   name: "@app/manager_withdraw",
+  prefix: "/api/manager_withdraw",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/manager_withdraw",
+    "/",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       const couriers = alias(users, "couriers");
       const managers = alias(users, "managers");
@@ -71,7 +72,7 @@ export const ManagerWithdrawController = new Elysia({
       }),
     }
   )
-  .get('/manager_withdraw/:id/transactions', async ({ params: { id }, drizzle }) => {
+  .get('/:id/transactions', async ({ params: { id }, drizzle }) => {
     const withdrawPrepare = await drizzle
       .select({
         id: manager_withdraw.id,

@@ -1,10 +1,10 @@
 import {
   order_bonus_pricing,
   organization, terminals
-} from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+} from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
@@ -12,10 +12,11 @@ import { OrderBonusPricingWithRelations } from "./dto/list.dto";
 
 export const OrderBonusPricingController = new Elysia({
   name: "@app/order_bonus_pricing",
+  prefix: "/api/order_bonus_pricing",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/order_bonus_pricing",
+    "/",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
@@ -67,7 +68,7 @@ export const OrderBonusPricingController = new Elysia({
       }),
     }
   )
-  .get("/order_bonus_pricing/cached", async ({ redis }) => {
+  .get("/cached", async ({ redis }) => {
     const res = await redis.get(
       `${process.env.PROJECT_PREFIX}_order_bonus_pricing`
     );
@@ -76,7 +77,7 @@ export const OrderBonusPricingController = new Elysia({
     permission: 'order_bonus_pricing.list',
   })
   .get(
-    "/order_bonus_pricing/:id",
+    "/:id",
     async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
@@ -95,7 +96,7 @@ export const OrderBonusPricingController = new Elysia({
     }
   )
   .post(
-    "/order_bonus_pricing",
+    "/",
     async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
@@ -129,7 +130,7 @@ export const OrderBonusPricingController = new Elysia({
     }
   )
   .put(
-    "/order_bonus_pricing/:id",
+    "/:id",
     async ({ params: { id }, body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {

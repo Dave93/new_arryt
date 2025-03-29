@@ -1,4 +1,4 @@
-import { manager_withdraw, users, terminals, manager_withdraw_transactions, order_transactions, orders } from "@api/drizzle/schema";
+import { manager_withdraw, users, terminals, manager_withdraw_transactions, order_transactions, orders } from "../../../../drizzle/schema";
 import { InferSelectModel } from "drizzle-orm";
 
 export type ManagerWithdrawWithRelations = InferSelectModel<typeof manager_withdraw> & {

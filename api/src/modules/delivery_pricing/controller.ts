@@ -1,10 +1,10 @@
 import {
   delivery_pricing,
   organization,
-} from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
-import { parseSelectFields } from "@api/src/lib/parseSelectFields";
+} from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
+import { parseSelectFields } from "../../lib/parseSelectFields";
 import dayjs from "dayjs";
 import { InferSelectModel, SQLWrapper, and, eq, sql, asc } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
@@ -13,10 +13,11 @@ import { DeliveryPricingWithRelations } from "./dto/list.dto";
 
 export const DeliveryPricingController = new Elysia({
   name: "@app/delivery_pricing",
+  prefix: "/api/delivery_pricing",
 })
-  .use(ctx)
+  .use(contextWitUser)
   .get(
-    "/delivery_pricing",
+    "/",
     async ({ query: { limit, offset, sort, filters, fields }, drizzle }) => {
       let selectFields: SelectedFields = {};
       if (fields) {
@@ -63,7 +64,7 @@ export const DeliveryPricingController = new Elysia({
       }),
     }
   )
-  .get("/delivery_pricing/cached", async ({ redis }) => {
+  .get("/cached", async ({ redis }) => {
     const res = await redis.get(
       `${process.env.PROJECT_PREFIX}_delivery_pricing`
     );
@@ -72,7 +73,7 @@ export const DeliveryPricingController = new Elysia({
     permission: 'delivery_pricing.list',
   })
   .get(
-    "/delivery_pricing/:id",
+    "/:id",
     async ({ params: { id }, drizzle }) => {
       const permissionsRecord = await drizzle
         .select()
@@ -91,7 +92,7 @@ export const DeliveryPricingController = new Elysia({
     }
   )
   .post(
-    "/delivery_pricing",
+    "/",
     async ({ body: { data, fields }, drizzle }) => {
       let selectFields = {};
       if (fields) {
@@ -158,7 +159,7 @@ export const DeliveryPricingController = new Elysia({
     }
   )
   .put(
-    "/delivery_pricing/:id",
+    "/:id",
     async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
       let selectFields = {};
       if (fields) {

@@ -1,14 +1,15 @@
-import { courier_terminal_balance, order_transactions, orders, terminals, users } from "@api/drizzle/schema";
-import { ctx } from "@api/src/context";
-import { parseFilterFields } from "@api/src/lib/parseFilterFields";
+import { courier_terminal_balance, order_transactions, orders, terminals, users } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { parseFilterFields } from "../../lib/parseFilterFields";
 import { eq, and, desc, SQLWrapper } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 
 export const orderTransactionsController = new Elysia({
     name: "@app/order_transactions",
+    prefix: "/api/order_transactions",
 })
-    .use(ctx)
-    .get('/order_transactions', async ({ drizzle, set, user, query: {
+    .use(contextWitUser)
+    .get('/', async ({ drizzle, query: {
         filters
     } }) => {
         let whereClause: (SQLWrapper | undefined)[] = [];
@@ -64,7 +65,7 @@ export const orderTransactionsController = new Elysia({
                 filters: t.String(),
             }),
         })
-    .post('/order_transactions', async ({ body: { data: { terminal_id, amount, comment, courier_id } }, redis, cacheControl, drizzle, user }) => {
+    .post('/', async ({ body: { data: { terminal_id, amount, comment, courier_id } }, redis, cacheControl, drizzle, user }) => {
         const terminals = await cacheControl.getTerminals();
         const terminal = terminals.find((t) => t.id === terminal_id);
 

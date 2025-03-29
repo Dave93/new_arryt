@@ -1,20 +1,19 @@
-import { delivery_pricing, manager_withdraw, order_locations, order_status, orders, users } from "@api/drizzle/schema";
-import { processSendNotificationQueue, processYandexCallbackQueue } from "@api/src/context/queues";
-import { ctx } from "@api/src/context";
-import { getMinutes, getMinutesNow } from "@api/src/lib/dates";
+import { delivery_pricing, manager_withdraw, order_locations, order_status, orders, users } from "../../../drizzle/schema";
+import { contextWitUser } from "../../context";
+import { getMinutes, getMinutesNow } from "../../lib/dates";
 import dayjs from "dayjs";
 import { InferSelectModel, and, desc, eq, gte, lte, sum, inArray } from "drizzle-orm";
 import { Elysia, t } from "elysia";
-import { max, sort } from "radash";
+import { max, set, sort } from "radash";
 import { DeliveryPricingRulesDto } from "../delivery_pricing/dto/rules.dto";
 
 export const externalControler = new Elysia({
     name: "@app/external",
 })
-    .use(ctx)
-    .post("/external/set-score", async ({ body: { courier, order_id }, set, request: {
+    .use(contextWitUser)
+    .post("/api/external/set-score", async ({ body: { courier, order_id }, request: {
         headers
-    }, redis, cacheControl, drizzle }) => {
+    }, redis, cacheControl, drizzle, error }) => {
         const token = headers.get("authorization")?.split(" ")[1] ?? null;
 
         const apiTokenJson = await redis.get(
@@ -25,9 +24,8 @@ export const externalControler = new Elysia({
             const apiTokens = JSON.parse(apiTokenJson || "[]");
             const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
             if (!apiToken) {
-                set.status = 403;
 
-                return { error: `Forbidden` };
+                return error(403, { error: `Forbidden` });
             } else {
                 const organizations = await cacheControl.getOrganizations();
                 const currentOrganization = organizations.find((org: any) => org.id === apiToken.organization_id);
@@ -51,9 +49,8 @@ export const externalControler = new Elysia({
                 };
             }
         } catch (e) {
-            set.status = 403;
 
-            return { error: `Forbidden` };
+            return error(403, { error: `Forbidden` });
         }
     }, {
         body: t.Object({
@@ -61,7 +58,7 @@ export const externalControler = new Elysia({
             order_id: t.Number(),
         })
     })
-    .post("/external/change-location", async ({ body: { order_id, lat, lon }, set, request: {
+    .post("/api/external/change-location", async ({ body: { order_id, lat, lon }, set, request: {
         headers
     }, redis, cacheControl, drizzle }) => {
         const token = headers.get("authorization")?.split(" ")[1] ?? null;
@@ -280,7 +277,7 @@ export const externalControler = new Elysia({
             lon: t.Number(),
         })
     })
-    .post("/external/change-terminal", async ({ body: { order_id, terminal_id }, set, request: {
+    .post("/api/external/change-terminal", async ({ body: { order_id, terminal_id }, set, request: {
         headers
     }, redis, cacheControl, drizzle }) => {
         const token = headers.get("authorization")?.split(" ")[1] ?? null;
@@ -502,15 +499,13 @@ export const externalControler = new Elysia({
             terminal_id: t.String(),
         })
     })
-    .post('/external/calculate-customer-price', async ({ body: { terminal_id, toLat, toLon, phone, price: priceToCalculate, source_type }, set, request: { headers }, cacheControl }) => {
+    .post('/api/external/calculate-customer-price', async ({ body: { terminal_id, toLat, toLon, phone, price: priceToCalculate, source_type }, error, request: { headers }, cacheControl }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
         const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
         if (!apiToken) {
-            set.status = 403;
-
-            return { error: `Forbidden` };
+            return error(403, { error: `Forbidden` });
         }
 
         const terminals = await cacheControl.getTerminals();
@@ -518,9 +513,7 @@ export const externalControler = new Elysia({
         const terminal = terminals.find((t) => t.external_id === terminal_id);
 
         if (!terminal) {
-            set.status = 403;
-
-            return { error: `Terminal not found` };
+            return error(403, { error: `Terminal not found` });
         }
         const organizations = await cacheControl.getOrganization(terminal.organization_id);
 
@@ -604,8 +597,7 @@ export const externalControler = new Elysia({
         //     console.log('activeDeliveryPricingSorted before', activeDeliveryPricingSorted);
         // }
         if (activeDeliveryPricingSorted.length == 0) {
-            set.status = 400;
-            return { error: `No active delivery pricing` };
+            return error(400, { error: `No active delivery pricing` });
         }
 
         const actualLat = toLat;
@@ -721,7 +713,7 @@ export const externalControler = new Elysia({
             source_type: t.Optional(t.String()),
         })
     })
-    .get('/track/:id', async ({ params: { id }, set, request: { headers }, cacheControl, drizzle }) => {
+    .get('/api/track/:id', async ({ params: { id }, set, request: { headers }, cacheControl, drizzle }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
@@ -832,7 +824,9 @@ export const externalControler = new Elysia({
             id: t.String(),
         })
     })
-    .get('/external/cooked_time/:id', async ({ params: { id }, set, cacheControl, request: { headers }, drizzle, query: { date } }) => {
+    .get('/api/external/cooked_time/:id', async ({ params: { id }, set, cacheControl, request: { headers }, drizzle, query: { date }, queues: {
+        processSendNotificationQueue
+    } }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
@@ -978,7 +972,9 @@ export const externalControler = new Elysia({
             date: t.String(),
         }),
     })
-    .post('/external/yandex-callback', async ({ body, set }) => {
+    .post('/api/external/yandex-callback', async ({ body, queues: {
+        processYandexCallbackQueue
+    } }) => {
         console.log('body', body);
         if (body?.claim_id) {
             await processYandexCallbackQueue.add(`${body.claim_id}_${(new Date()).getTime()}`, body, {
@@ -995,7 +991,7 @@ export const externalControler = new Elysia({
             claim_id: t.Optional(t.String()),
         }),
     })
-    .post('/external/cancel-order', async ({ body, set, request: { headers }, drizzle, cacheControl }) => {
+    .post('/api/external/cancel-order', async ({ body, set, request: { headers }, drizzle, cacheControl }) => {
         console.log('body', body);
 
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
@@ -1047,7 +1043,7 @@ export const externalControler = new Elysia({
             order_id: t.String(),
         }),
     })
-    .post('/external/terminal-period-withdraws', async ({ body: { terminal_id, date_from, date_to }, error, request: { headers }, drizzle, cacheControl }) => {
+    .post('/api/external/terminal-period-withdraws', async ({ body: { terminal_id, date_from, date_to }, error, request: { headers }, drizzle, cacheControl }) => {
 
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
