@@ -18,6 +18,7 @@ import { Check, ChevronsUpDown, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import "leaflet/dist/leaflet.css";
+import { ChangeOrderCourier } from "@/components/orders/change-courier";
 
 // Define the Order Location type
 interface OrderLocation {
@@ -623,10 +624,16 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                   <div>
                     <h3 className="font-semibold mb-2 text-lg">Информация о курьере</h3>
                     <div className="space-y-2 text-sm">
-                      <p>
-                        <span className="font-medium">Имя:</span>{" "}
-                        {orderData.couriers ? `${orderData.couriers.first_name} ${orderData.couriers.last_name}` : 'Не назначен'}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p>
+                          <span className="font-medium">Имя:</span>{" "}
+                          {orderData.couriers ? `${orderData.couriers.first_name} ${orderData.couriers.last_name}` : 'Не назначен'}
+                        </p>
+                        <ChangeOrderCourier 
+                          orderId={orderId} 
+                          terminalId={orderData.terminals.id} 
+                        />
+                      </div>
                     </div>
                   </div>
                   <div>

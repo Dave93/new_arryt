@@ -9,6 +9,7 @@ import { useAuthStore } from "../../../lib/auth-store";
 import { sendOtp } from "../../../lib/user";
 import { authProvider } from "../../../lib/auth-provider";
 import { LoginForm } from "../../../lib/auth-types";
+import { storage } from "../../../lib/storage";
 
 export default function LoginPage() {
   const [current, setCurrent] = useState<"phone" | "code">("phone");
@@ -61,13 +62,19 @@ export default function LoginPage() {
       const user = await authProvider.login(loginData);
       
       if (user) {
-        // Получаем токен из localStorage после успешного входа
-        const authData = localStorage.getItem("admin-auth");
-        const { token } = authData ? JSON.parse(authData) : { token: null };
-        
-        login(user, token);
-        toast.success("Вход выполнен успешно");
-        router.push("/dashboard");
+        // Получаем токен из IndexedDB
+        try {
+          const authData = await storage.getAuthData();
+          const token = authData?.token || "";
+          
+          // Обновляем состояние в Zustand
+          login(user, token);
+          toast.success("Вход выполнен успешно");
+          router.push("/dashboard");
+        } catch (error) {
+          console.error("Ошибка при получении токена:", error);
+          toast.error("Произошла ошибка при авторизации");
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Ошибка при входе";

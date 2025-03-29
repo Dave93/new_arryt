@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "../providers/query-provider";
 import { ToastProvider } from "../providers/toast-provider";
 import { AuthGuard } from "../components/auth/auth-guard";
+import { AuthInitializer } from "../components/auth/auth-initializer";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,9 +23,11 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <QueryProvider>
-          <AuthGuard>
-            {children}
-          </AuthGuard>
+          <AuthInitializer>
+            <AuthGuard>
+              {children}
+            </AuthGuard>
+          </AuthInitializer>
         </QueryProvider>
         <Toaster position="top-right" />
       </body>
