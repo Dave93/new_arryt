@@ -2447,7 +2447,7 @@ export const UsersController = new Elysia({
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
                 WHERE courier_id = '${courierIdSql}' 
-                AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'order_bonus'`
+                AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type not in ('daily_garant', 'order')`
       )).rows[0];
 
     // yesterday bonus queries
@@ -2458,7 +2458,7 @@ export const UsersController = new Elysia({
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
                 WHERE courier_id = '${courierIdSql}' 
-                AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'order_bonus'`
+                AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type not in ('daily_garant', 'order')`
       )).rows[0];
 
     // week bonus queries
@@ -2469,7 +2469,7 @@ export const UsersController = new Elysia({
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
                 WHERE courier_id = '${courierIdSql}' 
-                AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'order_bonus'`
+                AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type not in ('daily_garant', 'order')`
       )).rows[0];
 
     // month bonus queries
@@ -2480,7 +2480,7 @@ export const UsersController = new Elysia({
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
                 WHERE courier_id = '${courierIdSql}' 
-                AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'order_bonus'`
+                AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type not in ('daily_garant', 'order')`
       )).rows[0];
 
     // today daily garant queries

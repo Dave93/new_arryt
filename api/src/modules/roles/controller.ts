@@ -1,4 +1,4 @@
-import { roles, roles_permissions } from "@api/drizzle/schema";
+import { roles, roles_permissions, permissions } from "@api/drizzle/schema";
 import { InferSelectModel, SQLWrapper, eq, sql } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 import { parseSelectFields } from "@api/src/lib/parseSelectFields";
@@ -57,8 +57,11 @@ export const RolesController = new Elysia({
     const permissionsList = await drizzle
       .select({
         permission_id: roles_permissions.permission_id,
+        permission_slug: permissions.slug,
+        permission_description: permissions.description,
       })
       .from(roles_permissions)
+      .leftJoin(permissions, eq(roles_permissions.permission_id, permissions.id))
       .where(eq(roles_permissions.role_id, id))
       .execute();
     return {

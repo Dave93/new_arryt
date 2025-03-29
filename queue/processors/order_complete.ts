@@ -108,51 +108,51 @@ export const processOrderComplete = async (db: DB, cacheControl: CacheControlSer
 
     let isCash = false;
 
-    try {
-        const courier = await db.select({
-            id: users.id,
-            drive_type: users.drive_type,
-        })
-            .from(users)
-            .where(eq(users.id, data.courier_id!))
-            .limit(1)
-            .execute();
+    // try {
+    //     const courier = await db.select({
+    //         id: users.id,
+    //         drive_type: users.drive_type,
+    //     })
+    //         .from(users)
+    //         .where(eq(users.id, data.courier_id!))
+    //         .limit(1)
+    //         .execute();
 
-        if (courier.length) {
-            if (courier[0].drive_type == 'car') {
-                await db.insert(order_transactions)
-                    .values({
-                        order_id: data.id,
-                        terminal_id: data.terminal_id!,
-                        courier_id: data.courier_id!,
-                        organization_id: data.organization_id!,
-                        amount: 3000,
-                        not_paid_amount: 3000,
-                        transaction_type: 'fuel_bonus',
-                        transaction_payment_type: 'cash',
-                        balance_before: startBalance,
-                        balance_after: startBalance + 3000,
-                    })
-                    .execute();
-                if (courierTerminalBalance.length) {
-                    startBalance += 3000;
-                    await db.update(courier_terminal_balance).set({
-                        balance: startBalance,
-                    }).where(eq(courier_terminal_balance.id, courierTerminalBalance[0].id)).execute();
-                } else {
-                    courierTerminalBalance = await db.insert(courier_terminal_balance).values({
-                        courier_id: data.courier_id!,
-                        terminal_id: data.terminal_id!,
-                        balance: 3000,
-                        organization_id: data.organization_id!,
-                    }).returning().execute();
-                }
-            }
-        }
+    //     if (courier.length) {
+    //         if (courier[0].drive_type == 'car') {
+    //             await db.insert(order_transactions)
+    //                 .values({
+    //                     order_id: data.id,
+    //                     terminal_id: data.terminal_id!,
+    //                     courier_id: data.courier_id!,
+    //                     organization_id: data.organization_id!,
+    //                     amount: 3000,
+    //                     not_paid_amount: 3000,
+    //                     transaction_type: 'fuel_bonus',
+    //                     transaction_payment_type: 'cash',
+    //                     balance_before: startBalance,
+    //                     balance_after: startBalance + 3000,
+    //                 })
+    //                 .execute();
+    //             if (courierTerminalBalance.length) {
+    //                 startBalance += 3000;
+    //                 await db.update(courier_terminal_balance).set({
+    //                     balance: startBalance,
+    //                 }).where(eq(courier_terminal_balance.id, courierTerminalBalance[0].id)).execute();
+    //             } else {
+    //                 courierTerminalBalance = await db.insert(courier_terminal_balance).values({
+    //                     courier_id: data.courier_id!,
+    //                     terminal_id: data.terminal_id!,
+    //                     balance: 3000,
+    //                     organization_id: data.organization_id!,
+    //                 }).returning().execute();
+    //             }
+    //         }
+    //     }
 
-    } catch (e) {
-        console.log('process Fuel Bonus Error', e);
-    }
+    // } catch (e) {
+    //     console.log('process Fuel Bonus Error', e);
+    // }
 
     if (organization.payment_type == 'cash') {
         isCash = true;

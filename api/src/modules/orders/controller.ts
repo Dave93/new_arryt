@@ -1048,44 +1048,53 @@ export const OrdersController = new Elysia({
                     const actualLon = toLon;
                     for (const d of activeDeliveryPricingSorted) {
                         if (d.drive_type == 'foot') {
-                            const responseJson = await fetch(
-                                `http://127.0.0.1:5001/route/v1/driving/${currentTerminal.longitude},${currentTerminal.latitude};${actualLon},${actualLat}?steps=true&overview=false`
-                            );
-                            const data = await responseJson.json();
-                            if (d.price_per_km == 0 && d.rules) {
-                                const rules = d.rules as DeliveryPricingRulesDto[];
-                                const maxDistance: any = max(rules, (i: any) => +i.to);
-                                const tempDistance = data.routes[0].distance + 100; // add 100 meters
-                                if (tempDistance / 1000 > maxDistance.to) {
-                                    continue;
-                                } else {
-                                    if (!minDeliveryPricing) {
-                                        minDistance = tempDistance;
-                                        minDuration = data.routes[0].duration;
-                                        minDeliveryPricing = d;
-                                    }
-                                    if (tempDistance < minDistance) {
-                                        minDistance = tempDistance;
-                                        minDuration = data.routes[0].duration;
-                                        minDeliveryPricing = d;
+                            try {
+                                const responseJson = await fetch(
+                                    `http://127.0.0.1:5001/route/v1/driving/${currentTerminal.longitude},${currentTerminal.latitude};${actualLon},${actualLat}?steps=true&overview=false`
+                                );
+                                const data = await responseJson.json();
+                                if (d.price_per_km == 0 && d.rules) {
+                                    const rules = d.rules as DeliveryPricingRulesDto[];
+                                    const maxDistance: any = max(rules, (i: any) => +i.to);
+                                    const tempDistance = data.routes[0].distance + 100; // add 100 meters
+                                    if (tempDistance / 1000 > maxDistance.to) {
+                                        continue;
+                                    } else {
+                                        if (!minDeliveryPricing) {
+                                            minDistance = tempDistance;
+                                            minDuration = data.routes[0].duration;
+                                            minDeliveryPricing = d;
+                                        }
+                                        if (tempDistance < minDistance) {
+                                            minDistance = tempDistance;
+                                            minDuration = data.routes[0].duration;
+                                            minDeliveryPricing = d;
+                                        }
                                     }
                                 }
+                            } catch (e) {
+                                console.log('foot error', e);
                             }
                         } else {
-                            const responseJson = await fetch(
-                                `http://127.0.0.1:5000/route/v1/driving/${currentTerminal.longitude},${currentTerminal.latitude};${actualLon},${actualLat}?steps=true&overview=false`
-                            );
-                            const data = await responseJson.json();
-                            const tempDistance = data.routes[0].distance + 100; // add 100 meters
-                            if (!minDeliveryPricing) {
-                                minDistance = tempDistance;
-                                minDuration = data.routes[0].duration;
-                                minDeliveryPricing = d;
-                            }
-                            if (tempDistance < minDistance && tempDistance > d.min_distance_km) {
-                                minDistance = tempDistance;
-                                minDuration = data.routes[0].duration;
-                                minDeliveryPricing = d;
+                            try {
+                                const responseJson = await fetch(
+                                    `http://127.0.0.1:5000/route/v1/driving/${currentTerminal.longitude},${currentTerminal.latitude};${actualLon},${actualLat}?steps=true&overview=false`
+                                );
+                                const data = await responseJson.json();
+                                const tempDistance = data.routes[0].distance + 100; // add 100 meters
+                                if (!minDeliveryPricing) {
+                                    minDistance = tempDistance;
+                                    minDuration = data.routes[0].duration;
+                                    minDeliveryPricing = d;
+                                }
+                                if (tempDistance < minDistance && tempDistance > d.min_distance_km) {
+                                    minDistance = tempDistance;
+                                    minDuration = data.routes[0].duration;
+                                    minDeliveryPricing = d;
+                                }
+
+                            } catch (e) {
+                                console.log('car error', e);
                             }
                         }
                     }

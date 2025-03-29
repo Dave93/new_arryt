@@ -19,6 +19,23 @@ export const redisClient = new Redis({
 
 const cacheControl = new CacheControlService(db, redisClient);
 
+const onlyThisTerminals = [
+    '6c2ea284-6d75-4061-b93a-2a54a0a77085',
+    'a65bbbd3-66c7-4d61-84ae-403009107154',
+    '972b7402-345d-400e-9bf2-b77691b0fcd9',
+    '56fe54a9-ae37-49b7-8de7-62aadb2abd19',
+    '0bd34d62-f0b0-434c-a739-249cac440dad',
+    '81f38bd9-5aa6-443d-8158-9c2207d70caf',
+    '59946b39-71a9-465c-b155-c708d989f9a1',
+    'ae73196e-3ddd-48c8-aeb8-d15c8bf48045',
+    '419b466b-a575-4e2f-b771-7206342bc242',
+    'f8bff3a8-651e-44dc-a774-90129a3487eb',
+    '4a8e1810-d549-42e2-829e-c8dd4046dc32',
+    '897b987a-6675-4e68-bc0e-81abc21a1b43',
+    '36f7a844-8a72-40c2-a1c5-27dcdc8c2efd',
+    'b1a884a3-7096-4a8c-8425-8f824fbbf59c'
+];
+
 export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: CacheControlService) => {
     const scheduledReport = (await db.select().from(scheduled_reports).where(eq(scheduled_reports.code, 'courier_withdraws')).limit(1).execute())[0];
 
@@ -43,9 +60,27 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
     // if (existingSentReport && existingSentReport.length > 0) {
     //     return;
     // }
-
+    const terminalCondition = onlyThisTerminals.length > 0
+        ? `AND ot.terminal_id IN ('${onlyThisTerminals.join("','")}')`
+        : `AND 1=1`;
     const workStartTime = new Date(await cacheControl.getSetting('work_start_time')).getHours();
     const workEndTime = new Date(await cacheControl.getSetting('work_end_time')).getHours();
+    console.log('onlyThisTerminals', onlyThisTerminals);
+    console.log('workStartTime', workStartTime);
+    console.log('workEndTime', workEndTime);
+    console.log('terminalCondition', `AND ot.terminal_id IN ('${onlyThisTerminals.join("','")}')`);
+    console.log('sql', `select 
+            sum(ot.amount) as total,
+            ot.courier_id,
+            concat(u.last_name, ' ', u.first_name) as courier_name,
+            ot.terminal_id,
+            t.name as terminal_name
+        from order_transactions ot
+        left join users u on ot.courier_id = u.id
+        left join terminals t on ot.terminal_id = t.id
+        where ot.created_at >= '${dayjs().subtract(1, 'day').hour(workStartTime).toISOString()}' and ot.created_at <= '${dayjs().hour(workEndTime).toISOString()}'
+        ${terminalCondition}
+        group by ot.courier_id, u.last_name, u.first_name, ot.terminal_id, t.name`)
     console.log('report query')
     const orderTransactions = (await db.execute<{
         total: number;
@@ -63,7 +98,9 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
         left join users u on ot.courier_id = u.id
         left join terminals t on ot.terminal_id = t.id
         where ot.created_at >= '${dayjs().subtract(1, 'day').hour(workStartTime).toISOString()}' and ot.created_at <= '${dayjs().hour(workEndTime).toISOString()}'
+        ${terminalCondition}
         group by ot.courier_id, u.last_name, u.first_name, ot.terminal_id, t.name`))).rows;
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Courier withdraws');
 
@@ -80,7 +117,12 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
         worksheet.addRow({
             terminal_name: item.terminal_name || '',
             courier_name: item.courier_name || '',
-            total: item.total || 0
+            total: Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'UZS',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(item.total).replace('UZS', '').trim() || 0
         });
     });
 
@@ -118,6 +160,7 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
     await Bun.write('./sent_reports.json', JSON.stringify(sentReports));
 
     return true;
+
     // }
 }
 
