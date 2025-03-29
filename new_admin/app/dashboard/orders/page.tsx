@@ -19,6 +19,9 @@ import { IconCircleCheckFilled, IconUser, IconPhone, IconBuildingStore, IconBuil
 import { sortBy } from "lodash";
 import { ru } from "date-fns/locale";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
+import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { OrderDetailsClientPage } from "@/components/orders/order-details-client-page";
 
 // Определяем тип Order
 interface Order {
@@ -121,13 +124,7 @@ const columns: ColumnDef<Order>[] = [
     id: "actions",
     cell: ({ row }) => (
       <div className="flex justify-end">
-        <Button asChild size="sm" variant="ghost">
-           {/* Ensure this link is correct for your new routing */}
-           <Link href={`/dashboard/orders/${row.original.id}`}>
-            <Eye className="h-4 w-4 mr-1" />
-            Просмотр
-          </Link>
-        </Button>
+        <OrderDetailSheet orderId={row.original.id} />
       </div>
     ),
      size: 80,
@@ -146,13 +143,13 @@ const columns: ColumnDef<Order>[] = [
     accessorKey: "order_number",
     header: "Заказ №",
     cell: ({ row }) => (
-      <Button variant="link" className="p-0 h-auto font-medium" asChild>
-        <Link href={`/dashboard/orders/${row.original.id}`}>
+      <OrderDetailSheet orderId={row.original.id}>
+        <Button variant="link" className="p-0 h-auto font-medium">
           {row.getValue("order_number")}
-        </Link>
-      </Button>
+        </Button>
+      </OrderDetailSheet>
     ),
-     size: 90,
+    size: 90,
   },
   {
     accessorKey: "created_at",
@@ -166,11 +163,8 @@ const columns: ColumnDef<Order>[] = [
     accessorKey: "order_status",
     header: "Статус",
     cell: ({ row }) => (
-      <Badge variant="outline" className="text-muted-foreground px-1.5 py-0.5 font-bold bg-muted-foreground/5">
-        <IconCircleCheckFilled
-          className="h-3.5 w-3.5 mr-1.5 border rounded-full"
-          style={{ color: row.original.order_status.color || '#ccc'}}
-        />
+      <Badge variant="outline" className="text-black px-1.5 py-0.5 font-bold bg-muted-foreground/5" 
+      style={{ backgroundColor: row.original.order_status.color || '#ccc'}}>
         {row.original.order_status.name}
       </Badge>
     ),

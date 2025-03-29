@@ -111,14 +111,14 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className="rounded-md border">
+      <div className="bg-background overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="bg-muted/50 *:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="h-9 py-2">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -131,13 +131,13 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody className="[&_td:first-child]:rounded-l-lg [&_td:last-child]:rounded-r-lg">
             {loading ? (
               // Отображаем скелетоны строк, количество которых соответствует текущему размеру страницы
               Array.from({ length: paginationState.pageSize }).map((_, index) => (
-                <TableRow key={`skeleton-${index}`} className={getRowOpacity(index)}>
+                <TableRow key={`skeleton-${index}`} className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
                   {columns.map((column, colIndex) => (
-                    <TableCell key={`skeleton-cell-${colIndex}`}>
+                    <TableCell key={`skeleton-cell-${colIndex}`} className="py-2">
                       <Skeleton className={`h-6 ${getRandomWidth(colIndex)}`} />
                     </TableCell>
                   ))}
@@ -148,6 +148,7 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                   className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r odd:bg-muted/90 odd:hover:bg-muted/90 border-none hover:bg-transparent"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

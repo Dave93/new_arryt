@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import "leaflet/dist/leaflet.css";
 import { ChangeOrderCourier } from "@/components/orders/change-courier";
+import { RemoveOrderCourier } from "@/components/orders/remove-courier";
 
 // Define the Order Location type
 interface OrderLocation {
@@ -624,15 +625,22 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                   <div>
                     <h3 className="font-semibold mb-2 text-lg">Информация о курьере</h3>
                     <div className="space-y-2 text-sm">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col space-y-2">
                         <p>
                           <span className="font-medium">Имя:</span>{" "}
                           {orderData.couriers ? `${orderData.couriers.first_name} ${orderData.couriers.last_name}` : 'Не назначен'}
                         </p>
-                        <ChangeOrderCourier 
-                          orderId={orderId} 
-                          terminalId={orderData.terminals.id} 
-                        />
+                        <div className="flex items-center space-x-2">
+                          <ChangeOrderCourier 
+                            orderId={orderId} 
+                            terminalId={orderData.terminals.id} 
+                          />
+                          {orderData.couriers && (
+                            <RemoveOrderCourier 
+                              orderId={orderId}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
