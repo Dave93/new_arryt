@@ -22,6 +22,7 @@ import { sortBy } from "lodash";
 import { ru } from "date-fns/locale";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import { SendOrderToYandex } from "@/components/orders/send-to-yandex";
+import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
 
 // Define MissedOrder interface
 interface MissedOrder {
@@ -143,12 +144,7 @@ const columns: ColumnDef<MissedOrder>[] = [
     id: "actions",
     cell: ({ row }) => (
       <div className="flex justify-end">
-        <Button asChild size="sm" variant="ghost">
-          <Link href={`/dashboard/orders/${row.original.id}`}>
-            <Eye className="h-4 w-4 mr-1" />
-            Просмотр
-          </Link>
-        </Button>
+        <OrderDetailSheet orderId={row.original.id} />
       </div>
     ),
     size: 80,

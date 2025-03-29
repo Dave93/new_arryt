@@ -1,15 +1,11 @@
-import OrderDetailsClientPage from "./page.client";
+import { OrderDetailsClientPage } from "@/components/orders/order-details-client-page";
 
-interface OrderPageProps {
-  params: Promise<{
+interface OrderDetailPageProps {
+  params: {
     id: string;
-  }>;
+  };
 }
 
-// This is now a Server Component
-export default async function OrderPage({ params }: OrderPageProps) {
-  const { id } = await params;
-
-  // We pass the id extracted from params on the server to the client component
-  return <OrderDetailsClientPage orderId={id} />;
+export default function OrderDetailPage({ params }: OrderDetailPageProps) {
+  return <OrderDetailsClientPage orderId={params.id} isSheet={false} />;
 } 

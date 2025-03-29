@@ -30,10 +30,10 @@ export function SendOrderToYandex({ order }: SendOrderToYandexProps) {
         headers: authHeaders,
       });
       
-      toast.success("Order sent to Yandex successfully");
+      toast.success("Заказ отправлен в Яндекс");
     } catch (error) {
       console.error("Error sending order to Yandex:", error);
-      toast.error("Failed to send order to Yandex");
+      toast.error("Не удалось отправить заказ в Яндекс");
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +41,7 @@ export function SendOrderToYandex({ order }: SendOrderToYandexProps) {
 
   return (
     <Button 
-      variant="outline" 
+      variant="default" 
       size="sm" 
       onClick={handleSendToYandex}
       disabled={isLoading}
@@ -51,7 +51,7 @@ export function SendOrderToYandex({ order }: SendOrderToYandexProps) {
       ) : (
         <IconSend className="h-4 w-4 mr-2" />
       )}
-      Send to Yandex
+      Отправить в Яндекс
     </Button>
   );
 } 
