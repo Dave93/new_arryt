@@ -2,7 +2,7 @@ import { LoginForm, User } from "./auth-types";
 import { verifyOtp } from "./user";
 import { storage } from "./storage";
 import ms from "ms";
-import { addMilliseconds, isBefore, parseISO } from "date-fns";
+import { addMilliseconds, isBefore, parseISO, addHours } from "date-fns";
 
 export interface AuthProviderMethods {
   login: (credentials: LoginForm) => Promise<User>;
@@ -76,15 +76,16 @@ export const authProvider: AuthProviderMethods = {
       }
 
       const { expiration } = authData;
-
+      console.log('expiration', expiration);
       if (!expiration) {
         await storage.removeAuthData();
         return false;
       }
       
-      const isExpired = isBefore(parseISO(expiration), new Date());
+      const isExpired = isBefore(addHours(parseISO(expiration), 6), new Date());
       
       if (isExpired) {
+        console.log('isExpired', isExpired);
         await storage.removeAuthData();
         return false;
       }
