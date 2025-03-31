@@ -105,6 +105,16 @@ const columns: ColumnDef<MissedOrder>[] = [
     size: 200,
   },
   {
+    id: "yandex",
+    header: "Отправить в Яндекс",
+    cell: ({ row }) => (
+      <div className="flex flex-col gap-2">
+        <SendOrderToYandex order={row.original} />
+      </div>
+    ),
+    size: 150,
+  },
+  {
     accessorKey: "pre_distance",
     header: "Дистанция",
     cell: ({ row }) => (
@@ -129,16 +139,6 @@ const columns: ColumnDef<MissedOrder>[] = [
     header: "Способ оплаты",
     cell: ({ row }) => <div>{row.getValue("payment_type")}</div>,
     size: 120,
-  },
-  {
-    id: "yandex",
-    header: "Отправить в Яндекс",
-    cell: ({ row }) => (
-      <div className="flex flex-col gap-2">
-        <SendOrderToYandex order={row.original} />
-      </div>
-    ),
-    size: 150,
   },
   {
     id: "actions",

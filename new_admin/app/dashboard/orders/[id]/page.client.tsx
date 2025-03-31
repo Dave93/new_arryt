@@ -484,18 +484,8 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
   
   // Keep the JSX structure, using the 'order' data from useQuery
   return (
-    <div className="container mx-auto pb-10 space-y-3">
-      {/* Back to List Button */}
-      <div>
-        <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href="/dashboard/orders">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Вернуться к списку заказов
-          </Link>
-        </Button>
-      </div>
 
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
@@ -508,60 +498,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                   : "Доставка не завершена"}
               </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <Badge style={{ backgroundColor: orderData.order_status.color }} className="text-white">
-                {orderData.order_status.name}
-              </Badge>
-              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={popoverOpen}
-                    className="w-[200px] justify-between"
-                    size="sm"
-                    disabled={isLoadingStatuses || isErrorStatuses || updateStatusMutation.isPending}
-                  >
-                    {isLoadingStatuses ? "Загрузка..." : "Изменить статус"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0 z-[900]">
-                  <Command>
-                    <CommandInput placeholder="Поиск статуса..." />
-                    <CommandList>
-                      <CommandEmpty>Статусы не найдены.</CommandEmpty>
-                      <CommandGroup>
-                        {availableStatuses.map((status) => (
-                          <CommandItem
-                            key={status.id}
-                            value={status.name}
-                            onSelect={() => {
-                              if (status.id !== orderData.order_status.id) {
-                                updateStatusMutation.mutate(status.id);
-                              } else {
-                                setPopoverOpen(false);
-                              }
-                            }}
-                            disabled={updateStatusMutation.isPending}
-                            className="cursor-pointer"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                orderData.order_status.id === status.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <span style={{ backgroundColor: status.color || 'inherit' }} className="mr-2 rounded-full w-4 h-4"></span>
-                            {status.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
+            
           </div>
         </CardHeader>
         <CardContent>
@@ -580,6 +517,82 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             <TabsContent value="details">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 space-y-6">
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Информация о курьере</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center space-y-2">
+                        <p className="m-0">
+                          <span className="font-medium">Имя:</span>{" "}
+                          {orderData.couriers ? `${orderData.couriers.first_name} ${orderData.couriers.last_name}` : 'Не назначен'}
+                        </p>
+                        <div className="flex items-center space-x-2">
+                          <ChangeOrderCourier 
+                            orderId={orderId} 
+                            terminalId={orderData.terminals.id} 
+                          />
+                          {orderData.couriers && (
+                            <RemoveOrderCourier 
+                              orderId={orderId}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between space-x-2">
+                    <Badge style={{ backgroundColor: orderData.order_status.color }} className="text-white">
+                      {orderData.order_status.name}
+                    </Badge>
+                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={popoverOpen}
+                          className="w-[200px] justify-between"
+                          size="sm"
+                          disabled={isLoadingStatuses || isErrorStatuses || updateStatusMutation.isPending}
+                        >
+                          {isLoadingStatuses ? "Загрузка..." : "Изменить статус"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0 z-[900]">
+                        <Command>
+                          <CommandInput placeholder="Поиск статуса..." />
+                          <CommandList>
+                            <CommandEmpty>Статусы не найдены.</CommandEmpty>
+                            <CommandGroup>
+                              {availableStatuses.map((status) => (
+                                <CommandItem
+                                  key={status.id}
+                                  value={status.name}
+                                  onSelect={() => {
+                                    if (status.id !== orderData.order_status.id) {
+                                      updateStatusMutation.mutate(status.id);
+                                    } else {
+                                      setPopoverOpen(false);
+                                    }
+                                  }}
+                                  disabled={updateStatusMutation.isPending}
+                                  className="cursor-pointer"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      orderData.order_status.id === status.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <span style={{ backgroundColor: status.color || 'inherit' }} className="mr-2 rounded-full w-4 h-4"></span>
+                                  {status.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <div>
                     <h3 className="font-semibold mb-2 text-lg">Информация о заказе</h3>
                     <div className="space-y-2 text-sm">
@@ -620,28 +633,6 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         <span className="font-medium">Телефон:</span>{" "}
                         {orderData.customers.phone}
                       </p>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2 text-lg">Информация о курьере</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex flex-col space-y-2">
-                        <p>
-                          <span className="font-medium">Имя:</span>{" "}
-                          {orderData.couriers ? `${orderData.couriers.first_name} ${orderData.couriers.last_name}` : 'Не назначен'}
-                        </p>
-                        <div className="flex items-center space-x-2">
-                          <ChangeOrderCourier 
-                            orderId={orderId} 
-                            terminalId={orderData.terminals.id} 
-                          />
-                          {orderData.couriers && (
-                            <RemoveOrderCourier 
-                              orderId={orderId}
-                            />
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
                   <div>
@@ -763,6 +754,5 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
           </Tabs>
         </CardContent>
       </Card>
-    </div>
   );
 } 
