@@ -69,7 +69,7 @@ export const CouriersController = new Elysia({
     .use(contextWitUser)
 
   .get(
-    "/api/couriers/roll_call",
+    "/api/couriers/roll_coll",
     async ({ redis, query: { date }, drizzle, user, set }) => {
       const terminalsRes = await redis.get(
         `${process.env.PROJECT_PREFIX}_terminals`
