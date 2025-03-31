@@ -223,16 +223,25 @@ const columns: ColumnDef<Order>[] = [
              {row.original.customer.name}
             </Link>
          </Button>
-          <Button variant="link" className="p-0 h-auto text-muted-foreground justify-start" asChild>
-            <a href={`tel:${row.original.customer.phone}`}>
-              <IconPhone className="h-3 w-3 mr-1 inline-block shrink-0" />
-               {row.original.customer.phone}
-            </a>
-         </Button>
        </div>
      ),
      size: 150,
   },
+  {
+   accessorKey: "customer.phone",
+   header: "Телефон",
+   cell: ({ row }) => (
+      <div className="flex flex-col">
+         <Button variant="link" className="p-0 h-auto text-muted-foreground justify-start" asChild>
+           <a href={`tel:${row.original.customer.phone}`}>
+             <IconPhone className="h-3 w-3 mr-1 inline-block shrink-0" />
+              {row.original.customer.phone}
+           </a>
+        </Button>
+      </div>
+    ),
+    size: 150,
+ },
   {
     accessorKey: "order_price",
     header: "Цена",
@@ -785,6 +794,7 @@ export default function OrdersPage() {
                 value={dateRange}
                 onChange={(value: DateRange | undefined) => setDateRange(value)}
                 className="w-auto col-span-2 xl:col-span-1"
+                timePicker={true}
               />
               <Input
                 placeholder="Поиск заказов..."
