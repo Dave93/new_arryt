@@ -780,23 +780,23 @@ export default function OrdersPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-5 gap-4">
               <DateRangePicker
                 value={dateRange}
                 onChange={(value: DateRange | undefined) => setDateRange(value)}
-                className="w-auto min-w-[300px]"
+                className="w-auto"
               />
               <Input
                 placeholder="Поиск заказов..."
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                className="w-auto min-w-[200px]"
+                className="w-auto"
               />
               <Input
                 placeholder="Телефон клиента..."
                 value={customerPhone}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerPhone(e.target.value)}
-                className="w-auto min-w-[200px]"
+                className="w-auto"
               />
               <MultipleSelector
                 value={selectedOrganizationOption}
@@ -805,7 +805,7 @@ export default function OrdersPage() {
                 placeholder="Выберите организацию"
                 maxSelected={1}
                 hidePlaceholderWhenSelected
-                className="w-auto min-w-[200px]"
+                className="w-auto"
                 commandProps={{
                   label: "Выберите организацию",
                 }}
@@ -818,7 +818,7 @@ export default function OrdersPage() {
                 placeholder="Выберите терминал"
                 maxSelected={1}
                 hidePlaceholderWhenSelected
-                className="w-auto min-w-[200px]"
+                className="w-auto"
                 commandProps={{
                   label: "Выберите терминал",
                 }}
@@ -842,7 +842,7 @@ export default function OrdersPage() {
                 }
                 maxSelected={1}
                 hidePlaceholderWhenSelected
-                className="w-auto min-w-[200px]"
+                className="w-auto"
                 triggerSearchOnFocus
                 delay={300}
                 commandProps={{
@@ -855,7 +855,7 @@ export default function OrdersPage() {
                 onChange={(options) => setSelectedStatuses(options.map(opt => opt.value))}
                 options={statusOptions}
                 placeholder="Выберите статусы..."
-                className="w-auto min-w-[250px]"
+                className="w-auto"
                 emptyIndicator={
                   <div className="py-2 text-center text-sm text-muted-foreground">
                     Статусы не найдены.
@@ -873,7 +873,7 @@ export default function OrdersPage() {
                 placeholder="Выберите регион"
                 maxSelected={1}
                 hidePlaceholderWhenSelected
-                className="w-auto min-w-[200px]"
+                className="w-auto"
                 commandProps={{
                   label: "Выберите регион",
                 }}
