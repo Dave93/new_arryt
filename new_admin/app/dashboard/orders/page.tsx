@@ -784,7 +784,7 @@ export default function OrdersPage() {
               <DateRangePicker
                 value={dateRange}
                 onChange={(value: DateRange | undefined) => setDateRange(value)}
-                className="w-auto"
+                className="w-auto col-span-2 xl:col-span-1"
               />
               <Input
                 placeholder="Поиск заказов..."
