@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CalendarIcon, FilterIcon, PhoneIcon, Calculator } from "lucide-react";
@@ -123,6 +123,7 @@ function CourierDriveTypeIcon({ driveType }: { driveType?: string }) {
 export default function RollCallList() {
   const [searchQuery, setSearchQuery] = useState("");
   const authHeaders = useGetAuthHeaders();
+  const queryClient = useQueryClient();
   
   // Initialize form with default values
   const form = useForm<FilterValues>({
@@ -140,7 +141,7 @@ export default function RollCallList() {
     queryKey: ["roll-call", filterValues.date, searchQuery],
     queryFn: async () => {
       try {
-        const { data: rollCallList } = await apiClient.api.couriers.roll_call.get({
+        const { data: rollCallList } = await apiClient.api.couriers.roll_coll.get({
           query: {
             date: filterValues.date.toISOString(),
             // search: searchQuery || undefined,
@@ -179,6 +180,10 @@ export default function RollCallList() {
     
     return () => clearTimeout(timeoutId);
   }, []);
+
+  const onRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["roll-call"] });
+  }
 
   // Handle filter submit
   const onSubmit = (values: FilterValues) => {
@@ -231,7 +236,7 @@ export default function RollCallList() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit">
+                <Button type="submit" onClick={onRefresh}>
                   <FilterIcon className="h-4 w-4 mr-2" />
                   Обновить
                 </Button>
