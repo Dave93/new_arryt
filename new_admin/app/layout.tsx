@@ -6,6 +6,7 @@ import { ToastProvider } from "../providers/toast-provider";
 import { AuthGuard } from "../components/auth/auth-guard";
 import { AuthInitializer } from "../components/auth/auth-initializer";
 import { Toaster } from "sonner";
+import "leaflet/dist/leaflet.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
