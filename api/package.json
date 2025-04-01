@@ -45,6 +45,8 @@
   },
   "module": "src/index.js",
   "trustedDependencies": [
+    "esbuild",
+    "msgpackr-extract",
     "protobufjs"
   ]
 }

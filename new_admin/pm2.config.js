@@ -1,3 +1,4 @@
+require("dotenv").config();
 module.exports = {
     apps: [
       {
@@ -12,6 +13,8 @@ module.exports = {
         env_production: {
           PORT: process.env.NODE_PORT,
           NODE_ENV: "production",
+          NEXT_PUBLIC_API_URL: "https://api.arryt.uz",
+          NEXT_PUBLIC_AUTH_SECRET: "your-secret-key"
         },
       },
     ],
