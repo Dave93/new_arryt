@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -9,14 +9,15 @@ import { toast } from "sonner";
 import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
-import { Eye, Plus, Edit, Phone } from "lucide-react";
+import { Eye, Plus, Edit, Phone, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "../../../components/ui/switch";
 import { format } from "date-fns";
 import { Badge } from "../../../components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { Form, FormControl, FormField, FormItem } from "../../../components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "../../../components/ui/form";
 import { useForm } from "react-hook-form";
+import MultipleSelector, { Option } from "@/components/ui/multiselect";
 
 // Определение типа для пользователя
 interface User {
@@ -178,6 +179,10 @@ export default function UsersList() {
   const [selectedTerminalId, setSelectedTerminalId] = useState<string>("");
   const [selectedWorkScheduleId, setSelectedWorkScheduleId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedCourierOption, setSelectedCourierOption] = useState<Option | null>(null);
+  const [selectedOnlineStatus, setSelectedOnlineStatus] = useState<string>("all");
+  const [selectedDriveTypes, setSelectedDriveTypes] = useState<string[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const authHeaders = useGetAuthHeaders();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -188,7 +193,10 @@ export default function UsersList() {
     defaultValues: {
       terminal_id: "all",
       work_schedule_id: "all",
-      status: "all"
+      status: "all",
+      online_status: "all",
+      role_id: "all",
+      drive_types: []
     }
   });
 
@@ -224,15 +232,72 @@ export default function UsersList() {
     enabled: !!authHeaders,
   });
 
+  const { data: rolesData, isLoading: isLoadingRoles } = useQuery({
+    queryKey: ["roles_cached"],
+    queryFn: async () => {
+      try {
+        const {data: response} = await apiClient.api.roles.cached.get({
+          headers: authHeaders,
+        });
+        return response || [];
+      } catch (error) {
+        toast.error("Не удалось загрузить список ролей");
+        return [];
+      }
+    },
+    enabled: !!authHeaders,
+  });
+
   useEffect(() => {
     setPagination(prev => ({
       ...prev,
       pageIndex: 0
     }));
-  }, [searchQuery, selectedTerminalId, selectedWorkScheduleId, selectedStatus]);
+  }, [
+    searchQuery, 
+    selectedTerminalId, 
+    selectedWorkScheduleId, 
+    selectedStatus, 
+    selectedCourierOption, 
+    selectedOnlineStatus, 
+    selectedDriveTypes,
+    selectedRoleId
+  ]);
+
+  // Function to fetch couriers for MultipleSelector (onSearch)
+  const fetchCouriers = useCallback(async (search: string): Promise<Option[]> => {
+    if (!authHeaders.Authorization) return [];
+    try {
+      const response = await apiClient.api.couriers.search.get({
+        query: { search: search },
+        headers: authHeaders,
+      });
+      const usersData = response.data || [];
+      return usersData.map((user: { id: string; first_name: string | null; last_name: string | null }) => ({
+        value: user.id,
+        label: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+      }));
+    } catch (err) {
+      console.error("Failed to fetch couriers:", err);
+      toast.error("Не удалось найти курьеров");
+      return [];
+    }
+  }, [authHeaders]);
 
   const { data: usersData = { total: 0, data: [] }, isLoading } = useQuery({
-    queryKey: ["users", searchQuery, selectedTerminalId, selectedWorkScheduleId, selectedStatus, pagination.pageIndex, pagination.pageSize],
+    queryKey: [
+      "users", 
+      searchQuery, 
+      selectedTerminalId, 
+      selectedWorkScheduleId, 
+      selectedStatus, 
+      selectedCourierOption?.value, 
+      selectedOnlineStatus,
+      selectedDriveTypes,
+      selectedRoleId,
+      pagination.pageIndex, 
+      pagination.pageSize
+    ],
     queryFn: async () => {
       try {
         const filters = [];
@@ -287,6 +352,43 @@ export default function UsersList() {
           });
         }
 
+        // Add courier filter
+        const courierId = selectedCourierOption?.value;
+        if (courierId) {
+          filters.push({
+            field: "id",
+            operator: "eq",
+            value: courierId,
+          });
+        }
+
+        // Add online status filter
+        if (selectedOnlineStatus !== "all") {
+          filters.push({
+            field: "is_online",
+            operator: "eq",
+            value: selectedOnlineStatus === "online",
+          });
+        }
+
+        // Add drive type filter
+        if (selectedDriveTypes.length > 0) {
+          filters.push({
+            field: "drive_type",
+            operator: "in",
+            value: selectedDriveTypes,
+          });
+        }
+
+        // Add role filter
+        if (selectedRoleId && selectedRoleId !== "all") {
+          filters.push({
+            field: "users_roles.role_id",
+            operator: "eq",
+            value: selectedRoleId,
+          });
+        }
+
         const {data: response} = await apiClient.api.users.get({
           headers: authHeaders,
           query: {
@@ -338,18 +440,41 @@ export default function UsersList() {
     setSelectedStatus(value === "all" ? "" : value);
   };
 
+  const onOnlineStatusFilterChange = (value: string) => {
+    setSelectedOnlineStatus(value);
+  };
+
+  const onDriveTypesFilterChange = (values: string[]) => {
+    setSelectedDriveTypes(values);
+  };
+
+  const onRoleFilterChange = (value: string) => {
+    setSelectedRoleId(value === "all" ? "" : value);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Пользователи</CardTitle>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4 space-y-4 justify-between flex-col w-full">
+          <CardTitle className="text-left w-full flex flex-row items-center justify-between">
+            <div>
+            Пользователи
+            </div>
+
+          <Button asChild>
+            <Link href="/dashboard/users/create/">
+              <Plus className="h-4 w-4 mr-2" />
+              Создать
+            </Link>
+          </Button>
+          </CardTitle>
           <Form {...form}>
-            <div className="flex space-x-2">
+            <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-8 gap-4 flex-1 w-full">
               <FormField
                 control={form.control}
                 name="terminal_id"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem className="flex flex-col w-full">
                     <Select 
                       onValueChange={(value) => {
                         field.onChange(value);
@@ -358,7 +483,7 @@ export default function UsersList() {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Фильтр по филиалу" />
                         </SelectTrigger>
                       </FormControl>
@@ -379,7 +504,7 @@ export default function UsersList() {
                 control={form.control}
                 name="work_schedule_id"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem className="flex flex-col w-full">
                     <Select 
                       onValueChange={(value) => {
                         field.onChange(value);
@@ -388,7 +513,7 @@ export default function UsersList() {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Фильтр по графику работы" />
                         </SelectTrigger>
                       </FormControl>
@@ -409,7 +534,7 @@ export default function UsersList() {
                 control={form.control}
                 name="status"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem className="flex flex-col w-full">
                     <Select 
                       onValueChange={(value) => {
                         field.onChange(value);
@@ -418,7 +543,7 @@ export default function UsersList() {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Фильтр по статусу" />
                         </SelectTrigger>
                       </FormControl>
@@ -432,20 +557,113 @@ export default function UsersList() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="online_status"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col w-full">
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        onOnlineStatusFilterChange(value);
+                      }}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Онлайн статус" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="all">Все</SelectItem>
+                        <SelectItem value="online">Онлайн</SelectItem>
+                        <SelectItem value="offline">Оффлайн</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="role_id"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col w-full">
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        onRoleFilterChange(value);
+                      }}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Фильтр по роли" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="all">Все роли</SelectItem>
+                        {rolesData?.map((role: Role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="drive_types"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col w-full">
+                    <MultipleSelector
+                      value={selectedDriveTypes.map(type => ({ value: type, label: driveTypeMap[type] || type }))}
+                      onChange={(options) => {
+                        const values = options.map(option => option.value);
+                        field.onChange(values);
+                        onDriveTypesFilterChange(values);
+                      }}
+                      className="w-full"
+                      defaultOptions={Object.keys(driveTypeMap).map(key => ({ value: key, label: driveTypeMap[key] }))}
+                      placeholder="Типы доставки..."
+                      selectFirstItem={false}
+                    />
+                  </FormItem>
+                )}
+              />
+
+              <MultipleSelector
+                value={selectedCourierOption ? [selectedCourierOption] : []}
+                onChange={(options) => setSelectedCourierOption(options[0] ?? null)}
+                onSearch={fetchCouriers}
+                placeholder="Поиск курьера..."
+                loadingIndicator={
+                  <div className="py-2 text-center text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                    Загрузка курьеров...
+                  </div>
+                }
+                emptyIndicator={
+                  <div className="py-2 text-center text-sm text-muted-foreground">
+                    Курьеры не найдены.
+                  </div>
+                }
+                maxSelected={1}
+                hidePlaceholderWhenSelected
+                triggerSearchOnFocus
+                delay={300}
+                className="w-full"
+                commandProps={{
+                  label: "Поиск курьера",
+                }}
+                selectFirstItem={false}
+              />
             </div>
           </Form>
-          <Input
-            placeholder="Поиск..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-[200px]"
-          />
-          <Button asChild>
-            <Link href="/dashboard/users/create/">
-              <Plus className="h-4 w-4 mr-2" />
-              Создать
-            </Link>
-          </Button>
         </div>
       </CardHeader>
       <CardContent>
