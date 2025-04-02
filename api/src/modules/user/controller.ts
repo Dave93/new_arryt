@@ -781,7 +781,7 @@ export const UsersController = new Elysia({
         })
         .execute();
 
-      if (usersTerminals) {
+      if (usersTerminals && usersTerminals.length > 0) {
         await drizzle.delete(users_terminals).where(eq(users_terminals.user_id, id)).execute();
         await drizzle
           .insert(users_terminals)
@@ -792,7 +792,7 @@ export const UsersController = new Elysia({
           .execute();
       }
 
-      if (usersWorkSchedules) {
+      if (usersWorkSchedules && usersWorkSchedules.length > 0) {
         await drizzle.delete(users_work_schedules).where(eq(users_work_schedules.user_id, id)).execute();
         await drizzle
           .insert(users_work_schedules)

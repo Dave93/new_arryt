@@ -175,7 +175,7 @@ export function AsyncCombobox({
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-1000">
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}
