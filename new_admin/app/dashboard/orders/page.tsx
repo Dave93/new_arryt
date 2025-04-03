@@ -7,13 +7,13 @@ import { DateRangePicker } from "../../../components/ui/date-range-picker";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../../../components/ui/card";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient, apiFetch, useGetAuthHeaders } from "../../../lib/eden-client";
 import { DateRange } from "react-day-picker";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Badge } from "../../../components/ui/badge";
 import { format, startOfWeek, endOfWeek, differenceInMinutes, intervalToDuration } from "date-fns";
 import Link from "next/link";
-import { Eye, Loader2 } from "lucide-react";
+import { Eye, Loader2, FileDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { IconCircleCheckFilled, IconUser, IconPhone, IconBuildingStore, IconBuilding } from "@tabler/icons-react";
 import { sortBy } from "lodash";
@@ -22,6 +22,8 @@ import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { OrderDetailsClientPage } from "@/components/orders/order-details-client-page";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 // Определяем тип Order
 interface Order {
@@ -38,6 +40,7 @@ interface Order {
   from_lon?: number;
   finished_date?: string | null;
   cooked_time?: string | null;
+  picked_up_time?: string | null;
   bonus?: number;
   order_status: {
     id: string;
@@ -273,10 +276,42 @@ const columns: ColumnDef<Order>[] = [
   },
   {
     id: "cooking_duration",
-    header: "Cooking Time",
+    header: "Длительность готовки",
     cell: ({ row }) => (
        <div className="text-center">
           {formatDuration(row.original.created_at, row.original.cooked_time, "N/A")}
+       </div>
+     ),
+    size: 100,
+  },
+  {
+    id: "handover_time",
+    header: "Время передачи",
+    cell: ({ row }) => (
+       <div className="text-right">
+        {row.original.picked_up_time && row.original.cooked_time ? (
+          <div>
+            <div>{format(new Date(row.original.picked_up_time), "HH:mm", { locale: ru })}</div>
+            <div className="text-xs text-muted-foreground">
+              {formatDuration(row.original.cooked_time, row.original.picked_up_time)}
+            </div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </div>
+    ),
+    size: 100,
+  },
+  
+  {
+    id: "handover_duration",
+    header: "Длительность передачи",
+    cell: ({ row }) => (
+       <div className="text-center">
+          {row.original.cooked_time && row.original.picked_up_time 
+            ? formatDuration(row.original.cooked_time, row.original.picked_up_time, "N/A")
+            : "N/A"}
        </div>
      ),
     size: 100,
@@ -328,6 +363,29 @@ const columns: ColumnDef<Order>[] = [
     size: 100,
   },
 ];
+
+// Define a function to format Excel data
+const formatExcelData = (orders: Order[]) => {
+  return orders.map(order => ({
+    "Номер заказа": order.order_number,
+    "Дата создания": format(new Date(order.created_at), "dd.MM.yy HH:mm", { locale: ru }),
+    "Статус": order.order_status.name,
+    "Организация": order.organization.name,
+    "Терминал": order.terminal.name,
+    "Курьер": order.courier ? `${order.courier.first_name} ${order.courier.last_name}` : "Не назначен",
+    "Клиент": order.customer.name,
+    "Телефон клиента": order.customer.phone,
+    "Цена заказа": order.order_price,
+    "Время готовки": order.cooked_time ? format(new Date(order.cooked_time), "HH:mm", { locale: ru }) : "—",
+    "Длительность готовки": formatDuration(order.created_at, order.cooked_time),
+    "Время передачи": order.cooked_time && order.picked_up_time ? formatDuration(order.cooked_time, order.picked_up_time) : "N/A",
+    "Длительность доставки": formatDuration(order.created_at, order.finished_date),
+    "Бонус": order.bonus || 0,
+    "Расстояние": order.pre_distance ? `${order.pre_distance.toFixed(2)} км` : "N/A",
+    "Стоимость доставки": order.delivery_price,
+    "Способ оплаты": order.payment_type,
+  }));
+};
 
 export default function OrdersPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -587,6 +645,7 @@ export default function OrdersPage() {
               "pre_distance",
               "bonus",
               "cooked_time",
+              "picked_up_time",
               "organization.id",
               "organization.name",
               "couriers.id",
@@ -646,6 +705,7 @@ export default function OrdersPage() {
             },
             finished_date: item.finished_date as string | null | undefined,
             cooked_time: item.cooked_time as string | null | undefined,
+            picked_up_time: item.picked_up_time as string | null | undefined,
             bonus: item.bonus as number | undefined,
           })),
         };
@@ -782,10 +842,227 @@ export default function OrdersPage() {
 
   // Remove unused debounced functions
   
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Function to export all orders to Excel
+  const exportToExcel = async () => {
+    if (!authHeaders.Authorization) {
+      toast.error("Необходима авторизация для экспорта");
+      return;
+    }
+
+    setIsExporting(true);
+    toast.info("Начинаем экспорт данных");
+
+    try {
+      const filters = [];
+
+      // Add date range filter
+      if (dateRange?.from) {
+        filters.push({
+          field: "created_at",
+          operator: "gte",
+          value: dateRange.from.toISOString(),
+        });
+      }
+
+      if (dateRange?.to) {
+        filters.push({
+          field: "created_at",
+          operator: "lte",
+          value: dateRange.to.toISOString(),
+        });
+      }
+
+      // Add organization filter
+      if (selectedOrganization && selectedOrganization !== "all") {
+        filters.push({
+          field: "organization_id",
+          operator: "eq",
+          value: selectedOrganization,
+        });
+      }
+
+      // Add terminal filter
+      if (selectedTerminal && selectedTerminal !== "all") {
+        filters.push({
+          field: "terminal_id",
+          operator: "eq",
+          value: selectedTerminal,
+        });
+      }
+
+      // Add customer phone filter
+      if (customerPhone) {
+        filters.push({
+          field: "customers.phone",
+          operator: "contains",
+          value: customerPhone,
+        });
+      }
+
+      // Add courier filter
+      const courierId = selectedCourierOption?.value;
+      if (courierId) {
+        filters.push({
+          field: "courier_id",
+          operator: "eq",
+          value: courierId,
+        });
+      }
+
+      // Add order status filter
+      if (selectedStatuses.length > 0) {
+        filters.push({
+          field: "order_status_id",
+          operator: "in",
+          value: selectedStatuses,
+        });
+      }
+
+      // Add search filter
+      if (searchQuery) {
+        filters.push({
+          field: "order_number",
+          operator: "contains",
+          value: searchQuery,
+        });
+      }
+
+      // Add region filter
+      if (selectedRegionId && selectedRegionId !== "all") {
+        filters.push({
+          field: "terminals.region",
+          operator: "eq",
+          value: selectedRegionId,
+        });
+      }
+
+      // Make the API call with the ext_all=1 parameter to get all orders
+      const response = await apiClient.api.orders.get({
+        query: {
+          fields: ["id",
+            "delivery_type",
+            "created_at",
+            "order_price",
+            "order_number",
+            "duration",
+            "delivery_price",
+            "payment_type",
+            "finished_date",
+            "pre_distance",
+            "bonus",
+            "cooked_time",
+            "picked_up_time",
+            "organization.id",
+            "organization.name",
+            "couriers.id",
+            "couriers.first_name",
+            "couriers.last_name",
+            "customers.id",
+            "customers.name",
+            "customers.phone",
+            "order_status.id",
+            "order_status.name",
+            "order_status.color",
+            "terminals.id",
+            "terminals.name"].join(","),
+          filters: JSON.stringify(filters),
+          ext_all: "1", // Request all data without pagination
+          limit: "999999", // Large number to get all records
+          offset: "0", // Start from the first record
+        } as any, // Type assertion to avoid the TypeScript error
+        headers: authHeaders,
+      });
+
+      // Process the data
+      const orders = (response.data?.data || []).map((item: Record<string, unknown>) => ({
+        id: item.id as string,
+        order_number: item.order_number as string,
+        created_at: item.created_at as string,
+        order_price: item.order_price as number,
+        delivery_price: item.delivery_price as number,
+        payment_type: item.payment_type as string,
+        delivery_type: (item.delivery_type as string) || "",
+        delivery_address: (item.delivery_address as string) || "",
+        pre_distance: item.pre_distance as number | undefined,
+        from_lat: item.from_lat as number | undefined,
+        from_lon: item.from_lon as number | undefined,
+        order_status: {
+          id: (item.order_status as Record<string, unknown>)?.id as string || "",
+          name: (item.order_status as Record<string, unknown>)?.name as string || "",
+          color: (item.order_status as Record<string, unknown>)?.color as string || "#ccc",
+        },
+        customer: {
+          id: (item.customers as Record<string, unknown>)?.id as string || "",
+          name: (item.customers as Record<string, unknown>)?.name as string || "",
+          phone: (item.customers as Record<string, unknown>)?.phone as string || "",
+        },
+        courier: item.couriers ? {
+          id: (item.couriers as Record<string, unknown>).id as string,
+          first_name: (item.couriers as Record<string, unknown>).first_name as string,
+          last_name: (item.couriers as Record<string, unknown>).last_name as string,
+        } : undefined,
+        organization: {
+          id: (item.organization as Record<string, unknown>)?.id as string || "",
+          name: (item.organization as Record<string, unknown>)?.name as string || "",
+        },
+        terminal: {
+          id: (item.terminals as Record<string, unknown>)?.id as string || "",
+          name: (item.terminals as Record<string, unknown>)?.name as string || "",
+        },
+        finished_date: item.finished_date as string | null | undefined,
+        cooked_time: item.cooked_time as string | null | undefined,
+        picked_up_time: item.picked_up_time as string | null | undefined,
+        bonus: item.bonus as number | undefined,
+      }));
+
+      // Create Excel worksheet
+      const worksheet = XLSX.utils.json_to_sheet(formatExcelData(orders));
+      
+      // Create Excel workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Заказы");
+      
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const data = new Blob([excelBuffer], { type: "application/octet-stream" });
+      
+      // Create filename with current date
+      const fileName = `Заказы_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
+      
+      // Save the file
+      saveAs(data, fileName);
+      
+      toast.success("Экспорт выполнен успешно", {
+        description: `Экспортировано ${orders.length} заказов`,
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Ошибка при экспорте данных", {
+        description: "Попробуйте повторить позже или обратитесь к администратору",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Заказы</CardTitle>
+          <Button 
+            onClick={exportToExcel} 
+            disabled={isExporting}
+            className="gap-2"
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="h-4 w-4" />
+            )}
+            {isExporting ? "Экспорт..." : "Экспорт в Excel"}
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 mb-4">
