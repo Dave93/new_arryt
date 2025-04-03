@@ -824,7 +824,7 @@ export const externalControler = new Elysia({
             id: t.String(),
         })
     })
-    .get('/api/external/cooked_time/:id', async ({ params: { id }, set, cacheControl, request: { headers }, drizzle, query: { date }, queues: {
+    .get('/api/external/cooked_time/:id', async ({ params: { id }, set, cacheControl, request: { headers }, drizzle, query: { date, picked_up_time }, queues: {
         processSendNotificationQueue
     } }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
@@ -868,6 +868,7 @@ export const externalControler = new Elysia({
 
         await drizzle.update(orders).set({
             cooked_time: dayjs(date).toISOString(),
+            picked_up_time: picked_up_time ? dayjs(picked_up_time).toISOString() : null,
         }).where(and(
             eq(orders.id, currentOrder.id),
             eq(orders.created_at, currentOrder.created_at),
@@ -970,6 +971,7 @@ export const externalControler = new Elysia({
         }),
         query: t.Object({
             date: t.String(),
+            picked_up_time: t.Optional(t.String()),
         }),
     })
     .post('/api/external/yandex-callback', async ({ body, queues: {

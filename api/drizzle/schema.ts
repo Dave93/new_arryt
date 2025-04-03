@@ -746,6 +746,7 @@ export const orders = pgTable("orders", {
 	delivery_schedule: text("delivery_schedule"),
 	later_time: text("later_time"),
 	cooked_time: timestamp("cooked_time", { precision: 5, withTimezone: true, mode: 'string' }),
+	picked_up_time: timestamp("picked_up_time", { precision: 5, withTimezone: true, mode: 'string' }),
 	additional_phone: text("additional_phone"),
 	house: text("house"),
 	flat: text("flat"),
