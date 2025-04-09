@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-
+import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
 // Определение типов
 interface Terminal {
   id: string;
@@ -135,7 +135,7 @@ export default function UserCreate() {
         const response = await apiClient.api.terminals.cached.get({
           headers: authHeaders,
         });
-        return response.data || [];
+        return sortTerminalsByName(response.data || []);
       } catch (error) {
         toast.error("Не удалось загрузить филиалы");
         return [];

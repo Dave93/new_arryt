@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useQuery } from "@tanstack/react-query";
 import { Separator } from "../../../../components/ui/separator";
 import { Skeleton } from "../../../../components/ui/skeleton";
-
+import { sortTerminalsByName } from "../../../../lib/sort_terminals_by_name";
 // Схема формы с валидацией Zod
 const formSchema = z.object({
   id: z.string(),
@@ -126,7 +126,7 @@ export default function OrderBonusPricingEdit() {
         const { data } = await apiClient.api.terminals.cached.get({
           headers: authHeaders,
         });
-        return data || [];
+        return sortTerminalsByName(data || []);
       } catch {
         toast.error("Ошибка загрузки терминалов");
         return [];

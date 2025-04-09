@@ -40,7 +40,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-
+import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
 // Mapping для статусов пользователей
 const userStatusMap: Record<string, string> = {
   "active": "Активный",
@@ -630,7 +630,7 @@ function UserTransactions({ userId }: { userId: string }) {
         const { data } = await apiClient.api.terminals.cached.get({
           headers: authHeaders,
         });
-        return data || [];
+        return sortTerminalsByName(data || []);
       } catch (error) {
         toast.error("Ошибка загрузки списка филиалов");
         return [];

@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Form, FormControl, FormField, FormItem, FormLabel } from "../../../components/ui/form";
 import { useForm } from "react-hook-form";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
-
+import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
 // Определение типа для пользователя
 interface User {
   id: string;
@@ -207,7 +207,7 @@ export default function UsersList() {
         const {data: response} = await apiClient.api.terminals.cached.get({
           headers: authHeaders,
         });
-        return response || [];
+        return sortTerminalsByName(response || []);
       } catch (error) {
         toast.error("Не удалось загрузить список филиалов");
         return [];

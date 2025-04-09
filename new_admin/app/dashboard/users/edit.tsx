@@ -26,6 +26,7 @@ import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { UsersModel } from "../../../../api/src/modules/user/dto/list.dto";
 
 // Определение типов
 interface Terminal {
@@ -167,7 +168,9 @@ export default function UserEdit() {
         const response = await apiClient.api.terminals.cached.get({
           headers: authHeaders,
         });
-        return response.data || [];
+        let res = response.data || [];
+        res.sort((a: Terminal, b: Terminal) => a.name.localeCompare(b.name))
+        return res;
       } catch (error) {
         toast.error("Не удалось загрузить филиалы");
         return [];
@@ -211,17 +214,37 @@ export default function UserEdit() {
   });
 
   // Загрузка данных пользователя
-  const { data: user, isLoading } = useQuery<User>({
+  const { data: user, isLoading } = useQuery<UsersModel | undefined>({
     queryKey: ["user", id],
-    // @ts-ignore
     queryFn: async () => {
       try {
-        // @ts-ignore
-        const response = await apiClient.api.users({id}).get({
-          query: {},
+        const response = await apiClient.api.users({id: id!}).get({
+          query: {
+            fields: [
+              "id",
+              "first_name",
+              "last_name",
+              "created_at",
+              "drive_type",
+              "car_model",
+              "car_number",
+              "card_name",
+              "card_number",
+              "phone",
+              "latitude",
+              "longitude",
+              "status",
+              "max_active_order_count",
+              "doc_files",
+              "terminals.id",
+              "terminals.name",
+              "roles.id",
+              "roles.name",
+            ].join(","),
+          },
           headers: authHeaders,
         });
-        return response.data;
+        return response.data?.data;
       } catch (error) {
         toast.error("Не удалось загрузить данные пользователя");
         throw error;
@@ -243,39 +266,30 @@ export default function UserEdit() {
   // Заполнение формы данными из запроса
   useEffect(() => {
     if (user) {
-      /*@ts-ignore*/
-      form.reset({
-        // @ts-ignore
-        id: user.id,
-        // @ts-ignore
-        first_name: user.first_name,
-        // @ts-ignore
-        last_name: user.last_name,
-        // @ts-ignore
-        phone: user.phone,
-        // @ts-ignore
-        status: user.status,
-        // @ts-ignore
-        roles: user.roles?.id || "",
-        // @ts-ignore
-        drive_type: user.drive_type || "",
-        // @ts-ignore
-        users_terminals: user.terminals?.map(t => t.id) || [],
-        // @ts-ignore
-        users_work_schedules: user.work_schedules?.map(s => s.id) || [],
-        // @ts-ignore
-        daily_garant_id: user.daily_garant_id || "",
-        // @ts-ignore
-        max_active_order_count: user.max_active_order_count,
-        // @ts-ignore
-        card_name: user.card_name || "",
-        // @ts-ignore
-        card_number: user.card_number || "",
-        // @ts-ignore
-        car_model: user.car_model || "",
-        // @ts-ignore
-        car_number: user.car_number || "",
-      });
+      console.log("Setting form values with user data:", user);
+      
+      // Using setTimeout to ensure the form reset happens after the component is fully rendered
+      setTimeout(() => {
+        form.reset({
+          id: user.id,
+          first_name: user.first_name || "",
+          last_name: user.last_name || "",
+          phone: user.phone || "",
+          status: user.status || "",
+          roles: user.roles?.id || "",
+          drive_type: user.drive_type || undefined,
+          users_terminals: user.terminals?.map(t => t.id) || [],
+          users_work_schedules: user.work_schedules?.map(s => s.id) || [],
+          daily_garant_id: user.daily_garant_id || "none",
+          max_active_order_count: user.max_active_order_count || undefined,
+          card_name: user.card_name || "",
+          card_number: user.card_number || "",
+          car_model: user.car_model || "",
+          car_number: user.car_number || "",
+        });
+        
+        console.log("Form values after reset:", form.getValues());
+      }, 50);
     }
   }, [user, form]);
 
@@ -283,11 +297,25 @@ export default function UserEdit() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
+      // Transform "none" value back to empty string for daily_garant_id
+      const formData = {
+        ...values,
+        daily_garant_id: values.daily_garant_id === "none" ? "" : values.daily_garant_id
+      };
+      
       await apiClient.api.users({id: values.id}).put({
-        // @ts-ignore
-        data: values,
+        data: {
+          ...formData,
+          users_terminals: undefined,
+          users_work_schedules: undefined,
+          usersTerminals: formData.users_terminals || [],
+          usersWorkSchedules: formData.users_work_schedules || [],
+          // @ts-ignore
+          drive_type: formData.drive_type || undefined,
+          status: formData.status as "active" | "inactive" | "blocked",
+          daily_garant_id: formData.daily_garant_id || undefined,
+        },
       }, {
-        // @ts-ignore
         headers: authHeaders,
       });
       
@@ -330,10 +358,17 @@ export default function UserEdit() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Статус</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select 
+                        key={`status-${field.value}`}
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите статус" />
+                          <SelectTrigger className={!field.value ? "text-muted-foreground" : ""}>
+                            <SelectValue placeholder="Выберите статус">
+                              {field.value ? userStatuses.find(s => s.value === field.value)?.label : "Выберите статус"}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -355,10 +390,17 @@ export default function UserEdit() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Роль</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select 
+                        key={`roles-${field.value}`}
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите роль" />
+                          <SelectTrigger className={!field.value ? "text-muted-foreground" : ""}>
+                            <SelectValue placeholder="Выберите роль">
+                              {field.value ? roles.find((r: Role) => r.id === field.value)?.name : "Выберите роль"}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -426,10 +468,17 @@ export default function UserEdit() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Тип доставки</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select 
+                        key={`drive-type-${field.value}`}
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите тип доставки" />
+                          <SelectTrigger className={!field.value ? "text-muted-foreground" : ""}>
+                            <SelectValue placeholder="Выберите тип доставки">
+                              {field.value ? driveTypes.find(t => t.value === field.value)?.label : "Выберите тип доставки"}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -563,16 +612,22 @@ export default function UserEdit() {
                     <FormItem>
                       <FormLabel>Дневной гарант</FormLabel>
                       <Select 
+                        key={`daily-garant-${field.value}`}
                         onValueChange={field.onChange} 
+                        value={field.value}
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите дневной гарант" />
+                          <SelectTrigger className={!field.value ? "text-muted-foreground" : ""}>
+                            <SelectValue placeholder="Выберите дневной гарант">
+                              {field.value === "none" ? "Нет" : 
+                               field.value ? dailyGarants.find(g => g.id === field.value)?.name : 
+                               "Выберите дневной гарант"}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Нет</SelectItem>
+                          <SelectItem value="none">Нет</SelectItem>
                           {dailyGarants.map((garant: DailyGarant) => (
                             <SelectItem key={garant.id} value={garant.id}>
                               {garant.name}
