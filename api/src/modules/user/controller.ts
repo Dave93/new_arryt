@@ -769,7 +769,13 @@ export const UsersController = new Elysia({
         .update(users)
         .set(fieldValues)
         .where(eq(users.id, id))
-        .returning(selectFields);
+        .returning({
+          id: users.id,
+          first_name: users.first_name,
+          last_name: users.last_name,
+          phone: users.phone,
+
+        });
 
       await drizzle.delete(users_roles).where(eq(users_roles.user_id, id)).execute();
 
