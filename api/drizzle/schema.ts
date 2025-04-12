@@ -429,7 +429,7 @@ export const users = pgTable("users", {
 	phone: varchar("phone", { length: 20 }).notNull(),
 	first_name: varchar("first_name", { length: 100 }),
 	last_name: varchar("last_name", { length: 100 }),
-	password: varchar("password", { length: 100 }),
+	password: varchar("password", { length: 255 }),
 	is_super_user: boolean("is_super_user").default(false).notNull(),
 	status: user_status("status").notNull(),
 	drive_type: drive_type("drive_type"),

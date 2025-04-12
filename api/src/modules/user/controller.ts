@@ -430,6 +430,9 @@ export const UsersController = new Elysia({
       });
     }
 
+    console.log('password', password);
+    console.log('user[0].password', user[0].password);
+
     const isPasswordValid = await Bun.password.verify(password, user[0].password);
     if (!isPasswordValid) {
       return error(404, {
