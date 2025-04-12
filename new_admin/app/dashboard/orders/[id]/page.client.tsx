@@ -10,7 +10,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "@/lib/eden-client";
+import { apiClient } from "@/lib/eden-client";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import dynamic from "next/dynamic";
@@ -175,7 +175,6 @@ const OrderMap = dynamic(() => import("@/components/orders/order-map"), {
 });
 
 export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPageProps) {
-  const authHeaders = useGetAuthHeaders();
   const queryClient = useQueryClient();
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [isItemsTabActive, setIsItemsTabActive] = useState(false);
@@ -197,10 +196,6 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
 
   // Define the query function
   const fetchOrderDetails = async (id: string): Promise<Order> => {
-    if (!authHeaders) {
-      // Handle case where auth headers are not ready (optional, depends on useGetAuthHeaders)
-      throw new Error("Authentication headers not available");
-    }
     try {
       const response = await apiClient.api.orders({id}).get({
         query: {
@@ -217,7 +212,6 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             // Add other fields as required
           ].join(","),
         },
-        headers: authHeaders,
       });
       if (!response.data || !response.data.data) { // Check response structure
         throw new Error("Order not found");
@@ -238,7 +232,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
   } = useQuery<Order, Error>({
     queryKey: ["order", orderId],
     queryFn: () => fetchOrderDetails(orderId),
-    enabled: !!orderId && !!authHeaders,
+    enabled: !!orderId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 1,
@@ -246,9 +240,6 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
 
   // --- Fetch Order Actions (Timeline) ---
   const fetchOrderActions = async (id: string, orderCreatedAt: string): Promise<OrderAction[]> => {
-    if (!authHeaders) {
-      throw new Error("Authentication headers not available");
-    }
     try {
       // Endpoint based on reference: apiClient.api.order_actions.get()
       const response = await apiClient.api.order_actions.index.get({ 
@@ -270,7 +261,6 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             },
           ]),
         },
-        headers: authHeaders, 
       });
       // Adjust based on actual API response structure for actions
       // Assuming response.data.data contains the array based on reference structure
@@ -301,18 +291,11 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
 
   // --- Fetch Order Locations --- 
   const fetchOrderLocations = async (id: string): Promise<OrderLocation[]> => {
-    if (!authHeaders) {
-      throw new Error("Authentication headers not available");
-    }
     try {
       // Assuming this endpoint exists and returns OrderLocation[]
       const response = await apiClient.api.orders({id}).locations.post({
         // @ts-ignore
         created_at: order?.created_at,
-      },{ 
-        // Add query params like created_at if needed, similar to reference
-        // query: { created_at: order?.created_at }, 
-        headers: authHeaders, 
       });
       // Adjust based on actual API response structure
       if (!response.data || !Array.isArray(response.data)) { 
@@ -336,7 +319,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
     queryKey: ["orderLocations", orderId],
     queryFn: () => fetchOrderLocations(orderId),
     // Enable only after order details (especially created_at if needed) are loaded and order exists
-    enabled: !!orderId && !!authHeaders && !!order, 
+    enabled: !!orderId && !!order, 
     staleTime: 1 * 60 * 1000, // Shorter stale time for locations? Adjust as needed.
     gcTime: 5 * 60 * 1000,
     retry: 0, // Maybe don't retry location fetch failures aggressively
@@ -344,9 +327,6 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
 
   // --- Fetch Available Order Statuses ---
   const fetchOrderStatuses = async (organizationId: string): Promise<OrderStatus[]> => {
-    if (!authHeaders) {
-      throw new Error("Authentication headers not available");
-    }
     try {
       // Adapt the endpoint and query based on your actual API structure for fetching statuses
       const response = await apiClient.api.order_status.cached.get({ // Using cached endpoint as in reference
@@ -354,7 +334,6 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
           organization_id: organizationId,
           // Add other filters if necessary, e.g., is_active: true
         },
-        headers: authHeaders,
       });
       console.log('response', response)
       if (!response.data || !Array.isArray(response.data)) { // Adjust based on your API response
@@ -377,7 +356,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
     queryKey: ["orderStatuses", order?.organization.id], // Use organization ID in key
     queryFn: () => fetchOrderStatuses(order!.organization.id),
     // Enable only when order details (including organization id) are loaded
-    enabled: !!order?.organization.id && !!authHeaders, 
+    enabled: !!order?.organization.id, 
     staleTime: Infinity, // Statuses might not change often, cache indefinitely
     gcTime: Infinity,
   });
@@ -385,14 +364,12 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
   // --- Mutation to Update Order Status ---
   const updateStatusMutation = useMutation({
     mutationFn: async (statusId: string) => {
-      if (!authHeaders || !order) {
+      if (!order) {
         throw new Error("Cannot update status: Missing auth headers or order data.");
       }
       const response = await apiClient.api.orders({id: orderId}).set_status.post({
         status_id: statusId,
         created_at: order.created_at,
-      },{
-        headers: authHeaders,
       });
 
       if (response.status !== 200 && response.status !== 201) {
@@ -423,14 +400,9 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
 
   // --- Fetch Order Items (Conditional) ---
   const fetchOrderItems = async (id: string): Promise<OrderItem[]> => {
-    if (!authHeaders) {
-      throw new Error("Authentication headers not available");
-    }
     try {
       // Endpoint based on reference: apiClient.api.orders[id].items.get()
-      const response = await apiClient.api.orders({id}).items.get({ 
-        headers: authHeaders, 
-      });
+      const response = await apiClient.api.orders({id}).items.get();
       // Adjust based on actual API response structure for items
       if (!response.data || !Array.isArray(response.data)) { // Assuming response.data is the array
         console.warn("No order items data received or invalid format", response.data);

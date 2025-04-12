@@ -6,7 +6,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
 import { Eye, Plus, Edit, Phone, Loader2 } from "lucide-react";
@@ -183,7 +183,6 @@ export default function UsersList() {
   const [selectedOnlineStatus, setSelectedOnlineStatus] = useState<string>("all");
   const [selectedDriveTypes, setSelectedDriveTypes] = useState<string[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
-  const authHeaders = useGetAuthHeaders();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -204,48 +203,39 @@ export default function UsersList() {
     queryKey: ["terminals_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.terminals.cached.get();
         return sortTerminalsByName(response || []);
       } catch (error) {
         toast.error("Не удалось загрузить список филиалов");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   const { data: workSchedulesData, isLoading: isLoadingWorkSchedules } = useQuery({
     queryKey: ["work_schedules_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.work_schedules.cached.get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.work_schedules.cached.get();
         return response || [];
       } catch (error) {
         toast.error("Не удалось загрузить список графиков работы");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   const { data: rolesData, isLoading: isLoadingRoles } = useQuery({
     queryKey: ["roles_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.roles.cached.get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.roles.cached.get();
         return response || [];
       } catch (error) {
         toast.error("Не удалось загрузить список ролей");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   useEffect(() => {
@@ -266,11 +256,9 @@ export default function UsersList() {
 
   // Function to fetch couriers for MultipleSelector (onSearch)
   const fetchCouriers = useCallback(async (search: string): Promise<Option[]> => {
-    if (!authHeaders.Authorization) return [];
     try {
       const response = await apiClient.api.couriers.search.get({
         query: { search: search },
-        headers: authHeaders,
       });
       const usersData = response.data || [];
       return usersData.map((user: { id: string; first_name: string | null; last_name: string | null }) => ({
@@ -282,7 +270,7 @@ export default function UsersList() {
       toast.error("Не удалось найти курьеров");
       return [];
     }
-  }, [authHeaders]);
+  }, []);
 
   const { data: usersData = { total: 0, data: [] }, isLoading } = useQuery({
     queryKey: [
@@ -390,7 +378,6 @@ export default function UsersList() {
         }
 
         const {data: response} = await apiClient.api.users.get({
-          headers: authHeaders,
           query: {
             fields: [
               "id",

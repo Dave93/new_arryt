@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -66,7 +66,6 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function OrderStatusEdit({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -96,9 +95,7 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const response = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organizations.cached.get();
         
         if (response.data && Array.isArray(response.data)) {
           setOrganizations(response.data);
@@ -109,7 +106,7 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
     };
 
     fetchOrganizations();
-  }, [JSON.stringify(authHeaders)]);
+  }, []);
 
   // Fetch order status data with useQuery
   const { isLoading } = useQuery({
@@ -140,7 +137,6 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
               "organization.name",
             ].join(","),
           },
-          headers: authHeaders,
         });
         
         const data = response?.data;
@@ -183,8 +179,6 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
       await apiClient.api.order_status({id: params.id}).put({
         // @ts-ignore
         data: values,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Order status updated successfully");

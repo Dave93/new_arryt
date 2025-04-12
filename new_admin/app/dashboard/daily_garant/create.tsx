@@ -18,7 +18,7 @@ import {
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TimeField } from "../../../components/ui/time-field";
@@ -35,7 +35,6 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function DailyGarantCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -61,8 +60,6 @@ export default function DailyGarantCreate() {
 
       await apiClient.api.daily_garant.index.post({
         data: formattedValues,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Тариф дневного гаранта успешно создан");

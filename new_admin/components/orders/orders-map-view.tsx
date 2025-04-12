@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AsyncCombobox, ComboboxOption } from "@/components/ui/async-combobox"
-import { apiClient, useGetAuthHeaders } from "@/lib/eden-client"
+import { apiClient } from "@/lib/eden-client"
 import { Drawer } from "@/components/ui/drawer"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -43,15 +43,12 @@ export function OrdersMapView() {
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersCount, setOrdersCount] = useState(0)
   
-  const authHeaders = useGetAuthHeaders()
 
   // Fetch all terminals
   useEffect(() => {
     const fetchTerminals = async () => {
       try {
-        const { data } = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        })
+        const { data } = await apiClient.api.terminals.cached.get()
         
         if (data && Array.isArray(data)) {
           setTerminals(sortTerminalsByName(data))
@@ -62,7 +59,7 @@ export function OrdersMapView() {
     }
     
     fetchTerminals()
-  }, [JSON.stringify(authHeaders)])
+  }, [])
 
   // Fetch orders when selected terminals change
   useEffect(() => {
@@ -75,7 +72,6 @@ export function OrdersMapView() {
         }
           
         const { data } = await apiClient.api.orders.list_in_map.get({
-          headers: authHeaders,
           query: queryParams,
         })
         
@@ -101,14 +97,13 @@ export function OrdersMapView() {
     }
     
     fetchOrders()
-  }, [selectedTerminals, JSON.stringify(authHeaders)])
+  }, [selectedTerminals])
 
   // Fetch couriers for search
   const fetchCouriers = async (query: string) => {
     try {
       const { data: couriers } = await apiClient.api.couriers.search.get({
         query: { search: query },
-        headers: authHeaders,
       })
       
       if (couriers && Array.isArray(couriers)) {

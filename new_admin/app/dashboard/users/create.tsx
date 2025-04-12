@@ -22,7 +22,7 @@ import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
@@ -86,7 +86,6 @@ const formSchema = z.object({
 
 export default function UserCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -115,16 +114,13 @@ export default function UserCreate() {
     queryKey: ["roles"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.roles.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.roles.cached.get();
         return response.data || [];
       } catch (error) {
         toast.error("Не удалось загрузить роли");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Загрузка списка филиалов
@@ -132,16 +128,13 @@ export default function UserCreate() {
     queryKey: ["terminals"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.terminals.cached.get();
         return sortTerminalsByName(response.data || []);
       } catch (error) {
         toast.error("Не удалось загрузить филиалы");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Загрузка списка рабочих графиков
@@ -149,16 +142,13 @@ export default function UserCreate() {
     queryKey: ["workSchedules"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.work_schedules.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.work_schedules.cached.get();
         return response.data || [];
       } catch (error) {
         toast.error("Не удалось загрузить рабочие графики");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Загрузка списка дневных гарантов
@@ -166,16 +156,13 @@ export default function UserCreate() {
     queryKey: ["dailyGarants"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.daily_garant.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.daily_garant.cached.get();
         return response.data || [];
       } catch (error) {
         toast.error("Не удалось загрузить дневные гаранты");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Группировка графиков по организациям
@@ -195,9 +182,6 @@ export default function UserCreate() {
       await apiClient.api.users.post({
         // @ts-ignore
         data: values,
-      }, {
-        // @ts-ignore
-        headers: authHeaders,
       });
       
       toast.success("Пользователь успешно создан");

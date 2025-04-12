@@ -22,7 +22,7 @@ import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -78,7 +78,6 @@ export default function TerminalEdit() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -107,9 +106,7 @@ export default function TerminalEdit() {
     queryKey: ["organizations_cached"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organizations.cached.get();
         console.log('response', response)
         return response.data || [];
       } catch (error) {
@@ -125,9 +122,7 @@ export default function TerminalEdit() {
     queryFn: async () => {
       if (!id) return null;
       try {
-        const {data:response} = await apiClient.api.terminals({id}).get({
-          headers: authHeaders,
-        });
+        const {data:response} = await apiClient.api.terminals({id}).get();
         return response?.data;
       } catch (error) {
         toast.error("Failed to fetch terminal details");
@@ -169,9 +164,6 @@ export default function TerminalEdit() {
       await apiClient.api.terminals({id}).put({
         // @ts-ignore
         body: values,
-      }, {
-        // @ts-ignore
-        headers: authHeaders,
       });
       
       toast.success("Филиал успешно обновлен");

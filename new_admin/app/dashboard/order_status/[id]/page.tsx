@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -44,7 +44,6 @@ export default function OrderStatusDetail() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: orderStatus, isLoading } = useQuery<OrderStatus>({
@@ -75,7 +74,6 @@ export default function OrderStatusDetail() {
               "organization.name",
             ].join(","),
           },
-          headers: authHeaders,
         });
 
         return response?.data;
@@ -91,11 +89,9 @@ export default function OrderStatusDetail() {
   const handleDelete = async () => {
     // setIsDeleting(true);
     // try {
-    //   await apiClient.api.order_status({
-    //     id
-    //   }).delete({
-    //     headers: authHeaders,
-    //   });
+      // await apiClient.api.order_status({
+      //   id
+      // }).delete();
       
     //   toast.success("Order status deleted successfully");
     //   router.push("/dashboard/order_status");

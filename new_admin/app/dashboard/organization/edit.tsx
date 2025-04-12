@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -74,7 +74,6 @@ export default function OrganizationEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize the form
@@ -109,9 +108,7 @@ export default function OrganizationEdit() {
       if (!id) return null;
       
       try {
-        const response = await apiClient.api.organization({id}).get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organization({id}).get();
         
         return response?.data?.data;
       } catch (error) {
@@ -121,7 +118,7 @@ export default function OrganizationEdit() {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   // Update form values when data is loaded
@@ -184,9 +181,6 @@ export default function OrganizationEdit() {
       await apiClient.api.organization({id}).put({
         // @ts-ignore
         data: values,
-        // @ts-ignore
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Organization updated successfully");

@@ -10,7 +10,7 @@ import dayjs from "dayjs";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Edit, Phone, Calendar as CalendarIcon, CheckCircle, XCircle, Eye, Download, Plus } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
@@ -159,7 +159,6 @@ interface UserShowProps {
 // Компонент посещаемости пользователя
 function UserAttendance({ userId }: { userId: string }) {
   const [date, setDate] = useState<Date>(new Date());
-  const authHeaders = useGetAuthHeaders();
   
   const { data: rollCallData, isLoading, refetch } = useQuery({
     queryKey: ["user-rollcall", userId, date],
@@ -170,7 +169,6 @@ function UserAttendance({ userId }: { userId: string }) {
         const endDate = dayjs(date).endOf('week').toISOString();
         
         const response = await apiClient.api.couriers.roll_call({id: userId}).get({
-          headers: authHeaders,
           query: {
             startDate,
             endDate,
@@ -182,7 +180,7 @@ function UserAttendance({ userId }: { userId: string }) {
         return [];
       }
     },
-    enabled: !!userId && !!authHeaders,
+    enabled: !!userId,
   });
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -295,11 +293,10 @@ function UserWithdrawals({ userId }: { userId: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const authHeaders = useGetAuthHeaders();
 
   // Загрузка списка выплат
   const loadWithdraws = async () => {
-    if (!userId || !authHeaders) return;
+    if (!userId) return;
     
     try {
       setIsLoading(true);
@@ -333,7 +330,6 @@ function UserWithdrawals({ userId }: { userId: string }) {
           ...params,
           filters: JSON.stringify(filters)
         },
-        headers: authHeaders,
       });
       
       if (data && data.data) {
@@ -349,13 +345,11 @@ function UserWithdrawals({ userId }: { userId: string }) {
 
   // Загрузка транзакций для выбранной выплаты
   const loadTransactions = async (withdrawId: string) => {
-    if (!withdrawId || !authHeaders) return;
+    if (!withdrawId) return;
     
     try {
       setIsLoadingTransactions(true);
-      const { data } = await apiClient.api.manager_withdraw({id: withdrawId}).transactions.get({
-        headers: authHeaders,
-      });
+      const { data } = await apiClient.api.manager_withdraw({id: withdrawId}).transactions.get();
       
       if (data && Array.isArray(data)) {
         // @ts-ignore
@@ -371,7 +365,7 @@ function UserWithdrawals({ userId }: { userId: string }) {
   // Загрузка данных при изменении параметров
   useEffect(() => {
     loadWithdraws();
-  }, [userId, startDate, endDate, JSON.stringify(authHeaders)]);
+  }, [userId, startDate, endDate]);
 
   // Обработчик выбора даты начала периода
   const handleStartDateSelect = (date: Date | undefined) => {
@@ -604,7 +598,6 @@ function UserTransactions({ userId }: { userId: string }) {
   const [endDate, setEndDate] = useState<Date>(dayjs().endOf('week').toDate());
   const [status, setStatus] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const authHeaders = useGetAuthHeaders();
 
   // Форма добавления транзакции
   const transactionForm = useForm({
@@ -627,16 +620,13 @@ function UserTransactions({ userId }: { userId: string }) {
     queryKey: ["terminals_cached"],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.terminals.cached.get();
         return sortTerminalsByName(data || []);
       } catch (error) {
         toast.error("Ошибка загрузки списка филиалов");
         return [];
       }
     },
-    enabled: !!authHeaders.Authorization,
   });
 
   // Формируем фильтры для запроса транзакций
@@ -686,7 +676,6 @@ function UserTransactions({ userId }: { userId: string }) {
           query: {
             filters: JSON.stringify(filters),
           },
-          headers: authHeaders,
         });
         
         return data || [];
@@ -731,7 +720,7 @@ function UserTransactions({ userId }: { userId: string }) {
         ];
       }
     },
-    enabled: !!userId && !!authHeaders.Authorization,
+    enabled: !!userId,
   });
 
   // Мутация для добавления транзакции
@@ -745,8 +734,6 @@ function UserTransactions({ userId }: { userId: string }) {
             terminal_id: values.terminal_id,
             comment: values.comment,
           },
-        }, {
-          headers: authHeaders,
         });
       } catch (error) {
         throw error;
@@ -1041,7 +1028,6 @@ function UserTransactions({ userId }: { userId: string }) {
 
 export default function UserShow({ id }: UserShowProps) {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["user", id],
@@ -1075,7 +1061,6 @@ export default function UserShow({ id }: UserShowProps) {
               "roles.name",
             ].join(","),
           },
-          headers: authHeaders,
         });
         // @ts-ignore
         return response?.data;
@@ -1084,7 +1069,7 @@ export default function UserShow({ id }: UserShowProps) {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   if (isLoading) {

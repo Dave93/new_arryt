@@ -18,7 +18,7 @@ import {
 } from "../../../../components/ui/form";
 import { Input } from "../../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Switch } from "../../../../components/ui/switch";
@@ -56,7 +56,6 @@ interface Terminal {
 
 export default function OrderBonusPricingCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Инициализация формы
@@ -78,9 +77,7 @@ export default function OrderBonusPricingCreate() {
     queryKey: ["organizations"],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.organizations.cached.get();
         return data || [];
       } catch {
         toast.error("Ошибка загрузки организаций");
@@ -94,9 +91,7 @@ export default function OrderBonusPricingCreate() {
     queryKey: ["terminals"],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.terminals.cached.get();
         return sortTerminalsByName(data || []);
       } catch {
         toast.error("Ошибка загрузки терминалов");
@@ -112,8 +107,6 @@ export default function OrderBonusPricingCreate() {
       await apiClient.api.order_bonus_pricing.index.post({
         // @ts-ignore
         data: values,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Условие бонуса успешно создано");

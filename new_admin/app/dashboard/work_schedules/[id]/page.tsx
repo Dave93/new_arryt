@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
@@ -32,22 +32,19 @@ const daysOfWeekRu: Record<string, string> = {
 export default function WorkScheduleView() {
   const params = useParams();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   
   const { data: workSchedule, isLoading } = useQuery({
     queryKey: ["workSchedule", id],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.work_schedules({id}).get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.work_schedules({id}).get();
         return response?.data;
       } catch (error) {
         toast.error("Ошибка загрузки данных");
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   if (isLoading) {

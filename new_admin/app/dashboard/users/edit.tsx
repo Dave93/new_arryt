@@ -22,7 +22,7 @@ import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -118,7 +118,6 @@ export default function UserEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -148,16 +147,13 @@ export default function UserEdit() {
     queryKey: ["roles"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.roles.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.roles.cached.get();
         return response.data || [];
       } catch (error) {
         toast.error("Не удалось загрузить роли");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Загрузка списка филиалов
@@ -165,9 +161,7 @@ export default function UserEdit() {
     queryKey: ["terminals"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.terminals.cached.get();
         let res = response.data || [];
         res.sort((a: Terminal, b: Terminal) => a.name.localeCompare(b.name))
         return res;
@@ -176,7 +170,6 @@ export default function UserEdit() {
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Загрузка списка рабочих графиков
@@ -184,16 +177,13 @@ export default function UserEdit() {
     queryKey: ["workSchedules"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.work_schedules.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.work_schedules.cached.get();
         return response.data || [];
       } catch (error) {
         toast.error("Не удалось загрузить рабочие графики");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Загрузка списка дневных гарантов
@@ -201,16 +191,13 @@ export default function UserEdit() {
     queryKey: ["dailyGarants"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.daily_garant.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.daily_garant.cached.get();
         return response.data || [];
       } catch (error) {
         toast.error("Не удалось загрузить дневные гаранты");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Загрузка данных пользователя
@@ -242,7 +229,6 @@ export default function UserEdit() {
               "roles.name",
             ].join(","),
           },
-          headers: authHeaders,
         });
         return response.data?.data;
       } catch (error) {
@@ -250,7 +236,7 @@ export default function UserEdit() {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id, 
   });
 
   // Группировка графиков по организациям
@@ -315,8 +301,6 @@ export default function UserEdit() {
           status: formData.status as "active" | "inactive" | "blocked",
           daily_garant_id: formData.daily_garant_id || undefined,
         },
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Пользователь успешно обновлен");

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -59,7 +59,6 @@ const formSchema = z.object({
 
 export default function OrderStatusCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,9 +84,7 @@ export default function OrderStatusCreate() {
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const response = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organizations.cached.get();
         
         if (response.data && Array.isArray(response.data)) {
           setOrganizations(response.data);
@@ -98,7 +95,7 @@ export default function OrderStatusCreate() {
     };
 
     fetchOrganizations();
-  }, [JSON.stringify(authHeaders)]);
+  }, []);
 
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -107,8 +104,6 @@ export default function OrderStatusCreate() {
       await apiClient.api.order_status.index.post({
         // @ts-ignore
         data: values,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Order status created successfully");

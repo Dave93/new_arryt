@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
@@ -47,7 +47,6 @@ const paymentTypeMap = {
 export default function DeliveryPricingDetail() {
   const params = useParams();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   const [distance, setDistance] = useState<string>("");
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
   const [calculatedClientPrice, setCalculatedClientPrice] = useState<number | null>(null);
@@ -57,9 +56,7 @@ export default function DeliveryPricingDetail() {
     queryKey: ["deliveryPricing", id],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.delivery_pricing({id}).get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.delivery_pricing({id}).get();
         return response?.data;
       } catch (error) {
         toast.error("Ошибка загрузки данных");

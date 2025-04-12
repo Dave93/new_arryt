@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -53,16 +53,13 @@ interface Organization {
 export default function OrganizationShow() {
   const params = useParams();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   
   // Fetch organization data
   const { data: organization, isLoading } = useQuery({
     queryKey: ["organization", id],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.organization({id}).get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organization({id}).get();
         
         return response?.data?.data;
       } catch (error) {
@@ -72,7 +69,7 @@ export default function OrganizationShow() {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   if (isLoading) {

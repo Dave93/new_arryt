@@ -7,7 +7,7 @@ import { DateRangePicker } from "../../../components/ui/date-range-picker";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../../../components/ui/card";
 import { toast } from "sonner";
-import { apiClient, apiFetch, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { DateRange } from "react-day-picker";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Badge } from "../../../components/ui/badge";
@@ -401,7 +401,6 @@ export default function OrdersPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [terminals, setTerminals] = useState<Terminal[]>([]);
-  const authHeaders = useGetAuthHeaders();
   const [dataLoaded, setDataLoaded] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -440,17 +439,13 @@ export default function OrdersPage() {
   // Загрузка организаций и терминалов только один раз при монтировании
   useEffect(() => {
     // Предотвращаем повторную загрузку
-    if (dataLoaded || !authHeaders.Authorization) return;
+    if (dataLoaded) return;
 
     const fetchFilterData = async () => {
       try {
         const [orgsResponse, terminalsResponse] = await Promise.all([
-          apiClient.api.organizations.cached.get({
-            headers: authHeaders,
-          }),
-          apiClient.api.terminals.cached.get({
-            headers: authHeaders,
-          }),
+          apiClient.api.organizations.cached.get(),
+          apiClient.api.terminals.cached.get(),
         ]);
 
         if (orgsResponse.data && Array.isArray(orgsResponse.data)) {
@@ -469,7 +464,7 @@ export default function OrdersPage() {
     };
     
     fetchFilterData();
-  }, [dataLoaded, JSON.stringify(authHeaders)]);
+  }, [dataLoaded]);
 
   // Fetch Order Statuses
   const { data: orderStatuses = [] } = useQuery<OrderStatus[]>({
@@ -481,8 +476,7 @@ export default function OrdersPage() {
         const response = await apiClient.api.order_status.cached.get({
           // Add query params if needed based on API structure
           // query: { organization_id: selectedOrganization !== 'all' ? selectedOrganization : undefined },
-          query: {},
-          headers: authHeaders,
+          query: {}
         });
         // Assuming the cached endpoint returns data directly or in a `data` property
         return response.data || response || []; // Adjust based on actual response
@@ -490,17 +484,14 @@ export default function OrdersPage() {
         toast.error("Failed to load order statuses");
         return [];
       }
-    },
-    enabled: !!authHeaders.Authorization,
+    }
   });
 
   // Function to fetch couriers for MultipleSelector (onSearch)
   const fetchCouriers = useCallback(async (search: string): Promise<Option[]> => {
-    if (!authHeaders.Authorization) return [];
     try {
       const response = await apiClient.api.couriers.search.get({
         query: { search: search },
-        headers: authHeaders,
       });
       const usersData = response.data || [];
       return usersData.map((user: User) => ({
@@ -512,7 +503,7 @@ export default function OrdersPage() {
       toast.error("Failed to search couriers");
       return [];
     }
-  }, [JSON.stringify(authHeaders)]);
+  }, []);
 
   // Fetch statuses for MultiSelect
   useEffect(() => {
@@ -663,7 +654,6 @@ export default function OrdersPage() {
             offset: offset.toString(),
             filters: JSON.stringify(filters),
           },
-          headers: authHeaders,
         });
 
         return {
@@ -846,10 +836,6 @@ export default function OrdersPage() {
 
   // Function to export all orders to Excel
   const exportToExcel = async () => {
-    if (!authHeaders.Authorization) {
-      toast.error("Необходима авторизация для экспорта");
-      return;
-    }
 
     setIsExporting(true);
     toast.info("Начинаем экспорт данных");
@@ -972,7 +958,6 @@ export default function OrdersPage() {
           limit: "999999", // Large number to get all records
           offset: "0", // Start from the first record
         } as any, // Type assertion to avoid the TypeScript error
-        headers: authHeaders,
       });
 
       // Process the data

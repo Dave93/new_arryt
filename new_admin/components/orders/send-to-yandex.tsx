@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "@/lib/eden-client";
+import { apiClient } from "@/lib/eden-client";
 import { IconSend } from "@tabler/icons-react";
 import { Loader2 } from "lucide-react";
 
@@ -18,16 +18,12 @@ interface SendOrderToYandexProps {
 
 export function SendOrderToYandex({ order }: SendOrderToYandexProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const authHeaders = useGetAuthHeaders();
 
   const handleSendToYandex = async () => {
     setIsLoading(true);
     try {
       await apiClient.api.missed_orders.send_yandex.post({
         id: order.id,
-      }, {
-        // @ts-ignore
-        headers: authHeaders,
       });
       
       toast.success("Заказ отправлен в Яндекс");

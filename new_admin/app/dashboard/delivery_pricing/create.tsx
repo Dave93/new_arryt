@@ -22,7 +22,7 @@ import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash } from "lucide-react";
 import { Checkbox } from "../../../components/ui/checkbox";
@@ -92,7 +92,6 @@ const formSchema = z.object({
 
 export default function DeliveryPricingCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
@@ -122,9 +121,7 @@ export default function DeliveryPricingCreate() {
     queryKey: ["organizations"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organizations.cached.get();
         return response?.data || [];
       } catch {
         toast.error("Failed to load organizations");
@@ -148,7 +145,6 @@ export default function DeliveryPricingCreate() {
       if (!selectedOrgId) return [];
       try {
         const response = await apiClient.api.terminals.index.get({
-          headers: authHeaders,
           // @ts-ignore
           query: {
             filters: JSON.stringify([
@@ -190,8 +186,6 @@ export default function DeliveryPricingCreate() {
       await apiClient.api.delivery_pricing.index.post({
         // @ts-ignore
         data: values,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Условие доставки успешно создано");

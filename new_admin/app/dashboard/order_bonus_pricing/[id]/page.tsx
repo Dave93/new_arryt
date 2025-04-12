@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
@@ -41,15 +41,12 @@ interface OrderBonusPricing {
 export default function OrderBonusPricingDetail() {
   const params = useParams();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   
   const { data: bonusPricing, isLoading } = useQuery<OrderBonusPricing>({
     queryKey: ["orderBonusPricing", id],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.order_bonus_pricing({id}).get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.order_bonus_pricing({id}).get();
         return data?.data as OrderBonusPricing;
       } catch (error) {
         toast.error("Ошибка загрузки данных бонуса");

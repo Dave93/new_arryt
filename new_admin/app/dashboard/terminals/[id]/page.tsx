@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../../../components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
 import { Skeleton } from "../../../../components/ui/skeleton";
 import { Switch } from "../../../../components/ui/switch";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import { DynamicMap } from "../../../../components/dynamic-map";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
@@ -43,16 +43,13 @@ export default function TerminalDetails() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   
   // Загрузка данных терминала
   const { data: terminal, isLoading } = useQuery({
     queryKey: ["terminal", id],
     queryFn: async () => {
       try {
-        const {data:response} = await apiClient.api.terminals({id}).get({
-          headers: authHeaders,
-        });
+        const {data:response} = await apiClient.api.terminals({id}).get();
         // @ts-ignore
         return response?.data as Terminal;
       } catch (error) {

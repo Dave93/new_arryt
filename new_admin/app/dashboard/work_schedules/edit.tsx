@@ -22,7 +22,7 @@ import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Checkbox } from "../../../components/ui/checkbox";
@@ -79,7 +79,6 @@ export default function WorkScheduleEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -103,16 +102,13 @@ export default function WorkScheduleEdit() {
     queryKey: ["organizations"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organizations.cached.get();
         return response.data || [];
       } catch (error) {
         toast.error("Failed to load organizations");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Загрузка данных рабочего графика
@@ -121,16 +117,14 @@ export default function WorkScheduleEdit() {
     queryFn: async () => {
       try {
         // @ts-ignore
-        const response = await apiClient.api.work_schedules({id}).get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.work_schedules({id}).get();
         return response.data;
       } catch (error) {
         toast.error("Failed to load work schedule");
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   // Заполнение формы данными из запроса
@@ -172,9 +166,6 @@ export default function WorkScheduleEdit() {
       await apiClient.api.work_schedules({id: values.id}).put({
         // @ts-ignore
         data: values,
-      }, {
-        // @ts-ignore
-        headers: authHeaders,
       });
       
       toast.success("Рабочий график успешно обновлен");

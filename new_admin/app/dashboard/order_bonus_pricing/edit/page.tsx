@@ -18,7 +18,7 @@ import {
 } from "../../../../components/ui/form";
 import { Input } from "../../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Switch } from "../../../../components/ui/switch";
@@ -62,7 +62,6 @@ export default function OrderBonusPricingEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [approximatePrice, setApproximatePrice] = useState<number>(0);
   const [testDistance, setTestDistance] = useState<number | undefined>(undefined);
@@ -89,9 +88,7 @@ export default function OrderBonusPricingEdit() {
     queryFn: async () => {
       if (!id) return null;
       try {
-        const { data } = await apiClient.api.order_bonus_pricing({id}).get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.order_bonus_pricing({id}).get();
         // @ts-ignore
         return data?.data;
       } catch {
@@ -107,9 +104,7 @@ export default function OrderBonusPricingEdit() {
     queryKey: ["organizations"],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.organizations.cached.get();
         return data || [];
       } catch {
         toast.error("Ошибка загрузки организаций");
@@ -123,9 +118,7 @@ export default function OrderBonusPricingEdit() {
     queryKey: ["terminals"],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.terminals.cached.get();
         return sortTerminalsByName(data || []);
       } catch {
         toast.error("Ошибка загрузки терминалов");
@@ -191,8 +184,6 @@ export default function OrderBonusPricingEdit() {
       await apiClient.api.order_bonus_pricing({id}).put({
         // @ts-ignore
         data: values,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Условие бонуса успешно обновлено");

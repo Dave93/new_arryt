@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { useRouter } from "next/navigation";
+import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -40,7 +40,6 @@ const formSchema = z.object({
 export default function PermissionEdit({ params }: { params: { id: string } }) {
   const router = useRouter();
   const id = params.id;
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize the form
@@ -60,9 +59,7 @@ export default function PermissionEdit({ params }: { params: { id: string } }) {
       if (!id) return null;
       
       try {
-        const {data: response} = await apiClient.api.permissions({id}).get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.permissions({id}).get();
         
         return response?.data;
       } catch (error) {
@@ -72,7 +69,7 @@ export default function PermissionEdit({ params }: { params: { id: string } }) {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   // Update form values when data is loaded
@@ -95,9 +92,6 @@ export default function PermissionEdit({ params }: { params: { id: string } }) {
       await apiClient.api.permissions({id}).put({
         // @ts-ignore
         data: values,
-        // @ts-ignore
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Permission updated successfully");

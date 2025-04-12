@@ -10,7 +10,7 @@ import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   Popover,
@@ -104,9 +104,8 @@ const filterSchema = z.object({
 type FilterValues = z.infer<typeof filterSchema>;
 
 // Component to show detailed transactions
-function ManagerWithdrawTransactions({ record, authHeaders }: { 
+function ManagerWithdrawTransactions({ record }: { 
   record: ManagerWithdraw, 
-  authHeaders: Record<string, string> 
 }) {
   const [transactions, setTransactions] = useState<ManagerWithdrawTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,13 +114,11 @@ function ManagerWithdrawTransactions({ record, authHeaders }: {
   // Загружаем данные транзакций при монтировании компонента
   useEffect(() => {
     const loadTransactions = async () => {
-      if (!record?.id || !authHeaders) return;
+      if (!record?.id) return;
       
       try {
         setIsLoading(true);
-        const { data } = await apiClient.api.manager_withdraw({id: record.id}).transactions.get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.manager_withdraw({id: record.id}).transactions.get();
         
         if (data && Array.isArray(data)) {
           // @ts-ignore
@@ -135,7 +132,7 @@ function ManagerWithdrawTransactions({ record, authHeaders }: {
     };
     
     loadTransactions();
-  }, [record?.id, JSON.stringify(authHeaders)]);
+  }, [record?.id]);
 
   if (isLoading) {
     return (
@@ -205,7 +202,6 @@ export default function ManagerWithdrawList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const authHeaders = useGetAuthHeaders();
   
   // Get current date for default filter values
   const today = new Date();
@@ -235,22 +231,17 @@ export default function ManagerWithdrawList() {
   // Fetch terminals and organizations data
   useEffect(() => {
     const fetchFilterData = async () => {
-      if (!authHeaders) return;
       
       try {
         // Fetch terminals
-        const { data: terminalsData } = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const { data: terminalsData } = await apiClient.api.terminals.cached.get();
         
         if (terminalsData && Array.isArray(terminalsData)) {
           setTerminals(sortByName(terminalsData as Terminal[]));
         }
         
         // Fetch organizations
-        const { data: organizationsData } = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const { data: organizationsData } = await apiClient.api.organizations.cached.get();
         
         if (organizationsData && Array.isArray(organizationsData)) {
           setOrganizations(organizationsData as Organization[]);
@@ -261,7 +252,7 @@ export default function ManagerWithdrawList() {
     };
     
     fetchFilterData();
-  }, [JSON.stringify(authHeaders)]);
+  }, []);
 
   // Define columns for the manager withdraws table
   const columns: ColumnDef<ManagerWithdraw>[] = [
@@ -362,7 +353,7 @@ export default function ManagerWithdrawList() {
               </div>
             </DialogHeader>
             <div className="sticky top-[72px] z-10 bg-background h-px bg-border my-4"></div>
-            <ManagerWithdrawTransactions record={row.original} authHeaders={authHeaders as Record<string, string>} />
+            <ManagerWithdrawTransactions record={row.original} />
           </DialogContent>
         </Dialog>
       ),
@@ -438,7 +429,6 @@ export default function ManagerWithdrawList() {
         
         const { data } = await apiClient.api.manager_withdraw.index.get({
           query: params,
-          headers: authHeaders,
         });
         
         return data?.data || [];
@@ -446,8 +436,7 @@ export default function ManagerWithdrawList() {
         toast.error("Ошибка загрузки данных выплат");
         return [];
       }
-    },
-    enabled: !!authHeaders,
+    }
   });
 
   // Handle export action
@@ -507,7 +496,6 @@ export default function ManagerWithdrawList() {
     //     $query: {
     //       filters: JSON.stringify(filters),
     //     },
-    //     $headers: authHeaders,
     //     $responseType: "blob",
     //   });
       

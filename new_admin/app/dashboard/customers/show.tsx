@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -12,15 +12,12 @@ import { Skeleton } from "../../../components/ui/skeleton";
 export default function CustomersShow() {
   const params = useParams();
   const customerId = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   
   const { data: data, isLoading } = useQuery({
     queryKey: ["customer", customerId],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.customers({id:customerId}).get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.customers({id:customerId}).get();
         
         return response.data;
       } catch (error) {
@@ -30,7 +27,7 @@ export default function CustomersShow() {
         throw error;
       }
     },
-    enabled: !!customerId && !!authHeaders.Authorization,
+    enabled: !!customerId,
   });
 
   if (isLoading) {

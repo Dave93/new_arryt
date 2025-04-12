@@ -11,7 +11,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   Select,
@@ -68,14 +68,9 @@ const filterSchema = z.object({
 
 type FilterValues = z.infer<typeof filterSchema>;
 
-type AuthHeaders = {
-  headers: {
-    Authorization: string;
-  }
-} | null
 
 // Withdraw Modal Component
-function CourierWithdrawModal({ courier, onWithdraw, authHeaders }: { courier: CourierBalance, onWithdraw: () => void, authHeaders: Record<string, unknown> | undefined}) {
+function CourierWithdrawModal({ courier, onWithdraw }: { courier: CourierBalance, onWithdraw: () => void}) {
   const [amount, setAmount] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -97,8 +92,6 @@ function CourierWithdrawModal({ courier, onWithdraw, authHeaders }: { courier: C
           courier_id: courier.users.id,
           terminal_id: courier.terminals.id,
           amount: +amount,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Выплата успешно проведена");
@@ -217,7 +210,6 @@ function formatPhone(phone: string): string {
 export default function CourierBalanceList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [terminals, setTerminals] = useState<Terminal[]>([]);
-  const authHeaders = useGetAuthHeaders();
   
   // Initialize form with default values
   const form = useForm<FilterValues>({
@@ -235,12 +227,9 @@ export default function CourierBalanceList() {
   // Fetch terminals data
   useEffect(() => {
     const fetchTerminals = async () => {
-      if (!authHeaders) return;
       
       try {
-        const { data: terminalsData } = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const { data: terminalsData } = await apiClient.api.terminals.cached.get();
         
         if (terminalsData && Array.isArray(terminalsData)) {
           setTerminals(sortByName(terminalsData as Terminal[]));
@@ -251,7 +240,7 @@ export default function CourierBalanceList() {
     };
     
     fetchTerminals();
-  }, [JSON.stringify(authHeaders)]);
+  }, []);
 
 
   // Define columns for the courier balance table
@@ -301,7 +290,6 @@ export default function CourierBalanceList() {
         <CourierWithdrawModal 
           courier={row.original} 
           onWithdraw={() => refetch()} 
-          authHeaders={authHeaders as Record<string, unknown> | undefined} 
         />
       ),
     },
@@ -320,8 +308,6 @@ export default function CourierBalanceList() {
             courier_id: courier_id && courier_id !== "all" ? [courier_id] : undefined,
             status: status
         }, {
-
-            headers: authHeaders,
         });
         
         if (couriersBalanceData && Array.isArray(couriersBalanceData)) {
@@ -334,8 +320,7 @@ export default function CourierBalanceList() {
         toast.error("Ошибка загрузки данных баланса курьеров");
         return [];
       }
-    },
-    enabled: !!authHeaders,
+    }
   });
 
   // Handle export action
@@ -353,7 +338,6 @@ export default function CourierBalanceList() {
     //       status: status,
     //       search: searchQuery || undefined,
     //     },
-    //     headers: authHeaders,
     //     $responseType: "blob",
     //   });
       

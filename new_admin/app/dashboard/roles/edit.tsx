@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -59,7 +59,6 @@ export default function RoleEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [permissionOptions, setPermissionOptions] = useState<{ value: string; label: string }[]>([]);
@@ -88,7 +87,6 @@ export default function RoleEdit() {
             limit: "100",
             offset: "0",
           },
-          headers: authHeaders,
         });
         
         return response?.data?.data || [];
@@ -106,9 +104,7 @@ export default function RoleEdit() {
       if (!id) return null;
       
       try {
-        const response = await apiClient.api.roles({id}).get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.roles({id}).get();
         
         return response?.data?.data;
       } catch (error) {
@@ -118,7 +114,7 @@ export default function RoleEdit() {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   // Fetch role permissions
@@ -128,9 +124,7 @@ export default function RoleEdit() {
       if (!id) return null;
       
       try {
-        const response = await apiClient.api.roles({id}).permissions.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.roles({id}).permissions.get();
         
         return response.data?.data || [];
       } catch (error) {
@@ -138,7 +132,7 @@ export default function RoleEdit() {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   // Update form values when data is loaded
@@ -232,9 +226,6 @@ export default function RoleEdit() {
           // @ts-ignore
           code: values.code,
         },
-        // @ts-ignore
-      }, {
-        headers: authHeaders,
       });
       
       // Update role permissions if permissions field exists

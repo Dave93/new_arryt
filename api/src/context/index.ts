@@ -248,11 +248,13 @@ export const contextWitUser = baseContext
 
                   cookie.session.value = newSessionData.accessToken;
                   cookie.refreshToken.value = newSessionData.refreshToken;
+                  cookie.session.domain = 'arryt.uz';
+                  cookie.refreshToken.domain = 'arryt.uz';
               }
 
               // Parse session data
               try {
-                  const sessionData = JSON.parse(session) as unknown as UserResponseDto;
+                  const sessionData = JSON.parse(session) as unknown as UserContext;
               } catch (err) {
                   throw error(500, "Invalid session data");
               }
@@ -301,7 +303,7 @@ export const contextWitUser = baseContext
                   };
               }
 
-              const sessionData = JSON.parse(session) as unknown as UserResponseDto;
+              const sessionData = JSON.parse(session) as unknown as UserContext;
 
               return {
                   user: sessionData

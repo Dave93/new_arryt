@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -34,7 +34,6 @@ export default function PermissionDetails() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch permission data
@@ -42,9 +41,7 @@ export default function PermissionDetails() {
     queryKey: ["permission", id],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.permissions({id}).get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.permissions({id}).get();
         
         return response?.data;
       } catch (error) {
@@ -61,9 +58,7 @@ export default function PermissionDetails() {
   const handleDelete = async () => {
     // setIsDeleting(true);
     // try {
-    //   await apiClient.api.permissions({id}).delete({
-    //     headers: authHeaders,
-    //   });
+      // await apiClient.api.permissions({id}).delete();
       
     //   toast.success("Permission deleted successfully");
     //   router.push("/dashboard/permissions");

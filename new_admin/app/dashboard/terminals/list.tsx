@@ -6,7 +6,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
 import { Eye, Plus, Edit } from "lucide-react";
@@ -155,7 +155,6 @@ export default function TerminalsList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-  const authHeaders = useGetAuthHeaders();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -171,9 +170,7 @@ export default function TerminalsList() {
     queryKey: ["organizations"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organizations.cached.get();
         setOrganizations(response?.data || []);
         return response?.data || [];
       } catch (error) {
@@ -228,7 +225,6 @@ export default function TerminalsList() {
             offset: offset.toString(),
             filters: JSON.stringify(filters),
           },
-          headers: authHeaders,
         });
 
         return {

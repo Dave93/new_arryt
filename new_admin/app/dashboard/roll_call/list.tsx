@@ -10,7 +10,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import {
   Form,
   FormControl,
@@ -65,7 +65,7 @@ const filterSchema = z.object({
 type FilterValues = z.infer<typeof filterSchema>;
 
 // Daily Garant Component
-function DailyGarantButton({ day, user_id, authHeaders, onSuccess }: { day: Date, user_id: string, authHeaders: any, onSuccess?: () => void }) {
+function DailyGarantButton({ day, user_id, onSuccess }: { day: Date, user_id: string, onSuccess?: () => void }) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const setDailyGarant = async () => {
@@ -74,8 +74,6 @@ function DailyGarantButton({ day, user_id, authHeaders, onSuccess }: { day: Date
       await apiClient.api.couriers.try_set_daily_garant.post({
         day: day.toISOString(),
         courier_id: user_id,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Дневная гарантия установлена");
@@ -122,7 +120,6 @@ function CourierDriveTypeIcon({ driveType }: { driveType?: string }) {
 
 export default function RollCallList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const authHeaders = useGetAuthHeaders();
   const queryClient = useQueryClient();
   
   // Initialize form with default values
@@ -146,7 +143,6 @@ export default function RollCallList() {
             date: filterValues.date.toISOString(),
             // search: searchQuery || undefined,
           },
-          headers: authHeaders,
         });
         
         if (rollCallList && Array.isArray(rollCallList)) {
@@ -158,8 +154,7 @@ export default function RollCallList() {
         toast.error("Ошибка загрузки данных переклички");
         return [];
       }
-    },
-    enabled: !!authHeaders,
+    }
   });
 
   // Filter data based on search query
@@ -325,7 +320,6 @@ export default function RollCallList() {
                             <DailyGarantButton
                               day={filterValues.date}
                               user_id={courier.id}
-                              authHeaders={authHeaders}
                               onSuccess={refetch}
                             />
                           )}

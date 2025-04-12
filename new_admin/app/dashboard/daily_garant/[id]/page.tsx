@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
@@ -51,16 +51,13 @@ function DailyGarantSkeleton() {
 export default function DailyGarantShow() {
   const params = useParams();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   
   // Запрос данных
   const { data: dailyGarant, isLoading } = useQuery({
     queryKey: ["dailyGarant", id],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.daily_garant({ id }).get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.daily_garant({ id }).get();
         return data?.data;
       } catch (error) {
         toast.error("Ошибка загрузки данных дневного гаранта");
@@ -68,7 +65,7 @@ export default function DailyGarantShow() {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   if (isLoading || !dailyGarant) {

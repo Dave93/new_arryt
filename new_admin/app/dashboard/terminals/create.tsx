@@ -22,7 +22,7 @@ import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -51,7 +51,6 @@ const formSchema = z.object({
 
 export default function TerminalCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -85,7 +84,6 @@ export default function TerminalCreate() {
             fields: "id,name",
             limit: "100",
           },
-          headers: authHeaders,
         });
         return response.data?.data || [];
       } catch (error) {
@@ -102,9 +100,6 @@ export default function TerminalCreate() {
       await apiClient.api.terminals.index.post({
         // @ts-ignore
         data: values,
-        headers: authHeaders,
-      }, {
-        // @ts-ignore
       });
       
       toast.success("Филиал успешно создан");

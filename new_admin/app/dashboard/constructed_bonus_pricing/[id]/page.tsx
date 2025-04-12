@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
@@ -79,7 +79,6 @@ function ConstructedBonusPricingSkeleton() {
 export default function ConstructedBonusPricingShow() {
   const params = useParams();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   const [terminalsMap, setTerminalsMap] = useState<Record<string, string>>({});
 
   // Запрос данных для просмотра
@@ -87,9 +86,7 @@ export default function ConstructedBonusPricingShow() {
     queryKey: ["constructedBonusPricing", id],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.constructed_bonus_pricing({ id }).get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.constructed_bonus_pricing({ id }).get();
         return data?.data as ConstructedBonusPricing;
       } catch (error) {
         toast.error("Ошибка загрузки данных условия бонуса к заказу");
@@ -97,16 +94,14 @@ export default function ConstructedBonusPricingShow() {
         return null;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   // Загрузка названий терминалов
   useEffect(() => {
     const fetchTerminals = async () => {
       try {
-        const terminalsResponse = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const terminalsResponse = await apiClient.api.terminals.cached.get();
         
         if (terminalsResponse.data && Array.isArray(terminalsResponse.data)) {
           const map: Record<string, string> = {};
@@ -120,10 +115,10 @@ export default function ConstructedBonusPricingShow() {
       }
     };
 
-    if (authHeaders && bonusPricing) {
+    if (bonusPricing) {
       fetchTerminals();
     }
-  }, [authHeaders, bonusPricing]);
+  }, [bonusPricing]);
 
   // Загрузка данных о курьерах
   // useEffect(() => {
@@ -136,9 +131,7 @@ export default function ConstructedBonusPricingShow() {
   //     for (let i = 0; i < updatedPricing.length; i++) {
   //       if (updatedPricing[i].courier_id && !updatedPricing[i].courier) {
   //         try {
-  //           const response = await apiClient.api.couriers({ id: updatedPricing[i]?.courier_id}).get({
-  //             headers: authHeaders,
-  //           });
+  //           const response = await apiClient.api.couriers({ id: updatedPricing[i]?.courier_id}).get();
             
   //           if (response.data) {
   //             updatedPricing[i].courier = response.data;
@@ -157,10 +150,10 @@ export default function ConstructedBonusPricingShow() {
   //     }
   //   };
     
-  //   if (bonusPricing && authHeaders) {
+  //   if (bonusPricing) {
   //     fetchCourierDetails();
   //   }
-  // }, [bonusPricing, authHeaders]);
+  // }, [bonusPricing]);
 
   if (isLoading) {
     return (

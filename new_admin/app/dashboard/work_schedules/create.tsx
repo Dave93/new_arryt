@@ -22,7 +22,7 @@ import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Checkbox } from "../../../components/ui/checkbox";
@@ -58,7 +58,6 @@ const formSchema = z.object({
 
 export default function WorkScheduleCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -81,16 +80,13 @@ export default function WorkScheduleCreate() {
     queryKey: ["organizations"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.organizations.cached.get();
         return response.data || [];
       } catch (error) {
         toast.error("Failed to load organizations");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Обработка отправки формы
@@ -100,9 +96,6 @@ export default function WorkScheduleCreate() {
       await apiClient.api.work_schedules.index.post({
         // @ts-ignore
         data: values,
-      }, {
-        // @ts-ignore
-        headers: authHeaders,
       });
       
       toast.success("Рабочий график успешно создан");

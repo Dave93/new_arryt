@@ -6,7 +6,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
 import { Eye, Plus, Edit } from "lucide-react";
@@ -83,7 +83,6 @@ const columns: ColumnDef<OrderBonusPricing>[] = [
 
 export default function OrderBonusPricingList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const authHeaders = useGetAuthHeaders();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -112,7 +111,6 @@ export default function OrderBonusPricingList() {
         }
 
         const {data: response} = await apiClient.api.order_bonus_pricing.index.get({
-          headers: authHeaders,
           query: {
             fields: "id,name,active,organization_id,organization.id,organization.name,created_at",
             limit: pagination.pageSize.toString(),

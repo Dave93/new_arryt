@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -38,7 +38,6 @@ interface Permission {
 export default function RoleShow() {
   const params = useParams();
   const id = params.id as string;
-  const authHeaders = useGetAuthHeaders();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   
@@ -47,9 +46,7 @@ export default function RoleShow() {
     queryKey: ["role", id],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.roles({id}).get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.roles({id}).get();
         
         return response?.data?.data;
       } catch (error) {
@@ -59,7 +56,7 @@ export default function RoleShow() {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
   
   // Fetch role permissions
@@ -67,9 +64,7 @@ export default function RoleShow() {
     queryKey: ["rolePermissions", id],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.roles({id}).permissions.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.roles({id}).permissions.get();
         
         return response.data?.data || [];
       } catch (error) {
@@ -77,7 +72,7 @@ export default function RoleShow() {
         throw error;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
   
   if (isLoading) {

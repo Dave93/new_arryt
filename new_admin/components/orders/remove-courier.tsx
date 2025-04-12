@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "@/lib/eden-client";
+import { apiClient } from "@/lib/eden-client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,6 @@ interface RemoveOrderCourierProps {
 export function RemoveOrderCourier({ orderId }: RemoveOrderCourierProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const authHeaders = useGetAuthHeaders();
   const queryClient = useQueryClient();
 
   const handleRemoveCourier = async () => {
@@ -33,9 +32,7 @@ export function RemoveOrderCourier({ orderId }: RemoveOrderCourierProps) {
     try {
       // Use type assertion for dynamic property access
       const orderEndpoint = apiClient.api.orders as any;
-      await orderEndpoint({id: orderId}).revoke.post({},{
-        headers: authHeaders,
-      });
+      await orderEndpoint({id: orderId}).revoke.post();
       
       toast.success("Курьер успешно снят с заказа");
       setIsOpen(false);

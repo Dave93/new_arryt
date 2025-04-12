@@ -19,7 +19,7 @@ import {
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TimeField } from "../../../components/ui/time-field";
@@ -73,7 +73,6 @@ export default function DailyGarantEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -94,9 +93,7 @@ export default function DailyGarantEdit() {
       if (!id) return null;
       
       try {
-        const { data } = await apiClient.api.daily_garant({ id }).get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.daily_garant({ id }).get();
         return data?.data;
       } catch (error) {
         toast.error("Ошибка загрузки данных дневного гаранта");
@@ -104,7 +101,7 @@ export default function DailyGarantEdit() {
         return null;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   // Заполнение формы данными при их получении
@@ -136,8 +133,6 @@ export default function DailyGarantEdit() {
 
       await apiClient.api.daily_garant({ id }).put({
         data: formattedValues,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Тариф дневного гаранта успешно обновлен");

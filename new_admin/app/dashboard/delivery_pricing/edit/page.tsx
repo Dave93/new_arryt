@@ -22,7 +22,7 @@ import { Input } from "../../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { Switch } from "../../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
-import { apiClient, useGetAuthHeaders } from "../../../../lib/eden-client";
+import { apiClient } from "../../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash } from "lucide-react";
 import { Checkbox } from "../../../../components/ui/checkbox";
@@ -108,7 +108,6 @@ export default function DeliveryPricingEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Инициализация формы
@@ -142,9 +141,7 @@ export default function DeliveryPricingEdit() {
     queryFn: async () => {
       try {
         // @ts-ignore
-        const {data: response} = await apiClient.api.delivery_pricing({id}).get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.delivery_pricing({id}).get();
         return response?.data;
       } catch (error) {
         toast.error("Ошибка загрузки данных");
@@ -159,9 +156,7 @@ export default function DeliveryPricingEdit() {
     queryKey: ["organizations"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.organizations.cached.get();
         return response || [];
       } catch {
         toast.error("Failed to load organizations");
@@ -210,16 +205,13 @@ export default function DeliveryPricingEdit() {
     queryKey: ["terminals_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.terminals.cached.get({
-          headers: authHeaders
-        });
+        const {data: response} = await apiClient.api.terminals.cached.get();
         return sortTerminalsByName(response || []);
       } catch {
         toast.error("Failed to load terminals");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Функция добавления нового правила ценообразования
@@ -254,8 +246,6 @@ export default function DeliveryPricingEdit() {
       await apiClient.api.delivery_pricing({id}).put({
         // @ts-ignore
         data: values,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Условие доставки успешно обновлено");

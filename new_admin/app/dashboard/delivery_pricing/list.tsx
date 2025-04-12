@@ -6,7 +6,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
 import { Eye, Plus, Edit } from "lucide-react";
@@ -145,7 +145,6 @@ const columns: ColumnDef<DeliveryPricing>[] = [
 export default function DeliveryPricingList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-  const authHeaders = useGetAuthHeaders();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -161,16 +160,13 @@ export default function DeliveryPricingList() {
     queryKey: ["organizations_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.organizations.cached.get();
         return response || [];
       } catch {
         toast.error("Failed to fetch organizations");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   useEffect(() => {
@@ -205,7 +201,6 @@ export default function DeliveryPricingList() {
         }
 
         const {data: response} = await apiClient.api.delivery_pricing.index.get({
-          headers: authHeaders,
           query: {
             fields: "id,name,active,organization_id,organization.name,default,drive_type,days,start_time,end_time,min_price,price_per_km,payment_type,created_at",
             limit: pagination.pageSize.toString(),

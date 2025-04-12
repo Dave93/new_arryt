@@ -19,7 +19,7 @@ import {
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
@@ -124,7 +124,6 @@ export default function ConstructedBonusPricingEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [terminals, setTerminals] = useState<Terminal[]>([]);
@@ -168,9 +167,7 @@ export default function ConstructedBonusPricingEdit() {
       if (!id) return null;
       
       try {
-        const { data } = await apiClient.api.constructed_bonus_pricing({ id }).get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.constructed_bonus_pricing({ id }).get();
         return data?.data as ConstructedBonusPricing;
       } catch (error) {
         toast.error("Ошибка загрузки данных условия бонуса к заказу");
@@ -178,7 +175,7 @@ export default function ConstructedBonusPricingEdit() {
         return null;
       }
     },
-    enabled: !!id && !!authHeaders,
+    enabled: !!id,
   });
 
   // Загрузка списка организаций и терминалов
@@ -186,17 +183,13 @@ export default function ConstructedBonusPricingEdit() {
     const fetchData = async () => {
       try {
         // Загрузка терминалов
-        const terminalsResponse = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const terminalsResponse = await apiClient.api.terminals.cached.get();
         if (terminalsResponse.data && Array.isArray(terminalsResponse.data)) {
           setTerminals(terminalsResponse.data.sort((a: Terminal, b: Terminal) => a.name.localeCompare(b.name)));
         }
 
         // Загрузка организаций
-        const organizationsResponse = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const organizationsResponse = await apiClient.api.organizations.cached.get();
         if (organizationsResponse.data && Array.isArray(organizationsResponse.data)) {
           setOrganizations(organizationsResponse.data);
         }
@@ -206,10 +199,8 @@ export default function ConstructedBonusPricingEdit() {
       }
     };
 
-    if (authHeaders) {
-      fetchData();
-    }
-  }, [JSON.stringify(authHeaders)]);
+    fetchData();
+  }, []);
 
   // Загрузка данных курьеров, если они есть в полученных данных
   // useEffect(() => {
@@ -226,9 +217,7 @@ export default function ConstructedBonusPricingEdit() {
   //       // Здесь нужно загрузить данные о курьерах по их идентификаторам
   //       // Это зависит от конкретного API
   //       for (const courierId of courierIds) {
-  //         const response = await apiClient.api.couriers({ id: courierId }).get({
-  //           headers: authHeaders,
-  //         });
+  //         const response = await apiClient.api.couriers({ id: courierId }).get();
           
   //         if (response.data && !couriers.some(c => c.id === response.data.id)) {
   //           setCouriers(prev => [...prev, response.data]);
@@ -239,10 +228,10 @@ export default function ConstructedBonusPricingEdit() {
   //     }
   //   };
     
-  //   if (bonusPricing && authHeaders) {
+  //   if (bonusPricing) {
   //     fetchCourierDetails();
   //   }
-  // }, [bonusPricing, JSON.stringify(authHeaders), couriers]);
+  // }, [bonusPricing]);
 
   // // Поиск курьеров
   // useEffect(() => {
@@ -251,7 +240,6 @@ export default function ConstructedBonusPricingEdit() {
 
   //     try {
   //       const response = await apiClient.api.couriers.search.get({
-  //         headers: authHeaders,
   //         query: {
   //           search: courierSearchTerm,
   //         },
@@ -265,11 +253,9 @@ export default function ConstructedBonusPricingEdit() {
   //     }
   //   };
 
-  //   if (authHeaders) {
   //     const timeoutId = setTimeout(fetchCouriers, 300);
   //     return () => clearTimeout(timeoutId);
-  //   }
-  // }, [courierSearchTerm, JSON.stringify(authHeaders)]);
+  // }, [courierSearchTerm]);
 
   // Заполнение формы данными при их получении
   useEffect(() => {
@@ -304,8 +290,6 @@ export default function ConstructedBonusPricingEdit() {
     try {
       await apiClient.api.constructed_bonus_pricing({ id }).put({
         data: values,
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Условие бонуса к заказу успешно обновлено");

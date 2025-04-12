@@ -7,6 +7,9 @@ import { apiClient } from "./lib/eden-client";
 export async function middleware(request: NextRequest) {
     // First, handle the authentication check
     const sessionKey = request.cookies.get("session")?.value;
+    const refreshToken = request.cookies.get("refreshToken")?.value;
+    console.log("sessionKey", sessionKey);
+    console.log("refreshToken", refreshToken);
     const isLoginRoute = request.nextUrl.pathname === '/auth/login' ||
         request.nextUrl.pathname.match(/^\/(de|en)\/login$/) !== null;
     const isForbiddenRoute = request.nextUrl.pathname === '/forbidden' ||
@@ -25,9 +28,11 @@ export async function middleware(request: NextRequest) {
     // Verify session with backend
     const { status } = await apiClient.api.users.me.get({
         headers: {
-            Cookie: `session=${sessionKey}`,
+            Cookie: `session=${sessionKey}; refreshToken=${refreshToken}`,
         },
     });
+
+    console.log("status", status);
 
     if (status !== 200) {
         return NextResponse.redirect(new URL(`/auth/login`, request.url));

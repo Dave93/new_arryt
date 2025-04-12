@@ -6,7 +6,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
 import { Eye, Plus, Edit } from "lucide-react";
@@ -89,7 +89,6 @@ const columns: ColumnDef<DailyGarant>[] = [
 
 export default function DailyGarantList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const authHeaders = useGetAuthHeaders();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -118,7 +117,6 @@ export default function DailyGarantList() {
         }
 
         const {data: response} = await apiClient.api.daily_garant.index.get({
-          headers: authHeaders,
           query: {
             fields: "id,name,date,amount,late_minus_sum,created_at",
             limit: pagination.pageSize.toString(),

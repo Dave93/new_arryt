@@ -10,7 +10,7 @@ import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   Popover,
@@ -298,7 +298,6 @@ const columns = (efficiencyData: CourierEfficiency[]): ColumnDef<CourierEfficien
 
 export default function CourierEfficiencyList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const authHeaders = useGetAuthHeaders();
   
   // Get current date for default filter values
   const today = new Date();
@@ -325,16 +324,13 @@ export default function CourierEfficiencyList() {
     queryKey: ["terminals"],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.terminals.cached.get();
         return sortTerminalsByName(data || []);
       } catch {
         toast.error("Ошибка загрузки филиалов");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Fetch couriers list
@@ -342,16 +338,13 @@ export default function CourierEfficiencyList() {
     queryKey: ["couriers"],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.api.couriers.all.get({
-          headers: authHeaders,
-        });
+        const { data } = await apiClient.api.couriers.all.get();
         return data || [];
       } catch {
         toast.error("Ошибка загрузки курьеров");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Get the current filter values
@@ -389,9 +382,6 @@ export default function CourierEfficiencyList() {
         
         const { data } = await apiClient.api.couriers.efficiency.post({
           ...apiParams,
-        }, {
-
-            headers: authHeaders,
         });
         
         return data || [];
@@ -400,7 +390,6 @@ export default function CourierEfficiencyList() {
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   // Handle export action

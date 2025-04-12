@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "@/lib/eden-client";
+import { apiClient } from "@/lib/eden-client";
 import { DateRange } from "react-day-picker";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { format, startOfDay, endOfDay } from "date-fns";
@@ -170,18 +170,15 @@ export default function MissedOrdersPage() {
     pageSize: 50,
   });
 
-  const authHeaders = useGetAuthHeaders();
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Fetch terminals for the filter
   useEffect(() => {
-    if (dataLoaded || !authHeaders.Authorization) return;
+    if (dataLoaded) return;
 
     const fetchTerminals = async () => {
       try {
-        const response = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const response = await apiClient.api.terminals.cached.get();
 
         if (response.data && Array.isArray(response.data)) {
           setTerminalsList(sortBy(response.data, "name"));
@@ -194,7 +191,7 @@ export default function MissedOrdersPage() {
     };
 
     fetchTerminals();
-  }, [JSON.stringify(authHeaders), dataLoaded]);
+  }, [dataLoaded]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -336,7 +333,6 @@ export default function MissedOrdersPage() {
             offset: offset.toString(),
             filters: JSON.stringify(filters),
           },
-          headers: authHeaders,
         });
 
         return {

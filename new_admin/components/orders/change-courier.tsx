@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "@/lib/eden-client";
+import { apiClient } from "@/lib/eden-client";
 
 import {
   Dialog,
@@ -41,7 +41,6 @@ export function ChangeOrderCourier({ orderId, terminalId }: ChangeOrderCourierPr
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCourier, setSelectedCourier] = useState<string>();
-  const authHeaders = useGetAuthHeaders();
   const queryClient = useQueryClient();
 
   // Fetch couriers data when the dialog is opened
@@ -53,7 +52,6 @@ export function ChangeOrderCourier({ orderId, terminalId }: ChangeOrderCourierPr
           query: {
             terminal_id: terminalId,
           },
-          headers: authHeaders,
         });
         
         return Array.isArray(data) ? data as CourierData[] : [];
@@ -77,9 +75,6 @@ export function ChangeOrderCourier({ orderId, terminalId }: ChangeOrderCourierPr
       const orderEndpoint = apiClient.api.orders as any;
       await orderEndpoint[orderId].assign.post({
         courier_id: selectedCourier,
-        
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Courier changed successfully");

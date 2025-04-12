@@ -6,7 +6,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { toast } from "sonner";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
 import { Eye, Plus, Edit } from "lucide-react";
@@ -165,7 +165,6 @@ const columns: ColumnDef<WorkSchedule>[] = [
 export default function WorkScheduleList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-  const authHeaders = useGetAuthHeaders();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -181,16 +180,13 @@ export default function WorkScheduleList() {
     queryKey: ["organizations_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const {data: response} = await apiClient.api.organizations.cached.get();
         return response || [];
       } catch (error) {
         toast.error("Failed to fetch organizations");
         return [];
       }
     },
-    enabled: !!authHeaders,
   });
 
   useEffect(() => {
@@ -225,7 +221,6 @@ export default function WorkScheduleList() {
         }
 
         const {data: response} = await apiClient.api.work_schedules.index.get({
-          headers: authHeaders,
           query: {
             fields: "id,name,active,organization_id,organization.name,days,start_time,end_time,max_start_time,bonus_price,created_at",
             limit: pagination.pageSize.toString(),

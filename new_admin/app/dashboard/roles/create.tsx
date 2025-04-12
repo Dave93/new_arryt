@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
 import {
   Card,
@@ -38,7 +38,6 @@ const formSchema = z.object({
 
 export default function RoleCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize the form
@@ -58,9 +57,6 @@ export default function RoleCreate() {
       await apiClient.api.roles.index.post({
         // @ts-ignore
         data: values,
-      }, {
-        // @ts-ignore
-        headers: authHeaders,
       });
       
       toast.success("Role created successfully");

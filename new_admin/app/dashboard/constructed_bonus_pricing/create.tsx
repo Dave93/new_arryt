@@ -18,7 +18,7 @@ import {
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { apiClient, useGetAuthHeaders } from "../../../lib/eden-client";
+import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
@@ -70,7 +70,6 @@ interface Courier {
 
 export default function ConstructedBonusPricingCreate() {
   const router = useRouter();
-  const authHeaders = useGetAuthHeaders();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [terminals, setTerminals] = useState<Terminal[]>([]);
@@ -112,17 +111,13 @@ export default function ConstructedBonusPricingCreate() {
     const fetchData = async () => {
       try {
         // Загрузка терминалов
-        const terminalsResponse = await apiClient.api.terminals.cached.get({
-          headers: authHeaders,
-        });
+        const terminalsResponse = await apiClient.api.terminals.cached.get();
         if (terminalsResponse.data && Array.isArray(terminalsResponse.data)) {
           setTerminals(terminalsResponse.data.sort((a: Terminal, b: Terminal) => a.name.localeCompare(b.name)));
         }
 
         // Загрузка организаций
-        const organizationsResponse = await apiClient.api.organizations.cached.get({
-          headers: authHeaders,
-        });
+        const organizationsResponse = await apiClient.api.organizations.cached.get();
         if (organizationsResponse.data && Array.isArray(organizationsResponse.data)) {
           setOrganizations(organizationsResponse.data);
         }
@@ -132,10 +127,8 @@ export default function ConstructedBonusPricingCreate() {
       }
     };
 
-    if (authHeaders) {
-      fetchData();
-    }
-  }, [authHeaders]);
+    fetchData();
+  }, []);
 
   // Поиск курьеров
   useEffect(() => {
@@ -144,7 +137,6 @@ export default function ConstructedBonusPricingCreate() {
 
       try {
         const response = await apiClient.api.couriers.search.get({
-          headers: authHeaders,
           query: {
             search: courierSearchTerm,
           },
@@ -158,11 +150,9 @@ export default function ConstructedBonusPricingCreate() {
       }
     };
 
-    if (authHeaders) {
-      const timeoutId = setTimeout(fetchCouriers, 300);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [courierSearchTerm, authHeaders]);
+    const timeoutId = setTimeout(fetchCouriers, 300);
+    return () => clearTimeout(timeoutId);
+  }, [courierSearchTerm]);
 
   // Обработка отправки формы
   const onSubmit = async (values: FormValues) => {
@@ -170,8 +160,6 @@ export default function ConstructedBonusPricingCreate() {
     try {
       await apiClient.api.constructed_bonus_pricing.index.post({
         data: values
-      }, {
-        headers: authHeaders,
       });
       
       toast.success("Условие бонуса к заказу успешно создано");
