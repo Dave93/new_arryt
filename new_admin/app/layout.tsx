@@ -24,11 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <QueryProvider>
-          <AuthInitializer>
-            <AuthGuard>
               {children}
-            </AuthGuard>
-          </AuthInitializer>
         </QueryProvider>
         <Toaster position="top-right" />
       </body>
