@@ -487,6 +487,25 @@ export const UsersController = new Elysia({
       password: t.String(),
     }),
   })
+  .post("/api/users/logout", async ({
+    cookie,
+    cacheControl,
+    error
+}) => {
+
+    if (cookie.session.value && cookie.refreshToken.value) {
+        await cacheControl.clearUserSession(cookie.session.value, cookie.refreshToken.value);
+    }
+
+    delete cookie.session.value;
+    delete cookie.refreshToken.value;
+
+    return {
+        message: "Logged out successfully"
+    };
+}, {
+    userAuth: true
+})
   .post(
     "/api/users/send-otp",
     async ({ body: { phone }, drizzle }) => {

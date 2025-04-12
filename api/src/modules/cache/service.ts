@@ -630,5 +630,10 @@ export class CacheControlService {
         accessToken,
         refreshToken
     };
-}
+  }
+
+  async clearUserSession(accessToken: string, refreshToken: string) {
+    await this.redis.del(`${process.env.PROJECT_PREFIX}:session:${accessToken}`);
+    await this.redis.del(`${process.env.PROJECT_PREFIX}:session:${refreshToken}`);
+  }
 }
