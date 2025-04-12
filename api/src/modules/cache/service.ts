@@ -18,9 +18,11 @@ import {
 import { DB } from "../../lib/db";
 import { eq, getTableColumns, InferSelectModel, sql } from "drizzle-orm";
 import { Redis } from "ioredis";
-import { UserResponseDto } from "../user/users.dto";
+import { UserContext, UserResponseDto } from "../user/users.dto";
 import { WorkScheduleWithRelations } from "../work_schedules/dto/list.dto";
 import dayjs from "dayjs";
+import { randomUUIDv7 } from "bun";
+import ms from "ms";
 
 export class CacheControlService {
   constructor(private readonly db: DB, private readonly redis: Redis) {
@@ -612,4 +614,21 @@ export class CacheControlService {
     const courier = await this.db.select().from(users).where(eq(users.id, courierId)).limit(1);
     return courier[0].fcm_token;
   }
+
+  async setUserSession(userData: UserContext, oldRefreshToken: string | null = null) {
+    const accessToken = randomUUIDv7();
+    const refreshToken = randomUUIDv7();
+    await this.redis.set(`${process.env.PROJECT_PREFIX}:session:${accessToken}`, JSON.stringify(userData), "PX", ms("2 days"));
+
+    if (oldRefreshToken) {
+        await this.redis.del(`${process.env.PROJECT_PREFIX}:session:${oldRefreshToken}`);
+    }
+
+    await this.redis.set(`${process.env.PROJECT_PREFIX}:session:${refreshToken}`, JSON.stringify(userData), "PX", ms("7 days"));
+
+    return {
+        accessToken,
+        refreshToken
+    };
+}
 }

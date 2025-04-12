@@ -14,6 +14,10 @@ import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
 import { format } from "date-fns";
 
+interface Terminal {
+  id: string;
+  name: string;
+}
 // Интерфейсы для типизации данных
 interface Rule {
   distance_from: number;
@@ -106,7 +110,7 @@ export default function ConstructedBonusPricingShow() {
         
         if (terminalsResponse.data && Array.isArray(terminalsResponse.data)) {
           const map: Record<string, string> = {};
-          terminalsResponse.data.forEach((terminal: { id: string; name: string }) => {
+          terminalsResponse.data.sort((a: Terminal, b: Terminal) => a.name.localeCompare(b.name)).forEach((terminal: { id: string; name: string }) => {
             map[terminal.id] = terminal.name;
           });
           setTerminalsMap(map);

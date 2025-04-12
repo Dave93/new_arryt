@@ -29,6 +29,20 @@ export interface UserResponseDto {
   daily_garant_id: string;
 }
 
+
+// Define user context type for better type safety
+export type UserContext = {
+  user: UserResponseDto;
+  access: {
+    additionalPermissions: string[];
+    roles: {
+      name: string;
+      code: string;
+      active: boolean;
+    }[];
+  };
+} | null;
+
 export interface TokenDto {
   tokenType: string;
   accessToken: string;

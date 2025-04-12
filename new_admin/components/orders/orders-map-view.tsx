@@ -12,6 +12,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { Loader2, MapPin } from "lucide-react"
 import dynamic from "next/dynamic"
 import type { Order, MapComponentProps } from "./map-component"
+import { sortTerminalsByName } from "../../lib/sort_terminals_by_name"
 
 // Import the OrderDetailsClientPage dynamically to avoid SSR issues
 const OrderDetailsClientPage = dynamic(
@@ -53,7 +54,7 @@ export function OrdersMapView() {
         })
         
         if (data && Array.isArray(data)) {
-          setTerminals(data)
+          setTerminals(sortTerminalsByName(data))
         }
       } catch (error) {
         console.error("Error fetching terminals:", error)

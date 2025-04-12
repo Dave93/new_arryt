@@ -43,6 +43,7 @@ import { cn } from "../../../lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
 
 // Define types
 interface CourierEfficiency {
@@ -327,7 +328,7 @@ export default function CourierEfficiencyList() {
         const { data } = await apiClient.api.terminals.cached.get({
           headers: authHeaders,
         });
-        return data || [];
+        return sortTerminalsByName(data || []);
       } catch {
         toast.error("Ошибка загрузки филиалов");
         return [];

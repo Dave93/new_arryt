@@ -28,7 +28,7 @@ import { ArrowLeft, Plus, Trash } from "lucide-react";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { Separator } from "../../../../components/ui/separator";
 import { Skeleton } from "../../../../components/ui/skeleton";
-
+import { sortTerminalsByName } from "../../../../lib/sort_terminals_by_name";
 // Определение типа организации
 interface Organization {
   id: string;
@@ -213,7 +213,7 @@ export default function DeliveryPricingEdit() {
         const {data: response} = await apiClient.api.terminals.cached.get({
           headers: authHeaders
         });
-        return response || [];
+        return sortTerminalsByName(response || []);
       } catch {
         toast.error("Failed to load terminals");
         return [];

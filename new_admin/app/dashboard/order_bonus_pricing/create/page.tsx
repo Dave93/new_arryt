@@ -24,7 +24,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Switch } from "../../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { useQuery } from "@tanstack/react-query";
-
+import { sortTerminalsByName } from "../../../../lib/sort_terminals_by_name";
 // Схема формы с валидацией Zod
 const formSchema = z.object({
   name: z.string().min(1, { message: "Название обязательно" }),
@@ -97,7 +97,7 @@ export default function OrderBonusPricingCreate() {
         const { data } = await apiClient.api.terminals.cached.get({
           headers: authHeaders,
         });
-        return data || [];
+        return sortTerminalsByName(data || []);
       } catch {
         toast.error("Ошибка загрузки терминалов");
         return [];

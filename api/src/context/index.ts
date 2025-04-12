@@ -187,77 +187,126 @@ export const contextWitUser = baseContext
         return {
           beforeHandle: async ({ redis, error, headers: {
             authorization
-          } }) => {
+          }, cacheControl, cookie }) => {
+
+            const cookieToken = cookie.session.value;
+            const cookieRefreshToken = cookie.refreshToken.value;
             
-            if (!authorization) {
+            if (!authorization && !cookieToken && !cookieRefreshToken) {
               return error(401, {
                 message: "Unauthorized"
               });
             }
 
-            const bearer = authorization.split(" ")[1];
+            if (authorization) {
+              const bearer = authorization.split(" ")[1];
 
-            if (!bearer) {
-              return error(401, {
-                message: "Unauthorized"
-              });
-            }
-            
-            try {
-              const jwtResult = await verifyJwt(bearer);
-              const userData = await redis.hget(
-                `${process.env.PROJECT_PREFIX}_user`,
-                jwtResult.payload.id as string
-              );
-              
-              if (!userData) {
+              if (!bearer) {
                 return error(401, {
                   message: "Unauthorized"
                 });
               }
               
-              const userRes = JSON.parse(userData) as UserContext;
-              
-              if (!userRes || !userRes.access.additionalPermissions.includes(permission)) {
-                return error(403, {
-                  message: "Forbidden"
+              try {
+                const jwtResult = await verifyJwt(bearer);
+                const userData = await redis.hget(
+                  `${process.env.PROJECT_PREFIX}_user`,
+                  jwtResult.payload.id as string
+                );
+                
+                if (!userData) {
+                  return error(401, {
+                    message: "Unauthorized"
+                  });
+                }
+                
+                const userRes = JSON.parse(userData) as UserContext;
+                
+                if (!userRes || !userRes.access.additionalPermissions.includes(permission)) {
+                  return error(403, {
+                    message: "Forbidden"
+                  });
+                }
+              } catch (e) {
+                return error(401, {
+                  message: "Unauthorized"
                 });
               }
-            } catch (e) {
-              return error(401, {
-                message: "Unauthorized"
-              });
+            } else if (cookieToken && cookieRefreshToken) {
+              // Check if session exists in Redis
+              let session = await redis.get(`${process.env.PROJECT_PREFIX}:session:${cookieToken}`);
+              if (!session) {
+                  const refreshSession = await redis.get(`${process.env.PROJECT_PREFIX}:session:${cookieRefreshToken}`);
+                  if (!refreshSession) {
+                      throw error(403, "Invalid session");
+                  }
+                  session = refreshSession;
+
+                  const refreshSessionData = JSON.parse(refreshSession) as unknown as UserContext
+
+                  const newSessionData = await cacheControl.setUserSession(refreshSessionData, cookieRefreshToken);
+
+                  cookie.session.value = newSessionData.accessToken;
+                  cookie.refreshToken.value = newSessionData.refreshToken;
+              }
+
+              // Parse session data
+              try {
+                  const sessionData = JSON.parse(session) as unknown as UserResponseDto;
+              } catch (err) {
+                  throw error(500, "Invalid session data");
+              }
             }
           },
           
           resolve: async ({ redis, headers: {
             authorization
-          } }) => {
+          }, cookie }) => {
             
-            if (!authorization) {
+            const cookieToken = cookie.session.value;
+            const cookieRefreshToken = cookie.refreshToken.value;
+            
+            if (!authorization && !cookieToken && !cookieRefreshToken) {
               return { user: null };
             }
 
-            const bearer = authorization.split(" ")[1];
+            if (authorization) {
+              const bearer = authorization.split(" ")[1];
 
-            if (!bearer) {
-              return { user: null };
-            }
-
-            try {
-              const jwtResult = await verifyJwt(bearer);
-              const userData = await redis.hget(
-                `${process.env.PROJECT_PREFIX}_user`,
-                jwtResult.payload.id as string
-              );
-              
-              if (!userData) {
+              if (!bearer) {
                 return { user: null };
               }
-              
-              const userRes = JSON.parse(userData) as UserContext;
-              return { user: userRes };
-            } catch (e) {
+
+              try {
+                const jwtResult = await verifyJwt(bearer);
+                const userData = await redis.hget(
+                  `${process.env.PROJECT_PREFIX}_user`,
+                  jwtResult.payload.id as string
+                );
+                
+                if (!userData) {
+                  return { user: null };
+                }
+                
+                const userRes = JSON.parse(userData) as UserContext;
+                return { user: userRes };
+              } catch (e) {
+                return { user: null };
+              }
+            } else if (cookieToken && cookieRefreshToken) {
+              const session = await redis.get(`${process.env.PROJECT_PREFIX}:session:${cookieToken}`);
+              if (!session) {
+                  return {
+                      user: null
+                  };
+              }
+
+              const sessionData = JSON.parse(session) as unknown as UserResponseDto;
+
+              return {
+                  user: sessionData
+              };
+            } else {
               return { user: null };
             }
           }
@@ -275,32 +324,51 @@ export const contextWitUser = baseContext
         return {
           resolve: async ({ redis, headers: {
             authorization
-          } }) => {
+          }, cookie }) => {
             
-            if (!authorization) {
+            const cookieToken = cookie.session.value;
+            const cookieRefreshToken = cookie.refreshToken.value;
+
+            if (!authorization && !cookieToken && !cookieRefreshToken) {
               return { user: null };
             }
 
-            const bearer = authorization.split(" ")[1];
+            if (authorization) {
+              const bearer = authorization.split(" ")[1];
 
-            if (!bearer) {
-              return { user: null };
-            }
-            
-            try {
-              const jwtResult = await verifyJwt(bearer);
-              const userData = await redis.hget(
-                `${process.env.PROJECT_PREFIX}_user`,
-                jwtResult.payload.id as string
-              );
-              
-              if (!userData) {
+              if (!bearer) {
                 return { user: null };
               }
-              
-              const userRes = JSON.parse(userData) as UserContext;
-              return { user: userRes };
-            } catch (e) {
+              try {
+                const jwtResult = await verifyJwt(bearer);
+                const userData = await redis.hget(
+                  `${process.env.PROJECT_PREFIX}_user`,
+                  jwtResult.payload.id as string
+                );
+                
+                if (!userData) {
+                  return { user: null };
+                }
+                
+                const userRes = JSON.parse(userData) as UserContext;
+                return { user: userRes };
+              } catch (e) {
+                return { user: null };
+              }
+            } else if (cookieToken && cookieRefreshToken) {
+              const session = await redis.get(`${process.env.PROJECT_PREFIX}:session:${cookieToken}`);
+              if (!session) {
+                  return {
+                      user: null
+                  };
+              }
+
+              const sessionData = JSON.parse(session) as unknown as UserContext;
+
+              return {
+                  user: sessionData
+              };
+            } else {
               return { user: null };
             }
           }

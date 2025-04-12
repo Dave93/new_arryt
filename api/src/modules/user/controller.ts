@@ -92,6 +92,32 @@ export const UsersController = new Elysia({
   name: "@app/users",
 })
   .use(contextWitUser)
+  .get("/api/users/me", async ({
+      user,
+      error
+  }) => {
+      if (!user) {
+          return error(401, "Unauthorized");
+      }
+
+      return user.user;
+  }, {
+    userAuth: true
+  })
+  .get('/api/users/permissions', async ({
+      user,
+      error
+  }) => {
+      if (!user) {
+          return error(401, "Unauthorized");
+      }
+
+      return {
+          permissions: user.access.additionalPermissions
+      };
+  }, {
+    userAuth: true
+  })
   .get("/api/users/getme", async ({ user }) => {
     if (!user) {
       return {
@@ -390,6 +416,77 @@ export const UsersController = new Elysia({
       })
     }
   )
+  .post('/api/users/login', async ({ body: { login, password }, drizzle, error, redis, cookie, cacheControl }) => {
+    let user = await drizzle.select().from(users).where(eq(users.login, login)).limit(1);
+    if (user.length === 0) {
+      return error(404, {
+        message: "User not found",
+      });
+    }
+
+    if (!user[0].password) {
+      return error(404, {
+        message: "User has no password",
+      });
+    }
+
+    const isPasswordValid = await Bun.password.verify(password, user[0].password);
+    if (!isPasswordValid) {
+      return error(404, {
+        message: "Invalid password",
+      });
+    }
+
+    let currentUser = user[0];
+
+    let userData = await redis.hget(
+      `${process.env.PROJECT_PREFIX}_user`,
+      currentUser.id
+    );
+
+    if (!userData) {
+      return error(400, {
+        message: "User not found",
+      });
+    }
+
+    const userParsed = JSON.parse(userData);
+    currentUser = userParsed.user;
+
+    if (currentUser!.status == "blocked") {
+      return error(400, {
+        message: "User is blocked",
+      });
+    }
+
+    if (currentUser!.status == "inactive") {
+      return error(400, {
+        message: "User is inactive",
+      });
+    }
+    
+    const dto: UserResponseDto = userParsed.user;
+
+
+    const { accessToken, refreshToken } = await cacheControl.setUserSession({
+      user: dto,
+      access: userParsed.access,
+    });
+
+    cookie.session.value = accessToken;
+    cookie.refreshToken.value = refreshToken;
+
+    return {
+      user: dto,
+      access: userParsed.access,
+      message: "Login successful",
+    };
+  }, {
+    body: t.Object({
+      login: t.String(),
+      password: t.String(),
+    }),
+  })
   .post(
     "/api/users/send-otp",
     async ({ body: { phone }, drizzle }) => {
@@ -638,7 +735,6 @@ export const UsersController = new Elysia({
       }),
     }
   )
-
   .post(
     "/api/users/refresh_token",
     async ({ body: { refresh_token }, set }) => {
@@ -765,6 +861,10 @@ export const UsersController = new Elysia({
         ...fieldValues
       } = data;
 
+      if (fieldValues.password && fieldValues.password.length > 0) {
+        fieldValues.password = await Bun.password.hash(fieldValues.password);
+      }
+
       const result = await drizzle
         .update(users)
         .set(fieldValues)
@@ -823,6 +923,8 @@ export const UsersController = new Elysia({
         data: t.Object({
           first_name: t.String(),
           last_name: t.String(),
+          login: t.Optional(t.String()),
+          password: t.Optional(t.String()),
           phone: t.String(),
           status: t.Union([
             t.Literal("active"),

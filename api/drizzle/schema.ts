@@ -425,6 +425,7 @@ export const typeorm_metadata = pgTable("typeorm_metadata", {
 
 export const users = pgTable("users", {
 	id: uuid("id").defaultRandom().primaryKey().notNull(),
+	login: varchar("login", { length: 100 }),
 	phone: varchar("phone", { length: 20 }).notNull(),
 	first_name: varchar("first_name", { length: 100 }),
 	last_name: varchar("last_name", { length: 100 }),
