@@ -478,8 +478,8 @@ export const UsersController = new Elysia({
 
     cookie.session.value = accessToken;
     cookie.refreshToken.value = refreshToken;
-    cookie.session.domain = 'arryt.uz';
-    cookie.refreshToken.domain = 'arryt.uz';
+    // cookie.session.domain = 'arryt.uz';
+    // cookie.refreshToken.domain = 'arryt.uz';
 
     return {
       user: dto,
