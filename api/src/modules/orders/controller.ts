@@ -453,6 +453,43 @@ export const OrdersController = new Elysia({
             terminal_id: t.Optional(t.String()),
         })
     })
+    .get('/api/orders/filtered_list_in_map', async ({ drizzle, query, cacheControl }) => {
+        const { terminal_id, from_date, to_date } = query;
+
+        const orderStatuses = await cacheControl.getOrderStatuses();
+        const orderStatusIds = orderStatuses.filter(orderStatus => !orderStatus.finish && !orderStatus.cancel).map((orderStatus) => orderStatus.id);
+
+        const ordersList = await drizzle.select({
+            id: orders.id,
+            order_number: orders.order_number,
+            to_lat: orders.to_lat,
+            to_lon: orders.to_lon,
+            created_at: orders.created_at,
+            courier_id: orders.courier_id,
+            terminal_id: orders.terminal_id,
+        })
+            .from(orders)
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+            .where(
+                and(
+                    terminal_id ? inArray(orders.terminal_id, terminal_id.split(',')) : undefined,
+                    gte(orders.created_at, dayjs(from_date).toISOString()),
+                    lte(orders.created_at, dayjs(to_date).add(1, 'days').toISOString()),
+                    inArray(orders.order_status_id, orderStatusIds),
+                    eq(terminals.region, 'capital'),
+                    eq(terminals.active, true),
+                )
+            )
+            .execute();
+        return ordersList;
+    }, {
+        permission: 'orders.list',
+        query: t.Object({
+            terminal_id: t.Optional(t.String()),
+            from_date: t.String(),
+            to_date: t.String(),
+        })
+    })
     .post('/api/orders/approve', async ({
         body: { order_id, latitude, longitude },
         user,

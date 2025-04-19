@@ -17,6 +17,7 @@ import {
   IconTruckDelivery,
   IconAlertTriangle,
   IconMap,
+  IconFlame,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -54,6 +55,11 @@ const data = {
       title: "Заказы на карте",
       url: "/dashboard/orders/map",
       icon: IconMap,
+    },
+    {
+      title: "Тепловая карта",
+      url: "/dashboard/heat-map",
+      icon: IconFlame,
     },
     {
       title: "Пропущенные заказы",
