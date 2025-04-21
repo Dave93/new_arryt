@@ -486,8 +486,8 @@ export const UsersController = new Elysia({
       cookie.refreshToken.sameSite = "lax";
   } else {
       // Use .arryt.uz as the domain to make cookies work across all subdomains
-      cookie.session.domain = ".arryt.uz";
-      cookie.refreshToken.domain = ".arryt.uz";
+      cookie.session.domain = "arryt.uz";
+      cookie.refreshToken.domain = "arryt.uz";
       cookie.session.sameSite = "lax"; // или "none" с secure: true
       cookie.refreshToken.sameSite = "lax";
   }
@@ -520,8 +520,8 @@ export const UsersController = new Elysia({
         cookie.session.domain = "localhost";
         cookie.refreshToken.domain = "localhost";
     } else {
-        cookie.session.domain = ".arryt.uz";
-        cookie.refreshToken.domain = ".arryt.uz";
+        cookie.session.domain = "arryt.uz";
+        cookie.refreshToken.domain = "arryt.uz";
     }
 
     return {
