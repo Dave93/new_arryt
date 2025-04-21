@@ -488,6 +488,8 @@ export const UsersController = new Elysia({
       // Use .arryt.uz as the domain to make cookies work across all subdomains
       cookie.session.domain = ".arryt.uz";
       cookie.refreshToken.domain = ".arryt.uz";
+      cookie.session.sameSite = "lax"; // или "none" с secure: true
+      cookie.refreshToken.sameSite = "lax";
   }
 
     return {
