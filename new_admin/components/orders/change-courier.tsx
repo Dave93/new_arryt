@@ -103,7 +103,7 @@ export function ChangeOrderCourier({ orderId, terminalId }: ChangeOrderCourierPr
           <span className="sr-only">Change courier</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md z-[1000]">
+      <DialogContent className="sm:max-w-md z-[1400]">
         <DialogHeader>
           <DialogTitle>Change Courier</DialogTitle>
         </DialogHeader>
@@ -116,7 +116,7 @@ export function ChangeOrderCourier({ orderId, terminalId }: ChangeOrderCourierPr
             <SelectTrigger>
               <SelectValue placeholder="Select courier" />
             </SelectTrigger>
-            <SelectContent className="z-[1000]">
+            <SelectContent className="z-[1500]">
               {couriers.map((courier) => (
                 <SelectItem key={courier.id} value={courier.id}>
                   {`${courier.first_name || ''} ${courier.last_name || ''}`}

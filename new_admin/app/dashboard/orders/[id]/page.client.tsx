@@ -529,7 +529,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0 z-[900]">
+                      <PopoverContent className="w-[200px] p-0 z-[1500]">
                         <Command>
                           <CommandInput placeholder="Поиск статуса..." />
                           <CommandList>
