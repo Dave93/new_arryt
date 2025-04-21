@@ -479,6 +479,8 @@ export const UsersController = new Elysia({
     cookie.session.value = accessToken;
     cookie.refreshToken.value = refreshToken;
 
+    console.log('process.env.NODE_ENV', process.env.NODE_ENV);
+
     if (process.env.NODE_ENV === "development") {
       cookie.session.domain = "localhost";
       cookie.refreshToken.domain = "localhost";
