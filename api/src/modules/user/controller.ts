@@ -479,9 +479,9 @@ export const UsersController = new Elysia({
     cookie.session.value = accessToken;
     cookie.refreshToken.value = refreshToken;
 
-    console.log('process.env.NODE_ENV', process.env.NODE_ENV);
+    console.log('process.env.ENV', process.env.ENV);
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.ENV === "development") {
       cookie.session.domain = "localhost";
       cookie.refreshToken.domain = "localhost";
       cookie.session.sameSite = "lax"; // или "none" с secure: true
@@ -518,7 +518,7 @@ export const UsersController = new Elysia({
     delete cookie.session.value;
     delete cookie.refreshToken.value;
     
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.ENV === "development") {
         cookie.session.domain = "localhost";
         cookie.refreshToken.domain = "localhost";
     } else {

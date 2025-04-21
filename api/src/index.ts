@@ -4,7 +4,7 @@ import { cpus } from "node:os";
 import process from "node:process";
 import app from "./app";
 
-if (process.env.NODE_ENV === "development") {
+if (process.env.ENV === "development") {
   app.listen(process.env.API_PORT || 3000);
   console.log(
     `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
