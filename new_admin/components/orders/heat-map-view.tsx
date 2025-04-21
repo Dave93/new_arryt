@@ -219,8 +219,8 @@ export function HeatMapView() {
   const terminalMarkers = useMemo(() => {
     return terminals
       .filter(terminal => terminal.latitude && terminal.longitude && 
-        (terminal.active === undefined || terminal.active === true) && 
-        (terminal.region === undefined || terminal.region === 'capital'))
+        terminal.active === true && 
+        terminal.region === 'capital')
       .map(terminal => ({
         id: terminal.id,
         name: terminal.name,
