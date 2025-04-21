@@ -485,8 +485,9 @@ export const UsersController = new Elysia({
       cookie.session.sameSite = "lax"; // или "none" с secure: true
       cookie.refreshToken.sameSite = "lax";
   } else {
-      cookie.session.domain = "arryt.uz";
-      cookie.refreshToken.domain = "arryt.uz";
+      // Use .arryt.uz as the domain to make cookies work across all subdomains
+      cookie.session.domain = ".arryt.uz";
+      cookie.refreshToken.domain = ".arryt.uz";
   }
 
     return {
@@ -512,6 +513,14 @@ export const UsersController = new Elysia({
 
     delete cookie.session.value;
     delete cookie.refreshToken.value;
+    
+    if (process.env.NODE_ENV === "development") {
+        cookie.session.domain = "localhost";
+        cookie.refreshToken.domain = "localhost";
+    } else {
+        cookie.session.domain = ".arryt.uz";
+        cookie.refreshToken.domain = ".arryt.uz";
+    }
 
     return {
         message: "Logged out successfully"
