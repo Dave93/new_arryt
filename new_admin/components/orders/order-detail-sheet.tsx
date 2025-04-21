@@ -39,7 +39,7 @@ export function OrderDetailSheet({ orderId, openInNewPage = false, children }: O
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent className="min-w-[95%] sm:min-w-[90%] md:min-w-[80%] lg:min-w-[75%] xl:min-w-[70%] overflow-y-auto">
+      <SheetContent className="min-w-[95%] sm:min-w-[90%] md:min-w-[80%] lg:min-w-[75%] xl:min-w-[70%] overflow-y-auto z-[1100]">
         <SheetHeader>
           <SheetTitle>Информация о заказе</SheetTitle>
         </SheetHeader>

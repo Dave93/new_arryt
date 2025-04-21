@@ -478,8 +478,16 @@ export const UsersController = new Elysia({
 
     cookie.session.value = accessToken;
     cookie.refreshToken.value = refreshToken;
-    cookie.session.domain = 'arryt.uz';
-    cookie.refreshToken.domain = 'arryt.uz';
+
+    if (process.env.NODE_ENV === "development") {
+      cookie.session.domain = "localhost";
+      cookie.refreshToken.domain = "localhost";
+      cookie.session.sameSite = "lax"; // или "none" с secure: true
+      cookie.refreshToken.sameSite = "lax";
+  } else {
+      cookie.session.domain = "arryt.uz";
+      cookie.refreshToken.domain = "arryt.uz";
+  }
 
     return {
       user: dto,

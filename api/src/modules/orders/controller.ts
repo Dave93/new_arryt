@@ -456,9 +456,6 @@ export const OrdersController = new Elysia({
     .get('/api/orders/filtered_list_in_map', async ({ drizzle, query, cacheControl }) => {
         const { terminal_id, from_date, to_date } = query;
 
-        const orderStatuses = await cacheControl.getOrderStatuses();
-        const orderStatusIds = orderStatuses.filter(orderStatus => !orderStatus.finish && !orderStatus.cancel).map((orderStatus) => orderStatus.id);
-
         const ordersList = await drizzle.select({
             id: orders.id,
             order_number: orders.order_number,
@@ -475,7 +472,6 @@ export const OrdersController = new Elysia({
                     terminal_id ? inArray(orders.terminal_id, terminal_id.split(',')) : undefined,
                     gte(orders.created_at, dayjs(from_date).toISOString()),
                     lte(orders.created_at, dayjs(to_date).add(1, 'days').toISOString()),
-                    inArray(orders.order_status_id, orderStatusIds),
                     eq(terminals.region, 'capital'),
                     eq(terminals.active, true),
                 )
@@ -3091,3 +3087,75 @@ export const OrdersController = new Elysia({
             created_at: t.String(),
         }),
     })
+    .get(
+        '/api/orders/terminal-delivery-stats',
+        async ({ query, drizzle }) => {
+            const { terminal_id, from_date, to_date } = query;
+            
+            // Split terminal_id by comma if multiple terminals are provided
+            const terminalIds = terminal_id ? terminal_id.split(',') : [];
+            
+            if (terminalIds.length === 0) {
+                return {
+                    error: "No terminal_id provided"
+                };
+            }
+            
+            // Prepare SQL condition for multiple terminals
+            const terminalCondition = terminalIds.length > 0 ? 
+                sql`o.terminal_id IN (${sql.raw(terminalIds.map(id => `'${id}'`).join(','))})` : 
+                sql`FALSE`;
+            
+            // Get the statistics for each terminal
+            const terminalStats = await drizzle.execute(sql`
+                WITH delivery_times AS (
+                    SELECT 
+                        o.id AS order_id,
+                        o.terminal_id,
+                        t.name AS terminal_name,
+                        EXTRACT(EPOCH FROM (o.finished_date - o.created_at)) AS delivery_seconds
+                    FROM orders o
+                    JOIN terminals t ON o.terminal_id = t.id
+                    JOIN order_status os ON o.order_status_id = os.id
+                    WHERE 
+                        ${terminalCondition}
+                        AND o.created_at >= ${dayjs(from_date).toISOString()}
+                        AND o.created_at <= ${dayjs(to_date).add(1, 'days').toISOString()}
+                        AND o.finished_date IS NOT NULL
+                        AND os.finish = true
+                )
+                SELECT 
+                    dt.terminal_id,
+                    dt.terminal_name,
+                    COUNT(*) AS total_orders,
+                    MIN(dt.delivery_seconds) AS fastest_delivery_seconds,
+                    MAX(dt.delivery_seconds) AS slowest_delivery_seconds,
+                    AVG(dt.delivery_seconds) AS average_delivery_seconds,
+                    (SELECT order_id FROM delivery_times WHERE delivery_seconds = MIN(dt.delivery_seconds) AND terminal_id = dt.terminal_id LIMIT 1) AS fastest_order_id,
+                    (SELECT order_id FROM delivery_times WHERE delivery_seconds = MAX(dt.delivery_seconds) AND terminal_id = dt.terminal_id LIMIT 1) AS slowest_order_id
+                FROM delivery_times dt
+                GROUP BY dt.terminal_id, dt.terminal_name
+            `);
+            
+            // Format the results
+            const formattedStats = terminalStats.rows.map(stat => ({
+                terminal_id: stat.terminal_id,
+                terminal_name: stat.terminal_name,
+                total_orders: stat.total_orders,
+                fastest_delivery: fancyTimeFormat(Number(stat.fastest_delivery_seconds)),
+                slowest_delivery: fancyTimeFormat(Number(stat.slowest_delivery_seconds)),
+                average_delivery: fancyTimeFormat(Number(stat.average_delivery_seconds)),
+                fastest_order_id: stat.fastest_order_id,
+                slowest_order_id: stat.slowest_order_id
+            }));
+            
+            return formattedStats;
+        },
+        {
+            query: t.Object({
+                terminal_id: t.String(),
+                from_date: t.String(),
+                to_date: t.String(),
+            })
+        }
+    )

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
-import { DateRange } from "react-day-picker";
+import { DateRange as DayPickerDateRange } from "react-day-picker";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
 import { Calendar } from "./calendar";
@@ -14,6 +14,9 @@ import {
 } from "./popover";
 import { TimePickerInput } from "./time-picker-input";
 import { Separator } from "./separator";
+
+// Use the DateRange type from react-day-picker
+export type DateRange = DayPickerDateRange;
 
 interface DateRangePickerProps {
   className?: string;
@@ -120,7 +123,7 @@ export function DateRangePicker({
             {formatDateDisplay()}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 z-[10000]" align="start">
           <Calendar
             initialFocus
             mode="range"
