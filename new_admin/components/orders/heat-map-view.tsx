@@ -9,7 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { Check, ChevronsUpDown, Loader2, Thermometer, MapPin, X, Clock, Activity, LayoutGrid, Filter } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2, Thermometer, MapPin, X, Clock, Activity, LayoutGrid, Filter, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { apiClient } from "@/lib/eden-client"
 import dynamic from "next/dynamic"
@@ -392,6 +392,14 @@ export function HeatMapView() {
     toast.success("Все фильтры сброшены");
   }, [showDeliveryRadius]);
 
+  const handleCopyCoordinates = () => {
+    if (deliveryRadiusPoint) {
+      const coordinates = `https://yandex.ru/maps/?text=${deliveryRadiusPoint.lat},${deliveryRadiusPoint.lon}`;
+      navigator.clipboard.writeText(coordinates);
+      toast.success("Координаты радиуса доставки скопированы в буфер обмена");
+    }
+  };
+
   console.log('selectedTerminals', selectedTerminals)
   console.log('showDeliveryRadius:', showDeliveryRadius, 'deliveryRadiusPoint:', deliveryRadiusPoint)
   return (
@@ -739,6 +747,12 @@ export function HeatMapView() {
                   <div className="flex justify-between mt-1">
                     <span className="text-muted-foreground">Заказы в радиусе:</span>
                     <Badge variant="secondary">{ordersInRadiusCount}</Badge>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <Button variant="outline" size="sm" onClick={handleCopyCoordinates} className="text-xs text-balance wrap-break-word">
+                      <Copy className="h-4 w-4 mr-2" />
+                      Копировать координаты в Яндекс.Карты
+                    </Button>
                   </div>
                 </div>
               </CardContent>
