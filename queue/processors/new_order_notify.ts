@@ -42,61 +42,38 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
         ));
 
         if (onlineUsers.length > 0) {
-            const serverKey = process.env.FCM_SERVER_KEY!;
-            const message = {
-                notification: {
-                    title: 'Поступил новый заказ',
-                    body: `Новый заказ №${order.order_number} доступен для вас`,
-                    data: {
-                        order_id: order.id,
-                        order_status_id: order.order_status_id,
-                        terminal_id: order.terminal_id,
-                        // actionButtons: [
-                        //   {
-                        //     key: 'REDIRECT',
-                        //     label: 'Redirect',
-                        //     // autoDismissible: true,
-                        //   },
-                        //   {
-                        //     key: 'DISMISS',
-                        //     label: 'Dismiss',
-                        //     actionType: 'DismissAction',
-                        //     isDangerousOption: true,
-                        //     // autoDismissible: true,
-                        //   },
-                        // ],
-                    },
-                },
-                // data: {
-                //   title: payload.notification.title,
-                //   body: payload.notification.body,
-                //   ...payload.data,
-                // },
-                priority: 'high',
-                android: {
-                    priority: 'high',
-                },
-                mutable_content: true,
-                apns: {
-                    payload: {
-                        aps: {
-                            sound: 'default',
-                        },
-                    },
-                },
-                token: '',
-                content: {
-                    channelKey: 'new_order',
-                },
-            };
-
-            let deviceIds = onlineUsers.map((user) => user.fcm_token).filter((deviceId) => deviceId !== null && deviceId !== undefined && deviceId !== '');
+            const deviceIds = onlineUsers.map((user) => user.fcm_token).filter((deviceId) => deviceId !== null && deviceId !== undefined && deviceId !== '');
             console.log('deviceIds', deviceIds)
 
-            const accessToken = await getFirebaseAccessToken();
             if (deviceIds.length > 0) {
+                const accessToken = await getFirebaseAccessToken();
+                
                 for (const deviceId of deviceIds) {
-                    message.token = deviceId!;
+                    const message = {
+                        message: {
+                            token: deviceId!,
+                            notification: {
+                                title: 'Поступил новый заказ',
+                                body: `Новый заказ №${order.order_number} доступен для вас`
+                            },
+                            data: {
+                                order_id: order.id,
+                                order_status_id: order.order_status_id,
+                                terminal_id: order.terminal_id
+                            },
+                            android: {
+                                priority: "high"
+                            },
+                            apns: {
+                                payload: {
+                                    aps: {
+                                        sound: 'default'
+                                    }
+                                }
+                            }
+                        }
+                    };
+
                     try {
                         const responseJson = await fetch('https://fcm.googleapis.com/v1/projects/arryt-b201e/messages:send', {
                             method: 'POST',
