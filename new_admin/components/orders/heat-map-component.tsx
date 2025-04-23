@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
@@ -25,6 +25,8 @@ export interface TerminalMarker {
   name: string
   lat: number
   lon: number
+  originalLat?: number
+  originalLon?: number
 }
 
 export interface OrderMarker {
@@ -130,6 +132,49 @@ function HeatmapLayerComponent({ points }: { points: HeatPoint[] }) {
   }, [map, points])
   
   return null
+}
+
+// Function to offset overlapping terminal markers
+function offsetOverlappingMarkers(markers: TerminalMarker[]): TerminalMarker[] {
+  const locationMap = new Map<string, TerminalMarker[]>();
+  
+  // Group markers by location
+  markers.forEach(marker => {
+    const key = `${marker.lat.toFixed(6)},${marker.lon.toFixed(6)}`;
+    if (!locationMap.has(key)) {
+      locationMap.set(key, []);
+    }
+    locationMap.get(key)!.push(marker);
+  });
+  
+  // Create new array with offset markers
+  const offsetMarkers: TerminalMarker[] = [];
+  
+  locationMap.forEach((markersAtLocation, key) => {
+    if (markersAtLocation.length === 1) {
+      // Single marker at this location, no offset needed
+      offsetMarkers.push(markersAtLocation[0]);
+    } else {
+      // Multiple markers at same location, apply offset in a circle pattern
+      const radius = 0.00005; // ~30 meters offset, adjust as needed
+      markersAtLocation.forEach((marker, index) => {
+        const angle = (2 * Math.PI * index) / markersAtLocation.length;
+        const offsetLat = marker.lat + radius * Math.cos(angle);
+        const offsetLon = marker.lon + radius * Math.sin(angle);
+        
+        offsetMarkers.push({
+          ...marker,
+          lat: offsetLat,
+          lon: offsetLon,
+          // Store original coordinates in the marker for use in popups
+          originalLat: marker.lat,
+          originalLon: marker.lon,
+        });
+      });
+    }
+  });
+  
+  return offsetMarkers;
 }
 
 // Component for order markers with clustering
@@ -331,6 +376,11 @@ export default function HeatMapComponent({
 }: HeatMapComponentProps) {
   const [highlightedTerminalIds, setHighlightedTerminalIds] = useState<string[]>([])
   const [previousDeliveryRadiusState, setPreviousDeliveryRadiusState] = useState<boolean>(false)
+  
+  // Apply offset to overlapping terminal markers
+  const offsetTerminalMarkers = useMemo(() => {
+    return offsetOverlappingMarkers(terminalMarkers);
+  }, [terminalMarkers]);
   
   // Track when delivery radius panel is closed to trigger bounds update
   useEffect(() => {
@@ -758,8 +808,8 @@ export default function HeatMapComponent({
         
         <ZoomControl position="topright" />
         
-        {/* Terminal markers */}
-        {terminalMarkers.map((terminal) => (
+        {/* Terminal markers with offset to prevent overlapping */}
+        {offsetTerminalMarkers.map((terminal) => (
           <Marker
             key={terminal.id}
             position={[terminal.lat, terminal.lon]}
@@ -775,6 +825,11 @@ export default function HeatMapComponent({
                     ? "Филиал выделен. Нажмите снова, чтобы снять выделение."
                     : "Нажмите, чтобы выделить заказы этого филиала."}
                 </p>
+                {terminal.originalLat && terminal.originalLon && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Примечание: этот маркер немного смещен для лучшей видимости.
+                  </p>
+                )}
               </div>
             </Popup>
           </Marker>

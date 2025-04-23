@@ -1,5 +1,5 @@
 import { DB } from "@api/src/lib/db";
-import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { orders, users } from "@api/drizzle/schema";
 import Redis from "ioredis";
 import { CacheControlService } from "@api/src/modules/cache/service";
@@ -16,7 +16,7 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
     const organization = await cacheControl.getOrganization(order.organization_id);
     // organization max active order count
     const maxActiveOrderCount = organization.max_active_order_count;
-
+    console.time('newOrderNotifyCourierIds')
     const activeOrders = await db.select({
         courier_id: orders.courier_id,
         count: sql<number>`count(*) as count`,
@@ -24,11 +24,13 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
         and(
             eq(orders.terminal_id, order.terminal_id),
             inArray(orders.order_status_id, orderStatusesThatNeedNotification.map((status) => status.id)),
+            gte(orders.created_at, sql`now() - interval '6 hours'`),
             isNotNull(orders.courier_id),
         ),
     ).groupBy(orders.courier_id).having(sql`count(*) < ${maxActiveOrderCount}`);
-
+    console.timeEnd('newOrderNotifyCourierIds')
     const courierIds = activeOrders.map((o) => o.courier_id!);
+    console.log('new order notify courierIds', courierIds)
     if (courierIds.length > 0) {
 
         const onlineUsers = await db.select({
