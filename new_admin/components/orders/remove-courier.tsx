@@ -53,7 +53,7 @@ export function RemoveOrderCourier({ orderId }: RemoveOrderCourierProps) {
           <span className="sr-only">Remove courier</span>
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent className="sm:max-w-md z-[1000]">
+      <AlertDialogContent className="sm:max-w-md z-[1500]">
         <AlertDialogHeader>
           <AlertDialogTitle>Снятие курьера</AlertDialogTitle>
           <AlertDialogDescription>
