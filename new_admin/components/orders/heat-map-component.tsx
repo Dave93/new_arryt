@@ -27,6 +27,8 @@ export interface TerminalMarker {
   lon: number
   originalLat?: number
   originalLon?: number
+  organizationIconUrl?: string
+  organizationName?: string
 }
 
 export interface OrderMarker {
@@ -498,6 +500,20 @@ export default function HeatMapComponent({
       .marker-cluster.marker-cluster-faded {
         opacity: 0.3;
       }
+      /* Custom styles for organization icon markers */
+      .leaflet-marker-icon.rounded-full {
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        border: 2px solid white;
+        background-color: white;
+        object-fit: cover;
+      }
+      /* Highlighted organization marker */
+      .leaflet-marker-icon.highlighted {
+        border: 3px solid #3b82f6;
+        transform: scale(1.1);
+        z-index: 1000 !important;
+      }
     `
     document.head.appendChild(style)
     
@@ -809,31 +825,68 @@ export default function HeatMapComponent({
         <ZoomControl position="topright" />
         
         {/* Terminal markers with offset to prevent overlapping */}
-        {offsetTerminalMarkers.map((terminal) => (
-          <Marker
-            key={terminal.id}
-            position={[terminal.lat, terminal.lon]}
-            eventHandlers={{
-              click: () => handleTerminalClick(terminal.id)
-            }}
-          >
-            <Popup>
-              <div>
-                <strong>{terminal.name}</strong>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {highlightedTerminalIds.includes(terminal.id) 
-                    ? "Филиал выделен. Нажмите снова, чтобы снять выделение."
-                    : "Нажмите, чтобы выделить заказы этого филиала."}
-                </p>
-                {terminal.originalLat && terminal.originalLon && (
+        {offsetTerminalMarkers.map((terminal) => {
+          // Check if terminal has organization icon
+          const isHighlighted = highlightedTerminalIds.includes(terminal.id);
+          
+          // Create icon based on whether organization icon is available
+          const markerIcon = terminal.organizationIconUrl 
+            ? new L.Icon({
+                iconUrl: terminal.organizationIconUrl,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+                popupAnchor: [0, -18],
+                className: `rounded-full border-2 ${isHighlighted ? 'border-primary' : 'border-white'} shadow-md bg-white`
+              })
+            : new L.Icon({
+                iconUrl: '/leaflet/store-marker.png',
+                iconSize: [36, 36],
+                iconAnchor: [18, 36],
+                popupAnchor: [0, -36],
+                className: isHighlighted ? 'highlighted' : ''
+              });
+          
+          return (
+            <Marker
+              key={terminal.id}
+              position={[terminal.lat, terminal.lon]}
+              icon={markerIcon}
+              eventHandlers={{
+                click: () => handleTerminalClick(terminal.id)
+              }}
+            >
+              <Popup>
+                <div className="p-1">
+                  {terminal.organizationIconUrl && (
+                    <div className="flex justify-center mb-2">
+                      <img 
+                        src={terminal.organizationIconUrl} 
+                        alt={terminal.organizationName || ""} 
+                        className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                      />
+                    </div>
+                  )}
+                  <div className="font-bold text-base">{terminal.name}</div>
+                  {terminal.organizationName && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {terminal.organizationName}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    Примечание: этот маркер немного смещен для лучшей видимости.
+                    {isHighlighted 
+                      ? "Филиал выделен. Нажмите снова, чтобы снять выделение."
+                      : "Нажмите, чтобы выделить заказы этого филиала."}
                   </p>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+                  {terminal.originalLat && terminal.originalLon && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Примечание: этот маркер немного смещен для лучшей видимости.
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
         
         {/* Heat map layer */}
         <HeatmapLayerComponent points={heatMapData} />

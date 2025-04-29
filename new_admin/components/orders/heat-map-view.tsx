@@ -36,6 +36,10 @@ interface Terminal {
   longitude?: number
   active?: boolean
   region?: string
+  organization?: {
+    icon_url?: string
+    name?: string
+  }
 }
 
 interface OrderLocation {
@@ -226,6 +230,8 @@ export function HeatMapView() {
         name: terminal.name,
         lat: terminal.latitude!,
         lon: terminal.longitude!,
+        organizationIconUrl: terminal.organization?.icon_url?.replace('model_uploads', 'public/model_uploads'),
+        organizationName: terminal.organization?.name
       }))
   }, [terminals])
 
@@ -489,7 +495,7 @@ export function HeatMapView() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
+                  <PopoverContent className="w-full p-0 z-[1200]" align="start">
                     <Command className="max-h-[300px]">
                       <CommandInput placeholder="Поиск филиала..." />
                       <CommandEmpty>Филиалы не найдены.</CommandEmpty>

@@ -262,10 +262,16 @@ export class CacheControlService {
   }
 
   async cacheTerminals() {
-    const terminals = await this.db.query.terminals.findMany();
+    const terminalsList = await this.db.select({
+      ...getTableColumns(terminals),
+      organization: {
+        name: organization.name,
+        icon_url: organization.icon_url,
+      },
+    }).from(terminals).leftJoin(organization, eq(terminals.organization_id, organization.id));
     await this.redis.set(
       `${process.env.PROJECT_PREFIX}_terminals`,
-      JSON.stringify(terminals)
+      JSON.stringify(terminalsList)
     );
   }
 
@@ -464,9 +470,7 @@ export class CacheControlService {
     const terminalsList = await this.redis.get(
       `${process.env.PROJECT_PREFIX}_terminals`
     );
-    return JSON.parse(terminalsList || "[]") as InferSelectModel<
-      typeof terminals
-    >[];
+    return JSON.parse(terminalsList || "[]") as (typeof terminals.$inferSelect & { organization: { name: string, icon_url: string } })[];
   }
 
   async getOrganizationDeliveryPricing(organizationId: string) {
