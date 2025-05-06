@@ -369,7 +369,7 @@ export function HeatMapView() {
   // Close radius panel
   const handleCloseRadiusPanel = () => {
     console.log("HeatMapView: Closing radius panel");
-    // We're just hiding the panel, but maintaining order clusters visibility
+    // Simply hide the panel and clear the point immediately
     setShowDeliveryRadius(false);
     setDeliveryRadiusPoint(null);
     

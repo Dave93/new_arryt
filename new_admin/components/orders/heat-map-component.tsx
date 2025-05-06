@@ -118,9 +118,8 @@ function HeatmapLayerComponent({ points }: { points: HeatPoint[] }) {
         gradient: { 0.2: 'blue', 0.4: 'lime', 0.6: 'yellow', 0.8: 'red' } // Adjusted gradient for more intensity
       }).addTo(map)
       
-      // Set bounds to fit all heat points
-      const bounds = L.latLngBounds(points.map(point => [point.lat, point.lon]))
-      map.fitBounds(bounds, { padding: [50, 50] })
+      // Remove automatic bounds fitting
+      // Let the user control the map view
     } catch (error) {
       console.error("Error creating heat layer:", error)
       toast.error("Ошибка при создании тепловой карты")
@@ -280,33 +279,8 @@ function MapBoundsHandler({
   orderMarkers?: OrderMarker[],
   showOrderMarkersOnly?: boolean
 }) {
-  const map = useMap()
-  
-  useEffect(() => {
-    if ((markers.length === 0 && (!orderMarkers || orderMarkers.length === 0))) return
-    
-    // If we have order markers and should prioritize them, use their bounds
-    if (showOrderMarkersOnly && orderMarkers && orderMarkers.length > 0) {
-      // Create a bounds object from all the order markers
-      const bounds = L.latLngBounds(
-        orderMarkers.map(marker => [marker.lat, marker.lon])
-      )
-      
-      // Fit the map to the bounds with some padding
-      map.fitBounds(bounds, { padding: [50, 50] })
-      return
-    }
-    
-    // Otherwise use terminal markers bounds
-    // Create a bounds object from all the markers
-    const bounds = L.latLngBounds(
-      markers.map(marker => [marker.lat, marker.lon])
-    )
-    
-    // Fit the map to the bounds with some padding
-    map.fitBounds(bounds, { padding: [50, 50] })
-  }, [map, markers, orderMarkers, showOrderMarkersOnly])
-  
+  // Completely removed automatic bounds fitting
+  // This component now does nothing, effectively letting the user maintain full control
   return null
 }
 
@@ -320,24 +294,16 @@ function DeliveryRadiusCircle({
 }) {
   const map = useMap();
   const circleRef = useRef<L.Circle | null>(null);
-  const previousViewRef = useRef<{center: L.LatLng, zoom: number} | null>(null);
-  
-  // Store the current view before adding the circle
-  useEffect(() => {
-    // Save the current map view
-    previousViewRef.current = {
-      center: map.getCenter(),
-      zoom: map.getZoom()
-    };
-    
-    return () => {
-      // When unmounting, we'll let the MapBoundsController handle the view reset
-    };
-  }, []);
+  const markerRef = useRef<L.Marker | null>(null);
   
   useEffect(() => {
+    // Remove previous circle and marker if they exist
     if (circleRef.current) {
       map.removeLayer(circleRef.current);
+    }
+    
+    if (markerRef.current) {
+      map.removeLayer(markerRef.current);
     }
     
     // Create a circle with the given center and radius
@@ -350,13 +316,52 @@ function DeliveryRadiusCircle({
       dashArray: '5, 5', // Dashed circle
     }).addTo(map);
     
-    // Fit map to show the circle
-    map.setView(center, map.getBoundsZoom(circleRef.current.getBounds(), false));
+    // Create a custom icon for the center marker
+    const centerIcon = L.divIcon({
+      className: 'center-marker-icon',
+      html: `<div class="center-marker"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
+    });
+    
+    // Add marker at the center point with popup
+    markerRef.current = L.marker(center, {
+      icon: centerIcon,
+      zIndexOffset: 1000, // Make sure it appears above other markers
+    }).addTo(map);
+    
+    // Add popup with coordinates
+    markerRef.current.bindPopup(`
+      <div class="p-1">
+        <div class="font-bold">Центр радиуса доставки</div>
+        <div class="mt-1">
+          <span class="text-xs text-muted-foreground">Координаты:</span>
+          <span class="text-xs ml-1">${center[0].toFixed(5)}, ${center[1].toFixed(5)}</span>
+        </div>
+        <div class="mt-1">
+          <span class="text-xs text-muted-foreground">Радиус:</span>
+          <span class="text-xs ml-1">${radius} км</span>
+        </div>
+      </div>
+    `);
+    
+    // Automatically open the popup after a short delay
+    setTimeout(() => {
+      if (markerRef.current) {
+        markerRef.current.openPopup();
+      }
+    }, 300);
+    
+    // Removed map centering and zooming to maintain user's control over the view
     
     return () => {
       if (circleRef.current) {
         map.removeLayer(circleRef.current);
         circleRef.current = null;
+      }
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
       }
     };
   }, [map, center, radius]);
@@ -513,6 +518,44 @@ export default function HeatMapComponent({
         border: 3px solid #3b82f6;
         transform: scale(1.1);
         z-index: 1000 !important;
+      }
+      /* Center marker for delivery radius */
+      .center-marker {
+        width: 14px;
+        height: 14px;
+        background-color: #3b82f6;
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        position: relative;
+        animation: pulse 2s infinite;
+        z-index: 1500 !important;
+      }
+      .center-marker::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 4px;
+        height: 4px;
+        background-color: white;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+      }
+      /* Make center marker more visible */
+      .center-marker-icon {
+        z-index: 1500 !important;
       }
     `
     document.head.appendChild(style)
@@ -678,130 +721,8 @@ export default function HeatMapComponent({
   
   // Add a custom MapBoundsController component to handle bounds updates
   const MapBoundsController = () => {
-    const map = useMap();
-    const zoomTimeoutRef = useRef<number | null>(null);
-    const lastBoundsUpdateRef = useRef<number>(0);
-    
-    // Smooth version of flyToBounds with easing
-    const smoothScrollIntoView = (bounds: L.LatLngBounds) => {
-      if (!bounds.isValid()) return;
-      
-      // Check if we need to zoom in or out
-      const currentZoom = map.getZoom();
-      const targetZoom = map.getBoundsZoom(bounds, false);
-      
-      // If current zoom is much higher than target zoom, do a fly animation
-      // Otherwise do a faster pan for better UX
-      if (Math.abs(currentZoom - targetZoom) > 2) {
-        map.flyToBounds(bounds, {
-          duration: 1.0,
-          easeLinearity: 0.25,
-        });
-      } else {
-        // For small changes, use panTo with a faster animation
-        const center = bounds.getCenter();
-        map.setView(center, targetZoom, {
-          animate: true,
-          duration: 0.5,
-          easeLinearity: 0.25
-        });
-      }
-    };
-    
-    // Handle bounds update when delivery radius closes or when highlighted terminals change
-    useEffect(() => {
-      // Debounce the bounds update to prevent flickering
-      if (zoomTimeoutRef.current !== null) {
-        window.clearTimeout(zoomTimeoutRef.current);
-      }
-      
-      // Current timestamp to track the latest request
-      const currentTime = Date.now();
-      lastBoundsUpdateRef.current = currentTime;
-      
-      // When delivery radius panel is closed and we have order markers
-      // Or when highlighted terminals change
-      if ((previousDeliveryRadiusState && !showDeliveryRadius && orderMarkers.length > 0) || 
-          highlightedTerminalIds.length > 0) {
-        
-        console.log("Queuing map bounds update");
-        
-        // Debounce update with timeout
-        zoomTimeoutRef.current = window.setTimeout(() => {
-          // Only process if this is still the latest requested update
-          if (lastBoundsUpdateRef.current !== currentTime) return;
-          
-          try {
-            // Get only the markers for the selected terminals
-            const filteredMarkers = highlightedTerminalIds.length > 0 && showOrderClusters
-              ? orderMarkers.filter(marker => 
-                  marker.terminalId && highlightedTerminalIds.includes(marker.terminalId)
-                )
-              : orderMarkers;
-            
-            // Only proceed if we have markers to show
-            if (filteredMarkers.length > 0) {
-              // Create bounds from filtered order markers
-              const bounds = L.latLngBounds(
-                filteredMarkers.map(marker => [marker.lat, marker.lon])
-              );
-              
-              // Only if we have valid bounds
-              if (bounds.isValid()) {
-                console.log("Fitting map to filtered order marker bounds");
-                // Use our smooth scroll function
-                smoothScrollIntoView(bounds);
-                return;
-              }
-            }
-            
-            // Fallback to terminal markers if no filtered order markers
-            if (highlightedTerminalIds.length > 0) {
-              const filteredTerminals = terminalMarkers.filter(
-                terminal => highlightedTerminalIds.includes(terminal.id)
-              );
-              
-              if (filteredTerminals.length > 0) {
-                const terminalBounds = L.latLngBounds(
-                  filteredTerminals.map(marker => [marker.lat, marker.lon])
-                );
-                
-                if (terminalBounds.isValid()) {
-                  smoothScrollIntoView(terminalBounds);
-                  return;
-                }
-              }
-            }
-            
-            // Final fallback to all terminal markers
-            const allTerminalBounds = L.latLngBounds(
-              terminalMarkers.map(marker => [marker.lat, marker.lon])
-            );
-            
-            if (allTerminalBounds.isValid()) {
-              smoothScrollIntoView(allTerminalBounds);
-            }
-          } catch (error) {
-            console.error("Error updating map bounds:", error);
-          }
-        }, 100); // Slight delay to let state updates complete
-        
-        return () => {
-          if (zoomTimeoutRef.current !== null) {
-            window.clearTimeout(zoomTimeoutRef.current);
-          }
-        };
-      }
-    }, [
-      map, 
-      showDeliveryRadius, 
-      previousDeliveryRadiusState, 
-      orderMarkers, 
-      terminalMarkers, 
-      highlightedTerminalIds,
-      showOrderClusters
-    ]);
-    
+    // Removed all automatic map view adjustments
+    // This component now does nothing, letting the user maintain complete control
     return null;
   };
   
@@ -809,7 +730,7 @@ export default function HeatMapComponent({
     <div className="h-full w-full relative touch-none" ref={containerRef}>
       <MapContainer 
         center={defaultCenter} 
-        zoom={13} 
+        zoom={11} // Fixed zoom level that generally works well for city-level view
         scrollWheelZoom={true}
         zoomControl={false}
         attributionControl={true}
@@ -905,18 +826,6 @@ export default function HeatMapComponent({
             radius={deliveryRadius} 
           />
         )}
-        
-        {/* Set map bounds based on terminals or orders depending on context */}
-        {terminalMarkers.length > 0 && !showDeliveryRadius && highlightedTerminalIds.length === 0 && (
-          <MapBoundsHandler 
-            markers={terminalMarkers}
-            orderMarkers={orderMarkers}
-            showOrderMarkersOnly={orderMarkers.length > 0 && showOrderClusters}
-          />
-        )}
-        
-        {/* Bounds controller for delivery radius changes and terminal selection */}
-        <MapBoundsController />
         
         {/* Context Menu */}
         <ContextMenuComponent />
