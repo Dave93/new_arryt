@@ -5,7 +5,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -496,43 +496,45 @@ export function HeatMapView() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0 z-[1200]" align="start">
-                    <Command className="max-h-[300px]">
+                    <Command>
                       <CommandInput placeholder="Поиск филиала..." />
-                      <CommandEmpty>Филиалы не найдены.</CommandEmpty>
-                      <CommandGroup className="max-h-[250px] overflow-auto">
-                        {Array.isArray(terminals) && terminals.map((terminal) => {
-                          if (!terminal || !terminal.id || !terminal.name) return null;
-                          return (
-                            <CommandItem
-                              key={terminal.id}
-                              value={terminal.name}
-                              onSelect={() => {
-                                try {
-                                  setSelectedTerminals((current) => {
-                                    if (current.includes(terminal.id)) {
-                                      return current.filter(id => id !== terminal.id);
-                                    }
-                                    return [...current, terminal.id];
-                                  });
-                                } catch (error) {
-                                  console.error("Error selecting terminal:", error);
-                                  toast.error("Ошибка при выборе филиала");
-                                }
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedTerminals.includes(terminal.id) ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {terminal.name && terminal.name.length > 20 
-                                ? terminal.name.substring(0, 20) + '...' 
-                                : terminal.name || 'Без названия'}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
+                      <CommandList>
+                        <CommandEmpty>Филиалы не найдены.</CommandEmpty>
+                        <CommandGroup className="max-h-[250px] overflow-auto">
+                          {Array.isArray(terminals) && terminals.map((terminal) => {
+                            if (!terminal || !terminal.id || !terminal.name) return null;
+                            return (
+                              <CommandItem
+                                key={terminal.id}
+                                value={terminal.name}
+                                onSelect={() => {
+                                  try {
+                                    setSelectedTerminals((current) => {
+                                      if (current.includes(terminal.id)) {
+                                        return current.filter(id => id !== terminal.id);
+                                      }
+                                      return [...current, terminal.id];
+                                    });
+                                  } catch (error) {
+                                    console.error("Error selecting terminal:", error);
+                                    toast.error("Ошибка при выборе филиала");
+                                  }
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedTerminals.includes(terminal.id) ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {terminal.name && terminal.name.length > 20 
+                                  ? terminal.name.substring(0, 20) + '...' 
+                                  : terminal.name || 'Без названия'}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
