@@ -715,9 +715,9 @@ export function HeatMapView() {
         
         {/* Delivery Radius Panel - Bottom Left */}
         {showDeliveryRadius && deliveryRadiusPoint && (
-          <div className="absolute bottom-6 left-6 z-[9999] w-[300px]">
-            <Card className="shadow-lg border-2 border-primary/30">
-              <CardHeader className="p-4">
+          <div className="absolute bottom-6 right-3 z-[9999] w-[300px]">
+            <Card className="shadow-lg border-2 border-primary/30 py-0">
+              <CardHeader className="p-4 pb-0">
                 <CardTitle className="text-base flex items-center justify-between">
                   <span className="flex items-center">
                     <LayoutGrid className="h-4 w-4 mr-2 text-primary" />
@@ -764,7 +764,7 @@ export function HeatMapView() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="px-4 py-3 border-t flex justify-end">
+              <CardFooter className="px-4 pb-3 flex justify-end pt-2">
                 <Button variant="outline" size="sm" onClick={handleCloseRadiusPanel}>
                   Закрыть
                 </Button>
