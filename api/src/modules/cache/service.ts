@@ -270,7 +270,7 @@ export class CacheControlService {
       },
     }).from(terminals).leftJoin(organization, eq(terminals.organization_id, organization.id));
     await this.redis.set(
-      `${process.env.PROJECT_PREFIX}_terminals`,
+      `${process.env.PROJECT_PREFIX}_terminalsList`,
       JSON.stringify(terminalsList)
     );
   }
@@ -468,7 +468,7 @@ export class CacheControlService {
 
   async getTerminals() {
     const terminalsList = await this.redis.get(
-      `${process.env.PROJECT_PREFIX}_terminals`
+      `${process.env.PROJECT_PREFIX}_terminalsList`
     );
     return JSON.parse(terminalsList || "[]") as (typeof terminals.$inferSelect & { organization: { name: string, icon_url: string } })[];
   }
