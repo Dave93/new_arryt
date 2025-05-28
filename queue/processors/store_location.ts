@@ -40,6 +40,7 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
             terminal_id: orders.terminal_id,
             created_at: orders.created_at,
             organization_id: orders.organization_id,
+            order_number: orders.order_number,
         }).from(orders).where(
             and(
                 inArray(orders.order_status_id, orderStatusesNotOnWay.map((status) => status.id)),
@@ -57,7 +58,9 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
                 { latitude: terminal!.latitude, longitude: terminal!.longitude },
                 { latitude: data.lat, longitude: data.lon },
             );
-            // console.log('store location line', 45);
+            console.log('store location line', 45);
+            console.log('distance', distance);
+            console.log('order number', order.order_number);
             if (distance >= 200) {
                 await db.update(orders).set({
                     order_status_id: orderStatuses.find((status) => status.on_way && status.organization_id == order.organization_id)!.id,
