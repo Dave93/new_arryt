@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -179,7 +179,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [isItemsTabActive, setIsItemsTabActive] = useState(false);
   const [isTimelineTabActive, setIsTimelineTabActive] = useState(false); // State for timeline tab
-
+  const containerRef = useRef<HTMLDivElement | null>(null);
   // --- Helper function to format duration (seconds) ---
   function formatDuration(seconds: number): string {
     if (isNaN(seconds) || seconds < 0) return "-";
@@ -473,7 +473,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent ref={containerRef}>
           <Tabs 
             defaultValue="details" 
             onValueChange={(value) => {
@@ -529,7 +529,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0 z-[1500]">
+                      <PopoverContent className="w-[200px] p-0 z-[1500]" containerRef={containerRef}>
                         <Command>
                           <CommandInput placeholder="Поиск статуса..." />
                           <CommandList>
