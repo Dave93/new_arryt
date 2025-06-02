@@ -471,9 +471,14 @@ export const UsersController = new Elysia({
     const dto: UserResponseDto = userParsed.user;
 
 
+    const terminalsList = await drizzle.select({
+      terminal_id: users_terminals.terminal_id,
+    }).from(users_terminals).where(eq(users_terminals.user_id, currentUser.id));
+
     const { accessToken, refreshToken } = await cacheControl.setUserSession({
       user: dto,
       access: userParsed.access,
+      terminals: terminalsList.map((terminal) => terminal.terminal_id),
     });
 
     cookie.session.value = accessToken;

@@ -41,6 +41,7 @@ export type UserContext = {
       active: boolean;
     }[];
   };
+  terminals?: string[]
 } | null;
 
 export interface TokenDto {

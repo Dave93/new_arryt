@@ -4,25 +4,13 @@ import { bearer } from "@elysiajs/bearer";
 import { CacheControlService } from "../modules/cache/service";
 import { verifyJwt } from "../utils/bcrypt";
 import { SearchService } from "../services/search/service";
-import { UserResponseDto } from "../modules/user/users.dto";
+import { UserContext, UserResponseDto } from "../modules/user/users.dto";
 import { client } from "./redis";
 import { Queue } from "bullmq";
 // Initialize services
 export const cacheControlService = new CacheControlService(db, client);
 const searchService = new SearchService(cacheControlService, db, client);
 
-// Define user context type for better type safety
-type UserContext = {
-  user: UserResponseDto;
-  access: {
-    additionalPermissions: string[];
-    roles: {
-      name: string;
-      code: string;
-      active: boolean;
-    }[];
-  };
-} | null;
 
 
 export const newOrderNotify = new Queue(

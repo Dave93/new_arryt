@@ -81,8 +81,9 @@ export const OrdersController = new Elysia({
     .use(contextWitUser)
     .get(
         "/api/orders",
-        async ({ query: { limit, offset, sort, filters, fields, ext_all }, drizzle }) => {
+        async ({ query: { limit, offset, sort, filters, fields, ext_all }, drizzle, user }) => {
             const couriers = alias(users, "couriers");
+            
             let selectFields: SelectedFields = {};
             if (fields) {
                 selectFields = parseSelectFields(fields, orders, {
@@ -106,6 +107,13 @@ export const OrdersController = new Elysia({
                     eq(terminals.active, true)
                 )
             }
+
+            if (user?.terminals && user.terminals.length > 0) {
+                whereClause.push(
+                    inArray(orders.terminal_id, user.terminals)
+                )
+            }
+
             const rolesCount = await drizzle
                 .select({ count: sql<number>`count(*)` })
                 .from(orders)
