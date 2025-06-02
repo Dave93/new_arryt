@@ -426,11 +426,26 @@ export const OrdersController = new Elysia({
     }, {
         permission: 'orders.list',
     })
-    .get('/api/orders/list_in_map', async ({ drizzle, query, cacheControl }) => {
+    .get('/api/orders/list_in_map', async ({ drizzle, query, cacheControl, user }) => {
         const { terminal_id } = query;
 
         const orderStatuses = await cacheControl.getOrderStatuses();
         const orderStatusIds = orderStatuses.filter(orderStatus => !orderStatus.finish && !orderStatus.cancel).map((orderStatus) => orderStatus.id);
+
+        const whereClause = [
+            terminal_id ? inArray(orders.terminal_id, terminal_id.split(',')) : undefined,
+            gte(orders.created_at, dayjs().subtract(2, 'days').toISOString()),
+            lte(orders.created_at, dayjs().add(2, 'days').toISOString()),
+            inArray(orders.order_status_id, orderStatusIds),
+            eq(terminals.region, 'capital'),
+            eq(terminals.active, true),
+        ];
+
+        if (user?.terminals && user.terminals.length > 0) {
+            whereClause.push(
+                inArray(orders.terminal_id, user.terminals)
+            )
+        }
 
         const ordersList = await drizzle.select({
             id: orders.id,
@@ -444,14 +459,7 @@ export const OrdersController = new Elysia({
             .from(orders)
             .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(
-                and(
-                    terminal_id ? inArray(orders.terminal_id, terminal_id.split(',')) : undefined,
-                    gte(orders.created_at, dayjs().subtract(2, 'days').toISOString()),
-                    lte(orders.created_at, dayjs().add(2, 'days').toISOString()),
-                    inArray(orders.order_status_id, orderStatusIds),
-                    eq(terminals.region, 'capital'),
-                    eq(terminals.active, true),
-                )
+                and(...whereClause)
             )
             .execute();
         return ordersList;
@@ -461,8 +469,22 @@ export const OrdersController = new Elysia({
             terminal_id: t.Optional(t.String()),
         })
     })
-    .get('/api/orders/filtered_list_in_map', async ({ drizzle, query, cacheControl }) => {
+    .get('/api/orders/filtered_list_in_map', async ({ drizzle, query, cacheControl, user }) => {
         const { terminal_id, from_date, to_date } = query;
+
+        const whereClause = [
+            terminal_id ? inArray(orders.terminal_id, terminal_id.split(',')) : undefined,
+            gte(orders.created_at, dayjs(from_date).toISOString()),
+            lte(orders.created_at, dayjs(to_date).add(1, 'days').toISOString()),
+            eq(terminals.region, 'capital'),
+            eq(terminals.active, true),
+        ];
+
+        if (user?.terminals && user.terminals.length > 0) {
+            whereClause.push(
+                inArray(orders.terminal_id, user.terminals)
+            )
+        }
 
         const ordersList = await drizzle.select({
             id: orders.id,
@@ -477,11 +499,7 @@ export const OrdersController = new Elysia({
             .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(
                 and(
-                    terminal_id ? inArray(orders.terminal_id, terminal_id.split(',')) : undefined,
-                    gte(orders.created_at, dayjs(from_date).toISOString()),
-                    lte(orders.created_at, dayjs(to_date).add(1, 'days').toISOString()),
-                    eq(terminals.region, 'capital'),
-                    eq(terminals.active, true),
+                    ...whereClause
                 )
             )
             .execute();
