@@ -4,7 +4,6 @@ import "./globals.css";
 import { QueryProvider } from "../providers/query-provider";
 import { ToastProvider } from "../providers/toast-provider";
 import { AuthGuard } from "../components/auth/auth-guard";
-import { AuthInitializer } from "../components/auth/auth-initializer";
 import { Toaster } from "sonner";
 import "leaflet/dist/leaflet.css";
 
@@ -24,7 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <QueryProvider>
-              {children}
+          {children}
         </QueryProvider>
         <Toaster position="top-right" />
       </body>
