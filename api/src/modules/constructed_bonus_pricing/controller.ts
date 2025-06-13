@@ -96,6 +96,8 @@ export const constructedBonusPricingController = new Elysia({
                 name: t.String(),
                 organization_id: t.String(),
                 pricing: t.Array(t.Object({
+                    terminal_ids: t.Optional(t.Array(t.String())),
+                    courier_id: t.Optional(t.String()),
                     rules: t.Array(
                         t.Object({
                             time_from: t.Number(),
@@ -132,6 +134,8 @@ export const constructedBonusPricingController = new Elysia({
                 name: t.String(),
                 organization_id: t.String(),
                 pricing: t.Array(t.Object({
+                    terminal_ids: t.Optional(t.Array(t.String())),
+                    courier_id: t.Optional(t.String()),
                     rules: t.Array(
                         t.Object({
                             time_from: t.Number(),

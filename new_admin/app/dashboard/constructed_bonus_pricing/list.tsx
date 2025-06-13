@@ -61,7 +61,7 @@ const columns: ColumnDef<ConstructedBonusPricing>[] = [
           </Link>
         </Button>
         <Button asChild size="sm" variant="ghost">
-          <Link href={`/dashboard/constructed_bonus_pricing/edit?id=${row.original.id}`}>
+          <Link href={`/dashboard/constructed_bonus_pricing/${row.original.id}/edit`}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Link>

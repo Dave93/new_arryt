@@ -120,10 +120,14 @@ function ConstructedBonusPricingSkeleton() {
   );
 }
 
-export default function ConstructedBonusPricingEdit() {
+interface ConstructedBonusPricingEditProps {
+  id?: string;
+}
+
+export default function ConstructedBonusPricingEdit({ id: propId }: ConstructedBonusPricingEditProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+  const id = propId || searchParams.get("id");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [terminals, setTerminals] = useState<Terminal[]>([]);
@@ -259,7 +263,7 @@ export default function ConstructedBonusPricingEdit() {
 
   // Заполнение формы данными при их получении
   useEffect(() => {
-    if (bonusPricing) {
+    if (bonusPricing && organizations.length > 0) {
       form.reset({
         name: bonusPricing.name || "",
         organization_id: bonusPricing.organization_id || "",
@@ -280,7 +284,7 @@ export default function ConstructedBonusPricingEdit() {
         ],
       });
     }
-  }, [bonusPricing, form]);
+  }, [JSON.stringify(bonusPricing), JSON.stringify(organizations), form]);
 
   // Обработка отправки формы
   const onSubmit = async (values: FormValues) => {
@@ -393,6 +397,7 @@ export default function ConstructedBonusPricingEdit() {
                       <Select 
                         onValueChange={field.onChange} 
                         value={field.value}
+                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
