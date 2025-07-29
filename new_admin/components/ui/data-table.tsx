@@ -12,16 +12,7 @@ import {
   PaginationState,
   OnChangeFn,
 } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./table";
 import { Button } from "./button";
-import { Input } from "./input";
 import { useState } from "react";
 import { 
   Select, 
@@ -89,13 +80,6 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  // Определяем высоту строк таблицы, чтобы избежать скачков при загрузке
-  const tableRowsHeight = pagination?.pageSize 
-    ? pagination.pageSize <= 5 
-      ? pagination.pageSize * 60 
-      : 300
-    : 300;
-
   // Функция для получения случайной ширины скелетона для более естественного вида
   const getRandomWidth = (colIndex: number) => {
     if (colIndex === columns.length - 1) return "w-16"; // Для колонки с действиями ширина меньше
@@ -104,74 +88,74 @@ export function DataTable<TData, TValue>({
     return widths[colIndex % widths.length];
   };
 
-  // Функция для получения разной прозрачности для чередования строк
-  const getRowOpacity = (index: number) => {
-    return index % 2 === 0 ? "opacity-100" : "opacity-80";
-  };
-
   return (
     <div>
-      <div className="bg-background overflow-hidden rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="bg-muted/50 *:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id} className="h-9 py-2">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody className="[&_td:first-child]:rounded-l-lg [&_td:last-child]:rounded-r-lg">
-            {loading ? (
-              // Отображаем скелетоны строк, количество которых соответствует текущему размеру страницы
-              Array.from({ length: paginationState.pageSize }).map((_, index) => (
-                <TableRow key={`skeleton-${index}`} className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
-                  {columns.map((column, colIndex) => (
-                    <TableCell key={`skeleton-cell-${colIndex}`} className="py-2">
-                      <Skeleton className={`h-6 ${getRandomWidth(colIndex)}`} />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                   className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r odd:bg-muted/90 odd:hover:bg-muted/90 border-none hover:bg-transparent"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="bg-background rounded-md border overflow-hidden">
+        <div className="max-h-[calc(100vh-25rem)] overflow-auto">
+          <table className="w-full caption-bottom text-sm">
+            <thead className="[&_tr]:border-b">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="border-b transition-colors hover:bg-muted/50 bg-muted/50">
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <th 
+                        key={header.id} 
+                        className="h-9 px-3 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 py-2 bg-muted sticky top-0 z-10"
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {loading ? (
+                // Отображаем скелетоны строк, количество которых соответствует текущему размеру страницы
+                Array.from({ length: paginationState.pageSize }).map((_, index) => (
+                  <tr key={`skeleton-${index}`} className="border-b transition-colors hover:bg-muted/50 *:border-border [&>:not(:last-child)]:border-r">
+                    {columns.map((_, colIndex) => (
+                      <td key={`skeleton-cell-${colIndex}`} className="p-3 align-middle py-2">
+                        <Skeleton className={`h-6 ${getRandomWidth(colIndex)}`} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted *:border-border [&>:not(:last-child)]:border-r odd:bg-muted/90 odd:hover:bg-muted/90"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="p-3 align-middle [&:has([role=checkbox])]:pr-0">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="h-24 text-center p-3"
+                  >
+                    No results.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="flex items-center justify-between py-4">
@@ -221,4 +205,4 @@ export function DataTable<TData, TValue>({
       </div>
     </div>
   );
-} 
+}

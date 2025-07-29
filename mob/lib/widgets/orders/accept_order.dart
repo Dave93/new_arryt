@@ -16,7 +16,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 
 class AcceptOrder extends StatefulWidget {
   final String orderId;

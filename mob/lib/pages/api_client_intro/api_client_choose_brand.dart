@@ -8,7 +8,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:loading_overlay/loading_overlay.dart';
 
 import '../../bloc/block_imports.dart';

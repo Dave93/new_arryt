@@ -5,7 +5,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 

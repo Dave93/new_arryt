@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:arryt/helpers/api_server.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'dart:async';
 
 class MyPerformance extends StatefulWidget {

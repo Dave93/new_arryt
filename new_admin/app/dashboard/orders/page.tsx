@@ -5,7 +5,7 @@ import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { DateRangePicker } from "../../../components/ui/date-range-picker";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../../../components/ui/card";
+import { Card, CardContent, CardFooter } from "../../../components/ui/card";
 import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { DateRange } from "react-day-picker";
@@ -13,15 +13,13 @@ import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Badge } from "../../../components/ui/badge";
 import { format, startOfWeek, endOfWeek, differenceInMinutes, intervalToDuration } from "date-fns";
 import Link from "next/link";
-import { Eye, Loader2, FileDown } from "lucide-react";
+import { Loader2, FileDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { IconCircleCheckFilled, IconUser, IconPhone, IconBuildingStore, IconBuilding } from "@tabler/icons-react";
+import { IconUser, IconPhone, IconBuildingStore, IconBuilding } from "@tabler/icons-react";
 import { sortBy } from "lodash";
 import { ru } from "date-fns/locale";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { OrderDetailsClientPage } from "@/components/orders/order-details-client-page";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -1033,24 +1031,26 @@ export default function OrdersPage() {
   };
 
   return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-row items-center justify-between">
+        <h1 className="text-2xl font-bold">Заказы</h1>
+        <Button 
+          onClick={exportToExcel} 
+          disabled={isExporting}
+          className="gap-2"
+        >
+          {isExporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileDown className="h-4 w-4" />
+          )}
+          {isExporting ? "Экспорт..." : "Экспорт в Excel"}
+        </Button>
+      </div>
+      
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Заказы</CardTitle>
-          <Button 
-            onClick={exportToExcel} 
-            disabled={isExporting}
-            className="gap-2"
-          >
-            {isExporting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileDown className="h-4 w-4" />
-            )}
-            {isExporting ? "Экспорт..." : "Экспорт в Excel"}
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 mb-4">
+        <CardContent className="p-0">
+          <div className="sticky top-0 bg-background z-20 p-6 pb-4 border-b">
             <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-5 gap-4">
               <DateRangePicker
                 value={dateRange}
@@ -1153,15 +1153,17 @@ export default function OrdersPage() {
               />
             </div>
           </div>
-          <DataTable
-            columns={columns}
-            data={ordersData.data}
-            loading={isLoading}
-            pageCount={Math.ceil(ordersData.total / pagination.pageSize)}
-            pagination={pagination}
-            onPaginationChange={setPagination}
-            pageSizeOptions={[10, 20, 50, 100]}
-          />
+          <div className="p-6 pt-4">
+            <DataTable
+              columns={columns}
+              data={ordersData.data}
+              loading={isLoading}
+              pageCount={Math.ceil(ordersData.total / pagination.pageSize)}
+              pagination={pagination}
+              onPaginationChange={setPagination}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          </div>
         </CardContent>
          {/* Add CardFooter for summary here */}
          {summaryData && (
@@ -1184,5 +1186,6 @@ export default function OrdersPage() {
            </CardFooter>
          )}
       </Card>
+    </div>
   );
 } 

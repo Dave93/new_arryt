@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import '../../helpers/api_graphql_provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 
 import '../../models/notifications_model.dart';
 

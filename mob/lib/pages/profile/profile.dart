@@ -7,7 +7,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:arryt/helpers/api_graphql_provider.dart';
 import 'package:arryt/helpers/hive_helper.dart';
 

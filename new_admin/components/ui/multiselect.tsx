@@ -537,8 +537,8 @@ const MultipleSelector = ({
       <div className="relative">
         <div
           className={cn(
-            "border-input absolute top-2 z-10 w-full overflow-hidden rounded-md border",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "border-input absolute top-2 w-full overflow-hidden rounded-md border",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-50 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             !open && "hidden"
           )}
           data-state={open ? "open" : "closed"}

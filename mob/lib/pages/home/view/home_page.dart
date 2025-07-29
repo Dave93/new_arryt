@@ -12,7 +12,7 @@ import 'package:arryt/pages/profile/profile.dart';
 import 'package:arryt/pages/settings/settings.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:badges/badges.dart' as badges;
 

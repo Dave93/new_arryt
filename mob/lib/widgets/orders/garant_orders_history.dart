@@ -4,7 +4,7 @@ import 'package:currency_formatter/currency_formatter.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 class GarantOrderHistory extends StatelessWidget {

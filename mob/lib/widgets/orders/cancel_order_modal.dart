@@ -3,7 +3,7 @@ import 'package:arryt/helpers/api_server.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 // import 'package:chat_package/views/componants/chat_input_feild.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:group_button/group_button.dart';
 
 import '../../main.dart';

@@ -14,7 +14,7 @@ import 'package:arryt/l10n/support_locale.dart';
 import 'package:arryt/provider/locale_provider.dart';
 import 'package:arryt/router.dart';
 
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:month_year_picker/month_year_picker.dart';
 import 'package:provider/provider.dart';
 

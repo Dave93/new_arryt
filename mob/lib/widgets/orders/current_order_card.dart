@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:map_launcher/map_launcher.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:arryt/main.dart';
 import 'package:arryt/models/order.dart';

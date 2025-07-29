@@ -22,6 +22,7 @@ import { systemConfigsController } from "./system_configs/controller";
 import { orderTransactionsController } from "./order_transactions/controller";
 import { chartControlller } from "./chart/controller";
 import { CouriersController } from "./couriers/controller";
+import { dashboardController } from "./dashboard/controller";
 // User-related controllers
 const userGroup = new Elysia({ name: "@app/users-group" })
   .use(UsersController)
@@ -44,6 +45,7 @@ const systemGroup = new Elysia({ name: "@app/system-group" })
   .use(constructedBonusPricingController)
   .use(systemConfigsController)
   .use(chartControlller)
+  .use(dashboardController)
   .use(OrderBonusPricingController)
   .as("global");
 

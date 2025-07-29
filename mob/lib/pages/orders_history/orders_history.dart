@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:loading_overlay/loading_overlay.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 

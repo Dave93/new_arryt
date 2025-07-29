@@ -13,7 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 
 import '../../widgets/wave/wave_widget.dart';

@@ -6,7 +6,7 @@ import 'package:currency_formatter/currency_formatter.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 
 class ManagerCouriersList extends StatelessWidget {
   const ManagerCouriersList({super.key});

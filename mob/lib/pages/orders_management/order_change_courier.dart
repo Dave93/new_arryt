@@ -3,7 +3,7 @@ import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/couriers.dart';
 import 'package:arryt/models/order.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:loading_overlay/loading_overlay.dart';
 
 class OrderChangeCourier extends StatelessWidget {

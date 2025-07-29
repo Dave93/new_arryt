@@ -2,6 +2,7 @@ import Elysia, { t } from "elysia";
 import { contextWitUser } from "../../context";
 import { sql, and, gte, lte, eq } from 'drizzle-orm';
 import { orders } from '../../../drizzle/schema';
+import dayjs from "dayjs";
 
 const periodQuerySchema = t.Object({
     start_date: t.String(),
@@ -31,7 +32,9 @@ export const chartControlller = new Elysia({
         const { start_date, end_date, period, organization_id } = query;
         const interval = intervalMap[period];
         const timeBucket = sql`time_bucket(${interval}, ${orders.created_at}) as bucket_time`;
-
+        const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
+        const endDate = end_date ? dayjs(end_date).endOf('day').toDate() : dayjs().endOf('day').toDate();
+        
         const result = await drizzle
             .select({
                 period: timeBucket,
@@ -39,8 +42,8 @@ export const chartControlller = new Elysia({
             })
             .from(orders)
             .where(and(
-                gte(orders.created_at, start_date),
-                lte(orders.created_at, end_date),
+                gte(orders.created_at, startDate.toISOString()),
+                lte(orders.created_at, endDate.toISOString()),
                 organization_id ? eq(orders.organization_id, organization_id) : undefined
             ))
             .groupBy(sql`bucket_time`)
@@ -55,7 +58,9 @@ export const chartControlller = new Elysia({
         const { start_date, end_date, period, organization_id } = query;
         const interval = intervalMap[period];
         const timeBucket = sql`time_bucket(${interval}, ${orders.created_at}) as bucket_time`;
-
+        const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
+        const endDate = end_date ? dayjs(end_date).endOf('day').toDate() : dayjs().endOf('day').toDate();
+        
         const result = await drizzle
             .select({
                 period: timeBucket,
@@ -67,8 +72,8 @@ export const chartControlller = new Elysia({
             })
             .from(orders)
             .where(and(
-                gte(orders.created_at, start_date),
-                lte(orders.created_at, end_date),
+                gte(orders.created_at, startDate.toISOString()),
+                lte(orders.created_at, endDate.toISOString()),
                 sql`${orders.finished_date} IS NOT NULL`,
                 organization_id ? eq(orders.organization_id, organization_id) : undefined
             ))
