@@ -19,15 +19,17 @@ export function TopLists() {
   const searchParams = useSearchParams()
   const startDate = searchParams.get("start_date")
   const endDate = searchParams.get("end_date")
+  const region = searchParams.get("region")
 
   const { data: topTerminals } = useQuery({
-    queryKey: ["dashboard-top-terminals", startDate, endDate],
+    queryKey: ["dashboard-top-terminals", startDate, endDate, region],
     queryFn: async () => {
       const response = await apiClient.api.dashboard["top-terminals"].get({
         query: {
           limit: 5,
           ...(startDate && { start_date: startDate }),
-          ...(endDate && { end_date: endDate })
+          ...(endDate && { end_date: endDate }),
+          ...(region && { region: region })
         }
       })
       if (response.error) throw response.error
@@ -36,13 +38,14 @@ export function TopLists() {
   })
 
   const { data: topCouriers } = useQuery({
-    queryKey: ["dashboard-top-couriers", startDate, endDate],
+    queryKey: ["dashboard-top-couriers", startDate, endDate, region],
     queryFn: async () => {
       const response = await apiClient.api.dashboard["top-couriers"].get({
         query: {
           limit: 5,
           ...(startDate && { start_date: startDate }),
-          ...(endDate && { end_date: endDate })
+          ...(endDate && { end_date: endDate }),
+          ...(region && { region: region })
         }
       })
       if (response.error) throw response.error

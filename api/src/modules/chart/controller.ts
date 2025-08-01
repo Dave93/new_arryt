@@ -1,7 +1,7 @@
 import Elysia, { t } from "elysia";
 import { contextWitUser } from "../../context";
 import { sql, and, gte, lte, eq } from 'drizzle-orm';
-import { orders } from '../../../drizzle/schema';
+import { orders, terminals } from '../../../drizzle/schema';
 import dayjs from "dayjs";
 
 const periodQuerySchema = t.Object({
@@ -13,7 +13,8 @@ const periodQuerySchema = t.Object({
         t.Literal("month"),
         t.Literal("year")
     ]),
-    organization_id: t.Optional(t.String())
+    organization_id: t.Optional(t.String()),
+    region: t.Optional(t.String())
 });
 
 const intervalMap = {
@@ -29,7 +30,7 @@ export const chartControlller = new Elysia({
 })
     .use(contextWitUser)
     .get('/orders_count_per_period', async ({ drizzle, query }) => {
-        const { start_date, end_date, period, organization_id } = query;
+        const { start_date, end_date, period, organization_id, region } = query;
         const interval = intervalMap[period];
         const timeBucket = sql`time_bucket(${interval}, ${orders.created_at}) as bucket_time`;
         const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
@@ -41,10 +42,12 @@ export const chartControlller = new Elysia({
                 count: sql<number>`count(*)`,
             })
             .from(orders)
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
                 lte(orders.created_at, endDate.toISOString()),
-                organization_id ? eq(orders.organization_id, organization_id) : undefined
+                organization_id ? eq(orders.organization_id, organization_id) : undefined,
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ))
             .groupBy(sql`bucket_time`)
             .orderBy(sql`bucket_time`);
@@ -55,7 +58,7 @@ export const chartControlller = new Elysia({
         query: periodQuerySchema
     })
     .get('/delivery_time_per_period', async ({ drizzle, query }) => {
-        const { start_date, end_date, period, organization_id } = query;
+        const { start_date, end_date, period, organization_id, region } = query;
         const interval = intervalMap[period];
         const timeBucket = sql`time_bucket(${interval}, ${orders.created_at}) as bucket_time`;
         const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
@@ -71,11 +74,13 @@ export const chartControlller = new Elysia({
                 `,
             })
             .from(orders)
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
                 lte(orders.created_at, endDate.toISOString()),
                 sql`${orders.finished_date} IS NOT NULL`,
-                organization_id ? eq(orders.organization_id, organization_id) : undefined
+                organization_id ? eq(orders.organization_id, organization_id) : undefined,
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ))
             .groupBy(sql`bucket_time`)
             .orderBy(sql`bucket_time`);

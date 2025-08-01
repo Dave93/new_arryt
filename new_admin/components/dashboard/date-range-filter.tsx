@@ -13,7 +13,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
+import MultipleSelector, { Option } from "@/components/ui/multiselect"
 
 export function DashboardDateRangeFilter() {
   const router = useRouter()
@@ -38,6 +39,29 @@ export function DashboardDateRangeFilter() {
       to: today,
     }
   })
+  
+  const [selectedRegionId, setSelectedRegionId] = useState<string>(() => {
+    return searchParams.get("region") || "capital"
+  })
+  
+  // Memoize regionOptions to prevent it from changing on every render
+  const regionOptionsData = useMemo(() => [
+    { label: "Столица", value: "capital" },
+    { label: "Регион", value: "region" }
+  ], [])
+  
+  // Format regions for MultipleSelector options
+  const regionSelectorOptions = useMemo((): Option[] => {
+    const options = regionOptionsData.map(region => ({ value: region.value, label: region.label }))
+    return [{ value: "all", label: "Все регионы" }, ...options]
+  }, [regionOptionsData])
+  
+  // Get selected region Option object for the value prop
+  const selectedRegionOption = useMemo((): Option[] => {
+    if (selectedRegionId === "all") return []
+    const region = regionOptionsData.find(r => r.value === selectedRegionId)
+    return region ? [{ value: region.value, label: region.label }] : []
+  }, [selectedRegionId, regionOptionsData])
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString())
@@ -54,11 +78,17 @@ export function DashboardDateRangeFilter() {
       params.delete("end_date")
     }
     
+    if (selectedRegionId && selectedRegionId !== "all") {
+      params.set("region", selectedRegionId)
+    } else {
+      params.delete("region")
+    }
+    
     const queryString = params.toString()
     const url = queryString ? `${pathname}?${queryString}` : pathname
     
     router.push(url)
-  }, [date, pathname, router, searchParams])
+  }, [date, selectedRegionId, pathname, router, searchParams])
 
   const handlePresetClick = (preset: "today" | "yesterday" | "week" | "month") => {
     const today = new Date()
@@ -89,7 +119,7 @@ export function DashboardDateRangeFilter() {
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 lg:px-6">
+    <div className="flex items-center gap-2 px-4 lg:px-6 flex-wrap">
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -158,6 +188,20 @@ export function DashboardDateRangeFilter() {
           Месяц
         </Button>
       </div>
+      
+      <MultipleSelector
+        value={selectedRegionOption}
+        onChange={(options) => setSelectedRegionId(options[0]?.value ?? "all")}
+        defaultOptions={regionSelectorOptions}
+        placeholder="Выберите регион"
+        maxSelected={1}
+        hidePlaceholderWhenSelected
+        className="w-[200px]"
+        commandProps={{
+          label: "Выберите регион",
+        }}
+        selectFirstItem={false}
+      />
     </div>
   )
 }

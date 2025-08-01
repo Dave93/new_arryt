@@ -18,14 +18,16 @@ export function DashboardStatsCards() {
   const searchParams = useSearchParams()
   const startDate = searchParams.get("start_date")
   const endDate = searchParams.get("end_date")
+  const region = searchParams.get("region")
   
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["dashboard-stats", startDate, endDate],
+    queryKey: ["dashboard-stats", startDate, endDate, region],
     queryFn: async () => {
       const response = await apiClient.api.dashboard.stats.get({
         query: {
           ...(startDate && { start_date: startDate }),
-          ...(endDate && { end_date: endDate })
+          ...(endDate && { end_date: endDate }),
+          ...(region && { region: region })
         }
       })
       if (response.error) throw response.error

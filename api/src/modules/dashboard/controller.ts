@@ -22,7 +22,7 @@ export const dashboardController = new Elysia({
 })
     .use(contextWitUser)
     .get('/stats', async ({ drizzle, query }) => {
-        const { start_date, end_date } = query;
+        const { start_date, end_date, region } = query;
         
         const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
         const endDate = end_date ? dayjs(end_date).endOf('day').toDate() : dayjs().endOf('day').toDate();
@@ -31,9 +31,11 @@ export const dashboardController = new Elysia({
         const ordersCountResult = await drizzle
             .select({ count: count() })
             .from(orders)
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
-                lte(orders.created_at, endDate.toISOString())
+                lte(orders.created_at, endDate.toISOString()),
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ));
 
         // Активные курьеры
@@ -51,9 +53,11 @@ export const dashboardController = new Elysia({
                 avgPrice: avg(orders.delivery_price)
             })
             .from(orders)
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
-                lte(orders.created_at, endDate.toISOString())
+                lte(orders.created_at, endDate.toISOString()),
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ));
 
         // Выручка за период
@@ -62,9 +66,11 @@ export const dashboardController = new Elysia({
                 totalRevenue: sum(orders.order_price)
             })
             .from(orders)
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
-                lte(orders.created_at, endDate.toISOString())
+                lte(orders.created_at, endDate.toISOString()),
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ));
 
         return {
@@ -77,7 +83,8 @@ export const dashboardController = new Elysia({
         permission: 'orders.edit',
         query: t.Object({
             start_date: t.Optional(t.String()),
-            end_date: t.Optional(t.String())
+            end_date: t.Optional(t.String()),
+            region: t.Optional(t.String())
         })
     })
     .get('/recent-orders', async ({ drizzle, query }) => {
@@ -113,7 +120,7 @@ export const dashboardController = new Elysia({
         })
     })
     .get('/orders-by-status', async ({ drizzle, query }) => {
-        const { start_date, end_date } = query;
+        const { start_date, end_date, region } = query;
         
         const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
         const endDate = end_date ? dayjs(end_date).endOf('day').toDate() : dayjs().endOf('day').toDate();
@@ -126,9 +133,11 @@ export const dashboardController = new Elysia({
             })
             .from(orders)
             .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
-                lte(orders.created_at, endDate.toISOString())
+                lte(orders.created_at, endDate.toISOString()),
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ))
             .groupBy(order_status.id, order_status.name, order_status.color);
 
@@ -137,11 +146,12 @@ export const dashboardController = new Elysia({
         permission: 'orders.edit',
         query: t.Object({
             start_date: t.Optional(t.String()),
-            end_date: t.Optional(t.String())
+            end_date: t.Optional(t.String()),
+            region: t.Optional(t.String())
         })
     })
     .get('/orders-by-status-and-org', async ({ drizzle, query }) => {
-        const { start_date, end_date } = query;
+        const { start_date, end_date, region } = query;
         
         const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
         const endDate = end_date ? dayjs(end_date).endOf('day').toDate() : dayjs().endOf('day').toDate();
@@ -157,9 +167,11 @@ export const dashboardController = new Elysia({
             .from(orders)
             .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
             .leftJoin(organization, eq(orders.organization_id, organization.id))
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
-                lte(orders.created_at, endDate.toISOString())
+                lte(orders.created_at, endDate.toISOString()),
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ))
             .groupBy(organization.id, organization.name, order_status.id, order_status.name, order_status.color);
 
@@ -188,11 +200,12 @@ export const dashboardController = new Elysia({
         permission: 'orders.edit',
         query: t.Object({
             start_date: t.Optional(t.String()),
-            end_date: t.Optional(t.String())
+            end_date: t.Optional(t.String()),
+            region: t.Optional(t.String())
         })
     })
     .get('/top-terminals', async ({ drizzle, query }) => {
-        const { limit = 5, start_date, end_date } = query;
+        const { limit = 5, start_date, end_date, region } = query;
         
         const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
         const endDate = end_date ? dayjs(end_date).endOf('day').toDate() : dayjs().endOf('day').toDate();
@@ -208,7 +221,8 @@ export const dashboardController = new Elysia({
             .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
-                lte(orders.created_at, endDate.toISOString())
+                lte(orders.created_at, endDate.toISOString()),
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ))
             .groupBy(terminals.id, terminals.name)
             .orderBy(sql`COUNT(*) DESC`)
@@ -220,11 +234,12 @@ export const dashboardController = new Elysia({
         query: t.Object({
             limit: t.Optional(t.Number({ default: 5 })),
             start_date: t.Optional(t.String()),
-            end_date: t.Optional(t.String())
+            end_date: t.Optional(t.String()),
+            region: t.Optional(t.String())
         })
     })
     .get('/top-couriers', async ({ drizzle, query }) => {
-        const { limit = 5, start_date, end_date } = query;
+        const { limit = 5, start_date, end_date, region } = query;
         
         const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('day').toDate();
         const endDate = end_date ? dayjs(end_date).endOf('day').toDate() : dayjs().endOf('day').toDate();
@@ -241,10 +256,12 @@ export const dashboardController = new Elysia({
             })
             .from(orders)
             .leftJoin(users, eq(orders.courier_id, users.id))
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 gte(orders.created_at, startDate.toISOString()),
                 lte(orders.created_at, endDate.toISOString()),
-                sql`${orders.courier_id} IS NOT NULL`
+                sql`${orders.courier_id} IS NOT NULL`,
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined
             ))
             .groupBy(users.id, users.first_name, users.last_name, users.phone)
             .orderBy(sql`COUNT(*) DESC`)
@@ -256,6 +273,7 @@ export const dashboardController = new Elysia({
         query: t.Object({
             limit: t.Optional(t.Number({ default: 5 })),
             start_date: t.Optional(t.String()),
-            end_date: t.Optional(t.String())
+            end_date: t.Optional(t.String()),
+            region: t.Optional(t.String())
         })
     });

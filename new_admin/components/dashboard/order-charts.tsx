@@ -40,6 +40,7 @@ export function OrderCharts() {
   const searchParams = useSearchParams()
   const startDate = searchParams.get("start_date")
   const endDate = searchParams.get("end_date")
+  const region = searchParams.get("region")
   const [period, setPeriod] = useState<"day" | "week" | "month">("day")
   const [hiddenStatuses, setHiddenStatuses] = useState<Record<string, string[]>>({})
   
@@ -66,11 +67,16 @@ export function OrderCharts() {
   }
 
   const { data: orderCounts } = useQuery({
-    queryKey: ["dashboard-order-counts", period],
+    queryKey: ["dashboard-order-counts", period, region],
     queryFn: async () => {
       const { start_date, end_date } = getDateRange()
       const response = await apiClient.api.chart.orders_count_per_period.get({
-        query: { start_date, end_date, period }
+        query: { 
+          start_date, 
+          end_date, 
+          period,
+          ...(region && { region: region })
+        }
       })
       if (response.error) throw response.error
       return response.data
@@ -78,11 +84,16 @@ export function OrderCharts() {
   })
 
   const { data: deliveryTimes } = useQuery({
-    queryKey: ["dashboard-delivery-times", period],
+    queryKey: ["dashboard-delivery-times", period, region],
     queryFn: async () => {
       const { start_date, end_date } = getDateRange()
       const response = await apiClient.api.chart.delivery_time_per_period.get({
-        query: { start_date, end_date, period }
+        query: { 
+          start_date, 
+          end_date, 
+          period,
+          ...(region && { region: region })
+        }
       })
       if (response.error) throw response.error
       return response.data
@@ -91,12 +102,13 @@ export function OrderCharts() {
 
 
   const { data: ordersByStatusAndOrg } = useQuery({
-    queryKey: ["dashboard-orders-by-status-and-org", startDate, endDate],
+    queryKey: ["dashboard-orders-by-status-and-org", startDate, endDate, region],
     queryFn: async () => {
       const response = await apiClient.api.dashboard["orders-by-status-and-org"].get({
         query: {
           ...(startDate && { start_date: startDate }),
-          ...(endDate && { end_date: endDate })
+          ...(endDate && { end_date: endDate }),
+          ...(region && { region: region })
         }
       })
       if (response.error) throw response.error
