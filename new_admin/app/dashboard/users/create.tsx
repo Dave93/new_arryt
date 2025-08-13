@@ -26,6 +26,7 @@ import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
+import { FileUpload } from "../../../components/ui/file-upload";
 // Определение типов
 interface Terminal {
   id: string;
@@ -87,6 +88,8 @@ const formSchema = z.object({
 export default function UserCreate() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userFiles, setUserFiles] = useState<any[]>([]);
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
 
   // Инициализация формы
   const form = useForm<z.infer<typeof formSchema>>({
@@ -179,13 +182,28 @@ export default function UserCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.users.post({
-        // @ts-ignore
-        data: values,
+      const {data} = await apiClient.api.users.post({
+        data: {
+          ...values,
+          drive_type: values.drive_type as "car" | "bike" | "foot" | "bycicle" | undefined,
+          status: values.status as "active" | "inactive" | "blocked",
+        },
       });
       
+      if (data?.data?.id) {
+        setCreatedUserId(data.data.id);
+      }
+      
       toast.success("Пользователь успешно создан");
-      router.push("/dashboard/users");
+      
+      // Если файлы были загружены, подождем немного и перейдем к списку
+      if (userFiles.length > 0) {
+        setTimeout(() => {
+          router.push("/dashboard/users");
+        }, 1000);
+      } else {
+        router.push("/dashboard/users");
+      }
     } catch (error) {
       toast.error("Ошибка создания пользователя");
       console.error("Error creating user:", error);
@@ -548,6 +566,20 @@ export default function UserCreate() {
                   )}
                 />
               </div>
+
+              {createdUserId && (
+                <div className="space-y-2">
+                  <FormLabel>Документы пользователя</FormLabel>
+                  <FileUpload
+                    userId={createdUserId}
+                    onFilesChange={setUserFiles}
+                    multiple={true}
+                    accept="image/*,application/pdf,.doc,.docx"
+                    maxSize={10}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
 
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Создание..." : "Создать"}

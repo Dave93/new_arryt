@@ -1,6 +1,8 @@
 import { cors } from "@elysiajs/cors";
 import Elysia from "elysia";
 import apiController from "./modules/controllers";
+import staticPlugin from "@elysiajs/static";
+
 const app = new Elysia()
     .use(
         cors({
@@ -17,7 +19,10 @@ const app = new Elysia()
     //     ]
     //   })
     // )
-
+    .use(staticPlugin({
+        assets: "../uploads",
+        prefix: "/uploads"
+    }))
     // .get("/", () => ({
     //     result: "ok",
     // }))

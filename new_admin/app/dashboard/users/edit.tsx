@@ -27,6 +27,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { UsersModel } from "../../../../api/src/modules/user/dto/list.dto";
+import { FileUpload } from "../../../components/ui/file-upload";
 
 // Определение типов
 interface Terminal {
@@ -119,6 +120,7 @@ export default function UserEdit() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userFiles, setUserFiles] = useState<any[]>([]);
 
   // Инициализация формы
   const form = useForm<z.infer<typeof formSchema>>({
@@ -237,6 +239,22 @@ export default function UserEdit() {
       }
     },
     enabled: !!id, 
+  });
+
+  // Загрузка файлов пользователя
+  const { data: existingFiles = [] } = useQuery({
+    queryKey: ["userAssets", id],
+    queryFn: async () => {
+      if (!id) return [];
+      try {
+        const response = await apiClient.api["user-assets"]({ userId: id }).get({});
+        return response.data?.assets || [];
+      } catch (error) {
+        console.error("Не удалось загрузить файлы пользователя:", error);
+        return [];
+      }
+    },
+    enabled: !!id,
   });
 
   // Группировка графиков по организациям
@@ -698,6 +716,21 @@ export default function UserEdit() {
                   )}
                 />
               </div>
+
+              {id && (
+                <div className="space-y-2">
+                  <FormLabel>Документы пользователя</FormLabel>
+                  <FileUpload
+                    userId={id}
+                    existingFiles={existingFiles}
+                    onFilesChange={setUserFiles}
+                    multiple={true}
+                    accept="image/*,application/pdf,.doc,.docx"
+                    maxSize={10}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
 
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Сохранение..." : "Сохранить"}

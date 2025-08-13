@@ -23,10 +23,12 @@ import { orderTransactionsController } from "./order_transactions/controller";
 import { chartControlller } from "./chart/controller";
 import { CouriersController } from "./couriers/controller";
 import { dashboardController } from "./dashboard/controller";
+import { userAssetsController } from "./users/assets-controller";
 // User-related controllers
 const userGroup = new Elysia({ name: "@app/users-group" })
   .use(UsersController)
   .use(CouriersController)
+  .use(userAssetsController)
   .use(CustomersController)
   .use(RolesController)
   .use(PermissionsController)
