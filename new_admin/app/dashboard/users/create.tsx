@@ -185,6 +185,7 @@ export default function UserCreate() {
       const {data} = await apiClient.api.users.post({
         data: {
           ...values,
+          daily_garant_id: values.daily_garant_id === "none" ? undefined : values.daily_garant_id,
           drive_type: values.drive_type as "car" | "bike" | "foot" | "bycicle" | undefined,
           status: values.status as "active" | "inactive" | "blocked",
         },
@@ -479,7 +480,7 @@ export default function UserCreate() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Нет</SelectItem>
+                          <SelectItem value="none">Нет</SelectItem>
                           {dailyGarants.map((garant: DailyGarant) => (
                             <SelectItem key={garant.id} value={garant.id}>
                               {garant.name}
