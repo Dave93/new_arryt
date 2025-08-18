@@ -1039,12 +1039,12 @@ export default function OrdersPage() {
 
       <Card className="gap-2">
         <CardContent className="p-0">
-          <div className="sticky top-0 bg-background z-20 p-6 pb-4 border-b flex flex-row items-start justify-between gap-2">
+          <div className="sticky top-0 bg-background z-20 p-6 pb-4 border-b flex flex-row items-end justify-between gap-2">
             <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-5 gap-4">
               <DateRangePicker
                 value={dateRange}
                 onChange={(value: DateRange | undefined) => setDateRange(value)}
-                className="w-auto col-span-2 xl:col-span-1"
+                className="w-auto col-span-3 xl:col-span-2"
                 timePicker={true}
               />
               <Input
