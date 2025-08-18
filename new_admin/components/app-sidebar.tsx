@@ -60,6 +60,18 @@ const data = {
       permission: "orders.list",
     },
     {
+      title: "Фин. гарант",
+      url: "/dashboard/orders/orders_garant_report",
+      icon: IconChartBar,
+      permission: "orders.list",
+    },
+    {
+      title: "Гарант",
+      url: "/dashboard/orders/yuriy_orders_garant_report",
+      icon: IconChartBar,
+      permission: "orders.list",
+    },
+    {
       title: "Пропущенные заказы",
       url: "/dashboard/missed_orders",
       icon: IconAlertTriangle,

@@ -104,8 +104,8 @@ function CourierDriveTypeIcon({ driveType }: { driveType?: string }) {
   
   const driveTypeMap: Record<string, { label: string, className: string }> = {
     "car": { label: "🚗", className: "text-blue-500" },
-    "bicycle": { label: "🚲", className: "text-green-500" },
-    "scooter": { label: "🛵", className: "text-yellow-500" },
+    "bike": { label: "🚴", className: "text-green-500" },
+    "bycicle": { label: "🚲", className: "text-yellow-500" },
     "foot": { label: "🚶", className: "text-orange-500" },
   };
   

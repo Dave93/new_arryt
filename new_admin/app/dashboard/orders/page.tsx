@@ -128,15 +128,15 @@ const columns: ColumnDef<Order>[] = [
         <OrderDetailSheet orderId={row.original.id} />
       </div>
     ),
-     size: 80,
+    size: 80,
   },
   {
     id: "index",
     header: "#",
     cell: ({ row, table }) => {
-       const pageIndex = (table.getState().pagination.pageIndex);
-       const pageSize = table.getState().pagination.pageSize;
-       return <div>{(pageIndex * pageSize) + row.index + 1}</div>;
+      const pageIndex = (table.getState().pagination.pageIndex);
+      const pageSize = table.getState().pagination.pageSize;
+      return <div>{(pageIndex * pageSize) + row.index + 1}</div>;
     },
     size: 60,
   },
@@ -156,22 +156,22 @@ const columns: ColumnDef<Order>[] = [
     accessorKey: "created_at",
     header: "Дата",
     cell: ({ row }) => (
-        <div>{format(new Date(row.getValue("created_at")), "dd.MM.yy HH:mm", { locale: ru })}</div>
-      ),
+      <div>{format(new Date(row.getValue("created_at")), "dd.MM.yy HH:mm", { locale: ru })}</div>
+    ),
     size: 110,
   },
   {
     accessorKey: "order_status",
     header: "Статус",
     cell: ({ row }) => (
-      <Badge variant="outline" className="text-black px-1.5 py-0.5 font-bold bg-muted-foreground/5" 
-      style={{ backgroundColor: row.original.order_status.color || '#ccc'}}>
+      <Badge variant="outline" className="text-black px-1.5 py-0.5 font-bold bg-muted-foreground/5"
+        style={{ backgroundColor: row.original.order_status.color || '#ccc' }}>
         {row.original.order_status.name}
       </Badge>
     ),
-     size: 120,
+    size: 120,
   },
-   {
+  {
     accessorKey: "organization.name",
     header: "Организация",
     cell: ({ row }) => (
@@ -182,13 +182,13 @@ const columns: ColumnDef<Order>[] = [
         </Link>
       </Button>
     ),
-     size: 120,
+    size: 120,
   },
   {
     accessorKey: "terminal.name",
     header: "Терминал",
     cell: ({ row }) => (
-       <Button variant="link" className="p-0 h-auto text-left whitespace-normal" asChild>
+      <Button variant="link" className="p-0 h-auto text-left whitespace-normal" asChild>
         <Link href={`/dashboard/terminals/${row.original.terminal.id}`}>
           <IconBuildingStore className="h-4 w-4 mr-1 inline-block shrink-0" />
           {row.original.terminal.name}
@@ -197,7 +197,7 @@ const columns: ColumnDef<Order>[] = [
     ),
     size: 120,
   },
-   {
+  {
     accessorKey: "courier",
     header: "Курьер",
     cell: ({ row }) => (
@@ -212,37 +212,37 @@ const columns: ColumnDef<Order>[] = [
         <span className="text-muted-foreground text-xs">Не назначен</span>
       )
     ),
-     size: 120,
+    size: 120,
   },
-   {
+  {
     accessorKey: "customer.name",
     header: "Клиент",
     cell: ({ row }) => (
-       <div className="flex flex-col">
-         <Button variant="link" className="p-0 h-auto justify-start" asChild>
-            <Link href={`/dashboard/customers/${row.original.customer.id}`}>
-             {row.original.customer.name}
-            </Link>
-         </Button>
-       </div>
-     ),
-     size: 150,
-  },
-  {
-   accessorKey: "customer.phone",
-   header: "Телефон",
-   cell: ({ row }) => (
       <div className="flex flex-col">
-         <Button variant="link" className="p-0 h-auto text-muted-foreground justify-start" asChild>
-           <a href={`tel:${row.original.customer.phone}`}>
-             <IconPhone className="h-3 w-3 mr-1 inline-block shrink-0" />
-              {row.original.customer.phone}
-           </a>
+        <Button variant="link" className="p-0 h-auto justify-start" asChild>
+          <Link href={`/dashboard/customers/${row.original.customer.id}`}>
+            {row.original.customer.name}
+          </Link>
         </Button>
       </div>
     ),
     size: 150,
- },
+  },
+  {
+    accessorKey: "customer.phone",
+    header: "Телефон",
+    cell: ({ row }) => (
+      <div className="flex flex-col">
+        <Button variant="link" className="p-0 h-auto text-muted-foreground justify-start" asChild>
+          <a href={`tel:${row.original.customer.phone}`}>
+            <IconPhone className="h-3 w-3 mr-1 inline-block shrink-0" />
+            {row.original.customer.phone}
+          </a>
+        </Button>
+      </div>
+    ),
+    size: 150,
+  },
   {
     accessorKey: "order_price",
     header: "Цена",
@@ -251,9 +251,9 @@ const columns: ColumnDef<Order>[] = [
         {new Intl.NumberFormat("ru").format(row.getValue("order_price"))}
       </div>
     ),
-     size: 90,
+    size: 90,
   },
-   {
+  {
     accessorKey: "cooked_time",
     header: "Время готовки",
     cell: ({ row }) => (
@@ -270,23 +270,23 @@ const columns: ColumnDef<Order>[] = [
         )}
       </div>
     ),
-     size: 100,
+    size: 100,
   },
   {
     id: "cooking_duration",
     header: "Длительность готовки",
     cell: ({ row }) => (
-       <div className="text-center">
-          {formatDuration(row.original.created_at, row.original.cooked_time, "N/A")}
-       </div>
-     ),
+      <div className="text-center">
+        {formatDuration(row.original.created_at, row.original.cooked_time, "N/A")}
+      </div>
+    ),
     size: 100,
   },
   {
     id: "handover_time",
     header: "Время передачи",
     cell: ({ row }) => (
-       <div className="text-right">
+      <div className="text-right">
         {row.original.picked_up_time && row.original.cooked_time ? (
           <div>
             <div>{format(new Date(row.original.picked_up_time), "HH:mm", { locale: ru })}</div>
@@ -301,30 +301,30 @@ const columns: ColumnDef<Order>[] = [
     ),
     size: 100,
   },
-  
+
   {
     id: "handover_duration",
     header: "Длительность передачи",
     cell: ({ row }) => (
-       <div className="text-center">
-          {row.original.cooked_time && row.original.picked_up_time 
-            ? formatDuration(row.original.cooked_time, row.original.picked_up_time, "N/A")
-            : "N/A"}
-       </div>
-     ),
+      <div className="text-center">
+        {row.original.cooked_time && row.original.picked_up_time
+          ? formatDuration(row.original.cooked_time, row.original.picked_up_time, "N/A")
+          : "N/A"}
+      </div>
+    ),
     size: 100,
   },
   {
     id: "delivery_duration",
     header: "Delivery Time",
     cell: ({ row }) => (
-       <div className="text-center">
-          {formatDuration(row.original.created_at, row.original.finished_date, "Not Finished")}
-       </div>
-     ),
+      <div className="text-center">
+        {formatDuration(row.original.created_at, row.original.finished_date, "Not Finished")}
+      </div>
+    ),
     size: 100,
   },
-   {
+  {
     accessorKey: "bonus",
     header: "Bonus",
     cell: ({ row }) => (
@@ -332,7 +332,7 @@ const columns: ColumnDef<Order>[] = [
         {new Intl.NumberFormat("ru").format(row.original.bonus || 0)}
       </div>
     ),
-     size: 90,
+    size: 90,
   },
   {
     accessorKey: "pre_distance",
@@ -344,7 +344,7 @@ const columns: ColumnDef<Order>[] = [
     ),
     size: 100,
   },
-   {
+  {
     accessorKey: "delivery_price",
     header: "Стоимость доставки",
     cell: ({ row }) => (
@@ -352,7 +352,7 @@ const columns: ColumnDef<Order>[] = [
         {new Intl.NumberFormat("ru").format(row.getValue("delivery_price"))}
       </div>
     ),
-     size: 80,
+    size: 80,
   },
   {
     accessorKey: "payment_type",
@@ -392,7 +392,7 @@ export default function OrdersPage() {
     return { from: start, to: end };
   });
   const [selectedOrganization, setSelectedOrganization] = useState<string>("all");
-  const [selectedTerminal, setSelectedTerminal] = useState<string>("all");
+  const [selectedTerminals, setSelectedTerminals] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [selectedCourierOption, setSelectedCourierOption] = useState<Option | null>(null);
@@ -410,7 +410,7 @@ export default function OrdersPage() {
   const [selectedRegionId, setSelectedRegionId] = useState<string>("capital");
 
   const [filtersLoaded, setFiltersLoaded] = useState(false);
-  
+
   // Memoize regionOptions to prevent it from changing on every render
   const regionOptionsData = useMemo(() => [
     { label: "Столица", value: "capital" },
@@ -426,7 +426,7 @@ export default function OrdersPage() {
   }, [
     dateRange,
     selectedOrganization,
-    selectedTerminal,
+    selectedTerminals,
     searchQuery,
     customerPhone,
     selectedCourierOption,
@@ -460,7 +460,7 @@ export default function OrdersPage() {
         toast.error("Failed to load filter data");
       }
     };
-    
+
     fetchFilterData();
   }, [dataLoaded]);
 
@@ -520,7 +520,7 @@ export default function OrdersPage() {
       "orders",
       dateRange,
       selectedOrganization,
-      selectedTerminal,
+      selectedTerminals,
       searchQuery,
       customerPhone,
       selectedCourierOption?.value,
@@ -560,11 +560,11 @@ export default function OrdersPage() {
         }
 
         // Add terminal filter
-        if (selectedTerminal && selectedTerminal !== "all") {
+        if (selectedTerminals.length > 0) {
           filters.push({
             field: "terminal_id",
-            operator: "eq",
-            value: selectedTerminal,
+            operator: "in",
+            value: selectedTerminals,
           });
         }
 
@@ -740,16 +740,16 @@ export default function OrdersPage() {
             totalCookedMinutes += cookedMins;
             cookedOrdersCount++;
           }
-        } catch {}
+        } catch { }
       }
       if (record.finished_date && record.created_at) {
-         try {
-           const deliveryMins = differenceInMinutes(new Date(record.finished_date), new Date(record.created_at));
-           if (deliveryMins >= 0) {
-             totalDeliveryMinutes += deliveryMins;
-             deliveredOrdersCount++;
-           }
-         } catch {}
+        try {
+          const deliveryMins = differenceInMinutes(new Date(record.finished_date), new Date(record.created_at));
+          if (deliveryMins >= 0) {
+            totalDeliveryMinutes += deliveryMins;
+            deliveredOrdersCount++;
+          }
+        } catch { }
       }
     });
 
@@ -784,8 +784,7 @@ export default function OrdersPage() {
 
   // Format terminals for MultipleSelector options
   const terminalOptions = useMemo((): Option[] => {
-    const options = terminals.map(terminal => ({ value: terminal.id, label: terminal.name }));
-    return [{ value: "all", label: "Все терминалы" }, ...options];
+    return terminals.map(terminal => ({ value: terminal.id, label: terminal.name }));
   }, [terminals]);
 
   // Format statuses for MultipleSelector options
@@ -795,8 +794,8 @@ export default function OrdersPage() {
 
   // Format regions for MultipleSelector options
   const regionSelectorOptions = useMemo((): Option[] => {
-     const options = regionOptionsData.map(region => ({ value: region.value, label: region.label }));
-     return [{ value: "all", label: "Все регионы" }, ...options];
+    const options = regionOptionsData.map(region => ({ value: region.value, label: region.label }));
+    return [{ value: "all", label: "Все регионы" }, ...options];
   }, [regionOptionsData]);
 
   // Get selected organization Option object for the value prop
@@ -806,30 +805,31 @@ export default function OrdersPage() {
     return org ? [{ value: org.id, label: org.name }] : [];
   }, [selectedOrganization, organizations]);
 
-  // Get selected terminal Option object for the value prop
-  const selectedTerminalOption = useMemo((): Option[] => {
-    if (selectedTerminal === "all") return [];
-    const terminal = terminals.find(t => t.id === selectedTerminal);
-    return terminal ? [{ value: terminal.id, label: terminal.name }] : [];
-  }, [selectedTerminal, terminals]);
+  // Get selected terminal Option objects for the value prop
+  const selectedTerminalOptions = useMemo((): Option[] => {
+    return selectedTerminals
+      .map(id => terminals.find(t => t.id === id))
+      .filter((terminal): terminal is Terminal => !!terminal)
+      .map(terminal => ({ value: terminal.id, label: terminal.name }));
+  }, [selectedTerminals, terminals]);
 
   // Get selected status Option objects for the value prop
-   const selectedStatusOptions = useMemo((): Option[] => {
-     return selectedStatuses
-       .map(id => allStatuses.find(status => status.id === id))
-       .filter((status): status is OrderStatus => !!status) // Type guard and filter out nulls
-       .map(status => ({ value: status.id, label: status.name }));
-   }, [selectedStatuses, allStatuses]);
+  const selectedStatusOptions = useMemo((): Option[] => {
+    return selectedStatuses
+      .map(id => allStatuses.find(status => status.id === id))
+      .filter((status): status is OrderStatus => !!status) // Type guard and filter out nulls
+      .map(status => ({ value: status.id, label: status.name }));
+  }, [selectedStatuses, allStatuses]);
 
   // Get selected region Option object for the value prop
   const selectedRegionOption = useMemo((): Option[] => {
-      if (selectedRegionId === "all") return [];
-      const region = regionOptionsData.find(r => r.value === selectedRegionId);
-      return region ? [{ value: region.value, label: region.label }] : [];
+    if (selectedRegionId === "all") return [];
+    const region = regionOptionsData.find(r => r.value === selectedRegionId);
+    return region ? [{ value: region.value, label: region.label }] : [];
   }, [selectedRegionId, regionOptionsData]);
 
   // Remove unused debounced functions
-  
+
   const [isExporting, setIsExporting] = useState(false);
 
   // Function to export all orders to Excel
@@ -868,11 +868,11 @@ export default function OrdersPage() {
       }
 
       // Add terminal filter
-      if (selectedTerminal && selectedTerminal !== "all") {
+      if (selectedTerminals.length > 0) {
         filters.push({
           field: "terminal_id",
-          operator: "eq",
-          value: selectedTerminal,
+          operator: "in",
+          value: selectedTerminals,
         });
       }
 
@@ -1002,21 +1002,21 @@ export default function OrdersPage() {
 
       // Create Excel worksheet
       const worksheet = XLSX.utils.json_to_sheet(formatExcelData(orders));
-      
+
       // Create Excel workbook
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Заказы");
-      
+
       // Generate Excel file
       const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
       const data = new Blob([excelBuffer], { type: "application/octet-stream" });
-      
+
       // Create filename with current date
       const fileName = `Заказы_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
-      
+
       // Save the file
       saveAs(data, fileName);
-      
+
       toast.success("Экспорт выполнен успешно", {
         description: `Экспортировано ${orders.length} заказов`,
       });
@@ -1031,26 +1031,15 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2">
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-2xl font-bold">Заказы</h1>
-        <Button 
-          onClick={exportToExcel} 
-          disabled={isExporting}
-          className="gap-2"
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <FileDown className="h-4 w-4" />
-          )}
-          {isExporting ? "Экспорт..." : "Экспорт в Excel"}
-        </Button>
+
       </div>
-      
-      <Card>
+
+      <Card className="gap-2">
         <CardContent className="p-0">
-          <div className="sticky top-0 bg-background z-20 p-6 pb-4 border-b">
+          <div className="sticky top-0 bg-background z-20 p-6 pb-4 border-b flex flex-row items-start justify-between gap-2">
             <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-5 gap-4">
               <DateRangePicker
                 value={dateRange}
@@ -1084,15 +1073,18 @@ export default function OrdersPage() {
                 selectFirstItem={false}
               />
               <MultipleSelector
-                value={selectedTerminalOption}
-                onChange={(options) => setSelectedTerminal(options[0]?.value ?? "all")}
+                value={selectedTerminalOptions}
+                onChange={(options) => setSelectedTerminals(options.map(opt => opt.value))}
                 options={terminalOptions}
-                placeholder="Выберите терминал"
-                maxSelected={1}
-                hidePlaceholderWhenSelected
+                placeholder="Выберите терминалы..."
                 className="w-auto"
+                emptyIndicator={
+                  <div className="py-2 text-center text-sm text-muted-foreground">
+                    Терминалы не найдены.
+                  </div>
+                }
                 commandProps={{
-                  label: "Выберите терминал",
+                  label: "Выберите терминалы",
                 }}
                 selectFirstItem={false}
               />
@@ -1152,6 +1144,18 @@ export default function OrdersPage() {
                 selectFirstItem={false}
               />
             </div>
+            <Button
+              onClick={exportToExcel}
+              disabled={isExporting}
+              className="gap-2"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4" />
+              )}
+              {isExporting ? "Экспорт..." : "Экспорт в Excel"}
+            </Button>
           </div>
           <div className="p-6 pt-4">
             <DataTable
@@ -1165,26 +1169,26 @@ export default function OrdersPage() {
             />
           </div>
         </CardContent>
-         {/* Add CardFooter for summary here */}
-         {summaryData && (
-           <CardFooter className="flex justify-end space-x-6 border-t pt-4 text-sm font-medium">
-             <div className="text-right">
-               Ср. время готовки: <span className="font-bold">{summaryData.avgCookingTime}</span>
-             </div>
-             <div className="text-right">
-               Ср. время доставки: <span className="font-bold">{summaryData.avgDeliveryTime}</span>
-             </div>
-             <div className="text-right">
-               Сумма бонусов: <span className="font-bold">{new Intl.NumberFormat("ru").format(summaryData.totalBonus)}</span>
-             </div>
-             <div className="text-right">
-               Общая дистанция: <span className="font-bold">{summaryData.totalDistance.toFixed(2)} км</span>
-             </div>
-             <div className="text-right">
-               Стоимость доставки: <span className="font-bold">{new Intl.NumberFormat("ru").format(summaryData.totalDeliveryPrice)}</span>
-             </div>
-           </CardFooter>
-         )}
+        {/* Add CardFooter for summary here */}
+        {summaryData && (
+          <CardFooter className="flex justify-end space-x-6 border-t pt-2 text-sm font-medium">
+            <div className="text-right">
+              Ср. время готовки: <span className="font-bold">{summaryData.avgCookingTime}</span>
+            </div>
+            <div className="text-right">
+              Ср. время доставки: <span className="font-bold">{summaryData.avgDeliveryTime}</span>
+            </div>
+            <div className="text-right">
+              Сумма бонусов: <span className="font-bold">{new Intl.NumberFormat("ru").format(summaryData.totalBonus)}</span>
+            </div>
+            <div className="text-right">
+              Общая дистанция: <span className="font-bold">{summaryData.totalDistance.toFixed(2)} км</span>
+            </div>
+            <div className="text-right">
+              Стоимость доставки: <span className="font-bold">{new Intl.NumberFormat("ru").format(summaryData.totalDeliveryPrice)}</span>
+            </div>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );

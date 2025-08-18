@@ -89,21 +89,21 @@ export function DateRangePicker({
       if (value.to) {
         return (
           <>
-            {format(value.from, "LLL dd, y")} {format(value.from, "HH:mm")} -{" "}
-            {format(value.to, "LLL dd, y")} {format(value.to, "HH:mm")}
+            {format(value.from, "LLL dd")} {format(value.from, "HH:mm")} -{" "}
+            {format(value.to, "LLL dd")} {format(value.to, "HH:mm")}
           </>
         );
       }
-      return <>{format(value.from, "LLL dd, y")} {format(value.from, "HH:mm")}</>;
+      return <>{format(value.from, "LLL dd")} {format(value.from, "HH:mm")}</>;
     } else {
       if (value.to) {
         return (
           <>
-            {format(value.from, "LLL dd, y")} - {format(value.to, "LLL dd, y")}
+            {format(value.from, "LLL dd")} - {format(value.to, "LLL dd")}
           </>
         );
       }
-      return format(value.from, "LLL dd, y");
+      return format(value.from, "LLL dd");
     }
   }, [value, timePicker]);
 

@@ -597,7 +597,18 @@ function UserTransactions({ userId }: { userId: string }) {
   const [startDate, setStartDate] = useState<Date>(dayjs().startOf('week').toDate());
   const [endDate, setEndDate] = useState<Date>(dayjs().endOf('week').toDate());
   const [status, setStatus] = useState<string>("all");
+  const [orderNumber, setOrderNumber] = useState<string>("");
+  const [debouncedOrderNumber, setDebouncedOrderNumber] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Debounce для поиска по номеру заказа
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedOrderNumber(orderNumber);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [orderNumber]);
 
   // Форма добавления транзакции
   const transactionForm = useForm({
@@ -657,8 +668,16 @@ function UserTransactions({ userId }: { userId: string }) {
       });
     }
     
+    if (debouncedOrderNumber && debouncedOrderNumber.trim()) {
+      filters.push({
+        field: "orders.order_number",
+        operator: "contains",
+        value: debouncedOrderNumber.trim(),
+      });
+    }
+    
     return filters;
-  }, [userId, startDate, endDate, status]);
+  }, [userId, startDate, endDate, status, debouncedOrderNumber]);
 
   // Запрос на получение списка транзакций
   const { 
@@ -666,7 +685,7 @@ function UserTransactions({ userId }: { userId: string }) {
     isLoading,
     refetch: refetchTransactions 
   } = useQuery({
-    queryKey: ["user_transactions", userId, startDate.toISOString(), endDate.toISOString(), status],
+    queryKey: ["user_transactions", userId, startDate.toISOString(), endDate.toISOString(), status, debouncedOrderNumber],
     queryFn: async () => {
       try {
         const filters = getTransactionsFilters();
@@ -686,7 +705,7 @@ function UserTransactions({ userId }: { userId: string }) {
         toast.error("Ошибка загрузки данных транзакций");
 
         // Mock data for development/testing
-        return [
+        let mockData = [
           {
             id: "1",
             created_at: new Date().toISOString(),
@@ -718,6 +737,20 @@ function UserTransactions({ userId }: { userId: string }) {
             balance_after: "4000"
           }
         ];
+
+        // Применяем фильтры к моковым данным
+        if (debouncedOrderNumber && debouncedOrderNumber.trim()) {
+          mockData = mockData.filter(transaction => 
+            transaction.order_number && 
+            transaction.order_number.toLowerCase().includes(debouncedOrderNumber.trim().toLowerCase())
+          );
+        }
+
+        if (status && status !== "all") {
+          mockData = mockData.filter(transaction => transaction.status === status);
+        }
+
+        return mockData;
       }
     },
     enabled: !!userId,
@@ -836,6 +869,17 @@ function UserTransactions({ userId }: { userId: string }) {
                 <SelectItem value="pending">Не оплачено</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="grid w-full max-w-sm items-center gap-1.5">
+            <Label htmlFor="orderNumber">Номер заказа</Label>
+            <Input
+              id="orderNumber"
+              placeholder="Поиск по номеру заказа"
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+              className="w-[200px]"
+            />
           </div>
         </div>
         

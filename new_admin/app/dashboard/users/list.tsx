@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { debounce } from "lodash";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -176,6 +177,9 @@ const columns: ColumnDef<User>[] = [
 
 export default function UsersList() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
   const [selectedTerminalId, setSelectedTerminalId] = useState<string>("");
   const [selectedWorkScheduleId, setSelectedWorkScheduleId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
@@ -198,6 +202,38 @@ export default function UsersList() {
       drive_types: []
     }
   });
+
+  // Debounced function for search query
+  const debouncedSetSearchQuery = useMemo(
+    () => debounce((value: string) => {
+      setSearchQuery(value);
+    }, 500),
+    []
+  );
+
+  // Debounced function for phone filter
+  const debouncedSetPhoneFilter = useMemo(
+    () => debounce((value: string) => {
+      setPhoneFilter(value);
+    }, 500),
+    []
+  );
+
+  // Effect to handle search input changes
+  useEffect(() => {
+    debouncedSetSearchQuery(searchInput);
+    return () => {
+      debouncedSetSearchQuery.cancel();
+    };
+  }, [searchInput, debouncedSetSearchQuery]);
+
+  // Effect to handle phone input changes
+  useEffect(() => {
+    debouncedSetPhoneFilter(phoneInput);
+    return () => {
+      debouncedSetPhoneFilter.cancel();
+    };
+  }, [phoneInput, debouncedSetPhoneFilter]);
 
   const { data: terminalsData, isLoading: isLoadingTerminals } = useQuery({
     queryKey: ["terminals_cached"],
@@ -244,7 +280,8 @@ export default function UsersList() {
       pageIndex: 0
     }));
   }, [
-    searchQuery, 
+    searchQuery,
+    phoneFilter,
     selectedTerminalId, 
     selectedWorkScheduleId, 
     selectedStatus, 
@@ -275,7 +312,8 @@ export default function UsersList() {
   const { data: usersData = { total: 0, data: [] }, isLoading } = useQuery({
     queryKey: [
       "users", 
-      searchQuery, 
+      searchQuery,
+      phoneFilter,
       selectedTerminalId, 
       selectedWorkScheduleId, 
       selectedStatus, 
@@ -290,26 +328,12 @@ export default function UsersList() {
       try {
         const filters = [];
 
-        // Add search filter for name or phone
-        if (searchQuery) {
+        // Add phone filter
+        if (phoneFilter) {
           filters.push({
-            or: [
-              {
-                field: "first_name",
-                operator: "contains",
-                value: searchQuery,
-              },
-              {
-                field: "last_name",
-                operator: "contains",
-                value: searchQuery,
-              },
-              {
-                field: "phone",
-                operator: "contains",
-                value: searchQuery,
-              }
-            ]
+            field: "phone",
+            operator: "contains",
+            value: phoneFilter,
           });
         }
 
@@ -455,6 +479,14 @@ export default function UsersList() {
             </Link>
           </Button>
           </CardTitle>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 w-full mb-4">
+            <Input
+              placeholder="Фильтр по номеру телефона..."
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              className="w-full"
+            />
+          </div>
           <Form {...form}>
             <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-8 gap-4 flex-1 w-full">
               <FormField
