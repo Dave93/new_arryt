@@ -610,7 +610,7 @@ export default function OrdersGarantReportPage() {
                             ));
                           }
                           
-                          const cells: JSX.Element[] = [];
+                          const cells: React.ReactNode[] = [];
                           orgData.children.forEach((child, i) => {
                             if (i < 5) {
                               cells.push(
@@ -682,7 +682,7 @@ export default function OrdersGarantReportPage() {
                                 ));
                               }
                               
-                              const cells: JSX.Element[] = [];
+                              const cells: React.ReactNode[] = [];
                               orgData.children.forEach((child, i) => {
                                 if (i < 5) {
                                   cells.push(
