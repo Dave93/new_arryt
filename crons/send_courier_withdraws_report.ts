@@ -1,6 +1,6 @@
-import { scheduled_reports, users, scheduled_reports_subscription } from "@api/drizzle/schema";
+import { scheduled_reports, users, scheduled_reports_subscription, courier_terminal_balance, terminals } from "@api/drizzle/schema";
 import { db, pool } from "@api/src/lib/db";
-import { and, eq, inArray, isNotNull, sql } from "@api/node_modules/drizzle-orm";
+import { and, eq, inArray, isNotNull, sql, gt } from "@api/node_modules/drizzle-orm";
 import { isTimeMatches } from "./istimematch";
 import dayjs from "dayjs";
 import cron from 'node-cron'
@@ -65,23 +65,6 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
         : `AND 1=1`;
     const workStartTime = new Date(await cacheControl.getSetting('work_start_time')).getHours();
     const workEndTime = new Date(await cacheControl.getSetting('work_end_time')).getHours();
-    console.log('onlyThisTerminals', onlyThisTerminals);
-    console.log('workStartTime', workStartTime);
-    console.log('workEndTime', workEndTime);
-    console.log('terminalCondition', `AND ot.terminal_id IN ('${onlyThisTerminals.join("','")}')`);
-    console.log('sql', `select 
-            sum(ot.amount) as total,
-            ot.courier_id,
-            concat(u.last_name, ' ', u.first_name) as courier_name,
-            ot.terminal_id,
-            t.name as terminal_name
-        from order_transactions ot
-        left join users u on ot.courier_id = u.id
-        left join terminals t on ot.terminal_id = t.id
-        where ot.created_at >= '${dayjs().subtract(1, 'day').hour(workStartTime).toISOString()}' and ot.created_at <= '${dayjs().hour(workEndTime).toISOString()}'
-        ${terminalCondition}
-        group by ot.courier_id, u.last_name, u.first_name, ot.terminal_id, t.name`)
-    console.log('report query')
     const orderTransactions = (await db.execute<{
         total: number;
         courier_id: string;
@@ -108,12 +91,47 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
         { header: 'Филиал', key: 'terminal_name', width: 30 },
         { header: 'Курьер', key: 'courier_name', width: 30 },
         { header: 'Сумма', key: 'total', width: 30 },
+        { header: 'Остаток в кошельке', key: 'balance', width: 30 },
     ];
 
     console.log('orderTransactions', orderTransactions);
     const result = sortBy(orderTransactions, 'terminal_name');
 
+    let courierIds: string[] = [];
     result.forEach((item) => {
+        courierIds.push(item.courier_id);
+    });
+
+    const courierTerminalBalance = await db
+      .select({
+        id: courier_terminal_balance.id,
+        balance: courier_terminal_balance.balance,
+        terminal_id: courier_terminal_balance.terminal_id,
+        terminal_name: terminals.name,
+        terminal_address: terminals.address,
+        courier_last_name: users.last_name,
+        courier_first_name: users.first_name,
+      })
+      .from(courier_terminal_balance)
+      .leftJoin(terminals, eq(courier_terminal_balance.terminal_id, terminals.id))
+      .leftJoin(users, eq(courier_terminal_balance.courier_id, users.id))
+      .where(
+        and(
+            inArray(courier_terminal_balance.courier_id, courierIds),
+            gt(courier_terminal_balance.balance, 0)
+        )
+      );
+
+    let courierTerminalBalanceMap: Map<string, number> = new Map();
+
+    courierTerminalBalance.forEach((item) => {
+        let key = `${item.courier_last_name} ${item.courier_first_name} ${item.terminal_name}`;
+        courierTerminalBalanceMap.set(key, item.balance);
+    });
+
+    result.forEach((item) => {
+        let key = `${item.courier_name} ${item.terminal_name}`;
+        let balance = courierTerminalBalanceMap.get(key) || 0;
         worksheet.addRow({
             terminal_name: item.terminal_name || '',
             courier_name: item.courier_name || '',
@@ -122,7 +140,13 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
                 currency: 'UZS',
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0,
-            }).format(item.total).replace('UZS', '').trim() || 0
+            }).format(item.total).replace('UZS', '').trim() || 0,
+            balance: Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'UZS',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(balance).replace('UZS', '').trim() || 0
         });
     });
 
