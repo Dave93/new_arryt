@@ -713,7 +713,7 @@ export const externalControler = new Elysia({
             source_type: t.Optional(t.String()),
         })
     })
-    .get('/api/track/:id', async ({ params: { id }, set, request: { headers }, cacheControl, drizzle }) => {
+    .get('/api/external/track/:id', async ({ params: { id }, set, request: { headers }, cacheControl, drizzle, query: { createdAt } }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
@@ -737,6 +737,7 @@ export const externalControler = new Elysia({
             phone: users.phone,
         }).from(orders).where(and(
             eq(orders.id, id),
+            createdAt ? gte(orders.created_at, createdAt) : undefined,
         ))
             .leftJoin(users, eq(orders.courier_id, users.id))
             .limit(1).execute();
@@ -786,7 +787,10 @@ export const externalControler = new Elysia({
         }).from(order_locations).where(and(
             eq(order_locations.order_id, id),
             eq(order_locations.order_created_at, currentOrder.created_at),
-        )).orderBy(desc(order_locations.created_at)).execute();
+        ))
+        .orderBy(desc(order_locations.created_at))
+        .limit(1)
+        .execute();
 
         if (!locations.length) {
             return {
@@ -822,7 +826,10 @@ export const externalControler = new Elysia({
     }, {
         params: t.Object({
             id: t.String(),
-        })
+        }),
+        query: t.Object({
+            createdAt: t.Optional(t.String()),
+        }),
     })
     .get('/api/external/cooked_time/:id', async ({ params: { id }, set, cacheControl, request: { headers }, drizzle, query: { date, picked_up_time }, queues: {
         processSendNotificationQueue
