@@ -818,8 +818,8 @@ export const externalControler = new Elysia({
                 };
             }
 
-            res.from_location = currentOrder.from_location;
-            res.to_location = currentOrder.to_location;
+            res.from_location = currentOrder.from_location?.toString().replace('.', ',');
+            res.to_location = currentOrder.to_location?.toString().replace('.', ',');
 
             return res;
         }
