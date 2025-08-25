@@ -730,8 +730,10 @@ export const externalControler = new Elysia({
             created_at: orders.created_at,
             order_status_id: orders.order_status_id,
             order_number: orders.order_number,
-            from_location: orders.from_lat,
-            to_location: orders.from_lon,
+            from_location_lat: orders.from_lat,
+            from_location_lon: orders.from_lon,
+            to_location_lat: orders.to_lat,
+            to_location_lon: orders.to_lon,
             last_name: users.last_name,
             first_name: users.first_name,
             phone: users.phone,
@@ -818,8 +820,14 @@ export const externalControler = new Elysia({
                 };
             }
 
-            res.from_location = currentOrder.from_location?.toString().replace('.', ',');
-            res.to_location = currentOrder.to_location?.toString().replace('.', ',');
+            res.from_location = {
+                lat: currentOrder.from_location_lat,
+                lon: currentOrder.from_location_lon,
+            };
+            res.to_location = {
+                lat: currentOrder.to_location_lat,
+                lon: currentOrder.to_location_lon,
+            };
 
             return res;
         }
