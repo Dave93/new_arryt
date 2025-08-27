@@ -766,6 +766,7 @@ export const externalControler = new Elysia({
             last_name: users.last_name,
             first_name: users.first_name,
             phone: users.phone,
+            drive_type: users.drive_type
         }).from(orders).where(and(
             eq(orders.id, orderData.order_id),
             gte(orders.created_at, orderData.created_at),
@@ -849,6 +850,7 @@ export const externalControler = new Elysia({
                     last_name: currentOrder.last_name,
                     first_name: currentOrder.first_name,
                     phone: currentOrder.phone,
+                    drive_type: currentOrder.drive_type,
                 };
             }
 
