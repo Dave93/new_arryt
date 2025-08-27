@@ -283,12 +283,16 @@ export const OrdersController = new Elysia({
                 lte(orders.created_at, dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')),
             ))
             .orderBy(asc(orders.created_at)).execute();
-        return await prepareOrdersNextButton(ordersList.map((order) => {
+        let result =  await prepareOrdersNextButton(ordersList.map((order) => {
             if (order.orders_organization && order.orders_organization.icon_url) {
                 order.orders_organization.icon_url = order.orders_organization.icon_url.replace('model_uploads', 'public/model_uploads');
             }
             return order;
-        }), cacheControl);
+        }), cacheControl) as (typeof ordersList[0] & {
+            next_buttons: InferSelectModel<typeof order_status>[];
+        })[] | [];
+
+        return result;
     }, {
         permission: 'orders.list',
     })
@@ -887,6 +891,7 @@ export const OrdersController = new Elysia({
                 house: orders.house,
                 entrance: orders.entrance,
                 flat: orders.flat,
+                order_status_id: orders.order_status_id,
             })
             .from(orders)
             .leftJoin(organization, eq(orders.organization_id, organization.id))
@@ -913,7 +918,9 @@ export const OrdersController = new Elysia({
                 order.orders_organization.icon_url = order.orders_organization.icon_url.replace('model_uploads', 'public/model_uploads');
             }
             return order;
-        }), cacheControl);
+        }), cacheControl) as (typeof ordersList[0] & {
+            next_buttons: InferSelectModel<typeof order_status>[];
+        })[] | [];
 
         if (currentStatus?.finish) {
 
