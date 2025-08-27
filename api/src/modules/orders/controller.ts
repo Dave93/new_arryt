@@ -2547,7 +2547,35 @@ export const OrdersController = new Elysia({
         processOrderChangeStatusQueue,
         processOrderEcommerceWebhookQueue
     } }) => {
-        const order = await drizzle
+        let order = await drizzle
+            .select({
+                id: orders.id,
+                order_status_id: orders.order_status_id,
+            })
+            .from(orders)
+            .leftJoin(organization, eq(orders.organization_id, organization.id))
+            .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+            .leftJoin(customers, eq(orders.customer_id, customers.id))
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+            .where(and(
+                eq(orders.id, id),
+                gte(orders.created_at, dayjs(created_at).subtract(2, 'hours').format("YYYY-MM-DD HH:mm:ss")),
+                lte(orders.created_at, dayjs(created_at).add(2, 'hours').format("YYYY-MM-DD HH:mm:ss"))
+            ))
+            .execute();
+
+        const result = await drizzle
+            .update(orders)
+            .set({
+                order_status_id: status_id
+            })
+            .where(eq(orders.id, id))
+            .returning({
+                id: orders.id,
+                order_status_id: orders.order_status_id
+            });
+
+        order = await drizzle
             .select({
                 id: orders.id,
                 order_number: orders.order_number,
@@ -2609,18 +2637,6 @@ export const OrdersController = new Elysia({
                 lte(orders.created_at, dayjs(created_at).add(2, 'hours').format("YYYY-MM-DD HH:mm:ss"))
             ))
             .execute();
-
-        const result = await drizzle
-            .update(orders)
-            .set({
-                order_status_id: status_id
-            })
-            .where(eq(orders.id, id))
-            .returning({
-                id: orders.id,
-                order_status_id: orders.order_status_id
-            });
-
         await processOrderChangeStatusQueue.add(order[0].id, {
             order_id: id,
             before_status_id: order[0].order_status_id,
