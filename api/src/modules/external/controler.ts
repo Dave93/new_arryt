@@ -713,7 +713,7 @@ export const externalControler = new Elysia({
             source_type: t.Optional(t.String()),
         })
     })
-    .get('/api/external/track/:id', async ({ params: { id }, set, request: { headers }, cacheControl, drizzle, query: { createdAt } }) => {
+    .get('/api/external/track/:id', async ({ params: { id }, set, request: { headers }, cacheControl, drizzle, redis }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
@@ -722,6 +722,35 @@ export const externalControler = new Elysia({
             set.status = 403;
 
             return { error: `Forbidden` };
+        }
+
+        let orderData: {
+            order_id: string;
+            created_at: string;
+        } | null = null;
+
+        try {
+            let lesTrackOrder = await redis.get(`les_track_order_${id}`);
+            if (lesTrackOrder) {
+                orderData = JSON.parse(lesTrackOrder);
+            }
+        } catch (e) {
+        }
+
+        try {
+            let choparTrackOrder = await redis.get(`chopar_track_order_${id}`);
+            if (choparTrackOrder) {
+                orderData = JSON.parse(choparTrackOrder);
+            }
+        } catch (e) {
+        }
+
+        if (!orderData) {
+            return {
+                success: false,
+                error_code: 'ORDER_NOT_FOUND',
+                message: 'Order not found',
+            };
         }
 
         const order = await drizzle.select({
@@ -738,8 +767,8 @@ export const externalControler = new Elysia({
             first_name: users.first_name,
             phone: users.phone,
         }).from(orders).where(and(
-            eq(orders.id, id),
-            createdAt ? gte(orders.created_at, createdAt) : undefined,
+            eq(orders.id, orderData.order_id),
+            gte(orders.created_at, orderData.created_at),
         ))
             .leftJoin(users, eq(orders.courier_id, users.id))
             .limit(1).execute();
@@ -748,9 +777,11 @@ export const externalControler = new Elysia({
         const currentOrder = order[0];
 
         if (!currentOrder) {
-            set.status = 404;
-
-            return { error: `Order not found` };
+            return {
+                success: false,
+                error_code: 'ORDER_NOT_FOUND',
+                message: 'Order not found',
+            };
         }
 
 
@@ -776,7 +807,8 @@ export const externalControler = new Elysia({
         if (!currentOrderStatus.need_location) {
             return {
                 success: false,
-                message: 'location_not_allowed_for_status',
+                error_code: 'LOCATION_NOT_ALLOWED_FOR_STATUS',
+                message: 'Location not allowed for status',
             };
         }
 
@@ -787,7 +819,7 @@ export const externalControler = new Elysia({
             lon: order_locations.lon,
             order_created_at: order_locations.order_created_at,
         }).from(order_locations).where(and(
-            eq(order_locations.order_id, id),
+            eq(order_locations.order_id, orderData.order_id),
             eq(order_locations.order_created_at, currentOrder.created_at),
         ))
         .orderBy(desc(order_locations.created_at))
@@ -834,10 +866,7 @@ export const externalControler = new Elysia({
     }, {
         params: t.Object({
             id: t.String(),
-        }),
-        query: t.Object({
-            createdAt: t.Optional(t.String()),
-        }),
+        })
     })
     .get('/api/external/cooked_time/:id', async ({ params: { id }, set, cacheControl, request: { headers }, drizzle, query: { date, picked_up_time }, queues: {
         processSendNotificationQueue
