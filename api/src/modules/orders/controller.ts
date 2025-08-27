@@ -2544,11 +2544,58 @@ export const OrdersController = new Elysia({
         }),
     })
     .post('/api/orders/:id/set_status', async ({ params: { id }, body: { status_id, created_at }, drizzle, set, user, queues: {
-        processOrderChangeStatusQueue
+        processOrderChangeStatusQueue,
+        processOrderEcommerceWebhookQueue
     } }) => {
         const order = await drizzle
             .select({
                 id: orders.id,
+                order_number: orders.order_number,
+                organization_id: orders.organization_id,
+                terminal_id: orders.terminal_id,
+                delivery_pricing_id: orders.delivery_pricing_id,
+                orders_organization: {
+                    id: organization.id,
+                    name: organization.name,
+                    icon_url: organization.icon_url,
+                    active: organization.active,
+                    external_id: organization.external_id,
+                    support_chat_url: organization.support_chat_url,
+                },
+                orders_customers: {
+                    id: customers.id,
+                    name: customers.name,
+                    phone: customers.phone,
+                },
+                orders_order_status: {
+                    id: order_status.id,
+                    name: order_status.name,
+                    finish: order_status.finish,
+                    cancel: order_status.cancel,
+                    on_way: order_status.on_way,
+                    in_terminal: order_status.in_terminal,
+                },
+                orders_terminals: {
+                    id: terminals.id,
+                    name: terminals.name,
+                },
+                created_at: orders.created_at,
+                to_lat: orders.to_lat,
+                to_lon: orders.to_lon,
+                from_lat: orders.from_lat,
+                from_lon: orders.from_lon,
+                pre_distance: orders.pre_distance,
+                delivery_comment: orders.delivery_comment,
+                delivery_address: orders.delivery_address,
+                delivery_price: orders.delivery_price,
+                order_price: orders.order_price,
+                courier_id: orders.courier_id,
+                payment_type: orders.payment_type,
+                customer_delivery_price: orders.customer_delivery_price,
+                additional_phone: orders.additional_phone,
+                house: orders.house,
+                entrance: orders.entrance,
+                flat: orders.flat,
                 order_status_id: orders.order_status_id,
             })
             .from(orders)
@@ -2577,6 +2624,10 @@ export const OrdersController = new Elysia({
             // @ts-ignore
             user_id: user.user.id,
         }, {
+            attempts: 3, removeOnComplete: true
+        });
+
+        await processOrderEcommerceWebhookQueue.add(result[0].id, result[0], {
             attempts: 3, removeOnComplete: true
         });
 
