@@ -18,6 +18,7 @@ import processPushCourierToQueue from "./processors/push_courier_to_queue";
 import processSetQueueLastCourier from "./processors/set_queue_last_courier";
 import processTryAssignCourier from "./processors/try_assign_courier";
 import { processTrySetDailyGarant } from "./processors/try_set_daily_garant";
+import processEcommerceWebhook from "./processors/ecommerce_webhook";
 
 export const redisClient = new Redis({
     maxRetriesPerRequest: null,
@@ -120,6 +121,7 @@ const orderEcommerceWebhookWorker = new Worker(
     `${process.env.TASKS_PREFIX}_order_ecommerce_webhook`,
     async (job) => {
         // console.log('order_ecommerce_webhook', job.data);
+        await processEcommerceWebhook(redisClient, db, cacheControl, job.data);
         return 'order_ecommerce_webhook';
     },
     {
