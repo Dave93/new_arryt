@@ -2631,7 +2631,7 @@ export const OrdersController = new Elysia({
             attempts: 3, removeOnComplete: true
         });
 
-        await processOrderEcommerceWebhookQueue.add(result[0].id, result[0], {
+        await processOrderEcommerceWebhookQueue.add(order[0].id, order[0], {
             attempts: 3, removeOnComplete: true
         });
 
