@@ -2599,6 +2599,10 @@ export const OrdersController = new Elysia({
                 order_status_id: orders.order_status_id,
             })
             .from(orders)
+            .leftJoin(organization, eq(orders.organization_id, organization.id))
+            .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+            .leftJoin(customers, eq(orders.customer_id, customers.id))
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
             .where(and(
                 eq(orders.id, id),
                 gte(orders.created_at, dayjs(created_at).subtract(2, 'hours').format("YYYY-MM-DD HH:mm:ss")),
