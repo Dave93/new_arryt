@@ -67,31 +67,31 @@ export default async function processChangeStatus(redis: Redis, db: DB, cacheCon
             eq(orders.id, data.order_id)
         ).execute();
 
-        if (afterStatus?.finish) {
+        // if (afterStatus?.finish) {
 
-            const ordersListPrepare = await db
-                .select()
-                .from(orders)
-                .where(and(
-                    eq(orders.id, sql.placeholder('order_id')),
-                    gte(orders.created_at, sql.placeholder('startDate')),
-                    lte(orders.created_at, sql.placeholder('endDate')),
-                ))
-                .limit(1)
-                .orderBy(asc(orders.created_at))
-                .prepare('queue_find_order')
+        //     const ordersListPrepare = await db
+        //         .select()
+        //         .from(orders)
+        //         .where(and(
+        //             eq(orders.id, sql.placeholder('order_id')),
+        //             gte(orders.created_at, sql.placeholder('startDate')),
+        //             lte(orders.created_at, sql.placeholder('endDate')),
+        //         ))
+        //         .limit(1)
+        //         .orderBy(asc(orders.created_at))
+        //         .prepare('queue_find_order')
 
-            const ordersList = await ordersListPrepare
-                .execute({
-                    order_id: data.order_id,
-                    startDate: dayjs().subtract(4, 'days').format('YYYY-MM-DD HH:mm:ss'),
-                    endDate: dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')
-                });
+        //     const ordersList = await ordersListPrepare
+        //         .execute({
+        //             order_id: data.order_id,
+        //             startDate: dayjs().subtract(4, 'days').format('YYYY-MM-DD HH:mm:ss'),
+        //             endDate: dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')
+        //         });
 
-            await processOrderCompleteQueue.add(ordersList[0].id, ordersList[0], {
-                attempts: 3, removeOnComplete: true
-            });
-        }
+        //     await processOrderCompleteQueue.add(ordersList[0].id, ordersList[0], {
+        //         attempts: 3, removeOnComplete: true
+        //     });
+        // }
     }
 
 }

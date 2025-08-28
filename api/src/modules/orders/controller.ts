@@ -2543,9 +2543,10 @@ export const OrdersController = new Elysia({
             id: t.String(),
         }),
     })
-    .post('/api/orders/:id/set_status', async ({ params: { id }, body: { status_id, created_at }, drizzle, set, user, queues: {
+    .post('/api/orders/:id/set_status', async ({ params: { id }, body: { status_id, created_at }, drizzle, cacheControl, user, queues: {
         processOrderChangeStatusQueue,
-        processOrderEcommerceWebhookQueue
+        processOrderEcommerceWebhookQueue,
+        processOrderCompleteQueue
     } }) => {
         let order = await drizzle
             .select({
@@ -2637,6 +2638,9 @@ export const OrdersController = new Elysia({
                 lte(orders.created_at, dayjs(created_at).add(2, 'hours').format("YYYY-MM-DD HH:mm:ss"))
             ))
             .execute();
+
+        const ordersStatuses = await cacheControl.getOrderStatuses();
+        const currentStatus = ordersStatuses.find((orderStatus) => orderStatus.id === status_id);
         await processOrderChangeStatusQueue.add(order[0].id, {
             order_id: id,
             before_status_id: order[0].order_status_id,
@@ -2650,6 +2654,13 @@ export const OrdersController = new Elysia({
         await processOrderEcommerceWebhookQueue.add(order[0].id, order[0], {
             attempts: 3, removeOnComplete: true
         });
+
+        if (currentStatus?.finish) {
+
+            await processOrderCompleteQueue.add(result[0].id, result[0], {
+                attempts: 3, removeOnComplete: true
+            });
+        }
 
         return {
             data: result[0],
