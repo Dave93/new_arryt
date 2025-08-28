@@ -56,8 +56,8 @@ type ecommerceWebhookData = {
 }
 
 export default async function processEcommerceWebhook(redis: Redis, db: DB, cacheControl: CacheControlService, data: ecommerceWebhookData) {
-    console.log('working on ecommerce webhook');
-    console.log(data);
+    // console.log('working on ecommerce webhook');
+    // console.log(data);
     if (!data.courier_id) {
         return;
     }
@@ -95,16 +95,16 @@ export default async function processEcommerceWebhook(redis: Redis, db: DB, cach
         return;
     }
 
-    console.log('webhook sending data', JSON.stringify({
-        order: {
-            id: data.id,
-        },
-        log: {
-            action: currentOrderStatus.code,
-            text: currentOrderStatus.status_change_text,
-        },
-        courier: courier[0],
-    }))
+    // console.log('webhook sending data', JSON.stringify({
+    //     order: {
+    //         id: data.id,
+    //     },
+    //     log: {
+    //         action: currentOrderStatus.code,
+    //         text: currentOrderStatus.status_change_text,
+    //     },
+    //     courier: courier[0],
+    // }))
 
     const response = await fetch(`${organization.webhook}`, {
         method: 'POST',
@@ -125,5 +125,5 @@ export default async function processEcommerceWebhook(redis: Redis, db: DB, cach
     });
 
     let responseData = await response.text();
-    console.log('webhook response', responseData);
+    // console.log('webhook response', responseData);
 }

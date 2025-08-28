@@ -45,7 +45,7 @@ export const processOrderCompleteQueue = new Queue(
 const newOrderNotify = new Worker(
     `${process.env.TASKS_PREFIX}_new_order_notify`,
     async (job) => {
-        console.log('new_order_notify', job.data);
+        // console.log('new_order_notify', job.data);
         await processNewOrderNotify(redisClient, db, cacheControl, job.data);
         return 'new_order_notify';
     },

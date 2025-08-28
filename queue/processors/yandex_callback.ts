@@ -74,7 +74,7 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
                 },
             });
             yandexResponse = await yandexFetch.json();
-            console.log('yandexResponse', yandexResponse);
+            // console.log('yandexResponse', yandexResponse);
         } catch (error) {
             console.log('yandexResponseError', error);
             return {
