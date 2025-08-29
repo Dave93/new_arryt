@@ -2657,7 +2657,7 @@ export const OrdersController = new Elysia({
 
         if (currentStatus?.finish) {
 
-            await processOrderCompleteQueue.add(result[0].id, result[0], {
+            await processOrderCompleteQueue.add(order[0].id, order[0], {
                 attempts: 3, removeOnComplete: true
             });
         }
