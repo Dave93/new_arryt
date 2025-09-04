@@ -826,13 +826,29 @@ export const externalControler = new Elysia({
         .orderBy(desc(order_locations.created_at))
         .limit(1)
         .execute();
-
-        if (!locations.length) {
-            return {
-                success: true,
-                data: [],
+        const res: any = {
+            success: true,
+            data: [],
+        };
+        if (currentOrder.last_name) {
+            res.courier = {
+                last_name: currentOrder.last_name,
+                first_name: currentOrder.first_name,
+                phone: currentOrder.phone,
+                drive_type: currentOrder.drive_type,
             };
-        } else {
+        }
+
+        res.from_location = {
+            lat: currentOrder.from_location_lat,
+            lon: currentOrder.from_location_lon,
+        };
+        res.to_location = {
+            lat: currentOrder.to_location_lat,
+            lon: currentOrder.to_location_lon,
+        };
+
+        if (locations.length) {
             let data = locations.map((l) => {
                 return {
                     latitude: l.lat,
@@ -840,31 +856,10 @@ export const externalControler = new Elysia({
                     created_at: l.created_at,
                 };
             });
-            const res: any = {
-                success: true,
-                data: data,
-            };
-
-            if (currentOrder.last_name) {
-                res.courier = {
-                    last_name: currentOrder.last_name,
-                    first_name: currentOrder.first_name,
-                    phone: currentOrder.phone,
-                    drive_type: currentOrder.drive_type,
-                };
-            }
-
-            res.from_location = {
-                lat: currentOrder.from_location_lat,
-                lon: currentOrder.from_location_lon,
-            };
-            res.to_location = {
-                lat: currentOrder.to_location_lat,
-                lon: currentOrder.to_location_lon,
-            };
-
-            return res;
+            res.data = data;
         }
+
+        return res;
     }, {
         params: t.Object({
             id: t.String(),
