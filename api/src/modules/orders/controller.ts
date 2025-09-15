@@ -1878,7 +1878,7 @@ export const OrdersController = new Elysia({
                              order by courier;`,
         )
       ).rows;
-      console.log("query", query);
+      console.log("query", JSON.stringify(query, null, 2));
       let bonusQuery = (
         await drizzle.execute<{
           total_amount: number;
