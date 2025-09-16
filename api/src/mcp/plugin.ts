@@ -4,7 +4,6 @@ import type { McpServer } from 'elysia-mcp';
 import { registerTerminalOperationsTool } from './tools/terminal-operations.js';
 
 export const mcpPlugin = mcp({
-  basePath: '/sse',
   serverInfo: {
     name: 'arryt-mcp-server',
     version: '1.0.0'

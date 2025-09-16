@@ -1,35 +1,22 @@
 # Подключение MCP сервера Arryt к Claude
 
-## Настройка MCP сервера в Claude Code
+## Настройка MCP сервера в Claude Desktop
 
-### 1. Конфигурация клиента
-
-В конфигурационном файле Claude Code добавьте MCP сервер:
+### 1. Найдите конфигурационный файл Claude Desktop
 
 **Для macOS:**
-Отредактируйте файл `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-**Для Windows:**
-Отредактируйте файл `%APPDATA%/Claude/claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "arryt-mcp-server": {
-      "command": "node",
-      "args": [
-        "-e",
-        "const { createMcpClient } = require('@modelcontextprotocol/sdk/client/sse'); const client = new createMcpClient('http://localhost:3000/sse'); client.connect();"
-      ],
-      "env": {
-        "ARRYT_API_URL": "http://localhost:3000"
-      }
-    }
-  }
-}
+```bash
+~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-### 2. Альтернативный способ - через HTTP клиент
+**Для Windows:**
+```bash
+%APPDATA%/Claude/claude_desktop_config.json
+```
+
+### 2. Создайте или отредактируйте конфигурационный файл
+
+Добавьте следующую конфигурацию в файл `claude_desktop_config.json`:
 
 ```json
 {
@@ -37,15 +24,54 @@
     "arryt": {
       "command": "npx",
       "args": [
-        "@modelcontextprotocol/server-http-client",
-        "http://localhost:3000/sse"
+        "-y",
+        "@modelcontextprotocol/server-fetch",
+        "http://api.arryt.uz/mcp"
       ]
     }
   }
 }
 ```
 
-### 3. Настройка через собственный скрипт
+### 3. Альтернативный вариант для локальной разработки
+
+Если вы работаете с локальным сервером:
+
+```json
+{
+  "mcpServers": {
+    "arryt-local": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-fetch",
+        "http://localhost:3000/mcp"
+      ]
+    }
+  }
+}
+```
+
+### 4. Пошаговая инструкция по настройке
+
+1. **Откройте терминал/командную строку**
+
+2. **Найдите файл конфигурации:**
+   ```bash
+   # macOS
+   open ~/Library/Application\ Support/Claude/
+
+   # Windows
+   explorer %APPDATA%\Claude\
+   ```
+
+3. **Создайте файл `claude_desktop_config.json`** если его нет, или отредактируйте существующий
+
+4. **Добавьте конфигурацию MCP сервера** (выберите один из вариантов выше)
+
+5. **Сохраните файл и перезапустите Claude Desktop**
+
+### 5. Альтернативный способ - через собственный скрипт
 
 Создайте файл `mcp-client.js`:
 
@@ -90,9 +116,17 @@ main().catch(console.error);
 }
 ```
 
-## Использование в Claude
+## Проверка подключения
 
-После настройки в Claude будут доступны следующие инструменты:
+После перезапуска Claude Desktop:
+
+1. **Откройте новый чат в Claude Desktop**
+2. **Проверьте доступность инструментов** - напишите что-то вроде: "Какие инструменты у тебя есть для работы с Arryt?"
+3. **Если всё настроено правильно**, Claude ответит что у него есть доступ к `arryt_terminal_operations`
+
+## Использование в Claude Desktop
+
+После успешной настройки в Claude Desktop будут доступны следующие инструменты:
 
 ### arryt_terminal_operations
 
@@ -136,13 +170,12 @@ bun run dev
 
 2. Проверьте доступность MCP эндпоинта:
 ```bash
-curl http://localhost:3000/sse
+curl http://localhost:3000/mcp
+# или для продакшена:
+curl http://api.arryt.uz/mcp
 ```
 
-3. В Claude Code выполните команду для проверки MCP серверов:
-```
-/mcp list-servers
-```
+3. **В Claude Desktop** можете спросить: "Какие MCP серверы у тебя подключены?" или "Покажи доступные инструменты"
 
 ## Отладка
 
@@ -157,6 +190,12 @@ curl http://localhost:3000/sse
 4. **Проверьте конфиг Claude** - убедитесь что JSON валидный и пути правильные
 
 5. **Перезапустите Claude Code** после изменения конфигурации
+
+## Важные заметки
+
+- Эндпоинт изменился с `/sse` на `/mcp` (стандартный для elysia-mcp)
+- Сессии управляются автоматически через заголовок `Mcp-Session-Id`
+- В продакшене используйте `http://api.arryt.uz/mcp` вместо localhost
 
 ## Примеры запросов через Claude
 
