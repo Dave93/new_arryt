@@ -2,7 +2,6 @@ import { cors } from "@elysiajs/cors";
 import Elysia from "elysia";
 import apiController from "./modules/controllers";
 import staticPlugin from "@elysiajs/static";
-import { mcpPlugin } from "./mcp/plugin.js";
 
 const app = new Elysia()
     .use(
@@ -29,7 +28,6 @@ const app = new Elysia()
     // }))
     // .use(serverTiming())
     .use(apiController)
-    .use(mcpPlugin)
     // .use(OrdersController)
     .get("/check_service", () => ({
         result: "ok",

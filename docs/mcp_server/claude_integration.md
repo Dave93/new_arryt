@@ -1,23 +1,77 @@
-# Подключение MCP сервера Arryt к Claude
+# Подключение MCP сервера Arryt к Claude Desktop
 
-## Настройка MCP сервера в Claude Desktop
+Мы разработали отдельный MCP сервер с поддержкой stdio протокола для интеграции с Claude Desktop.
+
+## Что реализовано
+
+- **Отдельное MCP приложение** в папке `/mcp_server/`
+- **HTTP транспорт** - Streamable HTTP с поддержкой SSE
+- **Прямое подключение к БД** - использует ту же базу данных что и основное API
+- **TypeScript + Zod** для типобезопасности
+- **Инструмент `arryt_terminal_operations`** для управления терминалами
+
+## Архитектура
+
+```
+Claude Desktop → MCP Server (HTTP:3001) → PostgreSQL Database
+```
+
+MCP сервер работает как HTTP сервис на порту 3001 и подключается напрямую к базе данных PostgreSQL.
+
+## Установка и настройка
 
 ### 1. Найдите конфигурационный файл Claude Desktop
 
-**Для macOS:**
+**macOS:**
 ```bash
 ~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-**Для Windows:**
+**Windows:**
 ```bash
 %APPDATA%/Claude/claude_desktop_config.json
 ```
 
-### 2. Создайте или отредактируйте конфигурационный файл
+### 2. Подготовьте MCP сервер
 
-Добавьте следующую конфигурацию в файл `claude_desktop_config.json`:
+Перейдите в папку MCP сервера и установите зависимости:
 
+```bash
+cd mcp_server
+bun install
+bun run build
+```
+
+Создайте `.env` файл:
+```bash
+cp .env.example .env
+```
+
+Отредактируйте `.env` (используйте тот же DATABASE_URL что и в основном API):
+```bash
+# For local development
+DATABASE_URL=postgresql://username:password@localhost:5432/arryt_db
+PORT=3001
+
+# For production
+DATABASE_URL=postgresql://username:password@production-host:5432/arryt_db
+PORT=3001
+```
+
+### 3. Запустите MCP сервер
+
+```bash
+cd mcp_server
+bun run dev
+# или для продакшена:
+bun run build && bun run start
+```
+
+Сервер будет доступен на `http://localhost:3001/mcp`
+
+### 4. Добавьте конфигурацию в Claude Desktop
+
+**Для локальной разработки:**
 ```json
 {
   "mcpServers": {
@@ -25,186 +79,112 @@
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-fetch",
-        "http://api.arryt.uz/mcp"
+        "mcp-remote",
+        "http://localhost:3001/mcp"
       ]
     }
   }
 }
 ```
 
-### 3. Альтернативный вариант для локальной разработки
+### 5. Перезапустите Claude Desktop
 
-Если вы работаете с локальным сервером:
-
-```json
-{
-  "mcpServers": {
-    "arryt-local": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-fetch",
-        "http://localhost:3000/mcp"
-      ]
-    }
-  }
-}
-```
-
-### 4. Пошаговая инструкция по настройке
-
-1. **Откройте терминал/командную строку**
-
-2. **Найдите файл конфигурации:**
-   ```bash
-   # macOS
-   open ~/Library/Application\ Support/Claude/
-
-   # Windows
-   explorer %APPDATA%\Claude\
-   ```
-
-3. **Создайте файл `claude_desktop_config.json`** если его нет, или отредактируйте существующий
-
-4. **Добавьте конфигурацию MCP сервера** (выберите один из вариантов выше)
-
-5. **Сохраните файл и перезапустите Claude Desktop**
-
-### 5. Альтернативный способ - через собственный скрипт
-
-Создайте файл `mcp-client.js`:
-
-```javascript
-#!/usr/bin/env node
-
-const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
-const { SSEClientTransport } = require('@modelcontextprotocol/sdk/client/sse.js');
-
-async function main() {
-  const transport = new SSEClientTransport(
-    new URL('http://localhost:3000/sse')
-  );
-
-  const client = new Client(
-    {
-      name: 'arryt-client',
-      version: '1.0.0'
-    },
-    {
-      capabilities: {}
-    }
-  );
-
-  await client.connect(transport);
-  console.log('Connected to Arryt MCP server');
-}
-
-main().catch(console.error);
-```
-
-Затем в конфиге Claude:
-
-```json
-{
-  "mcpServers": {
-    "arryt": {
-      "command": "node",
-      "args": ["./path/to/mcp-client.js"]
-    }
-  }
-}
-```
+После изменения конфигурации **полностью закройте и перезапустите** Claude Desktop.
 
 ## Проверка подключения
 
-После перезапуска Claude Desktop:
+1. **Убедитесь что MCP сервер запущен:**
+   ```bash
+   cd mcp_server
+   bun run dev
+   ```
 
-1. **Откройте новый чат в Claude Desktop**
-2. **Проверьте доступность инструментов** - напишите что-то вроде: "Какие инструменты у тебя есть для работы с Arryt?"
-3. **Если всё настроено правильно**, Claude ответит что у него есть доступ к `arryt_terminal_operations`
+2. **Проверьте доступность эндпоинта:**
+   ```bash
+   curl -i http://localhost:3001/mcp
+   ```
 
-## Использование в Claude Desktop
+3. **Откройте новый чат в Claude Desktop**
 
-После успешной настройки в Claude Desktop будут доступны следующие инструменты:
+4. **Проверьте доступность инструментов** - напишите: "Какие инструменты у тебя есть для работы с Arryt?"
+
+5. **Если всё работает**, Claude ответит что у него есть доступ к `arryt_terminal_operations`
+
+## Доступные инструменты
 
 ### arryt_terminal_operations
 
-```
-Получить список всех активных терминалов:
-{
-  "action": "list",
-  "filters": {
-    "is_active": true
-  }
-}
+Управление терминалами (ресторанами) в системе Arryt.
 
-Получить детали конкретного терминала:
-{
-  "action": "get_details",
-  "terminal_id": "uuid-терминала"
-}
+**Поддерживаемые действия:**
 
-Изменить статус терминала:
-{
-  "action": "update_status",
-  "terminal_id": "uuid-терминала"
-}
+**Получить список терминалов:**
+- "Покажи все активные терминалы"
+- "Сколько терминалов в организации XYZ?"
 
-Получить статистику:
-{
-  "action": "get_statistics",
-  "filters": {
-    "organization_id": "uuid-организации"
-  }
-}
-```
+**Получить детали терминала:**
+- "Покажи детали терминала с ID abc-123"
+- "Какая информация о терминале на Чиланзаре?"
 
-## Проверка подключения
+**Изменить статус терминала:**
+- "Отключи терминал с ID xyz-789"
+- "Активируй терминал abc-123"
 
-1. Запустите сервер Arryt:
-```bash
-cd api
-bun run dev
-```
-
-2. Проверьте доступность MCP эндпоинта:
-```bash
-curl http://localhost:3000/mcp
-# или для продакшена:
-curl http://api.arryt.uz/mcp
-```
-
-3. **В Claude Desktop** можете спросить: "Какие MCP серверы у тебя подключены?" или "Покажи доступные инструменты"
+**Получить статистику:**
+- "Покажи статистику всех терминалов"
+- "Какая статистика у терминала abc-123?"
 
 ## Отладка
 
-Если подключение не работает:
+### Если подключение не работает:
 
-1. **Проверьте логи сервера** - в консоли должно появиться сообщение: "✅ Arryt MCP tools registered successfully"
+1. **Проверьте что API сервер запущен:**
+   ```bash
+   curl -i http://localhost:3000/check_service
+   ```
 
-2. **Проверьте порт** - убедитесь что API сервер запущен на порту 3000
+2. **Проверьте сборку MCP сервера:**
+   ```bash
+   cd mcp_server
+   bun run build
+   node dist/index.js --help
+   ```
 
-3. **Проверьте эндпоинт** - откройте в браузере `http://localhost:3000/sse`
+3. **Проверьте конфигурацию Claude:**
+   - Убедитесь что JSON файл валидный
+   - Проверьте полный путь к `index.js`
+   - Убедитесь что переменная `ARRYT_API_URL` правильная
 
-4. **Проверьте конфиг Claude** - убедитесь что JSON валидный и пути правильные
+4. **Проверьте логи** - MCP сервер пишет логи в stderr
 
-5. **Перезапустите Claude Code** после изменения конфигурации
+5. **Перезапустите Claude Desktop** полностью
 
-## Важные заметки
+## Развертывание в продакшене
 
-- Эндпоинт изменился с `/sse` на `/mcp` (стандартный для elysia-mcp)
-- Сессии управляются автоматически через заголовок `Mcp-Session-Id`
-- В продакшене используйте `http://api.arryt.uz/mcp` вместо localhost
+Для продакшена вы можете:
 
-## Примеры запросов через Claude
+1. **Собрать MCP сервер:**
+   ```bash
+   cd mcp_server
+   bun run build
+   ```
 
-После подключения вы сможете задавать Claude такие вопросы:
+2. **Развернуть на сервере** вместе с основным API
+
+3. **Обновить конфигурацию Claude** с правильными путями и URL
+
+## Примеры запросов через Claude Desktop
+
+После успешного подключения вы сможете задавать Claude такие вопросы:
 
 - "Покажи мне все активные терминалы"
-- "Какие заказы сегодня были у терминала на Чиланзаре?"
-- "Сколько курьеров сейчас онлайн?"
-- "Отключи терминал с ID abc-123"
-- "Покажи статистику по всем терминалам организации XYZ"
+- "Какая статистика по терминалу с ID abc-123?"
+- "Сколько заказов сегодня было у всех терминалов?"
+- "Отключи терминал с ID xyz-789"
+- "Покажи детали терминала на Чиланзаре"
 
-Claude будет использовать инструмент `arryt_terminal_operations` для получения актуальной информации из вашей базы данных.
+Claude будет использовать MCP сервер для получения актуальной информации из вашей системы Arryt.
+
+---
+
+**Готово!** Теперь у вас есть отдельный, стабильный MCP сервер, который Claude Desktop может использовать через stdio протокол для работы с данными терминалов Arryt.

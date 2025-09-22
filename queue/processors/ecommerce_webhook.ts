@@ -65,9 +65,9 @@ export default async function processEcommerceWebhook(redis: Redis, db: DB, cach
     const organization = await cacheControl.getOrganization(data.organization_id);
 
     // Temporarely checking for lesailes
-    if (!organization.webhook?.includes('lesailes.uz')) {
-        return;
-    }
+    // if (!organization.webhook?.includes('lesailes.uz')) {
+    //     return;
+    // }
 
     if (!organization) {
         return;
