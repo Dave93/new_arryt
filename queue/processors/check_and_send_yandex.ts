@@ -124,7 +124,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                     //   order.orders_terminals.id,
                     // ),
                     ...(orderPrice > 0 ? {buyout: {
-                        payment: 'cash'
+                        payment_method: 'cash'
                     }} : {}),
                     skip_confirmation: true,
                     visit_order: 1,
