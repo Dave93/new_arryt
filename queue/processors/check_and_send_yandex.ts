@@ -123,6 +123,9 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                     // skip_confirmation: !['56fe54a9-ae37-49b7-8de7-62aadb2abd19', '972b7402-345d-400e-9bf2-b77691b0fcd9'].includes(
                     //   order.orders_terminals.id,
                     // ),
+                    ...(orderPrice > 0 ? {buyout: {
+                        payment: 'cash'
+                    }} : {}),
                     skip_confirmation: true,
                     visit_order: 1,
                     point_id: 1,
@@ -149,6 +152,12 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                     //         payment_method: 'cash',
                     //         }
                     //     : undefined,
+                    ...(orderPrice > 0 ? {payment_on_delivery: {
+                        customer: {
+                            phone: order!.orders_customers!.phone,
+                        },
+                        payment_method: 'cash',
+        }} : {}),
                     external_order_id: order.order_number,
                     point_id: 2,
                     skip_confirmation: true,
