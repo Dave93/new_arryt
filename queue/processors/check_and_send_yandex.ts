@@ -204,7 +204,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                 quantity: item.quantity,
                 weight: 0,
                 fiscalization:
-                    order.payment_type == 'Наличными' && orderPrice <= 500000
+                    orderPrice > 0 && orderPrice <= 500000
                         ? {
                             article: 'артикул',
                             supplier_inn: '1111111111',
