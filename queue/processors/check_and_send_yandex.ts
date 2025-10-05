@@ -123,7 +123,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                     // skip_confirmation: !['56fe54a9-ae37-49b7-8de7-62aadb2abd19', '972b7402-345d-400e-9bf2-b77691b0fcd9'].includes(
                     //   order.orders_terminals.id,
                     // ),
-                    ...(orderPrice > 0 ? {buyout: {
+                    ...(orderPrice > 0 && orderPrice <= 500000 ? {buyout: {
                         payment_method: 'cash'
                     }} : {}),
                     skip_confirmation: true,
@@ -152,7 +152,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                     //         payment_method: 'cash',
                     //         }
                     //     : undefined,
-                    ...(orderPrice > 0 ? {payment_on_delivery: {
+                    ...(orderPrice > 0 && orderPrice <= 500000 ? {payment_on_delivery: {
                         customer: {
                             phone: order!.orders_customers!.phone,
                         },
@@ -204,7 +204,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                 quantity: item.quantity,
                 weight: 0,
                 fiscalization:
-                    orderPrice > 0
+                    orderPrice > 0 && orderPrice <= 500000
                         ? {
                             article: 'артикул',
                             supplier_inn: '1111111111',
