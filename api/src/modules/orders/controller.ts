@@ -3786,4 +3786,47 @@ export const OrdersController = new Elysia({
         to_date: t.String(),
       }),
     },
+  )
+  .patch(
+    "/api/orders/batch/status",
+    async ({ body: { order_ids, status_id }, drizzle, set }) => {
+
+      // Validate input
+      if (!order_ids || order_ids.length === 0) {
+        set.status = 400;
+        return {
+          message: "No order IDs provided",
+        };
+      }
+
+      if (!status_id) {
+        set.status = 400;
+        return {
+          message: "No status ID provided",
+        };
+      }
+
+      // Update orders status
+      const result = await drizzle
+        .update(orders)
+        .set({
+          order_status_id: status_id,
+          updated_at: new Date().toISOString(),
+        })
+        .where(inArray(orders.id, order_ids))
+        .returning({ id: orders.id });
+
+      return {
+        success: true,
+        updated_count: result.length,
+        order_ids: result.map((r) => r.id),
+      };
+    },
+    {
+      permission: "orders.edit",
+      body: t.Object({
+        order_ids: t.Array(t.String()),
+        status_id: t.String(),
+      }),
+    },
   );

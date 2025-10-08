@@ -198,7 +198,7 @@ export default function OrderStatusList() {
         const offset = pagination.pageIndex * pagination.pageSize;
         const limit = pagination.pageSize;
 
-        const response = await apiClient.api.order_status.index.get({
+        const response = await apiClient.api.order_status.get({
           query: {
             fields: [
               "id", 

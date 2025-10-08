@@ -119,7 +119,7 @@ export default function PermissionsList() {
         const offset = pagination.pageIndex * pagination.pageSize;
         const limit = pagination.pageSize;
 
-        const response = await apiClient.api.permissions.index.get({
+        const response = await apiClient.api.permissions.get({
           query: {
             fields: ["id", "slug", "active", "description", "created_at"].join(","),
             limit: limit.toString(),

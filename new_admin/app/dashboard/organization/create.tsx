@@ -98,7 +98,7 @@ export default function OrganizationCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.organization[""].post({
+      await apiClient.api.organization.post({
         // @ts-ignore
         data: values,
       });

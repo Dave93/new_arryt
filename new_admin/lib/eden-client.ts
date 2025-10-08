@@ -6,13 +6,11 @@ import { useAuthStore } from "./auth-store";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
 // Создаем клиент Eden с использованием общего типа
-// @ts-ignore
 export const apiClient = treaty<BackendApp>(API_URL, {
   fetch: {
     credentials: "include",
   },
 });
-// @ts-ignore
 export const apiFetch = edenFetch<BackendApp>(API_URL);
 
 // Функция для получения токена авторизации

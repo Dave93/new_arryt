@@ -84,7 +84,7 @@ export function RecentOrdersTable() {
                   </TableCell>
                 </TableRow>
               ) : orders && orders.length > 0 ? (
-                orders.map((order) => (
+                orders.map((order: any) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">
                       #{order.orderNumber}

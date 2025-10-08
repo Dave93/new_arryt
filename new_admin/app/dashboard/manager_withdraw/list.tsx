@@ -427,7 +427,7 @@ export default function ManagerWithdrawList() {
           });
         }
         
-        const { data } = await apiClient.api.manager_withdraw.index.get({
+        const { data } = await apiClient.api.manager_withdraw.get({
           query: params,
         });
         

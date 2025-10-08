@@ -151,7 +151,7 @@ export default function OrganizationList() {
         const offset = pagination.pageIndex * pagination.pageSize;
         const limit = pagination.pageSize;
 
-        const response = await apiClient.api.organization[""].get({
+        const response = await apiClient.api.organization.get({
           query: {
             fields: ["id", "name", "active", "created_at", "phone", "webhook", "payment_type", "allow_yandex_delivery"].join(","),
             limit: limit.toString(),

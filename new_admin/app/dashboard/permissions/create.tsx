@@ -54,7 +54,7 @@ export default function PermissionCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.permissions.index.post({
+      await apiClient.api.permissions.post({
         // @ts-ignore
         data: values,
       });

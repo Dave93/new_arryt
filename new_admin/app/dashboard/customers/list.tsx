@@ -88,7 +88,7 @@ export default function CustomersList() {
         const offset = pagination.pageIndex * pagination.pageSize;
         const limit = pagination.pageSize;
 
-        const response = await apiClient.api.customers.index.get({
+        const response = await apiClient.api.customers.get({
           query: {
             fields: ["id", "name", "phone"].join(","),
             limit: limit.toString(),

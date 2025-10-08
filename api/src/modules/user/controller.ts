@@ -94,10 +94,10 @@ export const UsersController = new Elysia({
   .use(contextWitUser)
   .get("/api/users/me", async ({
       user,
-      error
+      status
   }) => {
       if (!user) {
-          return error(401, "Unauthorized");
+          return status(401, "Unauthorized");
       }
 
       return user.user;
@@ -106,10 +106,10 @@ export const UsersController = new Elysia({
   })
   .get('/api/users/permissions', async ({
       user,
-      error
+      status
   }) => {
       if (!user) {
-          return error(401, "Unauthorized");
+          return status(401, "Unauthorized");
       }
 
       return {
@@ -416,16 +416,16 @@ export const UsersController = new Elysia({
       })
     }
   )
-  .post('/api/users/login', async ({ body: { login, password }, drizzle, error, redis, cookie, cacheControl }) => {
+  .post('/api/users/login', async ({ body: { login, password }, drizzle, status, redis, cookie, cacheControl }) => {
     let user = await drizzle.select().from(users).where(eq(users.login, login)).limit(1);
     if (user.length === 0) {
-      return error(404, {
+      return status(404, {
         message: "User not found",
       });
     }
 
     if (!user[0].password) {
-      return error(404, {
+      return status(404, {
         message: "User has no password",
       });
     }
@@ -435,7 +435,7 @@ export const UsersController = new Elysia({
 
     const isPasswordValid = await Bun.password.verify(password, user[0].password);
     if (!isPasswordValid) {
-      return error(404, {
+      return status(404, {
         message: "Invalid password",
       });
     }
@@ -448,7 +448,7 @@ export const UsersController = new Elysia({
     );
 
     if (!userData) {
-      return error(400, {
+      return status(400, {
         message: "User not found",
       });
     }
@@ -457,13 +457,13 @@ export const UsersController = new Elysia({
     currentUser = userParsed.user;
 
     if (currentUser!.status == "blocked") {
-      return error(400, {
+      return status(400, {
         message: "User is blocked",
       });
     }
 
     if (currentUser!.status == "inactive") {
-      return error(400, {
+      return status(400, {
         message: "User is inactive",
       });
     }
@@ -513,11 +513,11 @@ export const UsersController = new Elysia({
   .post("/api/users/logout", async ({
     cookie,
     cacheControl,
-    error
+    
 }) => {
 
     if (cookie.session.value && cookie.refreshToken.value) {
-        await cacheControl.clearUserSession(cookie.session.value, cookie.refreshToken.value);
+        await cacheControl.clearUserSession(cookie.session.value as string, cookie.refreshToken.value as string);
     }
 
     delete cookie.session.value;

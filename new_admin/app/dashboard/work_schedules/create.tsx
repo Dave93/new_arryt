@@ -93,7 +93,7 @@ export default function WorkScheduleCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.work_schedules.index.post({
+      await apiClient.api.work_schedules.post({
         // @ts-ignore
         data: values,
       });

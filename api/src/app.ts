@@ -6,7 +6,7 @@ import staticPlugin from "@elysiajs/static";
 const app = new Elysia()
     .use(
         cors({
-            methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         })
     )
     // .use(loggingMiddleware)

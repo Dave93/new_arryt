@@ -100,7 +100,7 @@ export default function ConstructedBonusPricingList() {
           });
         }
 
-        const {data: response} = await apiClient.api.constructed_bonus_pricing.index.get({
+        const {data: response} = await apiClient.api.constructed_bonus_pricing.get({
           query: {
             fields: "id,name,organization.name,created_at",
             limit: pagination.pageSize.toString(),

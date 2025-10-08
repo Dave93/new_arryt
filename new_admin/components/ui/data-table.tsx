@@ -32,6 +32,8 @@ interface DataTableProps<TData, TValue> {
   pageSizeOptions?: number[];
   pagination?: PaginationState;
   onPaginationChange?: OnChangeFn<PaginationState>;
+  onRowClick?: (row: TData) => void;
+  isRowDisabled?: (row: TData) => boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -43,6 +45,8 @@ export function DataTable<TData, TValue>({
   pageSizeOptions = [10, 20, 30, 50, 100],
   pagination,
   onPaginationChange,
+  onRowClick,
+  isRowDisabled,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -127,22 +131,35 @@ export function DataTable<TData, TValue>({
                   </tr>
                 ))
               ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted *:border-border [&>:not(:last-child)]:border-r odd:bg-muted/90 odd:hover:bg-muted/90"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="p-3 align-middle [&:has([role=checkbox])]:pr-0">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))
+                table.getRowModel().rows.map((row) => {
+                  const disabled = isRowDisabled ? isRowDisabled(row.original) : false;
+                  return (
+                    <tr
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      data-disabled={disabled}
+                      className={`border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted *:border-border [&>:not(:last-child)]:border-r odd:bg-muted/90 odd:hover:bg-muted/90 ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                      onClick={(e) => {
+                        if (disabled) return;
+                        // Проверяем, что клик не был на интерактивном элементе
+                        const target = e.target as HTMLElement;
+                        const isInteractive = target.closest('button, a, input, [role="checkbox"]');
+                        if (!isInteractive && onRowClick) {
+                          onRowClick(row.original);
+                        }
+                      }}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="p-3 align-middle [&:has([role=checkbox])]:pr-0">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td

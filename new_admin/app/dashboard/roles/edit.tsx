@@ -81,7 +81,7 @@ export default function RoleEdit() {
     queryKey: ["permissions"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.permissions.index.get({
+        const response = await apiClient.api.permissions.get({
           query: {
             fields: ["id", "slug", "description", "active"].join(","),
             limit: "100",

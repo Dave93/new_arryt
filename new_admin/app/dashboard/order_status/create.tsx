@@ -101,7 +101,7 @@ export default function OrderStatusCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.order_status.index.post({
+      await apiClient.api.order_status.post({
         // @ts-ignore
         data: values,
       });

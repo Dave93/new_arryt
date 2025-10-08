@@ -15,6 +15,13 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar"
 
+interface Terminal {
+  terminalId: string;
+  terminalName: string;
+  orderCount: number;
+  totalRevenue: number;
+}
+
 export function TopLists() {
   const searchParams = useSearchParams()
   const startDate = searchParams.get("start_date")
@@ -80,7 +87,7 @@ export function TopLists() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {topTerminals?.map((terminal, index) => (
+{topTerminals?.map((terminal: Terminal, index: number) => (
               <div key={terminal.terminalId} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted font-semibold">
@@ -115,7 +122,7 @@ export function TopLists() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {topCouriers?.map((courier) => (
+            {topCouriers?.map((courier: any) => (
               <div key={courier.courierId} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">

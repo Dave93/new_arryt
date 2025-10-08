@@ -119,7 +119,7 @@ export default function RolesList() {
         const offset = pagination.pageIndex * pagination.pageSize;
         const limit = pagination.pageSize;
 
-        const response = await apiClient.api.roles.index.get({
+        const response = await apiClient.api.roles.get({
           query: {
             fields: ["id", "name", "active", "code", "created_at"].join(","),
             limit: limit.toString(),

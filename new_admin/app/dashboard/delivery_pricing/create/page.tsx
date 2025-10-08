@@ -161,7 +161,7 @@ export default function DeliveryPricingCreate() {
     queryFn: async () => {
       if (!selectedOrgId) return [];
       try {
-        const response = await apiClient.api.terminals.index.get({
+        const response = await apiClient.api.terminals.get({
           // @ts-ignore
           query: {
             filters: JSON.stringify([
@@ -212,7 +212,7 @@ export default function DeliveryPricingCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.delivery_pricing.index.post({
+      await apiClient.api.delivery_pricing.post({
         // @ts-ignore
         data: values
       });

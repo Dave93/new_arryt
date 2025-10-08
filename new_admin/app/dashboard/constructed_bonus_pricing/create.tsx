@@ -158,7 +158,7 @@ export default function ConstructedBonusPricingCreate() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.constructed_bonus_pricing.index.post({
+      await apiClient.api.constructed_bonus_pricing.post({
         data: values
       });
       

@@ -78,7 +78,7 @@ export default function TerminalCreate() {
     queryKey: ["organizations"],
     queryFn: async () => {
       try {
-        const response = await apiClient.api.organization[""].get({
+        const response = await apiClient.api.organization.get({
           // @ts-ignore
           query: {
             fields: "id,name",
@@ -97,7 +97,7 @@ export default function TerminalCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.terminals.index.post({
+      await apiClient.api.terminals.post({
         // @ts-ignore
         data: values,
       });

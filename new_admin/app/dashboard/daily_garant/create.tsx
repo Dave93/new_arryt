@@ -58,7 +58,7 @@ export default function DailyGarantCreate() {
         date: values.date + ":00", // Добавляем секунды, если их нет
       };
 
-      await apiClient.api.daily_garant.index.post({
+      await apiClient.api.daily_garant.post({
         data: formattedValues,
       });
       

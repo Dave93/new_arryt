@@ -104,7 +104,7 @@ export default function OrderBonusPricingCreate() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.order_bonus_pricing.index.post({
+      await apiClient.api.order_bonus_pricing.post({
         // @ts-ignore
         data: values,
       });

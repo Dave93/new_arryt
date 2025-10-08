@@ -200,7 +200,7 @@ export default function DeliveryPricingList() {
           });
         }
 
-        const {data: response} = await apiClient.api.delivery_pricing.index.get({
+        const {data: response} = await apiClient.api.delivery_pricing.get({
           query: {
             fields: "id,name,active,organization_id,organization.name,default,drive_type,days,start_time,end_time,min_price,price_per_km,payment_type,created_at",
             limit: pagination.pageSize.toString(),

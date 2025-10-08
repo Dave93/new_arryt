@@ -159,7 +159,7 @@ export function OrderCharts() {
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart
-              data={orderCounts?.map(item => ({
+              data={orderCounts?.map((item: any) => ({
                 date: formatDate(String(item.period)),
                 count: item.count
               }))}
@@ -198,7 +198,7 @@ export function OrderCharts() {
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
-              data={deliveryTimes?.map(item => ({
+              data={deliveryTimes?.map((item: any) => ({
                 date: formatDate(String(item.period)),
                 time: Math.round(item.average_delivery_time || 0)
               }))}

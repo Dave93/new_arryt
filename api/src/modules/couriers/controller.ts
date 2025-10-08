@@ -1166,7 +1166,7 @@ export const CouriersController = new Elysia({
       redis,
       drizzle,
       request,
-      error,
+      status,
       headers,
       queues: {
         processUpdateUserCache,
@@ -1281,7 +1281,7 @@ export const CouriersController = new Elysia({
       console.log('organization.max_distance', organization.max_distance);
       if (minDistance! > organization.max_distance) {
         set.status = 400;
-        return error(400, {
+        return status(400, {
           message: "You are too far from terminal",
         });
       }
@@ -1576,7 +1576,7 @@ export const CouriersController = new Elysia({
       }),
     }
   )
-  .post('/api/couriers/try_set_daily_garant', async ({ body, redis, drizzle, cacheControl, user, set, error }) => {
+  .post('/api/couriers/try_set_daily_garant', async ({ body, redis, drizzle, cacheControl, user, set, status }) => {
     const courierList = await drizzle.select({
       id: users.id,
       daily_garant_id: users.daily_garant_id
@@ -1585,26 +1585,40 @@ export const CouriersController = new Elysia({
       .where(eq(users.id, body.courier_id))
       .execute();
 
-    const courier = courierList.at(0);
+    const courier = courierList[0];
 
     if (!courier) {
-      return error(400, 'Courier not found');
+      return status(400, {
+        message: "Courier not found",
+      });
     }
 
     if (!courier.daily_garant_id) {
-      return error(400, 'Courier daily garant not found');
+      return status(400, {
+        message: "Courier daily garant not found",
+      });
+    }
+
+    if (!courier.daily_garant_id) {
+      return status(400, {
+        message: "Courier daily garant not found",
+      });
     }
 
     const dailyGarant = (await cacheControl.getDailyGarant()).find(d => d.id === courier.daily_garant_id);
 
     if (!dailyGarant) {
-      return error(400, 'Daily garant not found');
+      return status(400, {
+        message: "Daily garant not found",
+      });
     }
 
     let dailyGarantMaxDifference = await getSetting(redis, 'daily_garant_max_difference');
 
     if (!dailyGarantMaxDifference) {
-      return error(400, 'Daily garant max difference not found');
+      return status(400, {
+        message: "Daily garant max difference not found",
+      });
     }
 
     dailyGarantMaxDifference = parseInt(dailyGarantMaxDifference);
@@ -1619,10 +1633,12 @@ export const CouriersController = new Elysia({
       .where(eq(work_schedule_entries.user_id, body.courier_id))
       .orderBy(desc(work_schedule_entries.created_at))
       .limit(1)
-      .execute()).at(0);
+      .execute())[0];
 
     if (!lastWorkScheduleEntry) {
-      return error(400, 'Last work schedule entry not found');
+      return status(400, {
+        message: "Last work schedule entry not found",
+      });
     }
 
     // if (lastWorkScheduleEntry.current_status === 'closed') {
@@ -1689,7 +1705,7 @@ export const CouriersController = new Elysia({
         ))
         .execute();
 
-      totalEarned += orderTransactionsSum.at(0)?.sum || 0;
+      totalEarned += orderTransactionsSum[0]?.sum || 0;
       const timesheetList = await drizzle.select({
         id: timesheet.id,
         late_minutes: timesheet.late_minutes
@@ -1700,7 +1716,7 @@ export const CouriersController = new Elysia({
         .limit(1)
         .execute();
 
-      const lastTimesheet = timesheetList.at(0);
+      const lastTimesheet = timesheetList[0];
 
       const lateMinutes = lastTimesheet?.late_minutes || 0;
       const lateMinutesBy30 = lateMinutes / 30;
@@ -1726,7 +1742,7 @@ export const CouriersController = new Elysia({
             ))
             .limit(1)
             .execute();
-          const order = firstOrder.at(0);
+          const order = firstOrder[0];
           const terminal = order?.terminal_id;
           const organization = order?.organization_id;
 
@@ -2084,7 +2100,7 @@ export const CouriersController = new Elysia({
     })
   })
 
-  .post('/api/couriers/withdraw', async ({ user, drizzle, set, redis, error, body: { amount, terminal_id, courier_id } }) => {
+  .post('/api/couriers/withdraw', async ({ user, drizzle, set, redis, status, body: { amount, terminal_id, courier_id } }) => {
     const courierBalance = await drizzle.select({
       id: courier_terminal_balance.id,
       balance: courier_terminal_balance.balance,
@@ -2098,13 +2114,13 @@ export const CouriersController = new Elysia({
 
 
     if (!courierBalance.length) {
-      return error(404, {
+      return status(404, {
         message: "Courier balance not found"
       });
     }
 
     if (courierBalance[0].balance < amount) {
-      return error(400, {
+      return status(400, {
         message: "Сумма вывода больше чем сумма на балансе"
       });
     }

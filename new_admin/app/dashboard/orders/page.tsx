@@ -22,6 +22,9 @@ import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useSelectedOrdersStore } from "@/lib/selected-orders-store";
+import { OrdersSelectionToolbar } from "@/components/orders/orders-selection-toolbar";
 
 // Определяем тип Order
 interface Order {
@@ -121,6 +124,28 @@ const formatDuration = (startDate: string, endDate: string | null | undefined, e
 
 // Определяем колонки для таблицы
 const columns: ColumnDef<Order>[] = [
+  {
+    id: "select",
+    header: () => null,
+    cell: ({ row }) => {
+      const OrdersPageSelectCell = ({ orderId, organizationId }: { orderId: string; organizationId: string }) => {
+        const { selectedOrderIds, toggleOrder, canSelectOrder } = useSelectedOrdersStore();
+        const isSelected = selectedOrderIds.has(orderId);
+        const canSelect = canSelectOrder(organizationId);
+
+        return (
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => toggleOrder(orderId, organizationId)}
+            disabled={!canSelect && !isSelected}
+            aria-label="Выбрать строку"
+          />
+        );
+      };
+      return <OrdersPageSelectCell orderId={row.original.id} organizationId={row.original.organization.id} />;
+    },
+    size: 50,
+  },
   {
     id: "actions",
     cell: ({ row }) => (
@@ -386,6 +411,8 @@ const formatExcelData = (orders: Order[]) => {
 };
 
 export default function OrdersPage() {
+  const { clearSelection, toggleOrder, canSelectOrder, selectAllFromOrganization, getSelectedOrganizationId } = useSelectedOrdersStore();
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const start = startOfWeek(new Date(), { weekStartsOn: 1 });
     const end = endOfWeek(new Date(), { weekStartsOn: 1 });
@@ -423,6 +450,7 @@ export default function OrdersPage() {
       ...prev,
       pageIndex: 0
     }));
+    clearSelection(); // Очищаем выбор при изменении фильтров
   }, [
     dateRange,
     selectedOrganization,
@@ -432,7 +460,13 @@ export default function OrdersPage() {
     selectedCourierOption,
     selectedStatuses,
     selectedRegionId,
+    clearSelection,
   ]);
+
+  // Очистка выбора при изменении страницы
+  useEffect(() => {
+    clearSelection();
+  }, [pagination.pageIndex, clearSelection]);
 
   // Загрузка организаций и терминалов только один раз при монтировании
   useEffect(() => {
@@ -1030,12 +1064,26 @@ export default function OrdersPage() {
     }
   };
 
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-row items-center justify-between">
-        <h1 className="text-2xl font-bold">Заказы</h1>
+  const handleSelectAll = () => {
+    const organizationId = getSelectedOrganizationId();
+    if (!organizationId) return;
 
-      </div>
+    // Выбираем все заказы текущей организации с текущей страницы
+    const ordersFromSameOrg = ordersData.data
+      .filter((order: Order) => order.organization.id === organizationId)
+      .map((order: Order) => order.id);
+
+    selectAllFromOrganization(ordersFromSameOrg, organizationId);
+  };
+
+  return (
+    <>
+      <OrdersSelectionToolbar onSelectAll={handleSelectAll} />
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-row items-center justify-between">
+          <h1 className="text-2xl font-bold">Заказы</h1>
+
+        </div>
 
       <Card className="gap-2">
         <CardContent className="p-0">
@@ -1166,6 +1214,12 @@ export default function OrdersPage() {
               pagination={pagination}
               onPaginationChange={setPagination}
               pageSizeOptions={[10, 20, 50, 100]}
+              onRowClick={(order) => {
+                if (canSelectOrder(order.organization.id)) {
+                  toggleOrder(order.id, order.organization.id);
+                }
+              }}
+              isRowDisabled={(order) => !canSelectOrder(order.organization.id)}
             />
           </div>
         </CardContent>
@@ -1191,5 +1245,6 @@ export default function OrdersPage() {
         )}
       </Card>
     </div>
+    </>
   );
 } 

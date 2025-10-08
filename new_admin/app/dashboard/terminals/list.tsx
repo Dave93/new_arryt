@@ -214,7 +214,7 @@ export default function TerminalsList() {
         const offset = pagination.pageIndex * pagination.pageSize;
         const limit = pagination.pageSize;
 
-        const response = await apiClient.api.terminals.index.get({
+        const response = await apiClient.api.terminals.get({
           query: {
             fields: [
               "id", "name", "active", "created_at", "organization_id", "phone",

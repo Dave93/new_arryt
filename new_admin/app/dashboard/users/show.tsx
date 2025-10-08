@@ -325,7 +325,7 @@ function UserWithdrawals({ userId }: { userId: string }) {
         },
       ];
       
-      const { data } = await apiClient.api.manager_withdraw.index.get({
+      const { data } = await apiClient.api.manager_withdraw.get({
         query: {
           ...params,
           filters: JSON.stringify(filters)
@@ -691,7 +691,7 @@ function UserTransactions({ userId }: { userId: string }) {
         const filters = getTransactionsFilters();
         
         // Пробуем загрузить транзакции через правильный эндпоинт
-        const { data } = await apiClient.api.order_transactions.index.get({
+        const { data } = await apiClient.api.order_transactions.get({
           query: {
             filters: JSON.stringify(filters),
           },
@@ -760,7 +760,7 @@ function UserTransactions({ userId }: { userId: string }) {
   const addTransactionMutation = useMutation({
     mutationFn: async (values: any) => {
       try {
-        return await apiClient.api.order_transactions.index.post({
+        return await apiClient.api.order_transactions.post({
           data: {
             amount: Number(values.amount),
             courier_id: userId,
@@ -922,7 +922,7 @@ function UserTransactions({ userId }: { userId: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction, index) => (
+              {transactions.map((transaction: UserTransaction, index: number) => (
                 <TableRow key={transaction.id}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{format(new Date(transaction.created_at), "dd.MM.yyyy HH:mm")}</TableCell>

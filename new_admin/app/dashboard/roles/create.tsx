@@ -54,7 +54,7 @@ export default function RoleCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.roles.index.post({
+      await apiClient.api.roles.post({
         // @ts-ignore
         data: values,
       });

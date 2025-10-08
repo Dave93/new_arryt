@@ -312,7 +312,7 @@ export default function MissedOrdersPage() {
         const offset = pagination.pageIndex * pagination.pageSize;
         const limit = pagination.pageSize;
 
-        const response = await apiClient.api.missed_orders.index.get({
+        const response = await apiClient.api.missed_orders.get({
           query: {
             fields: [
               "id",

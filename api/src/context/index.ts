@@ -173,7 +173,7 @@ export const contextWitUser = baseContext
         }
         
         return {
-          beforeHandle: async ({ redis, error, headers: {
+          beforeHandle: async ({ redis, status, headers: {
             authorization
           }, cacheControl, cookie }) => {
 
@@ -181,7 +181,7 @@ export const contextWitUser = baseContext
             const cookieRefreshToken = cookie.refreshToken.value;
             
             if (!authorization && !cookieToken && !cookieRefreshToken) {
-              return error(401, {
+              return status(401, {
                 message: "Unauthorized"
               });
             }
@@ -190,7 +190,7 @@ export const contextWitUser = baseContext
               const bearer = authorization.split(" ")[1];
 
               if (!bearer) {
-                return error(401, {
+                return status(401, {
                   message: "Unauthorized"
                 });
               }
@@ -203,7 +203,7 @@ export const contextWitUser = baseContext
                 );
                 
                 if (!userData) {
-                  return error(401, {
+                  return status(401, {
                     message: "Unauthorized"
                   });
                 }
@@ -211,12 +211,12 @@ export const contextWitUser = baseContext
                 const userRes = JSON.parse(userData) as UserContext;
                 
                 if (!userRes || !userRes.access.additionalPermissions.includes(permission)) {
-                  return error(403, {
+                  return status(403, {
                     message: "Forbidden"
                   });
                 }
               } catch (e) {
-                return error(401, {
+                return status(401, {
                   message: "Unauthorized"
                 });
               }
@@ -226,13 +226,13 @@ export const contextWitUser = baseContext
               if (!session) {
                   const refreshSession = await redis.get(`${process.env.PROJECT_PREFIX}:session:${cookieRefreshToken}`);
                   if (!refreshSession) {
-                      throw error(403, "Invalid session");
+                      throw status(403, "Invalid session");
                   }
                   session = refreshSession;
 
                   const refreshSessionData = JSON.parse(refreshSession) as unknown as UserContext
 
-                  const newSessionData = await cacheControl.setUserSession(refreshSessionData, cookieRefreshToken);
+                  const newSessionData = await cacheControl.setUserSession(refreshSessionData, cookieRefreshToken as string);
 
                   cookie.session.value = newSessionData.accessToken;
                   cookie.refreshToken.value = newSessionData.refreshToken;
@@ -244,7 +244,7 @@ export const contextWitUser = baseContext
               try {
                   const sessionData = JSON.parse(session) as unknown as UserContext;
               } catch (err) {
-                  throw error(500, "Invalid session data");
+                  throw status(500, "Invalid session data");
               }
             }
           },

@@ -110,7 +110,7 @@ export default function OrderBonusPricingList() {
           });
         }
 
-        const {data: response} = await apiClient.api.order_bonus_pricing.index.get({
+        const {data: response} = await apiClient.api.order_bonus_pricing.get({
           query: {
             fields: "id,name,active,organization_id,organization.id,organization.name,created_at",
             limit: pagination.pageSize.toString(),

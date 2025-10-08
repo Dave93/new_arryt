@@ -242,7 +242,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
   const fetchOrderActions = async (id: string, orderCreatedAt: string): Promise<OrderAction[]> => {
     try {
       // Endpoint based on reference: apiClient.api.order_actions.get()
-      const response = await apiClient.api.order_actions.index.get({ 
+      const response = await apiClient.api.order_actions.get({ 
         query: {
           limit: "100", // Fetch up to 100 actions, adjust as needed
           offset: "0",

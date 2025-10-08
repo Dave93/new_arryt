@@ -220,7 +220,7 @@ export default function WorkScheduleList() {
           });
         }
 
-        const {data: response} = await apiClient.api.work_schedules.index.get({
+        const {data: response} = await apiClient.api.work_schedules.get({
           query: {
             fields: "id,name,active,organization_id,organization.name,days,start_time,end_time,max_start_time,bonus_price,created_at",
             limit: pagination.pageSize.toString(),

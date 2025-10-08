@@ -13,7 +13,7 @@ export const externalControler = new Elysia({
     .use(contextWitUser)
     .post("/api/external/set-score", async ({ body: { courier, order_id }, request: {
         headers
-    }, redis, cacheControl, drizzle, error }) => {
+    }, redis, cacheControl, drizzle, status }) => {
         const token = headers.get("authorization")?.split(" ")[1] ?? null;
 
         const apiTokenJson = await redis.get(
@@ -25,7 +25,7 @@ export const externalControler = new Elysia({
             const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
             if (!apiToken) {
 
-                return error(403, { error: `Forbidden` });
+                return status(403, { error: `Forbidden` });
             } else {
                 const organizations = await cacheControl.getOrganizations();
                 const currentOrganization = organizations.find((org: any) => org.id === apiToken.organization_id);
@@ -50,7 +50,7 @@ export const externalControler = new Elysia({
             }
         } catch (e) {
 
-            return error(403, { error: `Forbidden` });
+            return status(403, { error: `Forbidden` });
         }
     }, {
         body: t.Object({
@@ -499,13 +499,13 @@ export const externalControler = new Elysia({
             terminal_id: t.String(),
         })
     })
-    .post('/api/external/calculate-customer-price', async ({ body: { terminal_id, toLat, toLon, phone, price: priceToCalculate, source_type }, error, request: { headers }, cacheControl }) => {
+    .post('/api/external/calculate-customer-price', async ({ body: { terminal_id, toLat, toLon, phone, price: priceToCalculate, source_type }, status, request: { headers }, cacheControl }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
         const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
         if (!apiToken) {
-            return error(403, { error: `Forbidden` });
+            return status(403, { error: `Forbidden` });
         }
 
         const terminals = await cacheControl.getTerminals();
@@ -513,7 +513,7 @@ export const externalControler = new Elysia({
         const terminal = terminals.find((t) => t.external_id === terminal_id);
 
         if (!terminal) {
-            return error(403, { error: `Terminal not found` });
+            return status(403, { error: `Terminal not found` });
         }
         const organizations = await cacheControl.getOrganization(terminal.organization_id);
 
@@ -597,7 +597,7 @@ export const externalControler = new Elysia({
         //     console.log('activeDeliveryPricingSorted before', activeDeliveryPricingSorted);
         // }
         if (activeDeliveryPricingSorted.length == 0) {
-            return error(400, { error: `No active delivery pricing` });
+            return status(400, { error: `No active delivery pricing` });
         }
 
         const actualLat = toLat;
@@ -1086,14 +1086,14 @@ export const externalControler = new Elysia({
             order_id: t.String(),
         }),
     })
-    .post('/api/external/terminal-period-withdraws', async ({ body: { terminal_id, date_from, date_to }, error, request: { headers }, drizzle, cacheControl }) => {
+    .post('/api/external/terminal-period-withdraws', async ({ body: { terminal_id, date_from, date_to }, status, request: { headers }, drizzle, cacheControl }) => {
 
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
         const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
         if (!apiToken) {
-            return error(403, 'Forbidden');
+            return status(403, 'Forbidden');
         }
 
         const organization = await cacheControl.getOrganization(apiToken.organization_id);
@@ -1103,7 +1103,7 @@ export const externalControler = new Elysia({
 
 
         if (!terminal) {
-            return error(404, 'Terminal not found');
+            return status(404, 'Terminal not found');
         }
 
         let result: {

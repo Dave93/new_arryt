@@ -116,7 +116,7 @@ export default function DailyGarantList() {
           });
         }
 
-        const {data: response} = await apiClient.api.daily_garant.index.get({
+        const {data: response} = await apiClient.api.daily_garant.get({
           query: {
             fields: "id,name,date,amount,late_minus_sum,created_at",
             limit: pagination.pageSize.toString(),
