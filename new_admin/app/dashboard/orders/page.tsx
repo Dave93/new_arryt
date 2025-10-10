@@ -1213,7 +1213,7 @@ export default function OrdersPage() {
               pageCount={Math.ceil(ordersData.total / pagination.pageSize)}
               pagination={pagination}
               onPaginationChange={setPagination}
-              pageSizeOptions={[10, 20, 50, 100]}
+              pageSizeOptions={[10, 20, 50, 100, 200, 300, 400, 500]}
               onRowClick={(order) => {
                 if (canSelectOrder(order.organization.id)) {
                   toggleOrder(order.id, order.organization.id);
