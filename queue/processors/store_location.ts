@@ -17,6 +17,7 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
     try {
         // console.log('store location data', data);
         console.time('store_location');
+        console.log('store location data', data);
         const orderStatuses = await cacheControl.getOrderStatuses();
 
         const terminalsList = await cacheControl.getTerminals();
