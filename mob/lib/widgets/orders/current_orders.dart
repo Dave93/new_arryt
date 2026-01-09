@@ -1,12 +1,13 @@
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/helpers/hive_helper.dart';
+import 'package:arryt/helpers/mock_data.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:easy_refresh/easy_refresh.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:arryt/models/order_status.dart';
 import 'package:arryt/models/terminals.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:keframe/keframe.dart';
 
@@ -36,54 +37,66 @@ class MyCurrentOrderListView extends StatefulWidget {
 class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
   late EasyRefreshController _controller;
 
+  // Mock data only works in debug mode - NEVER in release builds
+  // Set _enableMockInDebug to true to test with mock data during development
+  static final bool _enableMockInDebug = true;
+  static bool get _useMockData => kDebugMode && _enableMockInDebug;
+
   Future<void> _loadOrders() async {
-    ApiServer api = new ApiServer();
-
-    var response = await api.get('/api/orders/my_orders', {});
-
     List<OrderModel> orders = [];
-    if (response.data != null && response.data.isNotEmpty) {
-      response.data.forEach((order) {
-        OrderStatus orderStatus = OrderStatus(
-          identity: order['orders_order_status']['id'],
-          name: order['orders_order_status']['name'],
-          cancel: order['orders_order_status']['cancel'],
-          finish: order['orders_order_status']['finish'],
-          onWay: order['orders_order_status']['on_way'],
-        );
-        Terminals terminals = Terminals(
-          identity: order['orders_terminals']['id'],
-          name: order['orders_terminals']['name'],
-        );
-        Customer customer = Customer(
-          identity: order['orders_customers']['id'],
-          name: order['orders_customers']['name'],
-          phone: order['orders_customers']['phone'],
-        );
-        Organizations organizations = Organizations(
-            order['orders_organization']['id'],
-            order['orders_organization']['name'],
-            order['orders_organization']['active'],
-            order['orders_organization']['icon_url'],
-            order['orders_organization']['description'],
-            order['orders_organization']['max_distance'],
-            order['orders_organization']['max_active_orderCount'],
-            order['orders_organization']['max_order_close_distance'],
-            order['orders_organization']['support_chat_url']);
-        OrderModel orderModel = OrderModel.fromMap(order);
-        orderModel.customer.target = customer;
-        orderModel.terminal.target = terminals;
-        orderModel.orderStatus.target = orderStatus;
-        orderModel.organization.target = organizations;
-        if (order['next_buttons'] != null) {
-          order['next_buttons'].forEach((button) {
-            OrderNextButton orderNextButton = OrderNextButton.fromMap(button);
-            orderModel.orderNextButton.add(orderNextButton);
-          });
-        }
-        orders.add(orderModel);
-      });
+
+    if (_useMockData) {
+      // Use mock data for testing
+      orders = MockData.getMockOrders();
+    } else {
+      // Use real API
+      ApiServer api = ApiServer();
+      var response = await api.get('/api/orders/my_orders', {});
+
+      if (response.data != null && response.data.isNotEmpty) {
+        response.data.forEach((order) {
+          OrderStatus orderStatus = OrderStatus(
+            identity: order['orders_order_status']['id'],
+            name: order['orders_order_status']['name'],
+            cancel: order['orders_order_status']['cancel'],
+            finish: order['orders_order_status']['finish'],
+            onWay: order['orders_order_status']['on_way'],
+          );
+          Terminals terminals = Terminals(
+            identity: order['orders_terminals']['id'],
+            name: order['orders_terminals']['name'],
+          );
+          Customer customer = Customer(
+            identity: order['orders_customers']['id'],
+            name: order['orders_customers']['name'],
+            phone: order['orders_customers']['phone'],
+          );
+          Organizations organizations = Organizations(
+              order['orders_organization']['id'],
+              order['orders_organization']['name'],
+              order['orders_organization']['active'],
+              order['orders_organization']['icon_url'],
+              order['orders_organization']['description'],
+              order['orders_organization']['max_distance'],
+              order['orders_organization']['max_active_orderCount'],
+              order['orders_organization']['max_order_close_distance'],
+              order['orders_organization']['support_chat_url']);
+          OrderModel orderModel = OrderModel.fromMap(order);
+          orderModel.customer.target = customer;
+          orderModel.terminal.target = terminals;
+          orderModel.orderStatus.target = orderStatus;
+          orderModel.organization.target = organizations;
+          if (order['next_buttons'] != null) {
+            order['next_buttons'].forEach((button) {
+              OrderNextButton orderNextButton = OrderNextButton.fromMap(button);
+              orderModel.orderNextButton.add(orderNextButton);
+            });
+          }
+          orders.add(orderModel);
+        });
+      }
     }
+
     await objectBox.clearCurrentOrders();
     _controller.finishLoad(IndicatorResult.success);
     objectBox.addCurrentOrders(orders);
@@ -124,7 +137,7 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
             }
 
             if (userRole.code == 'courier') {
-              if (!userData.is_online) {
+              if (!userData.is_online && !_useMockData) {
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -156,56 +169,79 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
               } else {
                 return Stack(
                   children: [
-                    StreamBuilder<List<OrderModel>>(
-                      stream: objectBox.getCurrentOrders(),
-                      builder: (context, snapshot) {
-                        return EasyRefresh(
-                          controller: _controller,
-                          header: const BezierCircleHeader(),
-                          onRefresh: () async {
-                            await _loadOrders();
-                            _controller.finishRefresh();
-                            _controller.resetFooter();
-                          },
-                          child: snapshot.hasData && snapshot.data!.isNotEmpty
-                              ? SizeCacheWidget(
-                                  child: ListView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: snapshot.data!.length,
-                                    itemBuilder: (context, index) {
-                                      if (index == snapshot.data!.length - 1) {
-                                        return Column(
-                                          children: [
-                                            CurrentOrderCard(
-                                                order: snapshot.data![index]),
-                                            const SizedBox(height: 100)
-                                          ],
-                                        );
-                                      } else {
-                                        return CurrentOrderCard(
-                                            order: snapshot.data![index]);
-                                      }
-                                    },
+                    // Warning banner when using mock data
+                    if (_useMockData)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          color: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: const Text(
+                            '⚠️ MOCK DATA ENABLED - SET _enableMockInDebug = false ⚠️',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    Padding(
+                      padding: EdgeInsets.only(top: _useMockData ? 40 : 0),
+                      child: StreamBuilder<List<OrderModel>>(
+                        stream: objectBox.getCurrentOrders(),
+                        builder: (context, snapshot) {
+                          return EasyRefresh(
+                            controller: _controller,
+                            header: const BezierCircleHeader(),
+                            onRefresh: () async {
+                              await _loadOrders();
+                              _controller.finishRefresh();
+                              _controller.resetFooter();
+                            },
+                            child: snapshot.hasData && snapshot.data!.isNotEmpty
+                                ? SizeCacheWidget(
+                                    child: ListView.builder(
+                                      shrinkWrap: true,
+                                      itemCount: snapshot.data!.length,
+                                      itemBuilder: (context, index) {
+                                        if (index == snapshot.data!.length - 1) {
+                                          return Column(
+                                            children: [
+                                              CurrentOrderCard(
+                                                  order: snapshot.data![index]),
+                                              const SizedBox(height: 100)
+                                            ],
+                                          );
+                                        } else {
+                                          return CurrentOrderCard(
+                                              order: snapshot.data![index]);
+                                        }
+                                      },
+                                    ),
+                                  )
+                                : ListView(
+                                    children: [
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minHeight:
+                                              MediaQuery.of(context).size.height *
+                                                  0.8,
+                                        ),
+                                        child: const IntrinsicHeight(
+                                          child:
+                                              Center(child: Text('Заказов нет')),
+                                        ),
+                                      )
+                                    ],
                                   ),
-                                )
-                              : ListView(
-                                  children: [
-                                    ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        minHeight:
-                                            MediaQuery.of(context).size.height *
-                                                0.8,
-                                      ),
-                                      child: const IntrinsicHeight(
-                                        child:
-                                            Center(child: Text('Заказов нет')),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                        );
-                      },
-                    )
+                          );
+                        },
+                      ),
+                    ),
                     // const Positioned(
                     //     bottom: 20, left: 0, right: 0, child: BuildOrdersRoute())
                   ],

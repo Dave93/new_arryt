@@ -32,7 +32,7 @@ class ProfilePageView extends StatefulWidget {
 }
 
 class _ProfilePageViewState extends State<ProfilePageView>
-    with AutomaticKeepAliveClientMixin<ProfilePageView> {
+    with AutomaticKeepAliveClientMixin<ProfilePageView>, SingleTickerProviderStateMixin {
   CurrencyFormatterSettings euroSettings = CurrencyFormatterSettings(
     symbol: 'сум',
     symbolSide: SymbolSide.right,
@@ -41,6 +41,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
     symbolSeparator: ' ',
   );
   late EasyRefreshController _controller;
+  late TabController _tabController;
   List<OrderMobilePeriodStat> _ordersStat = [];
   int walletBalance = 0;
   int totalFuelBalance = 0;
@@ -181,12 +182,12 @@ class _ProfilePageViewState extends State<ProfilePageView>
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _controller = EasyRefreshController(
       controlFinishRefresh: true,
       controlFinishLoad: true,
     );
+    _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
@@ -195,6 +196,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
   @override
   void dispose() {
     _controller.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -209,32 +211,21 @@ class _ProfilePageViewState extends State<ProfilePageView>
         // ),
         body: Stack(
       children: [
-        CustomScrollView(slivers: [
+        RefreshIndicator(
+          onRefresh: _loadData,
+          child: CustomScrollView(slivers: [
           SliverAppBar(
             expandedHeight: 130.0,
             stretch: true,
             floating: false,
             pinned: true,
             toolbarHeight: 70,
-            actions: [
-              IconButton(
-                icon: const Icon(
-                  Icons.refresh_outlined,
-                  size: 30,
-                  color: Colors.white,
-                ),
-                onPressed: () {
-                  _loadData();
-                },
-              )
-            ],
             flexibleSpace: FlexibleSpaceBar(
                 collapseMode: CollapseMode.parallax,
                 titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
                 title: LayoutBuilder(
                   builder: (BuildContext context, BoxConstraints constraints) {
-                    final bool isCollapsed =
-                        constraints.maxHeight <= kToolbarHeight + 30;
+                    final bool isCollapsed = constraints.maxHeight <= 100;
                     final textColor = isCollapsed ? Colors.black : Colors.white;
 
                     return Column(
@@ -374,112 +365,9 @@ class _ProfilePageViewState extends State<ProfilePageView>
                     height: 10,
                   ),
                   const MyPerformance(),
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  ..._ordersStat
-                      .map((e) => Container(
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            child: Card(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).primaryColor,
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(12),
-                                      ),
-                                    ),
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
-                                    child: Text(
-                                      cardLabel(e.labelCode),
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      children: [
-                                        _buildStatRow(
-                                          AppLocalizations.of(context)!
-                                              .successOrderLabel
-                                              .toUpperCase(),
-                                          e.successCount.toString(),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildStatRow(
-                                          AppLocalizations.of(context)!
-                                              .failedOrderLabel
-                                              .toUpperCase(),
-                                          e.failedCount.toString(),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildStatRow(
-                                          AppLocalizations.of(context)!
-                                              .orderStatOrderPrice
-                                              .toUpperCase(),
-                                          CurrencyFormatter.format(
-                                              e.orderPrice, euroSettings),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildStatRow(
-                                          AppLocalizations.of(context)!
-                                              .orderStatBonusPrice
-                                              .toUpperCase(),
-                                          CurrencyFormatter.format(
-                                              e.bonusPrice, euroSettings),
-                                        ),
-                                        if (e.dailyGarantPrice != null) ...[
-                                          const SizedBox(height: 8),
-                                          _buildStatRow(
-                                            AppLocalizations.of(context)!
-                                                .orderStatDailyGarantPrice
-                                                .toUpperCase(),
-                                            CurrencyFormatter.format(
-                                                e.dailyGarantPrice!,
-                                                euroSettings),
-                                          ),
-                                        ],
-                                        const SizedBox(height: 8),
-                                        _buildStatRow(
-                                          AppLocalizations.of(context)!
-                                              .orderStatFuelPrice
-                                              .toUpperCase(),
-                                          CurrencyFormatter.format(
-                                              e.fuelPrice, euroSettings),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Divider(color: Colors.grey.shade300),
-                                        const SizedBox(height: 8),
-                                        _buildStatRow(
-                                          AppLocalizations.of(context)!
-                                              .orderStatTotalPrice
-                                              .toUpperCase(),
-                                          CurrencyFormatter.format(
-                                              e.totalPrice, euroSettings),
-                                          isTotal: true,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ))
-                      .toList(),
+                  const SizedBox(height: 10),
+                  if (_ordersStat.isNotEmpty)
+                    _buildOrderStatCard(),
                   const SizedBox(
                     height: 50,
                   ),
@@ -492,8 +380,120 @@ class _ProfilePageViewState extends State<ProfilePageView>
             }, childCount: 1),
           )
         ]),
+        ),
       ],
     ));
+  }
+
+  Widget _buildOrderStatCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                indicatorWeight: 3,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white60,
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                unselectedLabelStyle: const TextStyle(fontSize: 11),
+                tabs: _ordersStat.map((e) => Tab(
+                  text: _getShortLabel(e.labelCode),
+                )).toList(),
+              ),
+            ),
+            SizedBox(
+              height: 280,
+              child: TabBarView(
+                controller: _tabController,
+                children: _ordersStat.map((e) => _buildStatContent(e)).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getShortLabel(String code) {
+    switch (code) {
+      case "today":
+        return AppLocalizations.of(context)!.orderStatToday;
+      case "week":
+        return AppLocalizations.of(context)!.orderStatWeek;
+      case "month":
+        return AppLocalizations.of(context)!.orderStatMonth;
+      case "yesterday":
+        return AppLocalizations.of(context)!.orderStatYesterday;
+      default:
+        return "";
+    }
+  }
+
+  Widget _buildStatContent(OrderMobilePeriodStat e) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildStatRow(
+            AppLocalizations.of(context)!.successOrderLabel.toUpperCase(),
+            e.successCount.toString(),
+          ),
+          const SizedBox(height: 8),
+          _buildStatRow(
+            AppLocalizations.of(context)!.failedOrderLabel.toUpperCase(),
+            e.failedCount.toString(),
+          ),
+          const SizedBox(height: 8),
+          _buildStatRow(
+            AppLocalizations.of(context)!.orderStatOrderPrice.toUpperCase(),
+            CurrencyFormatter.format(e.orderPrice, euroSettings),
+          ),
+          const SizedBox(height: 8),
+          _buildStatRow(
+            AppLocalizations.of(context)!.orderStatBonusPrice.toUpperCase(),
+            CurrencyFormatter.format(e.bonusPrice, euroSettings),
+          ),
+          if (e.dailyGarantPrice != null) ...[
+            const SizedBox(height: 8),
+            _buildStatRow(
+              AppLocalizations.of(context)!.orderStatDailyGarantPrice.toUpperCase(),
+              CurrencyFormatter.format(e.dailyGarantPrice!, euroSettings),
+            ),
+          ],
+          const SizedBox(height: 8),
+          _buildStatRow(
+            AppLocalizations.of(context)!.orderStatFuelPrice.toUpperCase(),
+            CurrencyFormatter.format(e.fuelPrice, euroSettings),
+          ),
+          const SizedBox(height: 8),
+          Divider(color: Colors.grey.shade300),
+          const SizedBox(height: 8),
+          _buildStatRow(
+            AppLocalizations.of(context)!.orderStatTotalPrice.toUpperCase(),
+            CurrencyFormatter.format(e.totalPrice, euroSettings),
+            isTotal: true,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStatRow(String label, String value, {bool isTotal = false}) {

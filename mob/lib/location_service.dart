@@ -9,6 +9,7 @@ import 'package:flutter_background_service_android/flutter_background_service_an
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
 import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -18,6 +19,14 @@ SendPort? uiSendPort;
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
+
+  // Initialize Hive in the background isolate
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    Hive.init(dir.path);
+  } catch (e) {
+    print('Error initializing Hive in background service: $e');
+  }
 
   final ReceivePort receivePort = ReceivePort();
   IsolateNameServer.registerPortWithName(

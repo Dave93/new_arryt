@@ -566,7 +566,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                         style: Theme.of(context)
                             .textTheme
                             .titleMedium
-                            ?.copyWith(fontSize: 14),
+                            ?.copyWith(fontSize: 14, color: Colors.white),
                       ),
                     ),
                   ),
@@ -594,7 +594,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
-                              ?.copyWith(fontSize: 14)),
+                              ?.copyWith(fontSize: 14, color: Colors.white)),
                     ),
                   ),
                 ],

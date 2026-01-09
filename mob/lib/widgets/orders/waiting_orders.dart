@@ -1,7 +1,9 @@
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/helpers/hive_helper.dart';
+import 'package:arryt/helpers/mock_data.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:easy_refresh/easy_refresh.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
@@ -33,8 +35,22 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
   late EasyRefreshController _controller;
   List<NewOrderModel> orders = [];
 
+  // Mock data only works in debug mode - NEVER in release builds
+  // Set _enableMockInDebug to true to test with mock data during development
+  static const bool _enableMockInDebug = true;
+  static bool get _useMockData => kDebugMode && _enableMockInDebug;
+
   Future<void> _loadOrders() async {
     try {
+      if (_useMockData) {
+        // Use mock data for testing
+        setState(() {
+          orders = MockData.getMockWaitingOrders();
+        });
+        _controller.finishLoad(IndicatorResult.success);
+        return;
+      }
+
       ApiServer api = new ApiServer();
       var response = await api.get('/api/orders/my_new_orders', {});
 
@@ -147,7 +163,7 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
             }
 
             if (userRole.code == 'courier') {
-              if (!userData.is_online) {
+              if (!userData.is_online && !_useMockData) {
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -177,7 +193,31 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
                   ],
                 );
               } else {
-                return EasyRefresh(
+                return Stack(
+                  children: [
+                    // Warning banner when using mock data
+                    if (_useMockData)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          color: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: const Text(
+                            '⚠️ MOCK DATA ENABLED - SET _enableMockInDebug = false ⚠️',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    Padding(
+                      padding: EdgeInsets.only(top: _useMockData ? 40 : 0),
+                      child: EasyRefresh(
                   controller: _controller,
                   header: const BezierCircleHeader(),
                   onRefresh: () async {
@@ -209,6 +249,9 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
                             )
                           ],
                         ),
+                ),
+                    ),
+                  ],
                 );
               }
             } else {

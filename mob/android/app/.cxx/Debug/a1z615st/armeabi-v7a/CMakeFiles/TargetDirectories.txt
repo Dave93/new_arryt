@@ -1,0 +1,2 @@
+C:/projects/new_arryt/mob/android/app/.cxx/Debug/a1z615st/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/projects/new_arryt/mob/android/app/.cxx/Debug/a1z615st/armeabi-v7a/CMakeFiles/rebuild_cache.dir

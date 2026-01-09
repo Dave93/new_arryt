@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/helpers/error_translator.dart';
 import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:flutter/cupertino.dart';
@@ -70,9 +71,21 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
           'lat_close': currentPosition.latitude.toString(),
           'lon_close': currentPosition.longitude.toString(),
         });
-        if (response.statusCode != 200) {
+
+        // Check for error in response body (even with 200 status)
+        if (response.data is Map && response.data['error'] != null) {
+          String errorMsg = response.data['error'] ?? response.data['message'] ?? "Error";
           AnimatedSnackBar.material(
-            jsonDecode(response.data)['message'] ?? "Error",
+            translateServerError(context, errorMsg),
+            type: AnimatedSnackBarType.error,
+          ).show(context);
+          return value;
+        }
+
+        if (response.statusCode != 200) {
+          String errorMsg = response.data is String ? jsonDecode(response.data)['message'] : (response.data['message'] ?? "Error");
+          AnimatedSnackBar.material(
+            translateServerError(context, errorMsg),
             type: AnimatedSnackBarType.error,
           ).show(context);
           return value;
@@ -87,7 +100,7 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
       } catch (e) {
         print(e);
         AnimatedSnackBar.material(
-          e.toString(),
+          translateServerError(context, e.toString()),
           type: AnimatedSnackBarType.error,
         ).show(context);
         // setState(() {
@@ -101,9 +114,23 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
           'lon_open': currentPosition.longitude.toString(),
         });
 
-        if (response.statusCode != 200) {
+        print('Response status: ${response.statusCode}');
+        print('Response data: ${response.data}');
+
+        // Check for error in response body (even with 200 status)
+        if (response.data is Map && response.data['error'] != null) {
+          String errorMsg = response.data['error'] ?? response.data['message'] ?? "Error";
           AnimatedSnackBar.material(
-            jsonDecode(response.data)['message'] ?? "Error",
+            translateServerError(context, errorMsg),
+            type: AnimatedSnackBarType.error,
+          ).show(context);
+          return value;
+        }
+
+        if (response.statusCode != 200) {
+          String errorMsg = response.data is String ? jsonDecode(response.data)['message'] : (response.data['message'] ?? "Error");
+          AnimatedSnackBar.material(
+            translateServerError(context, errorMsg),
             type: AnimatedSnackBarType.error,
           ).show(context);
           return value;
@@ -117,7 +144,11 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
           });
         }
       } catch (e) {
-        print(e);
+        print('Error turning on: $e');
+        AnimatedSnackBar.material(
+          translateServerError(context, e.toString()),
+          type: AnimatedSnackBarType.error,
+        ).show(context);
         setState(() {
           value = false;
         });

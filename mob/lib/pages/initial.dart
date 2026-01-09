@@ -7,9 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:arryt/pages/login/type_phone.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'api_client_intro/api_client_choose_brand.dart';
 import 'home/view/home_page.dart';
 import 'package:arryt/helpers/hive_helper.dart';
 
@@ -140,26 +138,24 @@ class _InitialPageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: HiveHelper.getApiClientBox().listenable(),
-      builder: (context, Box<ApiClient> box, _) {
-        ApiClient? apiClient = HiveHelper.getDefaultApiClient();
+    // Auto-set default API client if none exists
+    ApiClient? apiClient = HiveHelper.getDefaultApiClient();
+    if (apiClient == null || !apiClient.isServiceDefault) {
+      HiveHelper.setDefaultApiClient(ApiClient(
+        apiUrl: 'api.arryt.uz',
+        serviceName: 'Arryt',
+        isServiceDefault: true,
+      ));
+    }
 
-        if (apiClient != null && apiClient.isServiceDefault) {
-          return ValueListenableBuilder(
-            valueListenable: HiveHelper.getUserDataBox().listenable(),
-            builder: (context, Box<UserData> userBox, _) {
-              final userData = HiveHelper.getUserData();
-              if (userData != null &&
-                  userData.accessToken?.isNotEmpty == true) {
-                return const HomeViewPage();
-              } else {
-                return const LoginTypePhonePage();
-              }
-            },
-          );
+    return ValueListenableBuilder(
+      valueListenable: HiveHelper.getUserDataBox().listenable(),
+      builder: (context, Box<UserData> userBox, _) {
+        final userData = HiveHelper.getUserData();
+        if (userData != null && userData.accessToken?.isNotEmpty == true) {
+          return const HomeViewPage();
         } else {
-          return const ApiClientChooseBrand();
+          return const LoginTypePhonePage();
         }
       },
     );

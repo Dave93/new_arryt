@@ -10,6 +10,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:arryt/bloc/block_imports.dart';
+import 'package:arryt/provider/locale_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 
 import '../../widgets/wave/wave_widget.dart';
@@ -176,21 +178,79 @@ class _LoginTypePhonePageState extends ConsumerState<LoginTypePhonePage> {
                   const SizedBox(
                     height: 20,
                   ),
-                  RoundedLoadingButton(
-                    controller: _btnController,
-                    onPressed: trySendPhoneNumber,
-                    color: Theme.of(context).primaryColor,
-                    child: Text(
-                        AppLocalizations.of(context)!.send_code.toUpperCase(),
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium!
-                            .copyWith(color: Colors.white)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: RoundedLoadingButton(
+                          controller: _btnController,
+                          onPressed: trySendPhoneNumber,
+                          color: Theme.of(context).primaryColor,
+                          child: Text(
+                              AppLocalizations.of(context)!.send_code.toUpperCase(),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium!
+                                  .copyWith(color: Colors.white)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _buildLanguageSwitcher(context),
+                    ],
                   )
                 ],
               )),
         ],
       ),
+    );
+  }
+
+  Widget _buildLanguageSwitcher(BuildContext context) {
+    final localeProvider = context.watch<LocaleProvider>();
+    final currentLocale = localeProvider.locale?.languageCode ?? 'ru';
+
+    return PopupMenuButton<String>(
+      offset: const Offset(0, -150),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).primaryColor,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              currentLocale.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+          ],
+        ),
+      ),
+      onSelected: (String langCode) {
+        context.read<LocaleProvider>().setLocale(Locale(langCode));
+      },
+      itemBuilder: (BuildContext context) => [
+        const PopupMenuItem<String>(
+          value: 'uz',
+          child: Text('O\'zbekcha'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'ru',
+          child: Text('Русский'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'en',
+          child: Text('English'),
+        ),
+      ],
     );
   }
 

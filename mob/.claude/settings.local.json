@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter devices:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter pub outdated:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter pub upgrade:*)",
+      "Bash(flutter clean:*)",
+      "Bash(flutter --version:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}

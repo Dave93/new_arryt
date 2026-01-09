@@ -166,6 +166,18 @@ class _AcceptOrderState extends State<AcceptOrder> {
         'longitude': currentPosition?.longitude,
       });
 
+      print('Response status: ${response.statusCode}');
+      print('Response data: ${response.data}');
+
+      // Check for error in response body (even with 200 status)
+      if (response.data is Map && response.data['error'] != null) {
+        _actionSliderController.reset();
+        return AnimatedSnackBar.material(
+          response.data['error'] ?? response.data['message'] ?? "Error",
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+      }
+
       if (response.statusCode != 200) {
         _actionSliderController.reset();
         return AnimatedSnackBar.material(
@@ -186,8 +198,31 @@ class _AcceptOrderState extends State<AcceptOrder> {
       }
     } on DioException catch (e) {
       _actionSliderController.reset();
+      print('DioException in _approveOrder: $e');
+      print('DioException response: ${e.response}');
+      print('DioException error: ${e.error}');
+
+      String errorMessage = "Error";
+      // First check if error is directly available (from api_server.dart throw)
+      if (e.error != null && e.error.toString().isNotEmpty && e.error.toString() != 'null') {
+        errorMessage = e.error.toString();
+      }
+      // Then check response data
+      else if (e.response?.data != null) {
+        if (e.response!.data is Map && e.response!.data['message'] != null) {
+          errorMessage = e.response!.data['message'];
+        } else if (e.response!.data is String) {
+          errorMessage = e.response!.data;
+        }
+      }
+      // Fallback to message
+      else if (e.message != null && e.message!.isNotEmpty) {
+        errorMessage = e.message!;
+      }
+
+      print('Showing error message: $errorMessage');
       return AnimatedSnackBar.material(
-        e.error.toString(),
+        errorMessage,
         type: AnimatedSnackBarType.error,
       ).show(context);
     } catch (e) {
@@ -202,17 +237,53 @@ class _AcceptOrderState extends State<AcceptOrder> {
   Future<void> _cancelOrder() async {
     _actionSliderController.loading();
     ApiServer api = new ApiServer();
-    var response =
-        await api.post('/api/cancel_accept_order/${widget.orderId}', {
-      'queue': widget.queue,
-    });
-    if (response.statusCode == 200) {
+    try {
+      var response =
+          await api.post('/api/cancel_accept_order/${widget.orderId}', {
+        'queue': widget.queue,
+      });
+
+      // Check for error in response body (even with 200 status)
+      if (response.data is Map && response.data['error'] != null) {
+        _actionSliderController.reset();
+        return AnimatedSnackBar.material(
+          response.data['error'] ?? response.data['message'] ?? "Error",
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+      }
+
+      if (response.statusCode == 200) {
+        _actionSliderController.reset();
+        Navigator.pop(context);
+      } else {
+        _actionSliderController.reset();
+        AnimatedSnackBar.material(
+          response.data['message'] ?? "Error",
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+      }
+    } on DioException catch (e) {
       _actionSliderController.reset();
-      Navigator.pop(context);
-    } else {
+      String errorMessage = "Error";
+      if (e.error != null && e.error.toString().isNotEmpty && e.error.toString() != 'null') {
+        errorMessage = e.error.toString();
+      } else if (e.response?.data != null) {
+        if (e.response!.data is Map && e.response!.data['message'] != null) {
+          errorMessage = e.response!.data['message'];
+        } else if (e.response!.data is String) {
+          errorMessage = e.response!.data;
+        }
+      } else if (e.message != null && e.message!.isNotEmpty) {
+        errorMessage = e.message!;
+      }
+      return AnimatedSnackBar.material(
+        errorMessage,
+        type: AnimatedSnackBarType.error,
+      ).show(context);
+    } catch (e) {
       _actionSliderController.reset();
-      AnimatedSnackBar.material(
-        response.data['message'] ?? "Error",
+      return AnimatedSnackBar.material(
+        e.toString(),
         type: AnimatedSnackBarType.error,
       ).show(context);
     }

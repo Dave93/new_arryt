@@ -14,14 +14,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:upgrader/upgrader.dart';
-import 'package:badges/badges.dart' as badges;
-
 import '../../../router.dart';
 import '../../../widgets/home/check_permissions.dart';
 import '../../../widgets/no_role_set.dart';
-import '../../../widgets/notifications_count.dart';
 import '../../manager/couriers_list.dart';
-import '../../notifications/notifications.dart';
 import '../../orders_history/orders_history.dart';
 
 @RoutePage()
@@ -42,7 +38,12 @@ class HomeViewPage extends StatefulWidget {
 }
 
 class _HomeViewPageState extends State<HomeViewPage> {
+  static bool _permissionsChecked = false;
+
   Future checkPermissions() async {
+    if (_permissionsChecked) return;
+    _permissionsChecked = true;
+
     bool isShowPermissionsPage = false;
     if (defaultTargetPlatform == TargetPlatform.android) {
       bool? isBatteryOptimizationDisabled =
@@ -61,12 +62,12 @@ class _HomeViewPageState extends State<HomeViewPage> {
       isShowPermissionsPage = true;
     }
 
-    if (isShowPermissionsPage) {
+    if (isShowPermissionsPage && mounted) {
       showModalBottomSheet(
           context: context,
           isDismissible: false,
           enableDrag: false,
-          builder: (context) => HomeCheckPermissions());
+          builder: (context) => const HomeCheckPermissions());
     }
   }
 
@@ -103,49 +104,25 @@ class _HomeViewPageState extends State<HomeViewPage> {
                     items: [
                       PersistentBottomNavBarItem(
                         icon: const Icon(Icons.person),
-                        title:
-                            AppLocalizations.of(context)!.profile.toUpperCase(),
+                        title: AppLocalizations.of(context)!.profile,
                         activeColorPrimary: Theme.of(context).primaryColor,
                         inactiveColorPrimary: Colors.grey,
                       ),
                       PersistentBottomNavBarItem(
                         icon: const Icon(Icons.list),
-                        title:
-                            AppLocalizations.of(context)!.orders.toUpperCase(),
+                        title: AppLocalizations.of(context)!.orders,
                         activeColorPrimary: Theme.of(context).primaryColor,
                         inactiveColorPrimary: Colors.grey,
                       ),
                       PersistentBottomNavBarItem(
                         icon: const Icon(Icons.history_rounded),
-                        title: AppLocalizations.of(context)!
-                            .ordersHistory
-                            .toUpperCase(),
-                        activeColorPrimary: Theme.of(context).primaryColor,
-                        inactiveColorPrimary: Colors.grey,
-                      ),
-                      PersistentBottomNavBarItem(
-                        icon: const badges.Badge(
-                          badgeContent: NotificationsCountBadge(),
-                          badgeAnimation: badges.BadgeAnimation.rotation(
-                            animationDuration: Duration(seconds: 1),
-                            colorChangeAnimationDuration: Duration(seconds: 1),
-                            loopAnimation: false,
-                            curve: Curves.fastOutSlowIn,
-                            colorChangeAnimationCurve: Curves.easeInCubic,
-                          ),
-                          child: Icon(Icons.notifications_active_outlined),
-                        ),
-                        title: AppLocalizations.of(context)!
-                            .notificationsLabel
-                            .toUpperCase(),
+                        title: AppLocalizations.of(context)!.ordersHistory.replaceAll('\n', ' '),
                         activeColorPrimary: Theme.of(context).primaryColor,
                         inactiveColorPrimary: Colors.grey,
                       ),
                       PersistentBottomNavBarItem(
                         icon: const Icon(Icons.settings),
-                        title: AppLocalizations.of(context)!
-                            .settings
-                            .toUpperCase(),
+                        title: AppLocalizations.of(context)!.settings,
                         activeColorPrimary: Theme.of(context).primaryColor,
                         inactiveColorPrimary: Colors.grey,
                       ),
@@ -169,39 +146,31 @@ class _HomeViewPageState extends State<HomeViewPage> {
                   items: [
                     PersistentBottomNavBarItem(
                       icon: const Icon(Icons.person),
-                      title:
-                          AppLocalizations.of(context)!.profile.toUpperCase(),
+                      title: AppLocalizations.of(context)!.profile,
                       activeColorPrimary: Theme.of(context).primaryColor,
                       inactiveColorPrimary: Colors.grey,
                     ),
                     PersistentBottomNavBarItem(
                       icon: const Icon(Icons.account_balance_wallet_outlined),
-                      title: AppLocalizations.of(context)!
-                          .couriersListTabLabel
-                          .toUpperCase(),
+                      title: AppLocalizations.of(context)!.couriersListTabLabel,
                       activeColorPrimary: Theme.of(context).primaryColor,
                       inactiveColorPrimary: Colors.grey,
                     ),
                     PersistentBottomNavBarItem(
                       icon: const Icon(Icons.history_rounded),
-                      title: AppLocalizations.of(context)!
-                          .ordersHistory
-                          .toUpperCase(),
+                      title: AppLocalizations.of(context)!.ordersHistory.replaceAll('\n', ' '),
                       activeColorPrimary: Theme.of(context).primaryColor,
                       inactiveColorPrimary: Colors.grey,
                     ),
                     PersistentBottomNavBarItem(
-                      icon: const Icon(Icons.history_rounded),
-                      title: AppLocalizations.of(context)!
-                          .ordersManagement
-                          .toUpperCase(),
+                      icon: const Icon(Icons.assignment_outlined),
+                      title: AppLocalizations.of(context)!.ordersManagement.replaceAll('\n', ' '),
                       activeColorPrimary: Theme.of(context).primaryColor,
                       inactiveColorPrimary: Colors.grey,
                     ),
                     PersistentBottomNavBarItem(
                       icon: const Icon(Icons.settings),
-                      title:
-                          AppLocalizations.of(context)!.settings.toUpperCase(),
+                      title: AppLocalizations.of(context)!.settings,
                       activeColorPrimary: Theme.of(context).primaryColor,
                       inactiveColorPrimary: Colors.grey,
                     ),
@@ -234,7 +203,6 @@ class _HomeViewPageState extends State<HomeViewPage> {
         const ProfilePageView(),
         OrdersPage(),
         const OrdersHistory(),
-        const NotificationPage(),
         const SettingsPage()
       ];
     } else if (role.code == 'manager') {

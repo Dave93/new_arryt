@@ -194,6 +194,21 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
         'latitude': currentPosition?.latitude,
         'longitude': currentPosition?.longitude
       });
+
+      print('Response status: ${response.statusCode}');
+      print('Response data: ${response.data}');
+
+      // Check for error in response body (even with 200 status)
+      if (response.data is Map && response.data['error'] != null) {
+        setState(() {
+          loading = false;
+        });
+        return AnimatedSnackBar.material(
+          response.data['error'] ?? response.data['message'] ?? "Error",
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+      }
+
       if (response.statusCode != 200) {
         setState(() {
           loading = false;
@@ -263,8 +278,16 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
         loading = false;
       });
       print(e);
+      String errorMessage = "Error";
+      if (e.response?.data != null && e.response?.data['message'] != null) {
+        errorMessage = e.response!.data['message'];
+      } else if (e.message != null) {
+        errorMessage = e.message!;
+      } else if (e.error != null) {
+        errorMessage = e.error.toString();
+      }
       return AnimatedSnackBar.material(
-        e.error.toString(),
+        errorMessage,
         type: AnimatedSnackBarType.error,
       ).show(context);
     } catch (e) {
@@ -273,7 +296,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
       });
       print(e);
       return AnimatedSnackBar.material(
-        e.toString() ?? "Error",
+        e.toString(),
         type: AnimatedSnackBarType.error,
       ).show(context);
     }
@@ -455,39 +478,39 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                      flex: 2,
-                      child: GestureDetector(
-                        onTap: () async {
-                          final coords = Coords(
-                              widget.order.from_lat, widget.order.from_lon);
-                          launchYandexNavi(
-                              widget.order.from_lat, widget.order.from_lon);
-                        },
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                widget.order.terminal.target!.name,
-                                maxLines: 8,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 5,
-                            ),
-                            Icon(
-                              Icons.navigation_outlined,
-                              color: Theme.of(context).primaryColor,
-                            )
-                          ],
-                        ),
-                      )),
-                  const Expanded(
-                    flex: 1,
-                    child: SizedBox(width: double.infinity),
-                  ),
+                  // Expanded(
+                  //     flex: 2,
+                  //     child: GestureDetector(
+                  //       onTap: () async {
+                  //         final coords = Coords(
+                  //             widget.order.from_lat, widget.order.from_lon);
+                  //         launchYandexNavi(
+                  //             widget.order.from_lat, widget.order.from_lon);
+                  //       },
+                  //       child: Row(
+                  //         children: [
+                  //           Flexible(
+                  //             child: Text(
+                  //               widget.order.terminal.target!.name,
+                  //               maxLines: 8,
+                  //               style: const TextStyle(
+                  //                   fontWeight: FontWeight.bold),
+                  //             ),
+                  //           ),
+                  //           SizedBox(
+                  //             width: 5,
+                  //           ),
+                  //           Icon(
+                  //             Icons.navigation_outlined,
+                  //             color: Theme.of(context).primaryColor,
+                  //           )
+                  //         ],
+                  //       ),
+                  //     )),
+                  // const Expanded(
+                  //   flex: 1,
+                  //   child: SizedBox(width: double.infinity),
+                  // ),
                   Expanded(
                       flex: 3,
                       child: GestureDetector(
@@ -527,7 +550,32 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                         AppLocalizations.of(context)!.additional_phone_label,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Text(widget.order.additional_phone ?? ''),
+                      if (widget.order.additional_phone != null &&
+                          widget.order.additional_phone!.isNotEmpty)
+                        GestureDetector(
+                          onTap: () => _makePhoneCall(widget.order.additional_phone!),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.phone,
+                                color: Colors.green,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.order.additional_phone!,
+                                style: const TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Text(''),
                     ],
                   ),
                   Row(
@@ -689,103 +737,111 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
           const SizedBox(
             height: 5,
           ),
-          Container(
-            color: Theme.of(context).primaryColor,
-            child: IntrinsicHeight(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      AutoRouter.of(context).pushNamed(
-                          '/order/customer-comments/${widget.order.customer.target!.identity}/${widget.order.identity}');
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 15.0),
-                      child: Text(
-                        AppLocalizations.of(context)!
-                            .order_card_comments
-                            .toUpperCase(),
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontSize: 14),
-                      ),
-                    ),
-                  ),
-                  const VerticalDivider(
-                    color: Colors.white,
-                    thickness: 1,
-                    width: 1,
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      showBarModalBottomSheet(
-                        context: context,
-                        expand: false,
-                        builder: (context) => OrderItemsTable(
-                          orderId: widget.order.identity,
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 15.0),
-                      child: Text(
+          ClipRRect(
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(widget.order.orderNextButton.isEmpty ? 20 : 0),
+              bottomRight: Radius.circular(widget.order.orderNextButton.isEmpty ? 20 : 0),
+            ),
+            child: Container(
+              color: Theme.of(context).primaryColor,
+              child: IntrinsicHeight(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        AutoRouter.of(context).pushNamed(
+                            '/order/customer-comments/${widget.order.customer.target!.identity}/${widget.order.identity}');
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 15.0),
+                        child: Text(
                           AppLocalizations.of(context)!
-                              .order_card_items
+                              .order_card_comments
                               .toUpperCase(),
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
-                              ?.copyWith(fontSize: 14)),
+                              ?.copyWith(fontSize: 14, color: Colors.white),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    const VerticalDivider(
+                      color: Colors.white,
+                      thickness: 1,
+                      width: 1,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        showBarModalBottomSheet(
+                          context: context,
+                          expand: false,
+                          builder: (context) => OrderItemsTable(
+                            orderId: widget.order.identity,
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 15.0),
+                        child: Text(
+                            AppLocalizations.of(context)!
+                                .order_card_items
+                                .toUpperCase(),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontSize: 14, color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(
-            height: 10,
-          ),
-          widget.order.orderNextButton.isNotEmpty
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ...widget.order.orderNextButton.map((e) {
-                      Color color = Theme.of(context).primaryColor;
-                      if (e.cancel) {
-                        color = Colors.red.shade500;
-                      }
-                      if (e.finish) {
-                        color = Colors.green.shade500;
-                      }
-                      return Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: color,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(0),
-                            ),
-                          ),
-                          onPressed: () async {
-                            if (loading) return;
-                            _setOrderStatus(e);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 20.0),
-                            child: loading
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                  )
-                                : Text(e.name.toUpperCase()),
+          if (widget.order.orderNextButton.isNotEmpty)
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ...widget.order.orderNextButton.map((e) {
+                    Color color = Theme.of(context).primaryColor;
+                    if (e.cancel) {
+                      color = Colors.red.shade500;
+                    }
+                    if (e.finish) {
+                      color = Colors.green.shade500;
+                    }
+                    return Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: color,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(0),
                           ),
                         ),
-                      );
-                    })
-                  ],
-                )
-              : const SizedBox(),
+                        onPressed: () async {
+                          if (loading) return;
+                          _setOrderStatus(e);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20.0),
+                          child: loading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : Text(e.name.toUpperCase()),
+                        ),
+                      ),
+                    );
+                  })
+                ],
+              ),
+            ),
         ],
       ),
     );

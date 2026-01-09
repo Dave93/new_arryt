@@ -140,7 +140,11 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
                               foregroundColor: Colors.white,
                             ),
                             onPressed: () async {
-                              openAppSettings();
+                              LocationPermission permission = await Geolocator.requestPermission();
+                              if (permission == LocationPermission.denied ||
+                                  permission == LocationPermission.deniedForever) {
+                                openAppSettings();
+                              }
                             },
                             child: Text(
                                 AppLocalizations.of(context)!

@@ -6,7 +6,8 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:http/http.dart' as http;
 
 import '../bloc/block_imports.dart';
-import '../pages/api_client_intro/api_client_intro.dart';
+import '../models/api_client.dart';
+import 'hive_helper.dart';
 
 class ApiGraphqlProvider extends StatelessWidget {
   Widget child;
@@ -76,52 +77,40 @@ class _ApiGraphqlProviderView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ApiClientsBloc, ApiClientsState>(
-        builder: (context, state) {
-      if (state.apiClients.isEmpty) {
-        return const ApiClientIntroPage();
-      } else {
-        // find the first api client that is service default
-        final apiClient = state.apiClients.firstWhere(
-            (element) => element.isServiceDefault == true,
-            orElse: () => state.apiClients.first);
-        if (apiClient == null) {
-          return const ApiClientIntroPage();
-        } else {
-          final HttpLink httpLink = HttpLink(
-            'https://${apiClient.apiUrl}/graphql',
-          );
-          final AuthLink authLink = AuthLink(
-            getToken: () async => await getBoxToken(context),
-          );
+    // Use HiveHelper to get API client
+    var apiClient = HiveHelper.getDefaultApiClient();
 
-          // final WebSocketLink wsLink = WebSocketLink(
-          //   'wss://${apiClient.apiUrl}/ws',
-          //   config: const SocketClientConfig(
-          //     autoReconnect: true,
-          //     inactivityTimeout: Duration(seconds: 30),
-          //   ),
-          //   subProtocol: GraphQLProtocol.graphqlTransportWs,
-          // );
+    // If no API client, set default
+    if (apiClient == null) {
+      HiveHelper.setDefaultApiClient(ApiClient(
+        apiUrl: 'api.arryt.uz',
+        serviceName: 'Arryt',
+        isServiceDefault: true,
+      ));
+      apiClient = HiveHelper.getDefaultApiClient();
+    }
 
-          final Link queryLink = authLink.concat(httpLink);
+    final HttpLink httpLink = HttpLink(
+      'https://${apiClient!.apiUrl}/graphql',
+    );
+    final AuthLink authLink = AuthLink(
+      getToken: () async => await getBoxToken(context),
+    );
 
-          final Link link =
-              Link.split((request) => request.isSubscription, queryLink);
+    final Link queryLink = authLink.concat(httpLink);
 
-          ValueNotifier<GraphQLClient> client = ValueNotifier(
-            GraphQLClient(
-              link: link,
-              // The default store is the InMemoryStore, which does NOT persist to disk
-              cache: GraphQLCache(store: HiveStore()),
-            ),
-          );
-          return GraphQLProvider(
-            client: client,
-            child: child,
-          );
-        }
-      }
-    });
+    final Link link =
+        Link.split((request) => request.isSubscription, queryLink);
+
+    ValueNotifier<GraphQLClient> client = ValueNotifier(
+      GraphQLClient(
+        link: link,
+        cache: GraphQLCache(store: HiveStore()),
+      ),
+    );
+    return GraphQLProvider(
+      client: client,
+      child: child,
+    );
   }
 }

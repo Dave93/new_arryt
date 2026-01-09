@@ -93,67 +93,61 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Spacer(),
             Text("V${_packageInfo.version}"),
+            const SizedBox(height: 8),
             Text(AppLocalizations.of(context)!.choose_lang.toUpperCase(),
                 style: const TextStyle(color: Colors.black)),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(50),
-                  color: Colors.grey[200]),
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        context
-                            .read<LocaleProvider>()
-                            .setLocale(const Locale('uz'));
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(50),
-                        child: Image.asset(
-                          'icons/flags/png/uz.png',
-                          package: 'country_icons',
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        context
-                            .read<LocaleProvider>()
-                            .setLocale(const Locale('ru'));
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(50),
-                        child: Image.asset('icons/flags/png/ru.png',
-                            package: 'country_icons',
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        context
-                            .read<LocaleProvider>()
-                            .setLocale(const Locale('en'));
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(50),
-                        child: Image.asset('icons/flags/png/us.png',
-                            package: 'country_icons',
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover),
-                      ),
-                    ),
-                  ]),
-            )
+            _buildLanguageSwitcher(context)
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageSwitcher(BuildContext context) {
+    final localeProvider = context.watch<LocaleProvider>();
+    final currentLocale = localeProvider.locale?.languageCode ?? 'ru';
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(50),
+        color: Colors.grey[200],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildLanguageButton(context, 'uz', "O'zbekcha", currentLocale),
+          _buildLanguageButton(context, 'ru', 'Русский', currentLocale),
+          _buildLanguageButton(context, 'en', 'English', currentLocale),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageButton(
+      BuildContext context, String code, String label, String currentLocale) {
+    final isSelected = currentLocale == code;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          context.read<LocaleProvider>().setLocale(Locale(code));
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(50),
+            color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
         ),
       ),
     );
