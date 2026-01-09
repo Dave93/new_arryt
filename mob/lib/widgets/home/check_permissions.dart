@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:disable_battery_optimization/disable_battery_optimization.dart';
 import 'package:flutter/material.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class HomeCheckPermissions extends StatefulWidget {
   const HomeCheckPermissions({super.key});
@@ -49,9 +52,28 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     myTimer.cancel();
+  }
+
+  /// Opens app permissions page directly on Android, or app settings on iOS
+  Future<void> _openAppPermissions() async {
+    if (Platform.isAndroid) {
+      try {
+        final packageInfo = await PackageInfo.fromPlatform();
+        final intent = AndroidIntent(
+          action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
+          data: 'package:${packageInfo.packageName}',
+        );
+        await intent.launch();
+      } catch (e) {
+        // Fallback to app settings if intent fails
+        await AppSettings.openAppSettings(asAnotherTask: true);
+      }
+    } else {
+      // iOS - open app settings
+      await AppSettings.openAppSettings(asAnotherTask: true);
+    }
   }
 
   @override
@@ -140,31 +162,7 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
                               foregroundColor: Colors.white,
                             ),
                             onPressed: () async {
-                              // Check current permission status
-                              LocationPermission currentPermission = await Geolocator.checkPermission();
-
-                              if (currentPermission == LocationPermission.denied) {
-                                // First request basic permission
-                                currentPermission = await Geolocator.requestPermission();
-                              }
-
-                              if (currentPermission == LocationPermission.deniedForever) {
-                                // Permission permanently denied, must go to settings
-                                await openAppSettings();
-                                return;
-                              }
-
-                              if (currentPermission == LocationPermission.whileInUse) {
-                                // Has "while in use" but need "always"
-                                // On Android 10+/iOS, we need to open settings for user to change to "always"
-                                await openAppSettings();
-                                return;
-                              }
-
-                              if (currentPermission == LocationPermission.denied) {
-                                // Still denied after request, open settings
-                                await openAppSettings();
-                              }
+                              await _openAppPermissions();
                             },
                             child: Text(
                                 AppLocalizations.of(context)!

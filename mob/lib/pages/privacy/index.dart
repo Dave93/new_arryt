@@ -3,6 +3,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:arryt/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 @RoutePage()
 class PrivacyPolicyPage extends StatefulWidget {
@@ -16,38 +17,19 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
   final GlobalKey webViewKey = GlobalKey();
 
   InAppWebViewController? webViewController;
-  // InAppWebViewSettings settings = InAppWebViewSettings(
-  //     useShouldOverrideUrlLoading: true,
-  //     mediaPlaybackRequiresUserGesture: false,
-  //     allowsInlineMediaPlayback: true,
-  //     iframeAllow: "camera; microphone",
-  //     iframeAllowFullscreen: true);
+  InAppWebViewSettings settings = InAppWebViewSettings(
+      useShouldOverrideUrlLoading: true,
+      mediaPlaybackRequiresUserGesture: false,
+      allowsInlineMediaPlayback: true,
+      iframeAllow: "camera; microphone",
+      iframeAllowFullscreen: true);
 
-  PullToRefreshController? pullToRefreshController;
   String url = "https://admin.arryt.uz/privacy";
   double progress = 0;
-  final urlController = TextEditingController();
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    // pullToRefreshController = kIsWeb
-    //     ? null
-    //     : PullToRefreshController(
-    //         settings: PullToRefreshSettings(
-    //           color: Colors.blue,
-    //         ),
-    //         onRefresh: () async {
-    //           if (defaultTargetPlatform == TargetPlatform.android) {
-    //             webViewController?.reload();
-    //           } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-    //             webViewController?.loadUrl(
-    //                 urlRequest:
-    //                     URLRequest(url: await webViewController?.getUrl()));
-    //           }
-    //         },
-    //       );
   }
 
   @override
@@ -63,87 +45,68 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
         title: AutoSizeText(
           AppLocalizations.of(context)!.privacyPolicy,
           maxLines: 2,
-          // textAlign: TextAlign.center,
         ),
       ),
       body: Stack(
         children: [
-          SizedBox(),
-          // InAppWebView(
-          //   key: webViewKey,
-          //   initialUrlRequest: URLRequest(url: WebUri(url)),
-          //   initialSettings: settings,
-          //   pullToRefreshController: pullToRefreshController,
-          //   onWebViewCreated: (controller) {
-          //     webViewController = controller;
-          //   },
-          //   onLoadStart: (controller, url) {
-          //     setState(() {
-          //       this.url = url.toString();
-          //       urlController.text = this.url;
-          //     });
-          //   },
-          //   onPermissionRequest: (controller, request) async {
-          //     return PermissionResponse(
-          //         resources: request.resources,
-          //         action: PermissionResponseAction.GRANT);
-          //   },
-          //   shouldOverrideUrlLoading: (controller, navigationAction) async {
-          //     var uri = navigationAction.request.url!;
+          InAppWebView(
+            key: webViewKey,
+            initialUrlRequest: URLRequest(url: WebUri(url)),
+            initialSettings: settings,
+            onWebViewCreated: (controller) {
+              webViewController = controller;
+            },
+            onLoadStart: (controller, url) {
+              setState(() {
+                this.url = url.toString();
+              });
+            },
+            onPermissionRequest: (controller, request) async {
+              return PermissionResponse(
+                  resources: request.resources,
+                  action: PermissionResponseAction.GRANT);
+            },
+            shouldOverrideUrlLoading: (controller, navigationAction) async {
+              var uri = navigationAction.request.url!;
 
-          //     if (![
-          //       "http",
-          //       "https",
-          //       "file",
-          //       "chrome",
-          //       "data",
-          //       "javascript",
-          //       "about"
-          //     ].contains(uri.scheme)) {
-          //       if (await canLaunchUrl(uri)) {
-          //         // Launch the App
-          //         await launchUrl(
-          //           uri,
-          //         );
-          //         // and cancel the request
-          //         return NavigationActionPolicy.CANCEL;
-          //       }
-          //     }
+              if (![
+                "http",
+                "https",
+                "file",
+                "chrome",
+                "data",
+                "javascript",
+                "about"
+              ].contains(uri.scheme)) {
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                  return NavigationActionPolicy.CANCEL;
+                }
+              }
 
-          //     return NavigationActionPolicy.ALLOW;
-          //   },
-          //   onLoadStop: (controller, url) async {
-          //     pullToRefreshController?.endRefreshing();
-          //     setState(() {
-          //       this.url = url.toString();
-          //       urlController.text = this.url;
-          //     });
-          //   },
-          //   onReceivedError: (controller, request, error) {
-          //     pullToRefreshController?.endRefreshing();
-          //   },
-          //   onProgressChanged: (controller, progress) {
-          //     if (progress == 100) {
-          //       pullToRefreshController?.endRefreshing();
-          //     }
-          //     setState(() {
-          //       this.progress = progress / 100;
-          //       urlController.text = url;
-          //     });
-          //   },
-          //   onUpdateVisitedHistory: (controller, url, androidIsReload) {
-          //     setState(() {
-          //       this.url = url.toString();
-          //       urlController.text = this.url;
-          //     });
-          //   },
-          //   onConsoleMessage: (controller, consoleMessage) {
-          //     print(consoleMessage);
-          //   },
-          // ),
-          // progress < 1.0
-          //     ? LinearProgressIndicator(value: progress)
-          //     : Container(),
+              return NavigationActionPolicy.ALLOW;
+            },
+            onLoadStop: (controller, url) async {
+              setState(() {
+                this.url = url.toString();
+              });
+            },
+            onReceivedError: (controller, request, error) {
+              // Handle error
+            },
+            onProgressChanged: (controller, progress) {
+              setState(() {
+                this.progress = progress / 100;
+              });
+            },
+            onUpdateVisitedHistory: (controller, url, androidIsReload) {
+              setState(() {
+                this.url = url.toString();
+              });
+            },
+          ),
+          if (progress < 1.0)
+            LinearProgressIndicator(value: progress),
         ],
       ),
     );

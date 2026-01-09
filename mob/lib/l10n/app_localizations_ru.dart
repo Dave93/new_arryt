@@ -141,16 +141,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get currency_label => 'сум';
 
   @override
-  String get orderStatToday => 'Заказы на сегодня';
+  String get orderStatToday => 'Сегодня';
 
   @override
-  String get orderStatWeek => 'Заказы на неделю';
+  String get orderStatWeek => 'Неделя';
 
   @override
-  String get orderStatMonth => 'Заказы на месяц';
+  String get orderStatMonth => 'Месяц';
 
   @override
-  String get orderStatYesterday => 'Заказы на вчера';
+  String get orderStatYesterday => 'Вчера';
 
   @override
   String get successOrderLabel => 'Успешные';
