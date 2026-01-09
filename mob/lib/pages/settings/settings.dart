@@ -1,5 +1,7 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:arryt/provider/locale_provider.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +36,42 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _packageInfo = info;
     });
+  }
+
+  Future<void> _testNotificationSound(BuildContext context) async {
+    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+    const androidDetails = AndroidNotificationDetails(
+      'test_channel',
+      'Test Notifications',
+      channelDescription: 'Channel for testing notification sound',
+      importance: Importance.max,
+      priority: Priority.high,
+      sound: RawResourceAndroidNotificationSound('notify'),
+      playSound: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      sound: 'notify.wav',
+    );
+
+    const notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Test Notification',
+      'If you hear the sound, it works!',
+      notificationDetails,
+    );
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Notification sent! Check your notification panel.')),
+      );
+    }
   }
 
   @override
@@ -91,6 +129,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 UrlLauncher.launch("tel://712051111");
               },
             ),
+            // Test notification button - only visible in debug mode
+            if (kDebugMode)
+              ListTile(
+                title: const Text('Test Notification Sound'),
+                leading: const Icon(Icons.notifications_active),
+                trailing: const Icon(Icons.play_arrow),
+                onTap: () => _testNotificationSound(context),
+              ),
             const Spacer(),
             Text("V${_packageInfo.version}"),
             const SizedBox(height: 8),
