@@ -32,7 +32,9 @@ class ProfilePageView extends StatefulWidget {
 }
 
 class _ProfilePageViewState extends State<ProfilePageView>
-    with AutomaticKeepAliveClientMixin<ProfilePageView>, SingleTickerProviderStateMixin {
+    with
+        AutomaticKeepAliveClientMixin<ProfilePageView>,
+        SingleTickerProviderStateMixin {
   CurrencyFormatterSettings euroSettings = CurrencyFormatterSettings(
     symbol: 'сум',
     symbolSide: SymbolSide.right,
@@ -46,6 +48,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
   int walletBalance = 0;
   int totalFuelBalance = 0;
   double rating = 0;
+  int _currentTabIndex = 0;
   UserData? user = HiveHelper.getUserData();
 
   Future<void> _loadData() async {
@@ -188,6 +191,13 @@ class _ProfilePageViewState extends State<ProfilePageView>
       controlFinishLoad: true,
     );
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {
+          _currentTabIndex = _tabController.index;
+        });
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
@@ -214,108 +224,144 @@ class _ProfilePageViewState extends State<ProfilePageView>
         RefreshIndicator(
           onRefresh: _loadData,
           child: CustomScrollView(slivers: [
-          SliverAppBar(
-            expandedHeight: 130.0,
-            stretch: true,
-            floating: false,
-            pinned: true,
-            toolbarHeight: 70,
-            flexibleSpace: FlexibleSpaceBar(
-                collapseMode: CollapseMode.parallax,
-                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                title: LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) {
-                    final bool isCollapsed = constraints.maxHeight <= 100;
-                    final textColor = isCollapsed ? Colors.black : Colors.white;
+            SliverAppBar(
+              expandedHeight: 130.0,
+              stretch: true,
+              floating: false,
+              pinned: true,
+              toolbarHeight: 70,
+              flexibleSpace: FlexibleSpaceBar(
+                  collapseMode: CollapseMode.parallax,
+                  titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+                  title: LayoutBuilder(
+                    builder:
+                        (BuildContext context, BoxConstraints constraints) {
+                      final bool isCollapsed = constraints.maxHeight <= 100;
+                      final textColor =
+                          isCollapsed ? Colors.black : Colors.white;
 
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (user?.userProfile?.last_name != null) ...[
-                          Flexible(
-                            child: AutoSizeText(
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (user?.userProfile?.last_name != null) ...[
+                            AutoSizeText(
                               "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
                               style: TextStyle(
                                 color: textColor,
-                                fontSize: 20.0,
+                                fontSize: 18.0,
                                 fontWeight: FontWeight.bold,
                               ),
                               maxLines: 1,
-                              minFontSize: 14,
+                              minFontSize: 12,
                             ),
-                          ),
-                        ],
-                        if (user?.userProfile?.phone != null) ...[
-                          const SizedBox(height: 4),
-                          AutoSizeText(
-                            user?.userProfile?.phone ?? '',
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: 14.0,
+                          ],
+                          if (user?.userProfile?.phone != null) ...[
+                            const SizedBox(height: 2),
+                            AutoSizeText(
+                              user?.userProfile?.phone ?? '',
+                              style: TextStyle(
+                                color: textColor.withOpacity(0.9),
+                                fontSize: 12.0,
+                              ),
+                              maxLines: 1,
                             ),
-                            maxLines: 1,
-                          ),
+                          ],
                         ],
-                      ],
-                    );
-                  },
-                ),
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withOpacity(0.8),
-                      ],
+                      );
+                    },
+                  ),
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Theme.of(context).primaryColor,
+                          Theme.of(context).primaryColor.withOpacity(0.8),
+                        ],
+                      ),
                     ),
-                  ),
-                )),
-          ),
-          SliverList(
-            delegate:
-                SliverChildBuilderDelegate((BuildContext context, int index) {
-              return BlocBuilder<UserDataBloc, UserDataState>(
-                  builder: (context, state) {
-                return Column(children: [
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      GestureDetector(
-                        child: Column(
+                  )),
+            ),
+            SliverList(
+              delegate:
+                  SliverChildBuilderDelegate((BuildContext context, int index) {
+                return BlocBuilder<UserDataBloc, UserDataState>(
+                    builder: (context, state) {
+                  return Column(children: [
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        GestureDetector(
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                      AppLocalizations.of(context)!
+                                          .wallet_label
+                                          .toUpperCase(),
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(
+                                    width: 5,
+                                  ),
+                                  Icon(
+                                    Icons.unfold_more_sharp,
+                                    color: Theme.of(context).primaryColor,
+                                    size: 30,
+                                  )
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                      CurrencyFormatter.format(
+                                          walletBalance, euroSettings),
+                                      style: const TextStyle(
+                                          fontSize: 30,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            showModalBottomSheet(
+                                context: context,
+                                builder: (context) {
+                                  return const MyBalanceByTerminal();
+                                });
+                          },
+                        ),
+                        Column(
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                     AppLocalizations.of(context)!
-                                        .wallet_label
+                                        .courierScoreLabel
                                         .toUpperCase(),
                                     style: const TextStyle(
                                         fontSize: 18,
                                         color: Colors.black,
                                         fontWeight: FontWeight.bold)),
-                                const SizedBox(
-                                  width: 5,
-                                ),
-                                Icon(
-                                  Icons.unfold_more_sharp,
-                                  color: Theme.of(context).primaryColor,
-                                  size: 30,
-                                )
                               ],
                             ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(
-                                    CurrencyFormatter.format(
-                                        walletBalance, euroSettings),
+                                Text(rating.toStringAsFixed(2),
                                     style: const TextStyle(
                                         fontSize: 30,
                                         color: Colors.black,
@@ -323,63 +369,27 @@ class _ProfilePageViewState extends State<ProfilePageView>
                               ],
                             ),
                           ],
-                        ),
-                        onTap: () {
-                          showModalBottomSheet(
-                              context: context,
-                              builder: (context) {
-                                return const MyBalanceByTerminal();
-                              });
-                        },
-                      ),
-                      Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                  AppLocalizations.of(context)!
-                                      .courierScoreLabel
-                                      .toUpperCase(),
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(rating.toStringAsFixed(2),
-                                  style: const TextStyle(
-                                      fontSize: 30,
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ],
-                      )
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  const MyPerformance(),
-                  const SizedBox(height: 10),
-                  if (_ordersStat.isNotEmpty)
-                    _buildOrderStatCard(),
-                  const SizedBox(
-                    height: 50,
-                  ),
-                  const ProfileLogoutButton(),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                ]);
-              });
-            }, childCount: 1),
-          )
-        ]),
+                        )
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    const MyPerformance(),
+                    const SizedBox(height: 10),
+                    if (_ordersStat.isNotEmpty) _buildOrderStatCard(),
+                    const SizedBox(
+                      height: 50,
+                    ),
+                    const ProfileLogoutButton(),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                  ]);
+                });
+              }, childCount: 1),
+            )
+          ]),
         ),
       ],
     ));
@@ -414,17 +424,16 @@ class _ProfilePageViewState extends State<ProfilePageView>
                   fontWeight: FontWeight.bold,
                 ),
                 unselectedLabelStyle: const TextStyle(fontSize: 11),
-                tabs: _ordersStat.map((e) => Tab(
-                  text: _getShortLabel(e.labelCode),
-                )).toList(),
+                tabs: _ordersStat
+                    .map((e) => Tab(
+                          text: _getShortLabel(e.labelCode),
+                        ))
+                    .toList(),
               ),
             ),
-            SizedBox(
-              height: 280,
-              child: TabBarView(
-                controller: _tabController,
-                children: _ordersStat.map((e) => _buildStatContent(e)).toList(),
-              ),
+            IndexedStack(
+              index: _currentTabIndex,
+              children: _ordersStat.map((e) => _buildStatContent(e)).toList(),
             ),
           ],
         ),
@@ -451,6 +460,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           _buildStatRow(
             AppLocalizations.of(context)!.successOrderLabel.toUpperCase(),
@@ -474,7 +484,9 @@ class _ProfilePageViewState extends State<ProfilePageView>
           if (e.dailyGarantPrice != null) ...[
             const SizedBox(height: 8),
             _buildStatRow(
-              AppLocalizations.of(context)!.orderStatDailyGarantPrice.toUpperCase(),
+              AppLocalizations.of(context)!
+                  .orderStatDailyGarantPrice
+                  .toUpperCase(),
               CurrencyFormatter.format(e.dailyGarantPrice!, euroSettings),
             ),
           ],

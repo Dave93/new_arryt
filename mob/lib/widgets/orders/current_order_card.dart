@@ -799,6 +799,8 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
             ),
           ),
           if (widget.order.orderNextButton.isNotEmpty)
+            const Divider(height: 1, thickness: 1, color: Colors.grey),
+          if (widget.order.orderNextButton.isNotEmpty)
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(20),

@@ -81,70 +81,70 @@ class _MyPerformanceState extends State<MyPerformance> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Container(
-            padding: const EdgeInsets.all(16.0),
-            child: Stack(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: double.infinity,
+                    Expanded(
                       child: Text(
                         title,
                         style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                            Theme.of(context).textTheme.titleSmall?.copyWith(
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w500,
                                 ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Text(
-                        displayValue + (unit ?? ''),
-                        style:
-                            Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                        textAlign: TextAlign.center,
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (isPositive ? Colors.green : Colors.red)
+                            .withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isPositive
+                                ? Icons.arrow_downward
+                                : Icons.arrow_upward,
+                            color: isPositive ? Colors.green : Colors.red,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            displayDifference,
+                            style: TextStyle(
+                              color: isPositive ? Colors.green : Colors.red,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: (isPositive ? Colors.green : Colors.red)
-                          .withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isPositive
-                              ? Icons.arrow_upward
-                              : Icons.arrow_downward,
-                          color: isPositive ? Colors.green : Colors.red,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          displayDifference + (unit ?? ''),
-                          style: TextStyle(
-                            color: isPositive ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    displayValue + (unit ?? ''),
+                    style:
+                        Theme.of(context).textTheme.displaySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
@@ -172,97 +172,98 @@ class _MyPerformanceState extends State<MyPerformance> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Container(
-            padding: const EdgeInsets.all(16.0),
-            child: Stack(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: double.infinity,
+                    Expanded(
                       child: Text(
                         AppLocalizations.of(context)!.position_label,
                         style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                            Theme.of(context).textTheme.titleSmall?.copyWith(
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w500,
                                 ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          position.toString(),
-                          style: Theme.of(context)
-                              .textTheme
-                              .displaySmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                    if (difference != 0) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
                         ),
-                        Text(
-                          ' / ',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineLarge
-                              ?.copyWith(
-                                color: Colors.grey[600],
+                        decoration: BoxDecoration(
+                          color: (isPositive ? Colors.green : Colors.red)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isPositive
+                                  ? Icons.arrow_upward
+                                  : Icons.arrow_downward,
+                              color: isPositive ? Colors.green : Colors.red,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              difference.abs().toString(),
+                              style: TextStyle(
+                                color: isPositive ? Colors.green : Colors.red,
                                 fontWeight: FontWeight.w500,
+                                fontSize: 11,
                               ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          total.toString(),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineLarge
-                              ?.copyWith(
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
-                      ],
+                      ),
+                    ],
+                  ],
+                ),
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      position.toString(),
+                      style: Theme.of(context)
+                          .textTheme
+                          .displaySmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    Text(
+                      ' / ',
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineLarge
+                          ?.copyWith(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                    Text(
+                      total.toString(),
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineLarge
+                          ?.copyWith(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
                   ],
                 ),
-                if (difference != 0)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (isPositive ? Colors.green : Colors.red)
-                            .withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isPositive
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            color: isPositive ? Colors.green : Colors.red,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            difference.abs().toString(),
-                            style: TextStyle(
-                              color: isPositive ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),

@@ -140,10 +140,30 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
                               foregroundColor: Colors.white,
                             ),
                             onPressed: () async {
-                              LocationPermission permission = await Geolocator.requestPermission();
-                              if (permission == LocationPermission.denied ||
-                                  permission == LocationPermission.deniedForever) {
-                                openAppSettings();
+                              // Check current permission status
+                              LocationPermission currentPermission = await Geolocator.checkPermission();
+
+                              if (currentPermission == LocationPermission.denied) {
+                                // First request basic permission
+                                currentPermission = await Geolocator.requestPermission();
+                              }
+
+                              if (currentPermission == LocationPermission.deniedForever) {
+                                // Permission permanently denied, must go to settings
+                                await openAppSettings();
+                                return;
+                              }
+
+                              if (currentPermission == LocationPermission.whileInUse) {
+                                // Has "while in use" but need "always"
+                                // On Android 10+/iOS, we need to open settings for user to change to "always"
+                                await openAppSettings();
+                                return;
+                              }
+
+                              if (currentPermission == LocationPermission.denied) {
+                                // Still denied after request, open settings
+                                await openAppSettings();
                               }
                             },
                             child: Text(

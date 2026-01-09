@@ -66,15 +66,15 @@ class _SettingsPageState extends State<SettingsPage> {
             //     context.router.pushNamed('/brands');
             //   },
             // ),
-            ListTile(
-              title: Text(
-                  AppLocalizations.of(context)!.settingsCallCenterChatLabel),
-              leading: const Icon(Icons.chat_outlined),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                context.router.pushNamed('/organizations');
-              },
-            ),
+            // ListTile(
+            //   title: Text(
+            //       AppLocalizations.of(context)!.settingsCallCenterChatLabel),
+            //   leading: const Icon(Icons.chat_outlined),
+            //   trailing: const Icon(Icons.arrow_forward_ios),
+            //   onTap: () {
+            //     context.router.pushNamed('/organizations');
+            //   },
+            // ),
             ListTile(
               title: Text(AppLocalizations.of(context)!.privacyPolicy),
               leading: const Icon(Icons.privacy_tip_outlined),
@@ -138,7 +138,9 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(50),
-            color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Colors.transparent,
           ),
           child: Text(
             label,

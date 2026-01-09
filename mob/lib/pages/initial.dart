@@ -84,8 +84,12 @@ class _InitialPageState extends State<InitialPage> {
             importance: Importance.max,
             priority: Priority.high,
             icon: android.smallIcon,
+            sound: const RawResourceAndroidNotificationSound('notify'),
+            playSound: true,
           ),
-          iOS: const DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(
+            sound: 'notify.wav',
+          ),
         ),
       );
     }

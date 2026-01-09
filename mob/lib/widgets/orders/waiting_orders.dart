@@ -37,7 +37,7 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
 
   // Mock data only works in debug mode - NEVER in release builds
   // Set _enableMockInDebug to true to test with mock data during development
-  static const bool _enableMockInDebug = true;
+  static const bool _enableMockInDebug = false;
   static bool get _useMockData => kDebugMode && _enableMockInDebug;
 
   Future<void> _loadOrders() async {
@@ -218,38 +218,39 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
                     Padding(
                       padding: EdgeInsets.only(top: _useMockData ? 40 : 0),
                       child: EasyRefresh(
-                  controller: _controller,
-                  header: const BezierCircleHeader(),
-                  onRefresh: () async {
-                    await _loadOrders();
-                    _controller.finishRefresh();
-                    _controller.resetFooter();
-                  },
-                  child: orders.isNotEmpty
-                      ? SizeCacheWidget(
-                          child: ListView.builder(
-                          // shrinkWrap: true,
-                          itemCount: orders.length,
-                          itemBuilder: (context, index) {
-                            return WaitingOrderCard(
-                                order: orders[index],
-                                onUpdate: () => _loadOrders());
-                          },
-                        ))
-                      : ListView(
-                          children: [
-                            ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight:
-                                    MediaQuery.of(context).size.height * 0.8,
+                        controller: _controller,
+                        header: const BezierCircleHeader(),
+                        onRefresh: () async {
+                          await _loadOrders();
+                          _controller.finishRefresh();
+                          _controller.resetFooter();
+                        },
+                        child: orders.isNotEmpty
+                            ? SizeCacheWidget(
+                                child: ListView.builder(
+                                // shrinkWrap: true,
+                                itemCount: orders.length,
+                                itemBuilder: (context, index) {
+                                  return WaitingOrderCard(
+                                      order: orders[index],
+                                      onUpdate: () => _loadOrders());
+                                },
+                              ))
+                            : ListView(
+                                children: [
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight:
+                                          MediaQuery.of(context).size.height *
+                                              0.8,
+                                    ),
+                                    child: const IntrinsicHeight(
+                                      child: Center(child: Text('Заказов нет')),
+                                    ),
+                                  )
+                                ],
                               ),
-                              child: const IntrinsicHeight(
-                                child: Center(child: Text('Заказов нет')),
-                              ),
-                            )
-                          ],
-                        ),
-                ),
+                      ),
                     ),
                   ],
                 );
