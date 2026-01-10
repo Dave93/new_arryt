@@ -62,12 +62,16 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
                                 terminal_id: order.terminal_id
                             },
                             android: {
-                                priority: "high"
+                                priority: "high",
+                                notification: {
+                                    channel_id: "order_notifications_v2",
+                                    sound: "notify"
+                                }
                             },
                             apns: {
                                 payload: {
                                     aps: {
-                                        sound: 'default'
+                                        sound: 'notify.wav'
                                     }
                                 }
                             }

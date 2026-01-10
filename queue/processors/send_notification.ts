@@ -28,22 +28,23 @@ export const processSendNotification = async (redis: Redis, db: DB, cacheControl
         notification: {
             title: payload.notification.title,
             body: payload.notification.body,
-            data: payload.data,
+            android_channel_id: 'order_notifications_v2',
+            sound: 'notify',
         },
-        // data: {
-        //   title: payload.notification.title,
-        //   body: payload.notification.body,
-        //   ...payload.data,
-        // },
+        data: payload.data,
         priority: 'high',
         android: {
             priority: 'high',
+            notification: {
+                channel_id: 'order_notifications_v2',
+                sound: 'notify',
+            }
         },
         mutable_content: true,
         apns: {
             payload: {
                 aps: {
-                    sound: 'default',
+                    sound: 'notify.wav',
                 },
             },
         },

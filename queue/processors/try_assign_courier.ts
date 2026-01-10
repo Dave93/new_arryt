@@ -84,33 +84,29 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
                         token: courierFcmToken,
                         notification: {
                             title: "Примите новый заказ",
-                            body: `Вы были назначены на новый заказ: ${order_id}`,
-                            android: {
-                                notification: {
-                                    click_action: "OPEN_ORDER_DETAILS",
-                                    buttons: [
-                                        {
-                                            text: "Принять",
-                                            action: "accept"
-                                        },
-                                        {
-                                            text: "Отклонить",
-                                            action: "reject"
-                                        }
-                                    ]
-                                }
-                            },
-                            apns: {
-                                payload: {
-                                    aps: {
-                                        category: "NEW_ORDER_CATEGORY"
-                                    }
-                                }
-                            }
+                            body: `Вы были назначены на новый заказ: ${order_id}`
                         },
                         data: {
                             orderId: order_id,
-                            createdAt: created_at
+                            createdAt: created_at,
+                            type: "accept_order",
+                            queue: String(data.queue)
+                        },
+                        android: {
+                            priority: "high",
+                            notification: {
+                                channel_id: "order_notifications_v2",
+                                sound: "notify",
+                                click_action: "OPEN_ORDER_DETAILS"
+                            }
+                        },
+                        apns: {
+                            payload: {
+                                aps: {
+                                    sound: "notify.wav",
+                                    category: "NEW_ORDER_CATEGORY"
+                                }
+                            }
                         }
                     };
 
