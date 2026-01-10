@@ -56,20 +56,40 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
     myTimer.cancel();
   }
 
-  /// Opens app permissions page directly on Android, or app settings on iOS
+  /// Opens location permission page directly on Android, or app settings on iOS
   Future<void> _openAppPermissions() async {
     if (Platform.isAndroid) {
-      try {
-        final packageInfo = await PackageInfo.fromPlatform();
-        final intent = AndroidIntent(
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      // List of intents to try in order of preference
+      final intents = [
+        // 1. Try to open location permission page directly (Android 6.0+)
+        AndroidIntent(
+          action: 'android.intent.action.MANAGE_APP_PERMISSION',
+          arguments: {
+            'android.intent.extra.PACKAGE_NAME': packageInfo.packageName,
+            'android.intent.extra.PERMISSION_GROUP_NAME': 'android.permission-group.LOCATION',
+          },
+        ),
+        // 2. Fallback to app details settings
+        AndroidIntent(
           action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
           data: 'package:${packageInfo.packageName}',
-        );
-        await intent.launch();
-      } catch (e) {
-        // Fallback to app settings if intent fails
-        await AppSettings.openAppSettings(asAnotherTask: true);
+        ),
+      ];
+
+      for (final intent in intents) {
+        try {
+          await intent.launch();
+          return; // Success - exit
+        } catch (e) {
+          // Try next intent
+          continue;
+        }
       }
+
+      // 3. Final fallback - use app_settings package
+      await AppSettings.openAppSettings(asAnotherTask: true);
     } else {
       // iOS - open app settings
       await AppSettings.openAppSettings(asAnotherTask: true);

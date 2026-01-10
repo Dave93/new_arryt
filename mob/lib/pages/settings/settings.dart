@@ -42,9 +42,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
     const androidDetails = AndroidNotificationDetails(
-      'test_channel',
-      'Test Notifications',
-      channelDescription: 'Channel for testing notification sound',
+      'order_notifications_v2', // Same channel as production
+      'Order Notifications',
+      channelDescription: 'Notifications for new orders',
       importance: Importance.max,
       priority: Priority.high,
       sound: RawResourceAndroidNotificationSound('notify'),

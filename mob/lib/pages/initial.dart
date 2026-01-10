@@ -78,9 +78,9 @@ class _InitialPageState extends State<InitialPage> {
         notification.body,
         NotificationDetails(
           android: AndroidNotificationDetails(
-            'channel_id',
-            'Channel Name',
-            channelDescription: 'Channel Description',
+            'order_notifications_v2', // Must match channel ID in main.dart
+            'Order Notifications',
+            channelDescription: 'Notifications for new orders',
             importance: Importance.max,
             priority: Priority.high,
             icon: android.smallIcon,

@@ -35,8 +35,11 @@ late ObjectBox objectBox;
 Future<void> _createNotificationChannel() async {
   if (Platform.isAndroid) {
     final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+    // Use a new channel ID to ensure custom sound is applied
+    // Android caches channel settings, so changing sound requires new channel
     const androidChannel = AndroidNotificationChannel(
-      'channel_id', // Must match the channel_id used in initial.dart
+      'order_notifications_v2', // New channel ID with custom sound
       'Order Notifications',
       description: 'Notifications for new orders',
       importance: Importance.max,
