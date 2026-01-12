@@ -25,17 +25,22 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // run code after 1 second
-
       myTimer = Timer.periodic(Duration(seconds: 1), (timer) async {
-        bool? isBatteryOptimizationDisabled =
-            await DisableBatteryOptimization.isBatteryOptimizationDisabled;
-        if (isBatteryOptimizationDisabled != null) {
+        // Battery optimization check is only available on Android
+        if (Platform.isAndroid) {
+          bool? isBatteryOptimizationDisabled =
+              await DisableBatteryOptimization.isBatteryOptimizationDisabled;
+          if (isBatteryOptimizationDisabled != null) {
+            setState(() {
+              _disabledBatteryOptimization = isBatteryOptimizationDisabled;
+            });
+          }
+        } else {
+          // On iOS, skip battery optimization check
           setState(() {
-            _disabledBatteryOptimization = isBatteryOptimizationDisabled;
+            _disabledBatteryOptimization = true;
           });
         }
 

@@ -236,7 +236,8 @@ class _ProfilePageViewState extends State<ProfilePageView>
                   title: LayoutBuilder(
                     builder:
                         (BuildContext context, BoxConstraints constraints) {
-                      final bool isCollapsed = constraints.maxHeight <= 100;
+                      final topPadding = MediaQuery.of(context).padding.top;
+                      final bool isCollapsed = constraints.maxHeight <= topPadding + 85;
                       final textColor =
                           isCollapsed ? Colors.black : Colors.white;
 
