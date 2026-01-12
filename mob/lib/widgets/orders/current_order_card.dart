@@ -7,7 +7,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:map_launcher/map_launcher.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:arryt/main.dart';
@@ -45,6 +44,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
   );
 
   bool loading = false;
+  bool routeLoading = false;
   bool isChecked = false;
 
   Future<void> showInformationDialog(BuildContext context) async {
@@ -308,6 +308,12 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
   }
 
   Future _buildRoute() async {
+    if (routeLoading) return;
+
+    setState(() {
+      routeLoading = true;
+    });
+
     try {
       ApiServer api = new ApiServer();
       var response =
@@ -316,6 +322,9 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
       });
 
       if (response.statusCode != 200) {
+        setState(() {
+          routeLoading = false;
+        });
         return AnimatedSnackBar.material(
           response.data['message'] ?? "Error",
           type: AnimatedSnackBarType.error,
@@ -333,6 +342,12 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
       }
     } catch (e) {
       print(e);
+    } finally {
+      if (mounted) {
+        setState(() {
+          routeLoading = false;
+        });
+      }
     }
   }
 
@@ -519,10 +534,19 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                         },
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.location_pin,
-                              color: Theme.of(context).primaryColor,
-                            ),
+                            routeLoading
+                                ? SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Theme.of(context).primaryColor,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.location_pin,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
                             SizedBox(
                               width: 5,
                             ),
@@ -553,7 +577,8 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                       if (widget.order.additional_phone != null &&
                           widget.order.additional_phone!.isNotEmpty)
                         GestureDetector(
-                          onTap: () => _makePhoneCall(widget.order.additional_phone!),
+                          onTap: () =>
+                              _makePhoneCall(widget.order.additional_phone!),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -739,8 +764,10 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
           ),
           ClipRRect(
             borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(widget.order.orderNextButton.isEmpty ? 20 : 0),
-              bottomRight: Radius.circular(widget.order.orderNextButton.isEmpty ? 20 : 0),
+              bottomLeft: Radius.circular(
+                  widget.order.orderNextButton.isEmpty ? 20 : 0),
+              bottomRight: Radius.circular(
+                  widget.order.orderNextButton.isEmpty ? 20 : 0),
             ),
             child: Container(
               color: Theme.of(context).primaryColor,

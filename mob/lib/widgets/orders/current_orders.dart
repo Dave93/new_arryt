@@ -208,7 +208,8 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
                                       shrinkWrap: true,
                                       itemCount: snapshot.data!.length,
                                       itemBuilder: (context, index) {
-                                        if (index == snapshot.data!.length - 1) {
+                                        if (index ==
+                                            snapshot.data!.length - 1) {
                                           return Column(
                                             children: [
                                               CurrentOrderCard(
@@ -227,13 +228,14 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
                                     children: [
                                       ConstrainedBox(
                                         constraints: BoxConstraints(
-                                          minHeight:
-                                              MediaQuery.of(context).size.height *
-                                                  0.8,
+                                          minHeight: MediaQuery.of(context)
+                                                  .size
+                                                  .height *
+                                              0.8,
                                         ),
                                         child: const IntrinsicHeight(
-                                          child:
-                                              Center(child: Text('Заказов нет')),
+                                          child: Center(
+                                              child: Text('Заказов нет')),
                                         ),
                                       )
                                     ],
