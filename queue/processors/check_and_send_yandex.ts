@@ -214,6 +214,27 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             });
         });
 
+        if (+order.customer_delivery_price > 0) {
+            // @ts-ignore
+            yandexData.items.push({
+                pickup_point: 1,
+                dropoff_point: 2,
+                cost_currency: 'UZS',
+                cost_value: order.customer_delivery_price.toString(),
+                title: 'Доставка / Yetkazib berish',
+                quantity: 1,
+                weight: 0,
+                fiscalization:
+                    orderPrice > 0 && orderPrice <= 500000
+                        ? {
+                            article: 'доставка',
+                            supplier_inn: '1111111111',
+                            vat_code_str: 'vat12',
+                        }
+                        : undefined,
+            });
+        }
+
         const yandexUrl = `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/create?request_id=${order.id}`;
 
         const yandexReponse = await fetch(yandexUrl, {
