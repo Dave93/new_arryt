@@ -58,6 +58,11 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
 
         comment += `${organization.name} // sotib olish uchun naqd pul olib yuring / иметь с собой наличные для выкупа `;
 
+        const orderPriceWithoutDelivery = orderPrice - (+order.customer_delivery_price);
+        if (orderPriceWithoutDelivery > 0) {
+            comment += `// цена ${new Intl.NumberFormat('ru').format(orderPriceWithoutDelivery)} сум`;
+        }
+
         comment += `//ID: ${order.order_number}`;
 
         let clientComment = '';
