@@ -595,6 +595,7 @@ export const order_items = pgTable("order_items", {
 	name: text("name").notNull(),
 	price: doublePrecision("price").notNull(),
 	quantity: integer("quantity").notNull(),
+	weight: doublePrecision("weight"),
 },
 	(table) => {
 		return {

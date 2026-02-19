@@ -1583,6 +1583,7 @@ export const OrdersController = new Elysia({
                   quantity: item.quantity,
                   name: item.name,
                   price: parseInt(item.price),
+                  weight: item.weight ?? null,
                 })
                 .execute();
             }
@@ -1761,6 +1762,7 @@ export const OrdersController = new Elysia({
             quantity: t.Number(),
             name: t.String(),
             price: t.String(),
+            weight: t.Optional(t.Nullable(t.Number())),
           }),
         ),
       }),

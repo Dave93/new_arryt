@@ -203,7 +203,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                 cost_value: item.price.toString(),
                 title: item.name,
                 quantity: item.quantity,
-                weight: 0,
+                weight: item.weight ?? 0,
                 fiscalization:
                     orderPrice > 0 && orderPrice <= 500000
                         ? {
