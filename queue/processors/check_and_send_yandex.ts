@@ -44,7 +44,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             console.log('orderData', order);
         }
         
-            orderPrice += +order.customer_delivery_price;
+        orderPrice += +order.customer_delivery_price;
 
         const organization = await cacheControl.getOrganization(order.organization_id);
 
@@ -59,7 +59,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         comment += `${organization.name} // sotib olish uchun naqd pul olib yuring / иметь с собой наличные для выкупа `;
 
         if (orderPrice > 0) {
-            comment += `// цена ${new Intl.NumberFormat('ru').format(orderPrice)} сум`;
+            comment += `// цена ${new Intl.NumberFormat('ru').format(orderPrice)} сум `;
         }
 
         comment += `//ID: ${order.order_number}`;
