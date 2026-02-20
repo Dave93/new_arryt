@@ -1584,7 +1584,7 @@ export const OrdersController = new Elysia({
                   quantity: item.quantity,
                   name: item.name,
                   price: parseInt(item.price),
-                  weight: item.weight ?? null,
+                  weight: item.weight ? item.weight/1000 : null,
                 })
                 .execute();
             }
