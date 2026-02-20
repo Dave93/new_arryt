@@ -102,7 +102,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get customer_phone => 'Telefon';
 
   @override
-  String get pre_distance_label => 'Taxminiy masofa';
+  String get pre_distance_label => 'Tayyorlanadigan masofa';
 
   @override
   String get order_total_price => 'Umumiy narx';

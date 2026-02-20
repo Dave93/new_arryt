@@ -9,7 +9,8 @@
       "Bash(flutter clean:*)",
       "Bash(flutter --version:*)",
       "Bash(cat:*)",
-      "Bash(copy \"C:\\\\projects\\\\new_arryt\\\\mob\\\\assets\\\\notify.wav\" \"C:\\\\projects\\\\new_arryt\\\\mob\\\\android\\\\app\\\\src\\\\main\\\\res\\\\raw\\\\notify.wav\")"
+      "Bash(copy \"C:\\\\projects\\\\new_arryt\\\\mob\\\\assets\\\\notify.wav\" \"C:\\\\projects\\\\new_arryt\\\\mob\\\\android\\\\app\\\\src\\\\main\\\\res\\\\raw\\\\notify.wav\")",
+      "Bash(git commit:*)"
     ]
   }
 }
