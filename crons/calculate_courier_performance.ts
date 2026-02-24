@@ -1,7 +1,6 @@
 import { db } from "@api/src/lib/db";
-import { and, eq, sql, desc, asc, gte, lte, isNull, or, inArray, notInArray } from "@api/node_modules/drizzle-orm";
+import { and, eq, sql, gte, lte, or, inArray, notInArray } from "@api/node_modules/drizzle-orm";
 import {
-    work_schedule_entries,
     users,
     courier_performances,
     users_roles,
@@ -27,52 +26,71 @@ interface CourierWithTerminal {
     terminal_id: string;
 }
 
-async function getLinkedTerminalIds(terminalId: string): Promise<string[]> {
-    const terminal = await db
+interface OrderData {
+    id: string;
+    courier_id: string;
+    created_at: string;
+    finished_date: string | null;
+    terminal_id: string;
+    score: number | null;
+}
+
+// Cache for linked terminal IDs
+const linkedTerminalCache = new Map<string, string[]>();
+
+async function preloadLinkedTerminals(): Promise<void> {
+    // Load all terminals with their links in one query
+    const allTerminals = await db
         .select({
             id: terminals.id,
             linked_terminal_id: terminals.linked_terminal_id,
         })
         .from(terminals)
-        .where(eq(terminals.id, terminalId))
         .execute();
 
-    if (!terminal.length) return [terminalId];
+    // Build a map of terminal -> linked terminals
+    const terminalMap = new Map<string, string | null>();
+    allTerminals.forEach(t => terminalMap.set(t.id, t.linked_terminal_id));
 
-    const linkedTerminalId = terminal[0].linked_terminal_id;
+    // For each terminal, calculate all linked terminal IDs
+    for (const terminal of allTerminals) {
+        const linkedId = terminal.linked_terminal_id;
+        
+        if (!linkedId) {
+            linkedTerminalCache.set(terminal.id, [terminal.id]);
+            continue;
+        }
 
-    if (!linkedTerminalId) return [terminalId];
+        // Find all terminals linked to the same parent
+        const linkedTerminals = allTerminals
+            .filter(t => t.linked_terminal_id === linkedId || t.id === linkedId)
+            .map(t => t.id);
+        
+        linkedTerminalCache.set(terminal.id, [terminal.id, ...linkedTerminals.filter(id => id !== terminal.id)]);
+    }
+}
 
-    // Get all terminals that are linked to the same parent
-    const linkedTerminals = await db
-        .select({
-            id: terminals.id,
-        })
-        .from(terminals)
-        .where(
-            or(
-                eq(terminals.linked_terminal_id, linkedTerminalId),
-                eq(terminals.id, linkedTerminalId)
-            )
-        )
-        .execute();
-
-    return [terminalId, ...linkedTerminals.map(t => t.id)];
+function getLinkedTerminalIds(terminalId: string): string[] {
+    return linkedTerminalCache.get(terminalId) || [terminalId];
 }
 
 async function main() {
+    console.time('Total execution time');
+    
     try {
-        // Get first day of current month at 00:00:00
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
 
+        console.log('Starting optimized courier performance calculation');
 
-        // const startOfMonth = '2024-11-01T00:00:00.000Z';
-        // const endOfMonth = '2024-11-30T23:59:59.999Z';
-        // console.log('Starting courier performance calculation for period:', { startOfMonth, endOfMonth });
+        // Preload all terminal links in one query
+        console.time('Preload terminals');
+        await preloadLinkedTerminals();
+        console.timeEnd('Preload terminals');
 
         // Get all active couriers with their terminals
+        console.time('Fetch couriers');
         const couriers = await db
             .select({
                 id: users.id,
@@ -87,27 +105,28 @@ async function main() {
                     eq(users.status, 'active'),
                     eq(roles.code, 'courier'),
                     notInArray(users.id, [
-                        '6fa8644f-b931-4a8e-b5f9-d96d1df7fe72', // Yandex Sarvar
-                        '34689421-92b1-4880-9a75-8be6cc0cb01f' // Yandex Dostavka
+                        '6fa8644f-b931-4a8e-b5f9-d96d1df7fe72',
+                        '34689421-92b1-4880-9a75-8be6cc0cb01f'
                     ])
                 )
             )
             .execute();
+        console.timeEnd('Fetch couriers');
+        console.log(`Found ${couriers.length} couriers`);
 
         const orderStatuses = await cacheControl.getOrderStatuses();
         const notCancelledOrderStatuses = orderStatuses.filter(status => !status.cancel).map(status => status.id);
 
-        // Group couriers by terminal for ranking
-        const couriersByTerminal = _.groupBy(couriers as CourierWithTerminal[], 'terminal_id');
-
-        // Get all orders for all couriers in advance
-        const allCourierOrders = await db
+        // Get ALL orders for all couriers in one query
+        console.time('Fetch all orders');
+        const allCourierOrders: OrderData[] = await db
             .select({
                 id: orders.id,
                 courier_id: orders.courier_id,
                 created_at: orders.created_at,
                 finished_date: orders.finished_date,
                 terminal_id: orders.terminal_id,
+                score: orders.score,
             })
             .from(orders)
             .where(
@@ -119,192 +138,128 @@ async function main() {
                 )
             )
             .execute();
+        console.timeEnd('Fetch all orders');
+        console.log(`Found ${allCourierOrders.length} orders`);
 
-        // Group orders by courier
+        // Group orders by courier for fast lookup
         const ordersByCourier = _.groupBy(allCourierOrders, 'courier_id');
+        const couriersByTerminal = _.groupBy(couriers as CourierWithTerminal[], 'terminal_id');
 
-        // Calculate performance for each courier
+        // Delete all existing records for this month in one query
+        console.time('Delete old records');
+        await db.delete(courier_performances)
+            .where(eq(courier_performances.created_at, startOfMonth))
+            .execute();
+        console.timeEnd('Delete old records');
+
+        // Calculate all performances in memory
+        console.time('Calculate performances');
+        const performanceRecords: Array<{
+            courier_id: string;
+            terminal_keys: string;
+            rating: number;
+            delivery_count: number;
+            delivery_average_time: number;
+            position: number;
+            total_active_couriers: number;
+            created_at: string;
+        }> = [];
+
+        // Pre-calculate stats for all couriers (for position calculation)
+        const courierStats = new Map<string, { deliveryCount: number; averageTime: number }>();
+        
         for (const courier of couriers) {
-            try {
-                const terminalIds = await getLinkedTerminalIds(courier.terminal_id);
+            const courierOrders = ordersByCourier[courier.id] || [];
+            const finishedOrders = courierOrders.filter(order => order.finished_date);
+            
+            const totalMinutes = finishedOrders.reduce((sum, order) => {
+                const finishTime = new Date(order.finished_date!);
+                const createTime = new Date(order.created_at);
+                return sum + ((finishTime.getTime() - createTime.getTime()) / (1000 * 60));
+            }, 0);
 
-                // Delete existing record for this courier for current month
-                await db.delete(courier_performances)
-                    .where(
-                        and(
-                            eq(courier_performances.courier_id, courier.id),
-                            eq(courier_performances.created_at, startOfMonth)
-                        )
-                    )
-                    .execute();
-
-                // console.log('terminalIds', terminalIds);
-                // Run queries concurrently
-                const [completedOrdersCount, averageScore, allOrders] = await Promise.all([
-                    // Get completed orders count (excluding cancelled orders)
-                    db
-                        .select({
-                            count: sql<number>`count(*)::int`,
-                        })
-                        .from(orders)
-                        .where(
-                            and(
-                                eq(orders.courier_id, courier.id),
-                                gte(orders.created_at, startOfMonth),
-                                lte(orders.created_at, endOfMonth),
-                                inArray(orders.terminal_id, terminalIds),
-                                inArray(orders.order_status_id, notCancelledOrderStatuses)
-                            )
-                        )
-                        .execute(),
-
-                    // Get average score
-                    db
-                        .select({
-                            avg_score: sql<number>`AVG(COALESCE(${orders.score}, 0))::int`,
-                        })
-                        .from(orders)
-                        .where(
-                            and(
-                                eq(orders.courier_id, courier.id),
-                                gte(orders.created_at, startOfMonth),
-                                lte(orders.created_at, endOfMonth),
-                                inArray(orders.terminal_id, terminalIds),
-                                sql`${orders.finished_date} IS NOT NULL`
-                            )
-                        )
-                        .execute(),
-
-                    // Get all completed orders for position calculation
-                    db
-                        .select({
-                            id: orders.id,
-                            created_at: orders.created_at,
-                            finished_date: orders.finished_date,
-                            score: orders.score,
-                        })
-                        .from(orders)
-                        .where(
-                            and(
-                                eq(orders.courier_id, courier.id),
-                                gte(orders.created_at, startOfMonth),
-                                lte(orders.created_at, endOfMonth),
-                                inArray(orders.terminal_id, terminalIds),
-                                inArray(orders.order_status_id, notCancelledOrderStatuses)
-                            )
-                        )
-                        .execute()
-                ]);
-
-                const deliveryCount = completedOrdersCount[0]?.count || 0;
-                const rating = averageScore[0]?.avg_score || 0;
-
-                // Calculate average delivery time for finished orders
-                const finishedOrders = allOrders.filter(order => order.finished_date);
-                const totalMinutes = finishedOrders.reduce((sum, order) => {
-                    const finishTime = new Date(order.finished_date!);
-                    const createTime = new Date(order.created_at);
-                    return sum + ((finishTime.getTime() - createTime.getTime()) / (1000 * 60));
-                }, 0);
-
-                const deliveryAverageTime = finishedOrders.length > 0
-                    ? Math.round(totalMinutes / finishedOrders.length)
-                    : 0;
-
-                // Get courier's position among others in all linked terminals
-                const allLinkedTerminalCouriers = terminalIds.flatMap(tid => couriersByTerminal[tid] || []);
-                console.log('allLinkedTerminalCouriers', allLinkedTerminalCouriers);
-                const uniqueCouriers = _.uniqBy(allLinkedTerminalCouriers, 'id');
-                const position = calculatePosition(courier.id, uniqueCouriers, ordersByCourier);
-
-                // Save performance record with first day of month as created_at
-                await db.insert(courier_performances).values({
-                    courier_id: courier.id,
-                    terminal_keys: JSON.stringify(terminalIds),
-                    rating,
-                    delivery_count: deliveryCount,
-                    delivery_average_time: deliveryAverageTime,
-                    position,
-                    total_active_couriers: uniqueCouriers.length,
-                    created_at: startOfMonth,
-                }).execute();
-
-                // console.log('Updated performance for courier:', {
-                //     courier_id: courier.id,
-                //     delivery_count: deliveryCount,
-                //     average_time: deliveryAverageTime,
-                //     position,
-                //     terminal_count: terminalIds.length,
-                //     total_active_couriers: uniqueCouriers.length
-                // });
-
-            } catch (error) {
-                console.error('Error processing courier:', {
-                    courier_id: courier.id,
-                    error: error instanceof Error ? error.message : 'Unknown error'
-                });
-                // Continue with next courier
-                continue;
-            }
+            courierStats.set(courier.id, {
+                deliveryCount: finishedOrders.length,
+                averageTime: finishedOrders.length > 0 ? totalMinutes / finishedOrders.length : Infinity
+            });
         }
 
-        console.log('Finished courier performance calculation');
+        for (const courier of couriers) {
+            const terminalIds = getLinkedTerminalIds(courier.terminal_id);
+            const courierOrders = ordersByCourier[courier.id] || [];
+            
+            // Filter orders by terminal
+            const terminalOrders = courierOrders.filter(o => terminalIds.includes(o.terminal_id));
+            
+            // Calculate metrics from pre-fetched data
+            const deliveryCount = terminalOrders.length;
+            const finishedOrders = terminalOrders.filter(order => order.finished_date);
+            
+            // Calculate average score
+            const ordersWithScore = finishedOrders.filter(o => o.score !== null);
+            const rating = ordersWithScore.length > 0
+                ? Math.round(ordersWithScore.reduce((sum, o) => sum + (o.score || 0), 0) / ordersWithScore.length)
+                : 0;
+            
+            // Calculate average delivery time
+            const totalMinutes = finishedOrders.reduce((sum, order) => {
+                const finishTime = new Date(order.finished_date!);
+                const createTime = new Date(order.created_at);
+                return sum + ((finishTime.getTime() - createTime.getTime()) / (1000 * 60));
+            }, 0);
+            const deliveryAverageTime = finishedOrders.length > 0
+                ? Math.round(totalMinutes / finishedOrders.length)
+                : 0;
+
+            // Calculate position using pre-calculated stats
+            const allLinkedTerminalCouriers = terminalIds.flatMap(tid => couriersByTerminal[tid] || []);
+            const uniqueCouriers = _.uniqBy(allLinkedTerminalCouriers, 'id');
+            
+            const sortedCouriers = uniqueCouriers
+                .map(c => ({ id: c.id, ...courierStats.get(c.id)! }))
+                .sort((a, b) => {
+                    const countDiff = b.deliveryCount - a.deliveryCount;
+                    if (countDiff !== 0) return countDiff;
+                    return a.averageTime - b.averageTime;
+                });
+            
+            const position = sortedCouriers.findIndex(c => c.id === courier.id) + 1;
+
+            performanceRecords.push({
+                courier_id: courier.id,
+                terminal_keys: JSON.stringify(terminalIds),
+                rating,
+                delivery_count: deliveryCount,
+                delivery_average_time: deliveryAverageTime,
+                position,
+                total_active_couriers: uniqueCouriers.length,
+                created_at: startOfMonth,
+            });
+        }
+        console.timeEnd('Calculate performances');
+
+        // Batch insert all records
+        console.time('Insert records');
+        if (performanceRecords.length > 0) {
+            // Insert in batches of 50 to avoid query size limits
+            const batchSize = 50;
+            for (let i = 0; i < performanceRecords.length; i += batchSize) {
+                const batch = performanceRecords.slice(i, i + batchSize);
+                await db.insert(courier_performances).values(batch).execute();
+            }
+        }
+        console.timeEnd('Insert records');
+
+        console.log(`Processed ${performanceRecords.length} courier performance records`);
+        console.timeEnd('Total execution time');
+        
+        await redisClient.quit();
         process.exit(0);
     } catch (error) {
-        console.error('Fatal error in courier performance calculation:', {
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-        throw error; // Re-throw to ensure the process exits with error
+        console.error('Fatal error:', error instanceof Error ? error.message : 'Unknown error');
+        await redisClient.quit();
+        process.exit(1);
     }
 }
 
-interface CourierOrderStats {
-    id: string;
-    deliveryCount: number;
-    averageTime: number;
-}
-
-function calculatePosition(
-    courierId: string,
-    terminalCouriers: CourierWithTerminal[],
-    ordersByCourier: Record<string, Array<{
-        created_at: string;
-        finished_date: string | null;
-    }>>
-): number {
-    // Calculate stats for each courier
-    const courierStats: CourierOrderStats[] = terminalCouriers.map(courier => {
-        const courierOrders = ordersByCourier[courier.id] || [];
-        const finishedOrders = courierOrders.filter(order => order.finished_date);
-
-        const totalMinutes = finishedOrders.reduce((sum, order) => {
-            const finishTime = new Date(order.finished_date!);
-            const createTime = new Date(order.created_at);
-            return sum + ((finishTime.getTime() - createTime.getTime()) / (1000 * 60));
-        }, 0);
-
-        return {
-            id: courier.id,
-            deliveryCount: finishedOrders.length,
-            averageTime: finishedOrders.length > 0 ? totalMinutes / finishedOrders.length : Infinity
-        };
-    });
-
-    // Sort couriers by delivery count (desc) and average time (asc)
-    const sortedCouriers = courierStats.sort((a, b) => {
-        // First compare by delivery count
-        const countDiff = b.deliveryCount - a.deliveryCount;
-        if (countDiff !== 0) return countDiff;
-
-        // If delivery counts are equal, compare by average time
-        return a.averageTime - b.averageTime;
-    });
-
-    return sortedCouriers.findIndex(c => c.id === courierId) + 1;
-}
-
-// Add proper error handling for the main execution
-main().catch(error => {
-    console.error('Failed to execute courier performance calculation:', error);
-    process.exit(1);
-});
+main();
