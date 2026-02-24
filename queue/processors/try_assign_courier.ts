@@ -15,12 +15,9 @@ type TryAssignCourierData = {
 }
 
 export default async function processTryAssignCourier(redis: Redis, db: DB, cacheControl: CacheControlService, data: TryAssignCourierData, tryAssignCourierQueue: Queue) {
-    console.time('processTryAssignCourier');
     const { order_id, created_at } = data;
 
-    console.time('getTerminals');
     const terminals = await cacheControl.getTerminals();
-    console.timeEnd('getTerminals');
 
     const order = await db
         .select({
@@ -135,7 +132,5 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
             }
         }
     }
-
-    console.timeEnd('processTryAssignCourier');
 
 }
