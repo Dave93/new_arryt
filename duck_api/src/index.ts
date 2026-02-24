@@ -44,7 +44,6 @@ const getTableNames = async () => {
     tableNames.push(row.table_name);
   })
   await client.end();
-  console.log('tableNames updated');
 }
 
 const getTableNamesByChunk = async () => {
@@ -62,7 +61,6 @@ const getTableNamesByChunk = async () => {
     tableByChunk[row.chunk_name] = row.hypertable_name
   })
   await client.end();
-  console.log('chunkNames updated');
 }
 
 const checkReplicationPublication = async () => {
@@ -76,19 +74,12 @@ const checkReplicationPublication = async () => {
   await client.connect()
 
   let res = await client.query('SELECT current_user;')
-  console.log('current_user', res.rows);
 
   res = await client.query("SELECT has_database_privilege(current_user, current_database(), 'CREATE');")
 
-  console.log('has_database_privilege', res.rows);
-
   res = await client.query("SELECT has_table_privilege(current_user, 'pg_publication', 'SELECT');")
 
-  console.log('has_table_privilege', res.rows);
-
-  res = await client.query("SELECT * FROM pg_publication;")
-
-  console.log('pg_publication', res.rows);
+  res = await client.query("SELECT * FROM pg_publication;");
 
   await client.end();
 }
@@ -251,18 +242,12 @@ const plugin = new PgoutputPlugin({
  * https://github.com/kibae/pg-logical-replication/blob/ts-main/src/output-plugins/wal2json/wal2json-plugin-output.type.ts
  */
 service.on('data', async (lsn: string, log: Pgoutput.Message) => {
-  // console.log('lsn', lsn)
-  // console.log('log', log)
-
   switch (log.tag) {
     case 'insert': {
       const table = tableByChunk[log.relation.name] || log.relation.name;
       if (!tableNames.includes(table)) {
         return;
       }
-      // console.log(`
-      //   INSERT INTO ${table} (${Object.keys(log.new).join(", ")}) VALUES (${Object.values(log.new).map((val) => extractColumnData(val)).join(", ")})
-      // `)
       await db.all(`
           INSERT INTO ${table} (${Object.keys(log.new).join(", ")}) VALUES (${Object.values(log.new).map((val) => extractColumnData(val)).join(", ")});
         `)
@@ -274,9 +259,6 @@ service.on('data', async (lsn: string, log: Pgoutput.Message) => {
       if (!tableNames.includes(table)) {
         return;
       }
-      // console.log(`
-      //     UPDATE ${table} SET ${Object.keys(log.new).map((key) => `${key} = ${extractColumnData(log.new[key])}`).join(", ")} WHERE id = '${log.new.id}'
-      //   `)
       await db.all(`
             UPDATE ${table} SET ${Object.keys(log.new).map((key) => `${key} = ${extractColumnData(log.new[key])}`).join(", ")} WHERE id = '${log.new.id}'
           `)
@@ -289,9 +271,6 @@ service.on('data', async (lsn: string, log: Pgoutput.Message) => {
         return;
       }
       if (log.key?.id) {
-        // console.log(`
-        //   DELETE FROM ${table} WHERE id = '${log.key?.id}'
-        // `)
         await db.all(`
           DELETE FROM ${table} WHERE id = '${log.key?.id}'
         `)
@@ -569,7 +548,6 @@ where "manager_withdraw_transactions"."withdraw_id" = '${id}'
       body: { courierId },
     }) => {
       try {
-        console.log("courierId", courierId);
         const sqlScoreQuery = `
       FROM orders
       SELECT avg(score) as avg_score
@@ -598,11 +576,6 @@ where "manager_withdraw_transactions"."withdraw_id" = '${id}'
 
         const not_paid_amount = await db.all(sqlTotalBalanceQuery);
         const fuel = await db.all(sqlTotalFuelQuery);
-        console.log("result", {
-          score: score[0]?.avg_score ?? 0,
-          not_paid_amount: not_paid_amount[0]?.not_paid_amount ?? 0,
-          fuel: fuel[0]?.not_paid_amount ?? 0,
-        });
         return {
           score: score[0]?.avg_score ?? 0,
           not_paid_amount: not_paid_amount[0]?.not_paid_amount ?? 0,

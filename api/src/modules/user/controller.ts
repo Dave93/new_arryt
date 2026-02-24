@@ -430,9 +430,6 @@ export const UsersController = new Elysia({
       });
     }
 
-    console.log('password', password);
-    console.log('user[0].password', user[0].password);
-
     const isPasswordValid = await Bun.password.verify(password, user[0].password);
     if (!isPasswordValid) {
       return status(404, {
@@ -483,8 +480,6 @@ export const UsersController = new Elysia({
 
     cookie.session.value = accessToken;
     cookie.refreshToken.value = refreshToken;
-
-    console.log('process.env.ENV', process.env.ENV);
 
     if (process.env.ENV === "development") {
       cookie.session.domain = "localhost";
@@ -562,7 +557,6 @@ export const UsersController = new Elysia({
       });
       const now = new Date();
       const expiration_time = addMinutesToDate(now, 10);
-      console.log(otp);
       if (phone == "+998977021803") {
         otp = "555555";
       }

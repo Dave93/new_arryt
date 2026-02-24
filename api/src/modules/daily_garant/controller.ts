@@ -90,7 +90,6 @@ export const DailyGarantController = new Elysia({
         try {
           data.date = dayjs(data.date).format("HH:mm:ss");
         } catch (e) {
-          console.log('data.date', data.date);
         }
       }
       const result = await drizzle
@@ -127,7 +126,6 @@ export const DailyGarantController = new Elysia({
         try {
           data.date = dayjs(data.date).format("HH:mm:ss");
         } catch (e) {
-          console.log('data.date', data.date);
         }
       }
 

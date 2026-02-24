@@ -1060,7 +1060,6 @@ export const CouriersController = new Elysia({
       request,
       redis
     }) => {
-      console.log('lat_close', lat_close);
       // @ts-ignore
       if (user.user.status != "active") {
         set.status = 400;
@@ -1258,9 +1257,6 @@ export const CouriersController = new Elysia({
       let organizationId = null;
       let terminalId = null;
 
-      console.log('lat_open', lat_open);
-      console.log('lon_open', lon_open);
-
       userTerminals.forEach((terminal) => {
         const distance = getDistance(
           {
@@ -1277,8 +1273,6 @@ export const CouriersController = new Elysia({
       });
 
       const organization = await cacheControl.getOrganization(organizationId!);
-      console.log('minDistance', minDistance);
-      console.log('organization.max_distance', organization.max_distance);
       if (minDistance! > organization.max_distance) {
         set.status = 400;
         return status(400, {
@@ -1356,8 +1350,6 @@ export const CouriersController = new Elysia({
             endTime.setFullYear(new Date().getFullYear());
           }
         }
-        console.log('startTime', startTime);
-        console.log('endTime', endTime);
         if (!minStartTime || startTime < minStartTime) {
           minStartTime = startTime;
         }
@@ -1482,8 +1474,6 @@ export const CouriersController = new Elysia({
           }
         });
       }
-
-      console.log('timesheetDate', timesheetDate);
 
       if (!timesheetDate) {
         set.status = 400;
@@ -1760,7 +1750,6 @@ export const CouriersController = new Elysia({
 
 
             let startBalance = 0;
-            console.log('startBalance', startBalance)
             if (courierTerminalBalance.length) {
               startBalance = courierTerminalBalance[0].balance;
             }

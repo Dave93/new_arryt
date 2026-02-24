@@ -588,8 +588,6 @@ export class CacheControlService {
         group by courier_id`
     )).rows;
 
-    console.log(busyCourierIds);
-
     if (busyCourierIds.length > 0) {
       skipCourierIds = [...skipCourierIds, ...busyCourierIds.map((courier) => courier.courier_id)];
     }

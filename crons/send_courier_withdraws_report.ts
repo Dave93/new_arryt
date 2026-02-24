@@ -40,7 +40,6 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
     const scheduledReport = (await db.select().from(scheduled_reports).where(eq(scheduled_reports.code, 'courier_withdraws')).limit(1).execute())[0];
 
     const crontabPattern = scheduledReport.cron;
-    console.log('report crontabPattern', crontabPattern);
     // if (isTimeMatches(crontabPattern, new Date())) {
     // startDate using dayjs library 2 hours earlier
     // const startDate = dayjs().startOf('d').toISOString();
@@ -56,7 +55,6 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
     if (sentReports['courier_withdraws'].includes(dayjs().format('DD.MM.YYYY'))) {
         return;
     }
-    console.log('report query')
     // if (existingSentReport && existingSentReport.length > 0) {
     //     return;
     // }
@@ -94,7 +92,6 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
         { header: 'Остаток в кошельке', key: 'balance', width: 30 },
     ];
 
-    console.log('orderTransactions', orderTransactions);
     const result = sortBy(orderTransactions, 'terminal_name');
 
     let courierIds: string[] = [];
@@ -151,7 +148,6 @@ export const sendCourierWithdrawsReport = async (tgIds: string[], cacheControl: 
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    // console.log('file buffer', buffer);
     const fileName = `Выплаты курьерам ${dayjs().subtract(1, 'day').format('DD.MM.YYYY')}.xlsx`;
     // send to telegram
     const sendFileUrl = `${process.env.REPORT_BOT_API_URL}/sendFile`;
