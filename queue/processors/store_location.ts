@@ -15,7 +15,6 @@ type storeLocationData = {
 
 export default async function processStoreLocation(redis: Redis, db: DB, cacheControl: CacheControlService, data: storeLocationData) {
     try {
-        console.time('store_location');
         const orderStatuses = await cacheControl.getOrderStatuses();
 
         const terminalsList = await cacheControl.getTerminals();
@@ -157,7 +156,6 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
             }
         }
 
-        console.timeEnd('store_location');
     } catch (error) {
         console.error('processStoreLocation', error);
     }
