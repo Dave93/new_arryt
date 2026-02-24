@@ -70,8 +70,6 @@ async function main() {
 
         // const startOfMonth = '2024-11-01T00:00:00.000Z';
         // const endOfMonth = '2024-11-30T23:59:59.999Z';
-        // console.log('Starting courier performance calculation for period:', { startOfMonth, endOfMonth });
-
         // Get all active couriers with their terminals
         const couriers = await db
             .select({
@@ -138,7 +136,6 @@ async function main() {
                     )
                     .execute();
 
-                // console.log('terminalIds', terminalIds);
                 // Run queries concurrently
                 const [completedOrdersCount, averageScore, allOrders] = await Promise.all([
                     // Get completed orders count (excluding cancelled orders)
@@ -213,7 +210,6 @@ async function main() {
 
                 // Get courier's position among others in all linked terminals
                 const allLinkedTerminalCouriers = terminalIds.flatMap(tid => couriersByTerminal[tid] || []);
-                console.log('allLinkedTerminalCouriers', allLinkedTerminalCouriers);
                 const uniqueCouriers = _.uniqBy(allLinkedTerminalCouriers, 'id');
                 const position = calculatePosition(courier.id, uniqueCouriers, ordersByCourier);
 
@@ -229,15 +225,6 @@ async function main() {
                     created_at: startOfMonth,
                 }).execute();
 
-                // console.log('Updated performance for courier:', {
-                //     courier_id: courier.id,
-                //     delivery_count: deliveryCount,
-                //     average_time: deliveryAverageTime,
-                //     position,
-                //     terminal_count: terminalIds.length,
-                //     total_active_couriers: uniqueCouriers.length
-                // });
-
             } catch (error) {
                 console.error('Error processing courier:', {
                     courier_id: courier.id,
@@ -248,7 +235,6 @@ async function main() {
             }
         }
 
-        console.log('Finished courier performance calculation');
         process.exit(0);
     } catch (error) {
         console.error('Fatal error in courier performance calculation:', {

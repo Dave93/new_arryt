@@ -100,11 +100,9 @@ export const DeliveryPricingController = new Elysia({
       }
 
       if (data.start_time && data.start_time.length > 8) {
-        console.log('data.start_time', data.start_time);
         try {
           data.start_time = dayjs(data.start_time).format("HH:mm:ss");
         } catch (e) {
-          console.log('data.start_time', data.start_time);
         }
       }
 
@@ -112,7 +110,6 @@ export const DeliveryPricingController = new Elysia({
         try {
           data.end_time = dayjs(data.end_time).format("HH:mm:ss");
         } catch (e) {
-          console.log('data.end_time', data.end_time);
         }
       }
 
@@ -167,11 +164,9 @@ export const DeliveryPricingController = new Elysia({
       }
 
       if (data.start_time && data.start_time.length > 8) {
-        console.log('data.start_time', data.start_time);
         try {
           data.start_time = dayjs(data.start_time).format("HH:mm:ss");
         } catch (e) {
-          console.log('data.start_time', data.start_time);
         }
       }
 
@@ -179,7 +174,6 @@ export const DeliveryPricingController = new Elysia({
         try {
           data.end_time = dayjs(data.end_time).format("HH:mm:ss");
         } catch (e) {
-          console.log('data.end_time', data.end_time);
         }
       }
 

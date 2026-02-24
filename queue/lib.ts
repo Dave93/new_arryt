@@ -65,7 +65,7 @@ try {
     if (!response.ok) {
         console.error('Failed to send push notification:', await response.text());
     } else {
-        console.log('Push notification sent successfully', await response.json());
+        await response.json();
     }
 } catch (error) {
     console.error('Error sending push notification:', error);

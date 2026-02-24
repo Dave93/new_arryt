@@ -319,9 +319,6 @@ export const contextWitUser = baseContext
             const cookieToken = cookie.session.value;
             const cookieRefreshToken = cookie.refreshToken.value;
 
-            console.log(`cookieToken: ${cookieToken}`);
-            console.log(`cookieRefreshToken: ${cookieRefreshToken}`);
-
             if (!authorization && !cookieToken && !cookieRefreshToken) {
               return { user: null };
             }

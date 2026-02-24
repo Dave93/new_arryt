@@ -1191,7 +1191,6 @@ export const OrdersController = new Elysia({
       set,
       queues: { newOrderNotify, processTryAssignCourier },
     }) => {
-      console.log('external order orderItems', JSON.stringify(orderItems));
       const token = headers.get("authorization")?.split(" ")[1] ?? null;
 
       const apiTokenJson = await redis.get(

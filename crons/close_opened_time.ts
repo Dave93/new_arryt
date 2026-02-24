@@ -48,7 +48,6 @@ async function main() {
             }
         }
 
-        console.log('Everything is done');
     } catch (error) {
         console.error('An error occurred:', error);
     } finally {

@@ -50,11 +50,7 @@ export default async function processSetQueueLastCourier(redis: Redis, db: DB, c
 
     orderQueueKey += `_${queueTerminals.sort().join('_')}`;
 
-    console.log('workStartTime', workStartTime);
-    console.log('workEndTime', workEndTime);
-
     const currentTime = dayjs().hour();
-    console.log('currentTime', currentTime);
 
     let currentDate = dayjs().format('YYYY_MM_DD');
 
@@ -62,11 +58,7 @@ export default async function processSetQueueLastCourier(redis: Redis, db: DB, c
         currentDate = dayjs().subtract(1, 'day').format('YYYY_MM_DD');
     }
 
-    console.log('currentDate', currentDate);
-
     orderQueueKey += `_${currentDate}`;
-
-    console.log('orderQueueKey', orderQueueKey);
     console.timeEnd('buildOrderQueueKey');
 
     // Check if courier_id exists in the Redis list

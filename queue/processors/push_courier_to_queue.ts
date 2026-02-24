@@ -50,11 +50,7 @@ export default async function processPushCourierToQueue(redis: Redis, db: DB, ca
 
     orderQueueKey += `_${queueTerminals.sort().join('_')}`;
 
-    console.log('workStartTime', workStartTime);
-    console.log('workEndTime', workEndTime);
-
     const currentTime = dayjs().hour();
-    console.log('currentTime', currentTime);
 
     let currentDate = dayjs().format('YYYY_MM_DD');
 
@@ -62,12 +58,8 @@ export default async function processPushCourierToQueue(redis: Redis, db: DB, ca
         currentDate = dayjs().subtract(1, 'day').format('YYYY_MM_DD');
     }
 
-    console.log('currentDate', currentDate);
-
     orderQueueKey += `_${currentDate}`;
     console.timeEnd('buildOrderQueueKey');
-
-    console.log('orderQueueKey', orderQueueKey);
 
     console.time('checkCourierExists');
     const courierExists = await redis.lpos(orderQueueKey, courier_id);
@@ -76,9 +68,6 @@ export default async function processPushCourierToQueue(redis: Redis, db: DB, ca
     console.time('updateRedis');
     if (courierExists === null) {
         await redis.rpush(orderQueueKey, courier_id);
-        console.log(`Courier ${courier_id} added to the queue ${orderQueueKey}`);
-    } else {
-        console.log(`Courier ${courier_id} already exists in the queue ${orderQueueKey}`);
     }
     console.timeEnd('updateRedis');
 

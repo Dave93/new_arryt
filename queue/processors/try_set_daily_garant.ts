@@ -182,7 +182,6 @@ export const processTrySetDailyGarant = async (redis: Redis, db: DB, cacheContro
 
 
                             let startBalance = 0;
-                            console.log('startBalance', startBalance)
                             if (courierTerminalBalance.length) {
                                 startBalance = courierTerminalBalance[0].balance;
                             }

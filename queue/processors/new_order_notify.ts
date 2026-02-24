@@ -30,7 +30,6 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
     ).groupBy(orders.courier_id).having(sql`count(*) < ${maxActiveOrderCount}`);
     console.timeEnd('newOrderNotifyCourierIds')
     const courierIds = activeOrders.map((o) => o.courier_id!);
-    console.log('new order notify courierIds', courierIds)
     if (courierIds.length > 0) {
 
         const onlineUsers = await db.select({
@@ -43,7 +42,6 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
 
         if (onlineUsers.length > 0) {
             const deviceIds = onlineUsers.map((user) => user.fcm_token).filter((deviceId) => deviceId !== null && deviceId !== undefined && deviceId !== '');
-            console.log('deviceIds', deviceIds)
 
             if (deviceIds.length > 0) {
                 const accessToken = await getFirebaseAccessToken();
@@ -89,7 +87,6 @@ export default async function processNewOrderNotify(redis: Redis, db: DB, cacheC
                         });
 
                         const response = await responseJson.json();
-                        console.log('response', response);
                         return true;
                     } catch (e) {
                         console.log(e);

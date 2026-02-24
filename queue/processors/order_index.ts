@@ -13,7 +13,6 @@ export default async function processOrderIndex(db: DB, searchService: SearchSer
             eq(orders.id, orderId)
         )
     ).execute();
-    console.log('processOrderIndex', order);
     if (order && order.length > 0) {
         const orderData = order[0];
         // await searchService.indexOrder(orderData);
