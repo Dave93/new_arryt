@@ -2909,6 +2909,165 @@ export const OrdersController = new Elysia({
     },
   )
   .post(
+    "/api/orders/:id/cancel_yandex",
+    async ({
+      params: { id },
+      drizzle,
+      redis,
+      cacheControl,
+    }) => {
+      const order = await drizzle
+        .select({
+          id: orders.id,
+          yandex_id: orders.yandex_id,
+          terminal_id: orders.terminal_id,
+          created_at: orders.created_at,
+        })
+        .from(orders)
+        .where(eq(orders.id, id))
+        .execute();
+
+      if (!order[0]?.yandex_id) {
+        return { success: false, message: "Order has no active Yandex delivery" };
+      }
+
+      const claimId = order[0].yandex_id;
+
+      try {
+        await fetch(
+          `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${claimId}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept-Language": "ru",
+              Authorization: `Bearer ${process.env.YANDEX_DELIVERY_TOKEN}`,
+            },
+            body: JSON.stringify({ cancel_state: "free" }),
+          },
+        );
+      } catch (e) {
+        console.log("[cancel_yandex] ERROR: Yandex cancel request failed", e);
+      }
+
+      await redis.set(`yandex_operator_cancel:${claimId}`, "true", "EX", 7200);
+
+      await drizzle
+        .update(orders)
+        .set({
+          courier_id: null,
+          yandex_id: null,
+        })
+        .where(eq(orders.id, id));
+
+      await drizzle.insert(order_actions).values({
+        terminal_id: order[0].terminal_id,
+        order_id: order[0].id,
+        order_created_at: order[0].created_at,
+        action: "STATUS_CHANGE",
+        action_text: "Оператор отменил Яндекс Доставку",
+        duration: 0,
+      });
+
+      return { success: true };
+    },
+    {
+      permission: "orders.edit",
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/api/orders/:id/recreate_yandex",
+    async ({
+      params: { id },
+      body: { taxi_class },
+      drizzle,
+      redis,
+      cacheControl,
+      queues: { processCheckAndSendYandex },
+    }) => {
+      const order = await drizzle
+        .select({
+          id: orders.id,
+          yandex_id: orders.yandex_id,
+          terminal_id: orders.terminal_id,
+          created_at: orders.created_at,
+          organization_id: orders.organization_id,
+        })
+        .from(orders)
+        .where(eq(orders.id, id))
+        .execute();
+
+      if (!order[0]) {
+        return { success: false, message: "Order not found" };
+      }
+
+      if (order[0].yandex_id) {
+        const claimId = order[0].yandex_id;
+        try {
+          await fetch(
+            `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${claimId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept-Language": "ru",
+                Authorization: `Bearer ${process.env.YANDEX_DELIVERY_TOKEN}`,
+              },
+              body: JSON.stringify({ cancel_state: "free" }),
+            },
+          );
+        } catch (e) {
+          console.log("[recreate_yandex] ERROR: Yandex cancel request failed", e);
+        }
+
+        await redis.set(`yandex_operator_cancel:${claimId}`, "true", "EX", 7200);
+      }
+
+      const orderStatuses = await cacheControl.getOrderStatuses();
+      const initialStatus = orderStatuses.find(
+        (s) => s.sort == 1 && s.organization_id == order[0].organization_id,
+      );
+
+      await drizzle
+        .update(orders)
+        .set({
+          courier_id: null,
+          yandex_id: null,
+          order_status_id: initialStatus?.id ?? order[0].id,
+        })
+        .where(eq(orders.id, id));
+
+      await drizzle.insert(order_actions).values({
+        terminal_id: order[0].terminal_id,
+        order_id: order[0].id,
+        order_created_at: order[0].created_at,
+        action: "STATUS_CHANGE",
+        action_text: `Пересоздан заказ Яндекс Доставки (taxi_class: ${taxi_class})`,
+        duration: 0,
+      });
+
+      await processCheckAndSendYandex.add(
+        "checkAndSendYandex",
+        { id, taxi_class },
+        { removeOnComplete: true },
+      );
+
+      return { success: true };
+    },
+    {
+      permission: "orders.edit",
+      params: t.Object({
+        id: t.String(),
+      }),
+      body: t.Object({
+        taxi_class: t.String(),
+      }),
+    },
+  )
+  .post(
     "/api/orders/:id/set_status",
     async ({
       params: { id },
