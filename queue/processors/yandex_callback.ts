@@ -95,53 +95,58 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
         const orgStatuses = orderStatusByOrganization[order.organization_id];
         const orderStatusId = orgStatuses?.[yandexResponse.status];
         console.log(`[YC] status mapping: yandex_status="${yandexResponse.status}", mapped_orderStatusId=${orderStatusId}, available_mappings=${JSON.stringify(orgStatuses)}`);
-        // if (
-        //     yandexCourierWaitTime &&
-        //     dateDiff >= yandexCourierWaitTime &&
-        //     courierSearchingStatuses.includes(data.status)
-        // ) {
-        //     const approveUrl = `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${data.claim_id}`;
-        //     const approveResponse = await lastValueFrom(
-        //         this.httpService
-        //             .post(
-        //                 approveUrl,
-        //                 {
-        //                     cancel_state: 'free',
-        //                     version: yandexResponse.version,
-        //                 },
-        //                 {
-        //                     headers: {
-        //                         'Accept-Language': 'ru',
-        //                         Authorization: `Bearer ${this.configService.get('YANDEX_DELIVERY_TOKEN')}`,
-        //                     },
-        //                 },
-        //             )
-        //             .pipe(map((response) => response.data)),
-        //     );
-        //     await this.prismaService.orders.update({
-        //         where: {
-        //             id: order.id,
-        //         },
-        //         data: {
-        //             orders_couriers: {
-        //                 disconnect: true,
-        //             },
-        //         },
-        //         select: {
-        //             id: true,
-        //         },
-        //     });
 
-        //     await this.searchService.deleteYandexDeliveryOrder(order.id);
-        //     await this.orderIndexQueue.add(
-        //         'processOrderIndex',
-        //         {
-        //             orderId: order.id,
-        //         },
-        //         { attempts: 3, removeOnComplete: true },
-        //     );
-        // }
-        // else
+        const yandexCancelStatuses = ['performer_not_found', 'cancelled', 'cancelled_by_taxi', 'cancelled_with_payment', 'cancelled_with_items_on_hands', 'failed', 'estimating_failed', 'returned_finish'];
+        if (yandexCancelStatuses.includes(yandexResponse.status)) {
+            console.log(`[YC] Yandex order cancelled: status=${yandexResponse.status}, order_id=${order.id}, order_number=${order.order_number}`);
+
+            const initialStatus = orderStatuses.find(
+                (s) => s.sort == 1 && s.organization_id == order.organization_id,
+            );
+
+            if (initialStatus) {
+                await db.update(orders).set({
+                    courier_id: null,
+                    yandex_id: null,
+                    order_status_id: initialStatus.id,
+                }).where(and(eq(orders.id, order.id), gte(orders.created_at, dayjs().subtract(2, 'day').toISOString())));
+
+                await db.insert(order_actions).values({
+                    terminal_id: order.terminal_id,
+                    order_id: order.id,
+                    order_created_at: order.created_at,
+                    action: 'STATUS_CHANGE',
+                    action_text: `Яндекс Доставка отменена (${yandexResponse.status}). Заказ возвращён в пропущенные.`,
+                    duration: 0,
+                });
+
+                console.log(`[YC] Order ${order.order_number} returned to missed orders, status set to ${initialStatus.id}`);
+            }
+
+            try {
+                const tgBotToken = process.env.YANDEX_CANCEL_TG_BOT_TOKEN;
+                const tgChatId = process.env.YANDEX_CANCEL_TG_CHAT_ID;
+                if (tgBotToken && tgChatId) {
+                    const message = `Заказ #${order.order_number} отменён Яндекс Доставкой.\nПропущенные заказы: https://new.arryt.uz/dashboard/missed_orders`;
+                    await fetch(`https://api.telegram.org/bot${tgBotToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: tgChatId,
+                            text: message,
+                        }),
+                    });
+                    console.log(`[YC] Telegram notification sent for order ${order.order_number}`);
+                } else {
+                    console.log(`[YC] SKIP Telegram: YANDEX_CANCEL_TG_BOT_TOKEN or YANDEX_CANCEL_TG_CHAT_ID not set`);
+                }
+            } catch (tgError) {
+                console.log(`[YC] ERROR: Telegram notification failed`, tgError);
+            }
+
+            return 'processYandexCallback';
+        }
+
         if (!orderStatusId) {
             console.log(`[YC] SKIP: no orderStatusId mapping for yandex status "${yandexResponse.status}" in org ${order.organization_id}`);
         }
