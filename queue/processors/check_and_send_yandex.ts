@@ -8,7 +8,7 @@ import { sleep, sleepSync } from "bun";
 import { eq, getTableColumns } from "drizzle-orm";
 import Redis from "ioredis/built/Redis";
 
-export default async function processCheckAndSendYandex(db: DB, redis: Redis, cacheControl: CacheControlService, orderId: string) {
+export default async function processCheckAndSendYandex(db: DB, redis: Redis, cacheControl: CacheControlService, orderId: string, taxiClass?: string) {
     const orderStatuses = await cacheControl.getOrderStatuses();
 
     const newOrders = await db.select({
@@ -82,7 +82,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             client_requirements: {
                 cargo_options,
                 door_to_door: true,
-                taxi_class: expressTerminals.includes(order!.orders_terminals!.id) ? 'express' : 'courier',
+                taxi_class: taxiClass || (expressTerminals.includes(order!.orders_terminals!.id) ? 'express' : 'courier'),
             },
             emergency_contact: {
                 name: yandexSenderName ? yandexSenderName : order!.orders_terminals!.manager_name,

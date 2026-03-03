@@ -20,6 +20,8 @@ import Link from "next/link";
 import "leaflet/dist/leaflet.css";
 import { ChangeOrderCourier } from "@/components/orders/change-courier";
 import { RemoveOrderCourier } from "@/components/orders/remove-courier";
+import { CancelYandexOrder } from "@/components/orders/cancel-yandex-order";
+import { RecreateYandexOrder } from "@/components/orders/recreate-yandex-order";
 
 // Define the Order Location type
 interface OrderLocation {
@@ -96,6 +98,7 @@ interface Order {
     name: string;
   };
   finished_date?: string | null;
+  yandex_id?: string | null;
 }
 
 // Define the Order Status type (based on reference and likely API structure)
@@ -208,8 +211,8 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             "couriers.id", "couriers.first_name", "couriers.last_name",
             "organization.id", "organization.name",
             "terminals.id", "terminals.name",
-            "finished_date"
-            // Add other fields as required
+            "finished_date",
+            "yandex_id"
           ].join(","),
         },
       });
@@ -618,6 +621,24 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         <span className="font-medium">Терминал:</span>{" "}
                         {orderData.terminals.name}
                       </p>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Яндекс Доставка</h3>
+                    <div className="space-y-2">
+                      {orderData.yandex_id ? (
+                        <>
+                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                            Активная доставка
+                          </Badge>
+                          <div className="flex items-center gap-2 mt-2">
+                            <CancelYandexOrder orderId={orderId} />
+                            <RecreateYandexOrder orderId={orderId} hasYandexId={true} />
+                          </div>
+                        </>
+                      ) : (
+                        <RecreateYandexOrder orderId={orderId} hasYandexId={false} />
+                      )}
                     </div>
                   </div>
                 </div>

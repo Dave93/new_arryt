@@ -80,7 +80,7 @@ const fromBasketToCouriers = new Worker(
 const checkAndSendYandexWorker = new Worker(
     `${process.env.TASKS_PREFIX}_check_and_send_yandex`,
     async (job) => {
-        await processCheckAndSendYandex(db, redisClient, cacheControl, job.data.id);
+        await processCheckAndSendYandex(db, redisClient, cacheControl, job.data.id, job.data.taxi_class);
         return 'check_and_send_yandex';
     },
     {

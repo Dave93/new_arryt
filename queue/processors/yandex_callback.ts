@@ -97,6 +97,20 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
         console.log(`[YC] status mapping: yandex_status="${yandexResponse.status}", mapped_orderStatusId=${orderStatusId}, available_mappings=${JSON.stringify(orgStatuses)}`);
 
         const yandexCancelStatuses = ['performer_not_found', 'cancelled', 'cancelled_by_taxi', 'cancelled_with_payment', 'cancelled_with_items_on_hands', 'failed', 'estimating_failed', 'returned_finish'];
+
+        const operatorCancelFlag = await redis.get(`yandex_operator_cancel:${claimId}`);
+        if (operatorCancelFlag) {
+            console.log(`[YC] SKIP: operator-initiated cancel for claim_id=${claimId}, order_id=${order.id}`);
+            await redis.del(`yandex_operator_cancel:${claimId}`);
+
+            await db.update(orders).set({
+                courier_id: null,
+                yandex_id: null,
+            }).where(and(eq(orders.id, order.id), gte(orders.created_at, dayjs().subtract(2, 'day').toISOString())));
+
+            return 'processYandexCallback';
+        }
+
         if (yandexCancelStatuses.includes(yandexResponse.status)) {
             console.log(`[YC] Yandex order cancelled: status=${yandexResponse.status}, order_id=${order.id}, order_number=${order.order_number}`);
 
@@ -121,27 +135,6 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
                 });
 
                 console.log(`[YC] Order ${order.order_number} returned to missed orders, status set to ${initialStatus.id}`);
-            }
-
-            try {
-                const tgBotToken = process.env.YANDEX_CANCEL_TG_BOT_TOKEN;
-                const tgChatId = process.env.YANDEX_CANCEL_TG_CHAT_ID;
-                if (tgBotToken && tgChatId) {
-                    const message = `Заказ #${order.order_number} отменён Яндекс Доставкой.\nПропущенные заказы: https://new.arryt.uz/dashboard/missed_orders`;
-                    await fetch(`https://api.telegram.org/bot${tgBotToken}/sendMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: tgChatId,
-                            text: message,
-                        }),
-                    });
-                    console.log(`[YC] Telegram notification sent for order ${order.order_number}`);
-                } else {
-                    console.log(`[YC] SKIP Telegram: YANDEX_CANCEL_TG_BOT_TOKEN or YANDEX_CANCEL_TG_CHAT_ID not set`);
-                }
-            } catch (tgError) {
-                console.log(`[YC] ERROR: Telegram notification failed`, tgError);
             }
 
             return 'processYandexCallback';
