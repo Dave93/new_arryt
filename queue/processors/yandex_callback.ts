@@ -111,34 +111,34 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
             return 'processYandexCallback';
         }
 
-        if (yandexCancelStatuses.includes(yandexResponse.status)) {
-            console.log(`[YC] Yandex order cancelled: status=${yandexResponse.status}, order_id=${order.id}, order_number=${order.order_number}`);
+        // if (yandexCancelStatuses.includes(yandexResponse.status)) {
+        //     console.log(`[YC] Yandex order cancelled: status=${yandexResponse.status}, order_id=${order.id}, order_number=${order.order_number}`);
 
-            const initialStatus = orderStatuses.find(
-                (s) => s.sort == 1 && s.organization_id == order.organization_id,
-            );
+        //     const initialStatus = orderStatuses.find(
+        //         (s) => s.sort == 1 && s.organization_id == order.organization_id,
+        //     );
 
-            if (initialStatus) {
-                await db.update(orders).set({
-                    courier_id: null,
-                    yandex_id: null,
-                    order_status_id: initialStatus.id,
-                }).where(and(eq(orders.id, order.id), gte(orders.created_at, dayjs().subtract(2, 'day').toISOString())));
+        //     if (initialStatus) {
+        //         await db.update(orders).set({
+        //             courier_id: null,
+        //             yandex_id: null,
+        //             order_status_id: initialStatus.id,
+        //         }).where(and(eq(orders.id, order.id), gte(orders.created_at, dayjs().subtract(2, 'day').toISOString())));
 
-                await db.insert(order_actions).values({
-                    terminal_id: order.terminal_id,
-                    order_id: order.id,
-                    order_created_at: order.created_at,
-                    action: 'STATUS_CHANGE',
-                    action_text: `Яндекс Доставка отменена (${yandexResponse.status}). Заказ возвращён в пропущенные.`,
-                    duration: 0,
-                });
+        //         await db.insert(order_actions).values({
+        //             terminal_id: order.terminal_id,
+        //             order_id: order.id,
+        //             order_created_at: order.created_at,
+        //             action: 'STATUS_CHANGE',
+        //             action_text: `Яндекс Доставка отменена (${yandexResponse.status}). Заказ возвращён в пропущенные.`,
+        //             duration: 0,
+        //         });
 
-                console.log(`[YC] Order ${order.order_number} returned to missed orders, status set to ${initialStatus.id}`);
-            }
+        //         console.log(`[YC] Order ${order.order_number} returned to missed orders, status set to ${initialStatus.id}`);
+        //     }
 
-            return 'processYandexCallback';
-        }
+        //     return 'processYandexCallback';
+        // }
 
         if (!orderStatusId) {
             console.log(`[YC] SKIP: no orderStatusId mapping for yandex status "${yandexResponse.status}" in org ${order.organization_id}`);
