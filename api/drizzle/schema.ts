@@ -213,6 +213,7 @@ export const order_status = pgTable("order_status", {
 	on_way: boolean("on_way").default(false).notNull(),
 	should_pay: boolean("should_pay").default(false).notNull(),
 	yandex_delivery_statuses: text("yandex_delivery_statuses"),
+	noor_delivery_statuses: text("noor_delivery_statuses"),
 	code: text("code"),
 	status_change_text: text("status_change_text"),
 });
@@ -239,6 +240,7 @@ export const organization = pgTable("organization", {
 	support_chat_url: text("support_chat_url"),
 	icon_url: text("icon_url"),
 	allow_yandex_delivery: boolean("allow_yandex_delivery").default(false).notNull(),
+	allow_noor_delivery: boolean("allow_noor_delivery").default(false).notNull(),
 	created_at: timestamp("created_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	created_by: uuid("created_by").references(() => users.id, { onUpdate: "cascade" }),
@@ -388,6 +390,7 @@ export const terminals = pgTable("terminals", {
 	linked_terminal_id: uuid("linked_terminal_id"),
 	time_to_yandex: integer("time_to_yandex").default(0).notNull(),
 	allow_yandex: boolean("allow_yandex").default(true).notNull(),
+	allow_noor: boolean("allow_noor").default(false).notNull(),
 	region: terminals_region("region").default('capital').notNull(),
 	created_at: timestamp("created_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
@@ -759,7 +762,8 @@ export const orders = pgTable("orders", {
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	created_by: uuid("created_by"),
 	updated_by: uuid("updated_by"),
-	yandex_id: text("yandex_id")
+	yandex_id: text("yandex_id"),
+	noor_id: text("noor_id")
 },
 	(table) => {
 		return {

@@ -13,6 +13,8 @@ import processClearCourier from "./processors/clear_courier";
 import processChangeCourier from "./processors/change_courier";
 import processStoreLocation from "./processors/store_location";
 import processYandexCallback from "./processors/yandex_callback";
+import processCheckAndSendNoor from "./processors/check_and_send_noor";
+import processNoorCallback from "./processors/noor_callback";
 import { processSendNotification } from "./processors/send_notification";
 import processPushCourierToQueue from "./processors/push_courier_to_queue";
 import processSetQueueLastCourier from "./processors/set_queue_last_courier";
@@ -172,6 +174,28 @@ const yandexCallbackWorker = new Worker(
     async (job) => {
         await processYandexCallback(redisClient, db, cacheControl, job.data);
         return 'yandex_callback';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+const checkAndSendNoorWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_check_and_send_noor`,
+    async (job) => {
+        await processCheckAndSendNoor(db, redisClient, cacheControl, job.data.id);
+        return 'check_and_send_noor';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+const noorCallbackWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_noor_callback`,
+    async (job) => {
+        await processNoorCallback(redisClient, db, cacheControl, job.data);
+        return 'noor_callback';
     },
     {
         connection: redisClient,
