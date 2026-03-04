@@ -1031,6 +1031,24 @@ export const externalControler = new Elysia({
             claim_id: t.Optional(t.String()),
         }),
     })
+    .post('/api/external/noor-callback', async ({ body, request: { headers }, status, queues: {
+        processNoorCallbackQueue
+    } }) => {
+        const token = headers.get('x-auth');
+        if (!token || token !== process.env.NOOR_WEBHOOK_TOKEN) {
+            return status(403, { error: 'Forbidden' });
+        }
+
+        if (body?.id) {
+            await processNoorCallbackQueue.add(`${body.id}_${(new Date()).getTime()}`, body, {
+                attempts: 3, removeOnComplete: true,
+            });
+        }
+
+        return {
+            success: true,
+        };
+    })
     .post('/api/external/cancel-order', async ({ body, set, request: { headers }, drizzle, cacheControl }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 

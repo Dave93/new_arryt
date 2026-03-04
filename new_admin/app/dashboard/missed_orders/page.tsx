@@ -22,6 +22,7 @@ import { sortBy } from "lodash";
 import { ru } from "date-fns/locale";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import { SendOrderToYandex } from "@/components/orders/send-to-yandex";
+import { SendOrderToNoor } from "@/components/orders/send-to-noor";
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
 
 // Define MissedOrder interface
@@ -106,10 +107,20 @@ const columns: ColumnDef<MissedOrder>[] = [
   },
   {
     id: "yandex",
-    header: "Отправить в Яндекс",
+    header: "Яндекс",
     cell: ({ row }) => (
       <div className="flex flex-col gap-2">
         <SendOrderToYandex order={row.original} />
+      </div>
+    ),
+    size: 150,
+  },
+  {
+    id: "noor",
+    header: "Noor",
+    cell: ({ row }) => (
+      <div className="flex flex-col gap-2">
+        <SendOrderToNoor order={row.original} />
       </div>
     ),
     size: 150,

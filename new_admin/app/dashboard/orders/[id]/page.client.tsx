@@ -22,6 +22,8 @@ import { ChangeOrderCourier } from "@/components/orders/change-courier";
 import { RemoveOrderCourier } from "@/components/orders/remove-courier";
 import { CancelYandexOrder } from "@/components/orders/cancel-yandex-order";
 import { RecreateYandexOrder } from "@/components/orders/recreate-yandex-order";
+import { CancelNoorOrder } from "@/components/orders/cancel-noor-order";
+import { RecreateNoorOrder } from "@/components/orders/recreate-noor-order";
 
 // Define the Order Location type
 interface OrderLocation {
@@ -99,6 +101,7 @@ interface Order {
   };
   finished_date?: string | null;
   yandex_id?: string | null;
+  noor_id?: string | null;
 }
 
 // Define the Order Status type (based on reference and likely API structure)
@@ -212,7 +215,8 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             "organization.id", "organization.name",
             "terminals.id", "terminals.name",
             "finished_date",
-            "yandex_id"
+            "yandex_id",
+            "noor_id"
           ].join(","),
         },
       });
@@ -638,6 +642,24 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         </>
                       ) : (
                         <RecreateYandexOrder orderId={orderId} hasYandexId={false} />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Noor Доставка</h3>
+                    <div className="space-y-2">
+                      {orderData.noor_id ? (
+                        <>
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                            Активная доставка
+                          </Badge>
+                          <div className="flex items-center gap-2 mt-2">
+                            <CancelNoorOrder orderId={orderId} />
+                            <RecreateNoorOrder orderId={orderId} hasNoorId={true} />
+                          </div>
+                        </>
+                      ) : (
+                        <RecreateNoorOrder orderId={orderId} hasNoorId={false} />
                       )}
                     </div>
                   </div>
