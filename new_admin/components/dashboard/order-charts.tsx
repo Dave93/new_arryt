@@ -17,7 +17,8 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Legend
+  Legend,
+  LabelList
 } from "recharts"
 import {
   Card,
@@ -182,7 +183,9 @@ export function OrderCharts() {
                 fillOpacity={1}
                 fill="url(#colorOrders)"
                 name="Заказов"
-              />
+              >
+                <LabelList dataKey="count" position="top" fontSize={12} fill="#6b7280" />
+              </Area>
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
@@ -208,7 +211,9 @@ export function OrderCharts() {
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="time" fill="#82ca9d" name="Минут" />
+              <Bar dataKey="time" fill="#82ca9d" name="Минут">
+                <LabelList dataKey="time" position="top" fontSize={12} fill="#6b7280" />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
