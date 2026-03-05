@@ -64,31 +64,25 @@ export function DashboardDateRangeFilter() {
   }, [selectedRegionId, regionOptionsData])
 
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString())
-    
+    const params = new URLSearchParams()
+
     if (date?.from) {
       params.set("start_date", format(date.from, "yyyy-MM-dd"))
-    } else {
-      params.delete("start_date")
     }
-    
+
     if (date?.to) {
       params.set("end_date", format(date.to, "yyyy-MM-dd"))
-    } else {
-      params.delete("end_date")
     }
-    
+
     if (selectedRegionId && selectedRegionId !== "all") {
       params.set("region", selectedRegionId)
-    } else {
-      params.delete("region")
     }
-    
+
     const queryString = params.toString()
     const url = queryString ? `${pathname}?${queryString}` : pathname
-    
+
     router.push(url)
-  }, [date, selectedRegionId, pathname, router, searchParams])
+  }, [date, selectedRegionId, pathname, router])
 
   const handlePresetClick = (preset: "today" | "yesterday" | "week" | "month") => {
     const today = new Date()

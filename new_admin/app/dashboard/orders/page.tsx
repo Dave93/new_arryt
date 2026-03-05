@@ -511,7 +511,14 @@ export default function OrdersPage() {
           query: {}
         });
         // Assuming the cached endpoint returns data directly or in a `data` property
-        return response.data || response || []; // Adjust based on actual response
+        const data = response.data || response || [];
+        // Deduplicate statuses by name (different organizations may have same status names)
+        const seen = new Set<string>();
+        return (data as OrderStatus[]).filter(status => {
+          if (seen.has(status.name)) return false;
+          seen.add(status.name);
+          return true;
+        });
       } catch {
         toast.error("Failed to load order statuses");
         return [];
