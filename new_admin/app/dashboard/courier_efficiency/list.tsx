@@ -235,7 +235,7 @@ function CourierEfficiencyDetails({ courier }: { courier: CourierEfficiency }) {
 }
 
 // Define columns for the efficiency table
-const columns = (efficiencyData: CourierEfficiency[]): ColumnDef<CourierEfficiency>[] => [
+const columns: ColumnDef<CourierEfficiency>[] = [
   {
     accessorKey: "index",
     header: "№",
@@ -289,9 +289,7 @@ const columns = (efficiencyData: CourierEfficiency[]): ColumnDef<CourierEfficien
     id: "details",
     header: "Действия",
     cell: ({ row }) => {
-      // Find the full courier object with all data
-      const courier = efficiencyData.find(c => c.id === row.original.id);
-      return courier ? <CourierEfficiencyDetails courier={courier} /> : null;
+      return <CourierEfficiencyDetails courier={row.original} />;
     },
   },
 ];
@@ -403,9 +401,7 @@ export default function CourierEfficiencyList() {
     // The query will automatically refetch with the new values
   };
 
-  // Generate columns with access to efficiencyData
-  // @ts-ignore
-  const tableColumns = columns(efficiencyData);
+  const tableColumns = columns;
 
   return (
     <Card>
