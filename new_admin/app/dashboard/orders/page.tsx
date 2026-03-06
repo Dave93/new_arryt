@@ -5,7 +5,7 @@ import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { DateRangePicker } from "../../../components/ui/date-range-picker";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardFooter } from "../../../components/ui/card";
+import { Card, CardContent } from "../../../components/ui/card";
 import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { DateRange } from "react-day-picker";
@@ -1227,29 +1227,28 @@ export default function OrdersPage() {
                 }
               }}
               isRowDisabled={(order) => !canSelectOrder(order.organization.id)}
+              footerContent={summaryData ? (
+                <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t pt-3 pb-1 text-sm font-medium">
+                  <div>
+                    Ср. время готовки: <span className="font-bold">{summaryData.avgCookingTime}</span>
+                  </div>
+                  <div>
+                    Ср. время доставки: <span className="font-bold">{summaryData.avgDeliveryTime}</span>
+                  </div>
+                  <div>
+                    Сумма бонусов: <span className="font-bold">{new Intl.NumberFormat("ru").format(summaryData.totalBonus)}</span>
+                  </div>
+                  <div>
+                    Общая дистанция: <span className="font-bold">{summaryData.totalDistance.toFixed(2)} км</span>
+                  </div>
+                  <div>
+                    Стоимость доставки: <span className="font-bold">{new Intl.NumberFormat("ru").format(summaryData.totalDeliveryPrice)}</span>
+                  </div>
+                </div>
+              ) : undefined}
             />
           </div>
         </CardContent>
-        {/* Add CardFooter for summary here */}
-        {summaryData && (
-          <CardFooter className="flex justify-end space-x-6 border-t pt-2 text-sm font-medium">
-            <div className="text-right">
-              Ср. время готовки: <span className="font-bold">{summaryData.avgCookingTime}</span>
-            </div>
-            <div className="text-right">
-              Ср. время доставки: <span className="font-bold">{summaryData.avgDeliveryTime}</span>
-            </div>
-            <div className="text-right">
-              Сумма бонусов: <span className="font-bold">{new Intl.NumberFormat("ru").format(summaryData.totalBonus)}</span>
-            </div>
-            <div className="text-right">
-              Общая дистанция: <span className="font-bold">{summaryData.totalDistance.toFixed(2)} км</span>
-            </div>
-            <div className="text-right">
-              Стоимость доставки: <span className="font-bold">{new Intl.NumberFormat("ru").format(summaryData.totalDeliveryPrice)}</span>
-            </div>
-          </CardFooter>
-        )}
       </Card>
     </div>
     </>
