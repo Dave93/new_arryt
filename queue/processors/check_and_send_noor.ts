@@ -28,8 +28,8 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
     const nextStatus = orderStatuses.find(status => status.sort == 2 && status.organization_id == order.organization_id);
 
     if (!order.courier_id && order.order_status_id == newStatus!.id) {
-        const senderName = order!.orders_terminals!.manager_name;
-        const senderPhone = order!.orders_terminals!.phone;
+        const senderName = "Koll-Sentr Les&Chopar";
+        const senderPhone = "+998712050642";
 
         let orderPrice = 0;
         if (order.payment_type == 'Наличными') {

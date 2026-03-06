@@ -34,6 +34,7 @@ interface DataTableProps<TData, TValue> {
   onPaginationChange?: OnChangeFn<PaginationState>;
   onRowClick?: (row: TData) => void;
   isRowDisabled?: (row: TData) => boolean;
+  footerContent?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -47,6 +48,7 @@ export function DataTable<TData, TValue>({
   onPaginationChange,
   onRowClick,
   isRowDisabled,
+  footerContent,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -174,6 +176,8 @@ export function DataTable<TData, TValue>({
           </table>
         </div>
       </div>
+
+      {footerContent}
 
       <div className="flex items-center justify-between py-4">
         <div className="flex items-center space-x-2">

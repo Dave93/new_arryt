@@ -6,10 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AsyncCombobox, ComboboxOption } from "@/components/ui/async-combobox"
 import { apiClient } from "@/lib/eden-client"
-import { Drawer } from "@/components/ui/drawer"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { useMediaQuery } from "@/hooks/use-media-query"
-import { Loader2, MapPin } from "lucide-react"
+import { Loader2, MapPin, X } from "lucide-react"
 import dynamic from "next/dynamic"
 import type { Order, MapComponentProps } from "./map-component"
 import { sortTerminalsByName } from "../../lib/sort_terminals_by_name"
@@ -32,13 +29,12 @@ interface Terminal {
 }
 
 export function OrdersMapView() {
-  const isMobile = useMediaQuery("(max-width: 768px)")
   const [terminals, setTerminals] = useState<Terminal[]>([])
   const [selectedTerminals, setSelectedTerminals] = useState<string[]>([])
   const [selectedCourier, setSelectedCourier] = useState<string | undefined>(undefined)
   const [selectedCourierOption, setSelectedCourierOption] = useState<ComboboxOption | null>(null)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersCount, setOrdersCount] = useState(0)
@@ -142,7 +138,7 @@ export function OrdersMapView() {
   // Handle order selection
   const handleOrderSelect = (order: Order) => {
     setSelectedOrderId(order.id)
-    setIsSheetOpen(true)
+    setIsPanelOpen(true)
   }
 
   // Filter orders by selected courier if one is selected
@@ -217,24 +213,22 @@ export function OrdersMapView() {
         />
       </div>
       
-      {/* Order details sheet/drawer */}
-      {isMobile ? (
-        <Drawer open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <div className="p-4">
+      {/* Order details panel */}
+      {isPanelOpen && (
+        <div className="absolute top-0 right-0 h-full w-[400px] sm:w-[540px] bg-background border-l shadow-lg z-[1000] flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-semibold">Детали заказа</h3>
+            <button
+              onClick={() => setIsPanelOpen(false)}
+              className="rounded-sm opacity-70 hover:opacity-100 transition-opacity"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
             {selectedOrderId && <OrderDetailsClientPage orderId={selectedOrderId} />}
           </div>
-        </Drawer>
-      ) : (
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="w-[400px] sm:w-[540px] p-0">
-            <SheetHeader className="p-4 border-b">
-              <SheetTitle>Детали заказа</SheetTitle>
-            </SheetHeader>
-            <div className="px-0 py-0">
-              {selectedOrderId && <OrderDetailsClientPage orderId={selectedOrderId} />}
-            </div>
-          </SheetContent>
-        </Sheet>
+        </div>
       )}
     </div>
   )
