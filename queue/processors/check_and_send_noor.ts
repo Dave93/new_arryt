@@ -126,7 +126,8 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
             },
         };
 
-        console.log(`[Noor] Creating order for ${order.id}, vendor_order_id: ${order.id}`);
+        console.log(`[Noor] Creating order for id=${order.id}, order_number=${order.order_number}, vendor_order_id: ${order.id}`);
+        console.log(`[Noor] Request body:`, JSON.stringify(noorData, null, 2));
 
         const noorUrl = `https://back.noor.uz/api/v1/orders`;
 
@@ -140,14 +141,25 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
             body: JSON.stringify(noorData),
         });
 
-        const noorJson = await noorResponse.json() as any;
+        const noorResponseStatus = noorResponse.status;
+        const noorResponseText = await noorResponse.text();
+        console.log(`[Noor] Response status=${noorResponseStatus} for order_number=${order.order_number}`);
+        console.log(`[Noor] Response body:`, noorResponseText);
 
-        if (!noorJson.order || !noorJson.order.id) {
-            console.error(`[Noor] Failed to create order:`, JSON.stringify(noorJson));
+        let noorJson: any;
+        try {
+            noorJson = JSON.parse(noorResponseText);
+        } catch (e) {
+            console.error(`[Noor] Failed to parse response for order_number=${order.order_number}:`, noorResponseText);
             return;
         }
 
-        console.log(`[Noor] Order created: noor_id=${noorJson.order.id}, stage=${noorJson.stage}`);
+        if (!noorJson.order || !noorJson.order.id) {
+            console.error(`[Noor] Failed to create order_number=${order.order_number}:`, noorResponseText);
+            return;
+        }
+
+        console.log(`[Noor] Order created: order_number=${order.order_number}, noor_id=${noorJson.order.id}, stage=${noorJson.stage}`);
 
         // Find Noor virtual courier
         const noorCourier = await db.select({
@@ -165,6 +177,6 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
             noor_id: noorJson.order.id.toString(),
         }).where(eq(orders.id, order.id));
 
-        console.log(`[Noor] Order ${order.id} updated with noor_id=${noorJson.order.id}`);
+        console.log(`[Noor] Order order_number=${order.order_number} (${order.id}) updated with noor_id=${noorJson.order.id}`);
     }
 }
