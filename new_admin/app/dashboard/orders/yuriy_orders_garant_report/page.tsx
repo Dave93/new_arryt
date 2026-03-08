@@ -19,6 +19,7 @@ import { FileDown, Loader2, CalendarIcon, ArrowUpDown, ArrowUp, ArrowDown } from
 import { cn } from "@/lib/utils";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import * as XLSX from "xlsx";
+import { PageTitle } from "@/components/page-title";
 import { saveAs } from "file-saver";
 
 // Define the GarantReportItem interface based on the old implementation
@@ -450,8 +451,8 @@ export default function YuriyOrdersGarantReportPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-row items-center justify-between">
-        <h1 className="text-2xl font-bold">Гарант</h1>
+      <PageTitle title="Гарант" />
+      <div className="flex flex-row items-center justify-end">
         <Button 
           onClick={exportToExcel} 
           disabled={isExporting}

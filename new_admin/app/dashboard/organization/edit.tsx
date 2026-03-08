@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import {
@@ -31,6 +30,7 @@ import * as z from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { Textarea } from "../../../components/ui/textarea";
+import { PageTitle } from "@/components/page-title";
 
 // Определяем типы для платежей и систем
 const PAYMENT_TYPES = {
@@ -217,6 +217,7 @@ export default function OrganizationEdit() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Edit Organization" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/organization">
@@ -228,7 +229,6 @@ export default function OrganizationEdit() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Edit Organization</CardTitle>
           <CardDescription>
             Update organization details in the system.
           </CardDescription>

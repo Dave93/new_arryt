@@ -18,12 +18,13 @@ import {
   FormMessage,
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { PageTitle } from "@/components/page-title";
 
 // Схема валидации для правил
 const ruleSchema = z.object({
@@ -357,6 +358,7 @@ export default function ConstructedBonusPricingEdit({ id: propId }: ConstructedB
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Редактировать условие бонуса к заказу" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/constructed_bonus_pricing">
@@ -367,9 +369,6 @@ export default function ConstructedBonusPricingEdit({ id: propId }: ConstructedB
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Редактировать условие бонуса к заказу</CardTitle>
-        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

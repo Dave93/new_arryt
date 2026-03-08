@@ -9,7 +9,8 @@ import { CalendarIcon, FilterIcon, Download, Eye } from "lucide-react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef } from "@tanstack/react-table";
 import {
@@ -537,9 +538,10 @@ export default function ManagerWithdrawList() {
   const { total, amountBefore, amountAfter } = calculateTotals();
 
   return (
+    <>
+    <PageTitle title="Выплаты курьерам" />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Выплаты курьерам</CardTitle>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
@@ -755,5 +757,6 @@ export default function ManagerWithdrawList() {
         </div>
       </CardContent>
     </Card>
+    </>
   );
 } 

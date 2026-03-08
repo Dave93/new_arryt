@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import {
@@ -29,6 +28,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useQuery } from "@tanstack/react-query";
+import { PageTitle } from "@/components/page-title";
 
 // Define the form schema with validation
 const formSchema = z.object({
@@ -109,6 +109,7 @@ export default function PermissionEdit({ params }: { params: { id: string } }) {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Edit Permission" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/permissions">
@@ -120,7 +121,6 @@ export default function PermissionEdit({ params }: { params: { id: string } }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Edit Permission</CardTitle>
           <CardDescription>
             Update permission details.
           </CardDescription>

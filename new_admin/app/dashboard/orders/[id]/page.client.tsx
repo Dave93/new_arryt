@@ -18,6 +18,7 @@ import { Check, ChevronsUpDown, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import "leaflet/dist/leaflet.css";
+import { PageTitle } from "@/components/page-title";
 import { ChangeOrderCourier } from "@/components/orders/change-courier";
 import { RemoveOrderCourier } from "@/components/orders/remove-courier";
 import { CancelYandexOrder } from "@/components/orders/cancel-yandex-order";
@@ -465,10 +466,10 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
   return (
 
       <Card className="h-full">
+        <PageTitle title={`Заказ №${orderData.order_number}` || "Загрузка..."} />
         <CardHeader>
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
-              <CardTitle>Заказ №{orderData.order_number}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 {orderData.finished_date 
                   ? `Доставка завершена за ${Math.round(

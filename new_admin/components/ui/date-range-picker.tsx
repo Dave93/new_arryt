@@ -119,8 +119,8 @@ export function DateRangePicker({
               !value && "text-muted-foreground"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {formatDateDisplay()}
+            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">{formatDateDisplay()}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 z-[10000]" align="start">

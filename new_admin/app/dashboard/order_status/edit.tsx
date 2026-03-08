@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import {
@@ -36,6 +35,7 @@ import {
   SelectValue 
 } from "../../../components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import { PageTitle } from "@/components/page-title";
 
 // Define interface for organization
 interface Organization {
@@ -205,7 +205,6 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Edit Order Status</CardTitle>
             <CardDescription>Loading...</CardDescription>
           </CardHeader>
           <CardContent>
@@ -220,6 +219,7 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Edit Order Status" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href={`/dashboard/order_status/${params.id}`}>
@@ -231,7 +231,6 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
 
       <Card>
         <CardHeader>
-          <CardTitle>Edit Order Status</CardTitle>
           <CardDescription>
             Update the order status information.
           </CardDescription>

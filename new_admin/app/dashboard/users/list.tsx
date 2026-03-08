@@ -5,7 +5,8 @@ import { debounce } from "lodash";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -464,21 +465,19 @@ export default function UsersList() {
   };
 
   return (
+    <>
+    <PageTitle title="Пользователи" />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center space-x-4 space-y-4 justify-between flex-col w-full">
-          <CardTitle className="text-left w-full flex flex-row items-center justify-between">
-            <div>
-            Пользователи
-            </div>
-
+          <div className="text-left w-full flex flex-row items-center justify-end">
           <Button asChild>
             <Link href="/dashboard/users/create/">
               <Plus className="h-4 w-4 mr-2" />
               Создать
             </Link>
           </Button>
-          </CardTitle>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 w-full mb-4">
             <Input
               placeholder="Фильтр по номеру телефона..."
@@ -697,5 +696,6 @@ export default function UsersList() {
         />
       </CardContent>
     </Card>
+    </>
   );
 } 

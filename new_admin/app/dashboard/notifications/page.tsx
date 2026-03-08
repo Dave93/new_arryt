@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { IconBell, IconCheck, IconTrash, IconSettings } from "@tabler/icons-react"
+import { PageTitle } from "@/components/page-title"
 
 // Пример данных уведомлений
 const notifications = [
@@ -61,9 +62,9 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Уведомления" />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">Уведомления</h1>
           {unreadCount > 0 && (
             <Badge variant="destructive" className="text-xs">
               {unreadCount} новых

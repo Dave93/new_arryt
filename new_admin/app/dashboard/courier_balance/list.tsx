@@ -9,7 +9,8 @@ import { FilterIcon, Download, Wallet } from "lucide-react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef } from "@tanstack/react-table";
@@ -366,9 +367,10 @@ export default function CourierBalanceList() {
   const totalBalance = data?.reduce((sum, item) => sum + Number(item.balance), 0);
 
   return (
+    <>
+    <PageTitle title="Кошелёк курьеров" />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Кошелёк курьеров</CardTitle>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
@@ -500,5 +502,6 @@ export default function CourierBalanceList() {
         )}
       </CardContent>
     </Card>
+    </>
   );
 } 

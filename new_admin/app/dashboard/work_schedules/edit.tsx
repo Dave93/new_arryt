@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { apiClient } from "../../../lib/eden-client";
@@ -27,6 +27,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { PageTitle } from "@/components/page-title";
 
 // Определение типа организации
 interface Organization {
@@ -184,6 +185,7 @@ export default function WorkScheduleEdit() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Редактировать рабочий график" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/work_schedules">
@@ -194,9 +196,6 @@ export default function WorkScheduleEdit() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Редактировать рабочий график</CardTitle>
-        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

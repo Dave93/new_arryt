@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/hooks/useAuth"
 import { IconShield, IconPhone, IconUser, IconEdit, IconMail } from "@tabler/icons-react"
 import Link from "next/link"
+import { PageTitle } from "@/components/page-title"
 
 export default function ProfilePage() {
   const { user, loading } = useAuth()
@@ -46,8 +47,8 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Профиль пользователя</h1>
+      <PageTitle title="Профиль пользователя" />
+      <div className="flex items-center justify-end">
         <Button asChild>
           <Link href="/dashboard/profile/edit">
             <IconEdit className="h-4 w-4 mr-2" />

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
 import { format } from "date-fns";
+import { PageTitle } from "@/components/page-title";
 
 interface Terminal {
   id: string;
@@ -198,6 +199,7 @@ export default function ConstructedBonusPricingShow() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={bonusPricing.name || "Загрузка..."} />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/constructed_bonus_pricing">
@@ -205,7 +207,7 @@ export default function ConstructedBonusPricingShow() {
             Назад к списку
           </Link>
         </Button>
-        
+
         <Button asChild>
           <Link href={`/dashboard/constructed_bonus_pricing/edit?id=${id}`}>
             <Edit className="h-4 w-4 mr-2" />
@@ -215,9 +217,7 @@ export default function ConstructedBonusPricingShow() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{bonusPricing.name}</CardTitle>
-        </CardHeader>
+        <CardHeader></CardHeader>
         <CardContent>
           <Tabs defaultValue="details">
             <TabsList>

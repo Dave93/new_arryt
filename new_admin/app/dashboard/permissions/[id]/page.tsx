@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "../../../../components/ui/skeleton";
 import { Switch } from "../../../../components/ui/switch";
 import { format } from "date-fns";
+import { PageTitle } from "@/components/page-title";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,6 +78,7 @@ export default function PermissionDetails() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Permission Details" />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/permissions">
@@ -84,7 +86,7 @@ export default function PermissionDetails() {
             Back to permissions
           </Link>
         </Button>
-        
+
         <div className="flex items-center space-x-2">
           <Button asChild variant="outline">
             <Link href={`/dashboard/permissions/edit?id=${id}`}>
@@ -125,7 +127,6 @@ export default function PermissionDetails() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Permission Details</CardTitle>
           <CardDescription>
             View information about this permission.
           </CardDescription>

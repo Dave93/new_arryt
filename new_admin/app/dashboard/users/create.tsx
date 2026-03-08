@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { apiClient } from "../../../lib/eden-client";
@@ -27,6 +27,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
 import { FileUpload } from "../../../components/ui/file-upload";
+import { PageTitle } from "@/components/page-title";
 // Определение типов
 interface Terminal {
   id: string;
@@ -215,6 +216,7 @@ export default function UserCreate() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Создать нового пользователя" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/users">
@@ -225,9 +227,6 @@ export default function UserCreate() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Создать нового пользователя</CardTitle>
-        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

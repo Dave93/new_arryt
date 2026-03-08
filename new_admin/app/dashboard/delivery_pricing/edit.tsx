@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { apiClient } from "../../../lib/eden-client";
@@ -29,6 +29,7 @@ import { Checkbox } from "../../../components/ui/checkbox";
 import { Separator } from "../../../components/ui/separator";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
+import { PageTitle } from "@/components/page-title";
 
 // Определение типа организации
 interface Organization {
@@ -267,6 +268,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Редактировать условие доставки" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/delivery_pricing">
@@ -277,9 +279,6 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Редактировать условие доставки</CardTitle>
-        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

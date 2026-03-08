@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import {
@@ -35,6 +34,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "../../../components/ui/select";
+import { PageTitle } from "@/components/page-title";
 
 // Define interface for organization
 interface Organization {
@@ -119,6 +119,7 @@ export default function OrderStatusCreate() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Create Order Status" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/order_status">
@@ -130,7 +131,6 @@ export default function OrderStatusCreate() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Create Order Status</CardTitle>
           <CardDescription>
             Add a new order status to the system.
           </CardDescription>

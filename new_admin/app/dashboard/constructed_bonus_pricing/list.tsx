@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -127,9 +128,10 @@ export default function ConstructedBonusPricingList() {
   });
 
   return (
+    <>
+    <PageTitle title="Список условий бонуса к заказу" />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Список условий бонуса к заказу</CardTitle>
         <div className="flex items-center space-x-2">
           <Input
             placeholder="Поиск..."
@@ -156,5 +158,6 @@ export default function ConstructedBonusPricingList() {
         />
       </CardContent>
     </Card>
+    </>
   );
 } 

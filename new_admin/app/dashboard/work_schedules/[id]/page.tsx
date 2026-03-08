@@ -15,6 +15,7 @@ import { Skeleton } from "../../../../components/ui/skeleton";
 import { Switch } from "../../../../components/ui/switch";
 import { Badge } from "../../../../components/ui/badge";
 import { format } from "date-fns";
+import { PageTitle } from "@/components/page-title";
 const customParseFormat = require('dayjs/plugin/customParseFormat');
 dayjs.extend(customParseFormat);
 
@@ -54,9 +55,8 @@ export default function WorkScheduleView() {
   if (!workSchedule) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Рабочий график не найден</CardTitle>
-        </CardHeader>
+        <PageTitle title="Рабочий график не найден" />
+        <CardHeader></CardHeader>
         <CardContent>
           <p>Невозможно найти рабочий график с указанным ID.</p>
           <Button asChild className="mt-4">
@@ -72,6 +72,7 @@ export default function WorkScheduleView() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={workSchedule.name || "Загрузка..."} />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/work_schedules">
@@ -79,7 +80,7 @@ export default function WorkScheduleView() {
             Назад к списку
           </Link>
         </Button>
-        
+
         <Button asChild>
           <Link href={`/dashboard/work_schedules/edit?id=${id}`}>
             <Edit className="h-4 w-4 mr-2" />
@@ -90,7 +91,6 @@ export default function WorkScheduleView() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{workSchedule.name}</CardTitle>
           <div className="flex items-center space-x-2">
             <div className="text-sm text-muted-foreground mr-2">
               Активен:

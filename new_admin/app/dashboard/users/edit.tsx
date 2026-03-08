@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { apiClient } from "../../../lib/eden-client";
@@ -28,6 +28,7 @@ import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { UsersModel } from "../../../../api/src/modules/user/dto/list.dto";
 import { FileUpload } from "../../../components/ui/file-upload";
+import { PageTitle } from "@/components/page-title";
 
 // Определение типов
 interface Terminal {
@@ -337,6 +338,7 @@ export default function UserEdit() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Редактировать пользователя" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/users">
@@ -347,9 +349,6 @@ export default function UserEdit() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Редактировать пользователя</CardTitle>
-        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

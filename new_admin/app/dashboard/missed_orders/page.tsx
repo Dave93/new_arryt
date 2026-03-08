@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/eden-client";
 import { DateRange } from "react-day-picker";
@@ -359,11 +360,10 @@ export default function MissedOrdersPage() {
   });
 
   return (
+    <>
+    <PageTitle title="Пропущенные заказы" />
     <Card>
-      <CardHeader>
-        <CardTitle>Пропущенные заказы</CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="flex flex-col gap-4 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <DateRangePicker
@@ -434,5 +434,6 @@ export default function MissedOrdersPage() {
         />
       </CardContent>
     </Card>
+    </>
   );
 } 

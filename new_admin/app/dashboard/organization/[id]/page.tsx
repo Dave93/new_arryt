@@ -15,6 +15,7 @@ import { ArrowLeft, Edit } from "lucide-react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "../../../../components/ui/switch";
+import { PageTitle } from "@/components/page-title";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
 import { format } from "date-fns";
 
@@ -80,6 +81,7 @@ export default function OrganizationShow() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={org?.name || "Загрузка..."} />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/organization">
@@ -87,7 +89,7 @@ export default function OrganizationShow() {
             Back to organizations
           </Link>
         </Button>
-        
+
         <Button asChild>
           <Link href={`/dashboard/organization/edit?id=${id}`}>
             <Edit className="h-4 w-4 mr-2" />
@@ -97,9 +99,7 @@ export default function OrganizationShow() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{org?.name}</CardTitle>
-        </CardHeader>
+        <CardHeader></CardHeader>
         <CardContent>
           <Tabs defaultValue="details">
             <TabsList>

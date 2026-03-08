@@ -5,6 +5,7 @@ import { QueryProvider } from "../providers/query-provider";
 import { ToastProvider } from "../providers/toast-provider";
 import { AuthGuard } from "../components/auth/auth-guard";
 import { Toaster } from "sonner";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "leaflet/dist/leaflet.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,9 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <QueryProvider>
-          {children}
-        </QueryProvider>
+        <NuqsAdapter>
+          <QueryProvider>
+            {children}
+          </QueryProvider>
+        </NuqsAdapter>
         <Toaster position="top-right" />
       </body>
     </html>
