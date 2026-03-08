@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import dayjs from "dayjs";
+import { PageTitle } from "@/components/page-title";
 
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
@@ -1123,9 +1124,8 @@ export default function UserShow({ id }: UserShowProps) {
   if (!user) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Пользователь не найден</CardTitle>
-        </CardHeader>
+        <PageTitle title="Пользователь не найден" />
+        <CardHeader></CardHeader>
         <CardContent>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/dashboard/users">
@@ -1140,6 +1140,8 @@ export default function UserShow({ id }: UserShowProps) {
 
   return (
     <div className="space-y-6">
+      {/* @ts-ignore */}
+      <PageTitle title={`${user.last_name} ${user.first_name}` || "Загрузка..."} />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/users">
@@ -1147,7 +1149,7 @@ export default function UserShow({ id }: UserShowProps) {
             Назад к списку
           </Link>
         </Button>
-        
+
         <Button asChild>
           <Link href={`/dashboard/users/edit/?id=${id}`}>
             <Edit className="h-4 w-4 mr-2" />
@@ -1157,10 +1159,7 @@ export default function UserShow({ id }: UserShowProps) {
       </div>
 
       <Card>
-        <CardHeader>
-          {/* @ts-ignore */}
-          <CardTitle>{`${user.last_name} ${user.first_name}`}</CardTitle>
-        </CardHeader>
+        <CardHeader></CardHeader>
         <CardContent>
           <Tabs defaultValue="main">
             <TabsList>

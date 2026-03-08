@@ -173,11 +173,14 @@ export function DataTable<TData, TValue>({
                 </tr>
               )}
             </tbody>
+            {footerContent && (
+              <tfoot className="sticky bottom-0 z-10 bg-muted border-t">
+                {footerContent}
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
-
-      {footerContent}
 
       <div className="flex items-center justify-between py-4">
         <div className="flex items-center space-x-2">

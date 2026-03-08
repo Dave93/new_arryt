@@ -9,6 +9,7 @@ import { CalendarIcon, FilterIcon, PhoneIcon, Calculator } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { apiClient } from "../../../lib/eden-client";
 import {
@@ -186,11 +187,10 @@ export default function RollCallList() {
   };
 
   return (
+    <>
+    <PageTitle title="Перекличка курьеров" />
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Перекличка курьеров</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="flex items-center justify-between">
@@ -334,5 +334,6 @@ export default function RollCallList() {
         )}
       </CardContent>
     </Card>
+    </>
   );
 } 

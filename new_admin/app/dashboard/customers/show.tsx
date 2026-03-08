@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { apiClient } from "../../../lib/eden-client";
@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { useState } from "react";
+import { PageTitle } from "@/components/page-title";
+import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
 
 
 export default function CustomersShow() {
@@ -43,9 +45,8 @@ export default function CustomersShow() {
 
   return (
       <Card>
-        <CardHeader>
-          <CardTitle>Информация о клиенте</CardTitle>
-        </CardHeader>
+        <PageTitle title="Информация о клиенте" />
+        <CardHeader></CardHeader>
         <CardContent>
           <Tabs defaultValue="info" className="w-full">
             <TabsList>
@@ -77,7 +78,6 @@ export default function CustomersShow() {
 }
 
 function CustomerOrders({ customerId }: { customerId: string }) {
-  const router = useRouter();
   const [page, setPage] = useState(0);
   const pageSize = 20;
 
@@ -158,10 +158,15 @@ function CustomerOrders({ customerId }: { customerId: string }) {
           {orders.map((order: any) => (
             <TableRow
               key={order.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+              className="hover:bg-muted/50"
             >
-              <TableCell className="font-medium">{order.order_number}</TableCell>
+              <TableCell className="font-medium">
+                <OrderDetailSheet orderId={order.id}>
+                  <Button variant="link" className="p-0 h-auto font-medium">
+                    {order.order_number}
+                  </Button>
+                </OrderDetailSheet>
+              </TableCell>
               <TableCell>
                 {order.created_at ? format(new Date(order.created_at), "dd.MM.yyyy HH:mm") : "—"}
               </TableCell>

@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { Separator } from "../../../../components/ui/separator";
 import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
+import { PageTitle } from "@/components/page-title";
 
 // Дни недели
 const daysOfWeek = {
@@ -129,6 +130,7 @@ export default function DeliveryPricingDetail() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={data.name || "Загрузка..."} />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/delivery_pricing">
@@ -136,7 +138,7 @@ export default function DeliveryPricingDetail() {
             Назад к списку
           </Link>
         </Button>
-        
+
         <Button asChild>
           <Link href={`/dashboard/delivery_pricing/edit?id=${id}`}>
             <Edit className="h-4 w-4 mr-2" />
@@ -146,9 +148,7 @@ export default function DeliveryPricingDetail() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{data.name}</CardTitle>
-        </CardHeader>
+        <CardHeader></CardHeader>
         <CardContent>
           <Tabs defaultValue="details">
             <TabsList>

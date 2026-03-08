@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { CalendarIcon, FilterIcon, Download } from "lucide-react";
+import { CalendarIcon, FilterIcon, Download, Info } from "lucide-react";
 
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef } from "@tanstack/react-table";
 import {
@@ -404,9 +405,41 @@ export default function CourierEfficiencyList() {
   const tableColumns = columns;
 
   return (
+    <>
+    <PageTitle title="Эффективность курьеров" />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Эффективность курьеров</CardTitle>
+        <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                <Info className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 text-sm" side="bottom" align="start">
+              <div className="space-y-2">
+                <p className="font-semibold">Как рассчитывается эффективность?</p>
+                <p>
+                  <span className="font-medium">Эффективность</span> — это процент заказов курьера
+                  от общего числа заказов по терминалу за выбранный период.
+                </p>
+                <p className="font-mono text-xs bg-muted rounded px-2 py-1">
+                  эффективность = (заказы курьера / все заказы) × 100%
+                </p>
+                <p>Заказы группируются по сменам:</p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  <li>10:00 – 15:00 (дневная)</li>
+                  <li>15:00 – 22:00 (вечерняя)</li>
+                  <li>22:00 – 03:00 (ночная)</li>
+                </ul>
+                <p>
+                  Итоговая эффективность — среднее значение по всем терминалам,
+                  на которых работал курьер.
+                </p>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
@@ -603,5 +636,6 @@ export default function CourierEfficiencyList() {
         />
       </CardContent>
     </Card>
+    </>
   );
 } 

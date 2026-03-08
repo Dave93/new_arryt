@@ -18,12 +18,13 @@ import {
   FormMessage,
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TimeField } from "../../../components/ui/time-field";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { PageTitle } from "@/components/page-title";
 
 // Схема формы с валидацией Zod
 const formSchema = z.object({
@@ -163,6 +164,7 @@ export default function DailyGarantEdit() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Редактировать тариф дневного гаранта" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/daily_garant">
@@ -173,9 +175,6 @@ export default function DailyGarantEdit() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Редактировать тариф дневного гаранта</CardTitle>
-        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
