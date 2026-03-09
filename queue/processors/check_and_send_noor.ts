@@ -122,7 +122,7 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
                 send_link: true,
                 door_to_door: false,
                 product_paid: order.payment_type !== 'Наличными',
-                equipment_id: 5, // Термосумка
+                equipment_id: 1, // Скутер
             },
         };
 
