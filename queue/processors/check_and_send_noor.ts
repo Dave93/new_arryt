@@ -90,6 +90,11 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
                         phone: senderPhone,
                         name: senderName,
                     },
+                    products: {
+                        type_id: 1,
+                        description: 'Еда',
+                        items: noorItems,
+                    },
                 },
             ],
             destination: [
