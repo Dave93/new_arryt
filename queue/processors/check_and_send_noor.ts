@@ -76,7 +76,7 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
         }
 
         const noorData = {
-            vendor_order_id: order.id,
+            vendor_order_id: order.order_number,
             origin: [
                 {
                     location: {
