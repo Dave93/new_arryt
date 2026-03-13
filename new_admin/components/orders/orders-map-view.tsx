@@ -215,7 +215,7 @@ export function OrdersMapView() {
       
       {/* Order details panel */}
       {isPanelOpen && (
-        <div className="absolute top-0 right-0 h-full w-[400px] sm:w-[540px] bg-background border-l shadow-lg z-[1000] flex flex-col">
+        <div className="absolute top-0 right-0 h-full w-[95%] sm:w-[90%] md:w-[80%] lg:w-[75%] xl:w-[70%] bg-background border-l shadow-lg z-[1000] flex flex-col">
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="font-semibold">Детали заказа</h3>
             <button

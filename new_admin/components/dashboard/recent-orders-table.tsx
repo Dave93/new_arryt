@@ -20,14 +20,20 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { ru } from "date-fns/locale"
+import { useSearchParams } from "next/navigation"
 
-export function RecentOrdersTable() { 
+export function RecentOrdersTable() {
+  const searchParams = useSearchParams()
+  const organizationId = searchParams.get("organization_id")
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ["dashboard-recent-orders"],
+    queryKey: ["dashboard-recent-orders", organizationId],
     queryFn: async () => {
       const response = await apiClient.api.dashboard["recent-orders"].get({
-        query: { limit: 10 }
+        query: {
+          limit: 10,
+          ...(organizationId && { organization_id: organizationId })
+        }
       })
       if (response.error) throw response.error
       return response.data
