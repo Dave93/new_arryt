@@ -19,6 +19,7 @@ import { addDays } from "date-fns"
 import { useQuery } from "@tanstack/react-query"
 import { TerminalDeliveryStats } from "@/types/terminal-stats"
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet"
+import { OrderDetailsClientPage } from "@/components/orders/order-details-client-page"
 import { toast } from "sonner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -47,6 +48,7 @@ interface OrderLocation {
   lon: number
   count: number
   orderId?: string
+  orderNumber?: string
   address?: string
   status?: string
   terminalId?: string
@@ -64,6 +66,7 @@ export function HeatMapView() {
     to: new Date()
   })
   const [showOrderClusters, setShowOrderClusters] = useState<boolean>(true)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   
   // Delivery radius state
   const [deliveryRadiusPoint, setDeliveryRadiusPoint] = useState<DeliveryRadiusPoint | null>(null)
@@ -169,7 +172,8 @@ export function HeatMapView() {
               lon: order.to_lon,
               count: 1,
               orderId: order.id,
-              address: order.to_address,
+              orderNumber: order.order_number,
+              address: order.delivery_address || order.to_address,
               status: order.status,
               terminalId: order.terminal_id
             })
@@ -266,20 +270,21 @@ export function HeatMapView() {
           lon: location.lon,
           count: location.count,
           orderId: location.orderId,
+          orderNumber: location.orderNumber,
           address: location.address,
           status: location.status,
           terminalId: location.terminalId
         })) : [];
       }
-      
+
       // Filter orders within the delivery radius
       return orderLocations
         .filter(location => {
           try {
             const distance = calculateDistance(
-              deliveryRadiusPoint.lat, 
-              deliveryRadiusPoint.lon, 
-              location.lat, 
+              deliveryRadiusPoint.lat,
+              deliveryRadiusPoint.lon,
+              location.lat,
               location.lon
             );
             return distance <= deliveryRadius;
@@ -293,6 +298,7 @@ export function HeatMapView() {
           lon: location.lon,
           count: location.count,
           orderId: location.orderId,
+          orderNumber: location.orderNumber,
           address: location.address,
           status: location.status,
           terminalId: location.terminalId
@@ -813,11 +819,29 @@ export function HeatMapView() {
             selectedTerminalIds={selectedTerminals}
             onTerminalSelect={handleTerminalSelect}
             onCheckDeliveryRadius={handleCheckDeliveryRadius}
+            onOrderMarkerClick={setSelectedOrderId}
             deliveryRadiusPoint={deliveryRadiusPoint}
             deliveryRadius={deliveryRadius}
             showDeliveryRadius={showDeliveryRadius}
           />
         </div>
+
+        {selectedOrderId && (
+          <div className="absolute top-0 right-0 h-full w-[95%] sm:w-[90%] md:w-[80%] lg:w-[75%] xl:w-[70%] bg-background border-l shadow-lg z-[1000] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold">Детали заказа</h3>
+              <button
+                onClick={() => setSelectedOrderId(null)}
+                className="rounded-sm opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <OrderDetailsClientPage orderId={selectedOrderId} />
+            </div>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   )
