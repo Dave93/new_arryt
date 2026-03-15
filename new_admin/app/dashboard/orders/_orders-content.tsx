@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
-import { Card, CardContent } from "../../../components/ui/card";
 import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState, OnChangeFn } from "@tanstack/react-table";
@@ -394,7 +393,7 @@ const columns: ColumnDef<Order>[] = [
     accessorKey: "pre_distance",
     header: "Distance",
     cell: ({ row }) => (
-      <div className="text-right">
+      <div className="text-right text-primary font-semibold">
         {row.original.pre_distance
           ? `${row.original.pre_distance.toFixed(2)} km`
           : "N/A"}
@@ -406,7 +405,7 @@ const columns: ColumnDef<Order>[] = [
     accessorKey: "delivery_price",
     header: "Стоимость доставки",
     cell: ({ row }) => (
-      <div className="text-right">
+      <div className="text-right text-primary font-semibold">
         {new Intl.NumberFormat("ru").format(row.getValue("delivery_price"))}
       </div>
     ),
@@ -817,40 +816,40 @@ export function OrdersContent() {
     selectAllFromOrganization(ordersFromSameOrg, organizationId);
   };
 
+  const exportButton = (
+    <Button
+      onClick={exportToExcel}
+      disabled={isExporting}
+      size="sm"
+      className="gap-2">
+      {isExporting ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <FileDown className="h-4 w-4" />
+      )}
+      {isExporting ? "Экспорт..." : "Экспорт в Excel"}
+    </Button>
+  );
+
   return (
     <>
-      <PageTitle title="Заказы" />
+      <PageTitle title="Заказы" actions={exportButton} />
       <OrdersSelectionToolbar onSelectAll={handleSelectAll} />
-      <div className="flex flex-col gap-2">
-        <Card className="gap-2">
-          <CardContent className="p-0">
-            <div className="sticky top-0 bg-background z-20 p-4 md:p-6 pb-3 md:pb-4 border-b space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <DateRangeFilter />
-                <SearchFilter />
-                <PhoneFilter />
-                <OrganizationFilter />
-                <TerminalsFilter />
-                <CourierFilter />
-                <StatusesFilter />
-                <RegionFilter />
-              </div>
-              <div className="flex justify-end">
-                <Button
-                  onClick={exportToExcel}
-                  disabled={isExporting}
-                  className="gap-2">
-                  {isExporting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileDown className="h-4 w-4" />
-                  )}
-                  {isExporting ? "Экспорт..." : "Экспорт в Excel"}
-                </Button>
-              </div>
-            </div>
-            <div className="p-6 pt-4">
-              <DataTable
+      <div className="flex flex-col gap-1">
+        <div className="sticky top-0 bg-background z-20 px-4 py-2 border-b">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <DateRangeFilter />
+            <SearchFilter />
+            <PhoneFilter />
+            <OrganizationFilter />
+            <TerminalsFilter />
+            <CourierFilter />
+            <StatusesFilter />
+            <RegionFilter />
+          </div>
+        </div>
+        <div className="px-4 py-1">
+          <DataTable
                 columns={columns}
                 data={ordersData.data}
                 loading={isLoading}
@@ -929,9 +928,7 @@ export function OrdersContent() {
                   ) : undefined
                 }
               />
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </>
   );

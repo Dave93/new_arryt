@@ -42,6 +42,7 @@ export function OrderCharts() {
   const startDate = searchParams.get("start_date")
   const endDate = searchParams.get("end_date")
   const region = searchParams.get("region")
+  const organizationId = searchParams.get("organization_id")
   const [period, setPeriod] = useState<"day" | "week" | "month">("day")
   const [hiddenStatuses, setHiddenStatuses] = useState<Record<string, string[]>>({})
   
@@ -68,15 +69,16 @@ export function OrderCharts() {
   }
 
   const { data: orderCounts } = useQuery({
-    queryKey: ["dashboard-order-counts", period, region],
+    queryKey: ["dashboard-order-counts", period, region, organizationId],
     queryFn: async () => {
       const { start_date, end_date } = getDateRange()
       const response = await apiClient.api.chart.orders_count_per_period.get({
-        query: { 
-          start_date, 
-          end_date, 
+        query: {
+          start_date,
+          end_date,
           period,
-          ...(region && { region: region })
+          ...(region && { region: region }),
+          ...(organizationId && { organization_id: organizationId })
         }
       })
       if (response.error) throw response.error
@@ -85,15 +87,16 @@ export function OrderCharts() {
   })
 
   const { data: deliveryTimes } = useQuery({
-    queryKey: ["dashboard-delivery-times", period, region],
+    queryKey: ["dashboard-delivery-times", period, region, organizationId],
     queryFn: async () => {
       const { start_date, end_date } = getDateRange()
       const response = await apiClient.api.chart.delivery_time_per_period.get({
-        query: { 
-          start_date, 
-          end_date, 
+        query: {
+          start_date,
+          end_date,
           period,
-          ...(region && { region: region })
+          ...(region && { region: region }),
+          ...(organizationId && { organization_id: organizationId })
         }
       })
       if (response.error) throw response.error

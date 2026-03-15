@@ -9,7 +9,6 @@ import { CalendarIcon, FilterIcon, Download, Eye } from "lucide-react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { PageTitle } from "@/components/page-title";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef } from "@tanstack/react-table";
@@ -19,13 +18,7 @@ import {
   PopoverTrigger,
 } from "../../../components/ui/popover";
 import { Calendar } from "../../../components/ui/calendar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../../components/ui/select";
+import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import {
   Form,
   FormControl,
@@ -97,9 +90,9 @@ const filterSchema = z.object({
     from: z.date(),
     to: z.date(),
   }),
-  organization_id: z.string().optional().nullable(),
+  organization_id: z.array(z.string()).optional().nullable(),
   terminal_id: z.array(z.string()).optional().nullable(),
-  courier_id: z.string().optional().nullable(),
+  courier_id: z.array(z.string()).optional().nullable(),
 });
 
 type FilterValues = z.infer<typeof filterSchema>;
@@ -203,6 +196,7 @@ export default function ManagerWithdrawList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedCourierOptions, setSelectedCourierOptions] = useState<Option[]>([]);
   
   // Get current date for default filter values
   const today = new Date();
@@ -220,9 +214,9 @@ export default function ManagerWithdrawList() {
         from: startOfDay,
         to: endOfDay,
       },
-      organization_id: "all",
-      terminal_id: ["all"],
-      courier_id: "all",
+      organization_id: [],
+      terminal_id: [],
+      courier_id: [],
     },
   });
 
@@ -254,6 +248,38 @@ export default function ManagerWithdrawList() {
     
     fetchFilterData();
   }, []);
+
+  // Fetch couriers for search
+  const fetchCouriers = async (query: string): Promise<Option[]> => {
+    try {
+      const { data: couriers } = await apiClient.api.couriers.search.get({
+        query: { search: query },
+      });
+      if (couriers && Array.isArray(couriers)) {
+        return couriers.map((c: any) => ({
+          value: c.id,
+          label: `${c.first_name} ${c.last_name} (${c.phone})`,
+        }));
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Organization options for MultipleSelector
+  const organizationOptions: Option[] = organizations.map(o => ({ value: o.id, label: o.name }));
+  const selectedOrganizationOptions: Option[] = (form.watch("organization_id") || [])
+    .map((id: string) => organizations.find(o => o.id === id))
+    .filter((o: Organization | undefined): o is Organization => !!o)
+    .map((o: Organization) => ({ value: o.id, label: o.name }));
+
+  // Terminal options for MultipleSelector
+  const terminalOptions: Option[] = terminals.map(t => ({ value: t.id, label: t.name }));
+  const selectedTerminalOptions: Option[] = (form.watch("terminal_id") || [])
+    .map((id: string) => terminals.find(t => t.id === id))
+    .filter((t: Terminal | undefined): t is Terminal => !!t)
+    .map((t: Terminal) => ({ value: t.id, label: t.name }));
 
   // Define columns for the manager withdraws table
   const columns: ColumnDef<ManagerWithdraw>[] = [
@@ -395,27 +421,27 @@ export default function ManagerWithdrawList() {
         
         
         // Добавляем опциональные фильтры
-        if (organization_id && organization_id !== "all") {
+        if (organization_id && organization_id.length > 0) {
           filters.push({
             field: "organization_id",
-            operator: "eq",
-            value: organization_id,
+            operator: "in",
+            value: organization_id as any,
           });
         }
         
-        if (terminal_id && terminal_id.length > 0 && terminal_id[0] !== "all") {
+        if (terminal_id && terminal_id.length > 0) {
           filters.push({
             field: "terminal_id",
             operator: "in",
-            value: JSON.stringify(terminal_id),
+            value: terminal_id as any,
           });
         }
-        
-        if (courier_id && courier_id !== "all") {
+
+        if (courier_id && courier_id.length > 0) {
           filters.push({
             field: "courier_id",
-            operator: "eq",
-            value: courier_id,
+            operator: "in",
+            value: courier_id as any,
           });
         }
         
@@ -429,7 +455,10 @@ export default function ManagerWithdrawList() {
         }
         
         const { data } = await apiClient.api.manager_withdraw.get({
-          query: params,
+          query: {
+            ...params,
+            filters: JSON.stringify(filters),
+          },
         });
         
         return data?.data || [];
@@ -537,226 +566,189 @@ export default function ManagerWithdrawList() {
 
   const { total, amountBefore, amountAfter } = calculateTotals();
 
+  const exportButton = (
+    <Button variant="outline" size="sm" onClick={handleExport}>
+      <Download className="h-4 w-4 mr-2" />
+      Экспорт
+    </Button>
+  );
+
   return (
     <>
-    <PageTitle title="Выплаты курьерам" />
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Экспорт
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="flex gap-4">
-              {/* Date range selector */}
-              <FormField
-                control={form.control}
-                name="date_range.from"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Дата от</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd.MM.yyyy")
-                            ) : (
-                              <span>Выберите дату</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="date_range.to"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Дата до</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd.MM.yyyy")
-                            ) : (
-                              <span>Выберите дату</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                )}
-              />
-
-              {/* Organization selector */}
-              <FormField
-                control={form.control}
-                name="organization_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Организация</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || undefined}
-                    >
+    <PageTitle title="Выплаты курьерам" actions={exportButton} />
+    <div className="px-4 py-2">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+          <div className="flex items-end gap-3 flex-wrap">
+            {/* Date range selector */}
+            <FormField
+              control={form.control}
+              name="date_range.from"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Дата от</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите организацию" />
-                        </SelectTrigger>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "dd.MM.yyyy")
+                          ) : (
+                            <span>Выберите дату</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все организации</SelectItem>
-                        {organizations.map((organization) => (
-                          <SelectItem key={organization.id} value={organization.id}>
-                            {organization.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
 
-              {/* Terminal selector */}
-              <FormField
-                control={form.control}
-                name="terminal_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Филиал</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(value ? [value] : null)}
-                      value={field.value?.[0] || undefined}
-                    >
+            <FormField
+              control={form.control}
+              name="date_range.to"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Дата до</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите филиал" />
-                        </SelectTrigger>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "dd.MM.yyyy")
+                          ) : (
+                            <span>Выберите дату</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все филиалы</SelectItem>
-                        {terminals.map((terminal) => (
-                          <SelectItem key={terminal.id} value={terminal.id}>
-                            {terminal.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
 
-              {/* Courier selector */}
-              <FormField
-                control={form.control}
-                name="courier_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Курьер</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || undefined}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите курьера" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все курьеры</SelectItem>
-                        {/* Implement dynamic courier search here */}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* Organization selector */}
+            <FormField
+              control={form.control}
+              name="organization_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Организация</FormLabel>
+                  <MultipleSelector
+                    value={selectedOrganizationOptions}
+                    onChange={(opts) => field.onChange(opts.map(o => o.value))}
+                    options={organizationOptions}
+                    placeholder="Выберите организации"
+                    className="w-full"
+                  />
+                </FormItem>
+              )}
+            />
 
-            <div className="flex items-center justify-between">
-              <Input
-                placeholder="Поиск..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-sm"
-              />
-              <Button type="submit">
-                <FilterIcon className="h-4 w-4 mr-2" />
-                Фильтровать
-              </Button>
-            </div>
-          </form>
-        </Form>
+            {/* Terminal selector */}
+            <FormField
+              control={form.control}
+              name="terminal_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Филиал</FormLabel>
+                  <MultipleSelector
+                    value={selectedTerminalOptions}
+                    onChange={(opts) => field.onChange(opts.map(o => o.value))}
+                    options={terminalOptions}
+                    placeholder="Выберите филиалы"
+                    className="w-full"
+                  />
+                </FormItem>
+              )}
+            />
 
-        <div className="rounded-md border">
-          <DataTable 
-            columns={columns} 
-            // @ts-ignore
-            data={data} 
-            loading={isLoading}
-          />
-          
-          {/* Summary row */}
-          {data.length > 0 && (
-            <div className="p-4 border-t bg-muted/30">
-              <div className="grid grid-cols-7 gap-4">
-                <div className="col-span-4 font-medium">Итого:</div>
-                <div className="font-medium">
-                  {new Intl.NumberFormat("ru-RU").format(total)}
-                </div>
-                <div className="font-medium">
-                  {new Intl.NumberFormat("ru-RU").format(amountBefore)}
-                </div>
-                <div className="font-medium">
-                  {new Intl.NumberFormat("ru-RU").format(amountAfter)}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            {/* Courier selector */}
+            <FormField
+              control={form.control}
+              name="courier_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Курьер</FormLabel>
+                  <MultipleSelector
+                    value={selectedCourierOptions}
+                    onChange={(opts) => {
+                      setSelectedCourierOptions(opts);
+                      field.onChange(opts.map(o => o.value));
+                    }}
+                    onSearch={fetchCouriers}
+                    placeholder="Поиск курьеров..."
+                    className="w-full"
+                    triggerSearchOnFocus
+                    delay={300}
+                  />
+                </FormItem>
+              )}
+            />
+
+            <Input
+              placeholder="Поиск..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-[200px]"
+            />
+
+            <Button type="submit" size="sm">
+              <FilterIcon className="h-4 w-4 mr-2" />
+              Фильтровать
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
+
+    <div className="px-4 py-1">
+      <DataTable
+        columns={columns}
+        // @ts-ignore
+        data={data}
+        loading={isLoading}
+        footerContent={data.length > 0 ? (
+          <tr className="border-t font-semibold">
+            <td className="p-3" colSpan={4}>Итого:</td>
+            <td className="p-3">{new Intl.NumberFormat("ru-RU").format(total)}</td>
+            <td className="p-3">{new Intl.NumberFormat("ru-RU").format(amountBefore)}</td>
+            <td className="p-3">{new Intl.NumberFormat("ru-RU").format(amountAfter)}</td>
+            <td className="p-3"></td>
+          </tr>
+        ) : undefined}
+      />
+    </div>
     </>
   );
 } 

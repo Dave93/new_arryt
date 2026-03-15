@@ -12,56 +12,59 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import { useEffect, useState, useMemo } from "react"
-import MultipleSelector, { Option } from "@/components/ui/multiselect"
+import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { apiClient } from "@/lib/eden-client"
+
+interface Organization {
+  id: string
+  name: string
+}
 
 export function DashboardDateRangeFilter() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  
+
   const [date, setDate] = useState<DateRange | undefined>(() => {
     const from = searchParams.get("start_date")
     const to = searchParams.get("end_date")
-    
+
     if (from || to) {
       return {
         from: from ? new Date(from) : undefined,
         to: to ? new Date(to) : undefined,
       }
     }
-    
-    // По умолчанию - сегодня
+
     const today = new Date()
-    return {
-      from: today,
-      to: today,
-    }
+    return { from: today, to: today }
   })
-  
+
   const [selectedRegionId, setSelectedRegionId] = useState<string>(() => {
     return searchParams.get("region") || "capital"
   })
-  
-  // Memoize regionOptions to prevent it from changing on every render
-  const regionOptionsData = useMemo(() => [
-    { label: "Столица", value: "capital" },
-    { label: "Регион", value: "region" }
-  ], [])
-  
-  // Format regions for MultipleSelector options
-  const regionSelectorOptions = useMemo((): Option[] => {
-    const options = regionOptionsData.map(region => ({ value: region.value, label: region.label }))
-    return [{ value: "all", label: "Все регионы" }, ...options]
-  }, [regionOptionsData])
-  
-  // Get selected region Option object for the value prop
-  const selectedRegionOption = useMemo((): Option[] => {
-    if (selectedRegionId === "all") return []
-    const region = regionOptionsData.find(r => r.value === selectedRegionId)
-    return region ? [{ value: region.value, label: region.label }] : []
-  }, [selectedRegionId, regionOptionsData])
+
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(() => {
+    return searchParams.get("organization_id") || "all"
+  })
+
+  const { data: organizations = [] } = useQuery<Organization[]>({
+    queryKey: ["organizations-cached"],
+    queryFn: async () => {
+      const response = await apiClient.api.organizations.cached.get()
+      return (response.data as Organization[]) || []
+    },
+    staleTime: Infinity,
+  })
 
   useEffect(() => {
     const params = new URLSearchParams()
@@ -78,16 +81,20 @@ export function DashboardDateRangeFilter() {
       params.set("region", selectedRegionId)
     }
 
+    if (selectedOrgId && selectedOrgId !== "all") {
+      params.set("organization_id", selectedOrgId)
+    }
+
     const queryString = params.toString()
     const url = queryString ? `${pathname}?${queryString}` : pathname
 
     router.push(url)
-  }, [date, selectedRegionId, pathname, router])
+  }, [date, selectedRegionId, selectedOrgId, pathname, router])
 
   const handlePresetClick = (preset: "today" | "yesterday" | "week" | "month") => {
     const today = new Date()
     let newDate: DateRange | undefined
-    
+
     switch (preset) {
       case "today":
         newDate = { from: today, to: today }
@@ -108,19 +115,20 @@ export function DashboardDateRangeFilter() {
         newDate = { from: monthAgo, to: today }
         break
     }
-    
+
     setDate(newDate)
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 lg:px-6 flex-wrap">
+    <div className="flex items-center gap-2 px-4 lg:px-6">
       <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant="outline"
+            size="sm"
             className={cn(
-              "justify-start text-left font-normal",
+              "justify-start text-left font-normal shrink-0",
               !date && "text-muted-foreground"
             )}
           >
@@ -151,51 +159,46 @@ export function DashboardDateRangeFilter() {
           />
         </PopoverContent>
       </Popover>
-      
-      <div className="flex gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handlePresetClick("today")}
-        >
+
+      <div className="flex gap-1 shrink-0">
+        <Button variant="ghost" size="sm" onClick={() => handlePresetClick("today")}>
           Сегодня
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handlePresetClick("yesterday")}
-        >
+        <Button variant="ghost" size="sm" onClick={() => handlePresetClick("yesterday")}>
           Вчера
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handlePresetClick("week")}
-        >
+        <Button variant="ghost" size="sm" onClick={() => handlePresetClick("week")}>
           Неделя
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handlePresetClick("month")}
-        >
+        <Button variant="ghost" size="sm" onClick={() => handlePresetClick("month")}>
           Месяц
         </Button>
       </div>
-      
-      <MultipleSelector
-        value={selectedRegionOption}
-        onChange={(options) => setSelectedRegionId(options[0]?.value ?? "all")}
-        defaultOptions={regionSelectorOptions}
-        placeholder="Выберите регион"
-        maxSelected={1}
-        hidePlaceholderWhenSelected
-        className="w-[200px]"
-        commandProps={{
-          label: "Выберите регион",
-        }}
-        selectFirstItem={false}
-      />
+
+      <Select value={selectedRegionId} onValueChange={setSelectedRegionId}>
+        <SelectTrigger className="w-[150px] shrink-0 h-8">
+          <SelectValue placeholder="Регион" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Все регионы</SelectItem>
+          <SelectItem value="capital">Столица</SelectItem>
+          <SelectItem value="region">Регион</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+        <SelectTrigger className="w-[200px] shrink-0 h-8">
+          <SelectValue placeholder="Организация" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Все организации</SelectItem>
+          {organizations.map((org) => (
+            <SelectItem key={org.id} value={org.id}>
+              {org.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )
 }

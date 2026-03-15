@@ -4,8 +4,10 @@ import { useState, useRef, useCallback } from "react";
 import { Upload, X, File, Image, Loader2, Download } from "lucide-react";
 import { Button } from "./button";
 import { cn } from "../../lib/utils";
-import { apiClient, useGetAuthHeaders } from "../../lib/eden-client";
+import { useAuthStore } from "../../lib/auth-store";
 import { toast } from "sonner";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7474";
 
 interface FileInfo {
   id: string;
@@ -44,16 +46,16 @@ export function FileUpload({
     if (!selectedFiles || !userId) return;
 
     const validFiles: File[] = [];
-    
+
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
-      
+
       // Check file size
       if (file.size > maxSize * 1024 * 1024) {
         toast.error(`Файл ${file.name} превышает максимальный размер ${maxSize}MB`);
         continue;
       }
-      
+
       validFiles.push(file);
     }
 
@@ -63,25 +65,35 @@ export function FileUpload({
 
     try {
       const uploadedFiles: FileInfo[] = [];
-      
+      const token = useAuthStore.getState().token;
+
       for (const file of validFiles) {
-        const response = await apiClient.api["user-assets"]({ userId }).post({
-          file,
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch(`${API_URL}/api/user-assets/${userId}`, {
+          method: "POST",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: formData,
         });
 
-        if (response.error) {
+        if (!res.ok) {
           throw new Error(`Ошибка загрузки файла ${file.name}`);
         }
 
-        if (response.data?.asset) {
-          uploadedFiles.push(response.data.asset);
+        const data = await res.json();
+
+        if (data?.asset) {
+          uploadedFiles.push(data.asset);
         }
       }
 
       const newFiles = [...files, ...uploadedFiles];
       setFiles(newFiles);
       onFilesChange?.(newFiles);
-      
+
       toast.success(`Загружено файлов: ${uploadedFiles.length}`);
     } catch (error) {
       console.error("Error uploading files:", error);
@@ -95,16 +107,22 @@ export function FileUpload({
     if (!userId) return;
 
     try {
-      const response = await apiClient.api["user-assets"]({ userId })({assetId: fileId}).delete({});
+      const token = useAuthStore.getState().token;
+      const res = await fetch(`${API_URL}/api/user-assets/${userId}/${fileId}`, {
+        method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
-      if (response.error) {
+      if (!res.ok) {
         throw new Error("Ошибка удаления файла");
       }
 
       const newFiles = files.filter(f => f.id !== fileId);
       setFiles(newFiles);
       onFilesChange?.(newFiles);
-      
+
       toast.success("Файл удален");
     } catch (error) {
       console.error("Error deleting file:", error);

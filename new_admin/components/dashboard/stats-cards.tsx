@@ -19,15 +19,17 @@ export function DashboardStatsCards() {
   const startDate = searchParams.get("start_date")
   const endDate = searchParams.get("end_date")
   const region = searchParams.get("region")
-  
+  const organizationId = searchParams.get("organization_id")
+
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["dashboard-stats", startDate, endDate, region],
+    queryKey: ["dashboard-stats", startDate, endDate, region, organizationId],
     queryFn: async () => {
       const response = await apiClient.api.dashboard.stats.get({
         query: {
           ...(startDate && { start_date: startDate }),
           ...(endDate && { end_date: endDate }),
-          ...(region && { region: region })
+          ...(region && { region: region }),
+          ...(organizationId && { organization_id: organizationId })
         }
       })
       if (response.error) throw response.error
@@ -51,7 +53,7 @@ export function DashboardStatsCards() {
         <CardHeader>
           <CardDescription>Заказов сегодня</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {isLoading ? "..." : stats?.totalOrders || 0}
+            {isLoading ? "..." : Number(stats?.totalOrders || 0).toLocaleString('ru-RU')}
           </CardTitle>
           <CardAction>
             <IconPackage className="size-5 text-muted-foreground" />
