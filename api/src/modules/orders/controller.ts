@@ -603,6 +603,7 @@ export const OrdersController = new Elysia({
           created_at: orders.created_at,
           courier_id: orders.courier_id,
           terminal_id: orders.terminal_id,
+          delivery_address: orders.delivery_address,
         })
         .from(orders)
         .leftJoin(terminals, eq(orders.terminal_id, terminals.id))

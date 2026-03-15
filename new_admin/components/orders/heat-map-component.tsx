@@ -36,6 +36,7 @@ export interface OrderMarker {
   lon: number
   count: number
   orderId?: string
+  orderNumber?: string
   address?: string
   status?: string
   terminalId?: string
@@ -49,6 +50,7 @@ export interface HeatMapComponentProps {
   selectedTerminalIds?: string[]
   onTerminalSelect?: (terminalIds: string[]) => void
   onCheckDeliveryRadius?: (lat: number, lon: number) => void
+  onOrderMarkerClick?: (orderId: string) => void
   deliveryRadiusPoint?: { lat: number, lon: number } | null
   deliveryRadius?: number
   showDeliveryRadius?: boolean
@@ -235,15 +237,21 @@ function OrderMarkersComponent({
         const markerId = `${marker.lat},${marker.lon}`
         markersWithTerminals.current.set(markerId, marker.terminalId)
         
-        const leafletMarker = L.marker([marker.lat, marker.lon], { 
+        const leafletMarker = L.marker([marker.lat, marker.lon], {
           icon: orderIcon
         }).bindPopup(`
-          <div class="p-1">
-            <div class="font-bold">${marker.address || 'Адрес неизвестен'}</div>
-            <div>Количество заказов: ${marker.count}</div>
-            ${marker.status ? `<div>Статус: ${marker.status}</div>` : ''}
-            ${marker.orderId ? `<div>ID заказа: ${marker.orderId}</div>` : ''}
-            ${marker.terminalId ? `<div>ID филиала: ${marker.terminalId}</div>` : ''}
+          <div style="min-width: 200px; font-family: system-ui, sans-serif;">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+              ${marker.orderNumber ? `Заказ: ${marker.orderNumber}` : 'Заказ'}
+            </div>
+            <div style="font-size: 13px; color: #555; margin-bottom: 8px;">
+              ${marker.address || 'Адрес неизвестен'}
+            </div>
+            ${marker.count > 1 ? `<div style="font-size: 12px; color: #888; margin-bottom: 8px;">Заказов на точке: ${marker.count}</div>` : ''}
+            ${marker.orderId ? `<button
+              onclick="window.dispatchEvent(new CustomEvent('open-order-detail', { detail: '${marker.orderId}' }))"
+              style="background: #7c3aed; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; width: 100%;"
+            >Подробнее</button>` : ''}
           </div>
         `)
         
@@ -377,12 +385,25 @@ export default function HeatMapComponent({
   selectedTerminalIds = [],
   onTerminalSelect,
   onCheckDeliveryRadius,
+  onOrderMarkerClick,
   deliveryRadiusPoint = null,
   deliveryRadius = 3,
   showDeliveryRadius = false
 }: HeatMapComponentProps) {
   const [highlightedTerminalIds, setHighlightedTerminalIds] = useState<string[]>([])
   const [previousDeliveryRadiusState, setPreviousDeliveryRadiusState] = useState<boolean>(false)
+
+  // Listen for order detail open events from popup buttons
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const orderId = (e as CustomEvent).detail
+      if (orderId && onOrderMarkerClick) {
+        onOrderMarkerClick(orderId)
+      }
+    }
+    window.addEventListener('open-order-detail', handler)
+    return () => window.removeEventListener('open-order-detail', handler)
+  }, [onOrderMarkerClick])
   
   // Apply offset to overlapping terminal markers
   const offsetTerminalMarkers = useMemo(() => {
