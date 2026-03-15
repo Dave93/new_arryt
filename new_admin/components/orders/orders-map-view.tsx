@@ -3,8 +3,7 @@
 import * as React from "react"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AsyncCombobox, ComboboxOption } from "@/components/ui/async-combobox"
+import MultipleSelector, { Option } from "@/components/ui/multiselect"
 import { apiClient } from "@/lib/eden-client"
 import { Loader2, MapPin, X } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -31,8 +30,7 @@ interface Terminal {
 export function OrdersMapView() {
   const [terminals, setTerminals] = useState<Terminal[]>([])
   const [selectedTerminals, setSelectedTerminals] = useState<string[]>([])
-  const [selectedCourier, setSelectedCourier] = useState<string | undefined>(undefined)
-  const [selectedCourierOption, setSelectedCourierOption] = useState<ComboboxOption | null>(null)
+  const [selectedCourierOptions, setSelectedCourierOptions] = useState<Option[]>([])
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -96,19 +94,19 @@ export function OrdersMapView() {
   }, [selectedTerminals])
 
   // Fetch couriers for search
-  const fetchCouriers = async (query: string) => {
+  const fetchCouriers = async (query: string): Promise<Option[]> => {
     try {
       const { data: couriers } = await apiClient.api.couriers.search.get({
         query: { search: query },
       })
-      
+
       if (couriers && Array.isArray(couriers)) {
         return couriers.map(courier => ({
           value: courier.id,
           label: `${courier.first_name} ${courier.last_name} (${courier.phone})`,
         }))
       }
-      
+
       return []
     } catch (error) {
       console.error("Error fetching couriers:", error)
@@ -116,23 +114,21 @@ export function OrdersMapView() {
     }
   }
 
-  // Handle terminal selection change
-  const handleTerminalChange = (value: string) => {
-    setSelectedTerminals([value])
-  }
+  // Terminal options for MultipleSelector
+  const terminalOptions: Option[] = terminals.map(t => ({ value: t.id, label: t.name }))
+  const selectedTerminalOptions: Option[] = selectedTerminals
+    .map(id => terminals.find(t => t.id === id))
+    .filter((t): t is Terminal => !!t)
+    .map(t => ({ value: t.id, label: t.name }))
 
-  // Handle courier selection change
-  const handleCourierChange = (value: ComboboxOption | null) => {
-    setSelectedCourierOption(value)
-    setSelectedCourier(value?.value)
-  }
+  const selectedCourierIds = selectedCourierOptions.map(o => o.value)
 
   // Get marker color based on courier selection
   const getMarkerColor = (order: Order) => {
-    if (selectedCourier && order.courier_id === selectedCourier) {
-      return "red" // Red for selected courier's orders
+    if (selectedCourierIds.length > 0 && order.courier_id && selectedCourierIds.includes(order.courier_id)) {
+      return "red"
     }
-    return "blue" // Blue for other orders
+    return "blue"
   }
 
   // Handle order selection
@@ -141,9 +137,9 @@ export function OrdersMapView() {
     setIsPanelOpen(true)
   }
 
-  // Filter orders by selected courier if one is selected
-  const filteredOrders = selectedCourier
-    ? orders.filter(order => order.courier_id === selectedCourier)
+  // Filter orders by selected couriers
+  const filteredOrders = selectedCourierIds.length > 0
+    ? orders.filter(order => order.courier_id && selectedCourierIds.includes(order.courier_id))
     : orders
     
   const filteredOrdersCount = filteredOrders.length
@@ -166,31 +162,25 @@ export function OrdersMapView() {
           <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Филиалы</label>
-              <Select
-                value={selectedTerminals.length === 1 ? selectedTerminals[0] : undefined}
-                onValueChange={handleTerminalChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Выберите филиал" />
-                </SelectTrigger>
-                <SelectContent className="z-1000">
-                  {terminals.map((terminal) => (
-                    <SelectItem key={terminal.id} value={terminal.id}>
-                      {terminal.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultipleSelector
+                value={selectedTerminalOptions}
+                onChange={(opts) => setSelectedTerminals(opts.map(o => o.value))}
+                options={terminalOptions}
+                placeholder="Выберите филиалы"
+                className="w-full"
+              />
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Курьеры</label>
-              <AsyncCombobox
-                value={selectedCourierOption}
-                onChange={handleCourierChange}
-                fetchOptions={fetchCouriers}
-                placeholder="Поиск курьера"
-                clearable
+              <MultipleSelector
+                value={selectedCourierOptions}
+                onChange={setSelectedCourierOptions}
+                onSearch={fetchCouriers}
+                placeholder="Поиск курьеров..."
+                className="w-full"
+                triggerSearchOnFocus
+                delay={300}
               />
             </div>
           </CardContent>

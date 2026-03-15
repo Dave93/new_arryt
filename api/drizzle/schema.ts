@@ -455,6 +455,9 @@ export const users = pgTable("users", {
 	api_token: varchar("api_token", { length: 250 }),
 	tg_id: varchar("tg_id", { length: 250 }),
 	daily_garant_id: uuid("daily_garant_id").references(() => daily_garant.id, { onUpdate: "cascade" }),
+	is_fired: boolean("is_fired").default(false).notNull(),
+	fired_reason: text("fired_reason"),
+	should_rehire: boolean("should_rehire").default(false).notNull(),
 },
 	(table) => {
 		return {
