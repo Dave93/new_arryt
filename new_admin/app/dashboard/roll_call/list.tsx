@@ -358,7 +358,7 @@ export default function RollCallList() {
                               ? courier.is_late ? "destructive" : "default"
                               : "destructive"
                           }
-                          className="text-xs px-2.5 py-0.5"
+                          className="text-sm px-3 py-1 font-semibold"
                         >
                           {courier.created_at
                             ? format(new Date(courier.created_at), "HH:mm")
