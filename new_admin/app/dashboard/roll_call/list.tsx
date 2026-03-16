@@ -324,36 +324,41 @@ export default function RollCallList() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredData.map((terminal) => (
             <Card key={terminal.id} className="w-full">
-              <CardHeader className="p-4">
-                <CardTitle className="text-base">{terminal.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <p className="text-sm text-muted-foreground mb-3">
+              <CardHeader className="px-5 py-4">
+                <CardTitle className="text-lg font-semibold">{terminal.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">
                   {terminal.couriers.length} курьеров
                 </p>
-                <div className="space-y-2">
+              </CardHeader>
+              <CardContent className="px-5 pb-5 pt-0">
+                <div className="space-y-3">
                   {terminal.couriers.map((courier) => (
-                    <div key={courier.id} className="flex items-center justify-between p-2 border rounded-md">
-                      <div className="flex items-center">
+                    <div key={courier.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3 min-w-0">
                         <Badge
                           variant={courier.is_online ? "default" : "destructive"}
-                          className="mr-2"
+                          className="shrink-0 text-xs px-2.5 py-0.5"
                         >
                           {courier.is_online ? "Онлайн" : "Офлайн"}
                         </Badge>
-                        <div>
-                          <span className="font-medium">
+                        <div className="min-w-0">
+                          <span className="font-medium text-sm leading-tight block truncate">
                             {courier.first_name} {courier.last_name}
                           </span>
-                          <CourierDriveTypeIcon driveType={courier.drive_type} />
                         </div>
+                        <CourierDriveTypeIcon driveType={courier.drive_type} />
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
                         <Badge
-                          variant={courier.is_late ? "destructive" : courier.is_online ? "outline" : "destructive"}
+                          variant={
+                            courier.created_at
+                              ? courier.is_late ? "destructive" : "default"
+                              : "destructive"
+                          }
+                          className="text-xs px-2.5 py-0.5"
                         >
                           {courier.created_at
                             ? format(new Date(courier.created_at), "HH:mm")
@@ -361,13 +366,10 @@ export default function RollCallList() {
                             ? "не сегодня"
                             : "не в сети"}
                         </Badge>
-                        {courier.app_version && (
-                          <Badge variant="outline">v{courier.app_version}</Badge>
-                        )}
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-9 w-9"
                           onClick={() => {
                             if (courier.phone) {
                               window.location.href = `tel:${courier.phone.replace("+998", "")}`;

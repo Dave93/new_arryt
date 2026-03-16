@@ -3,15 +3,19 @@
 import * as React from "react"
 import {
   IconChartBar,
+  IconCoin,
   IconDashboard,
   IconFileDescription,
   IconFolder,
   IconHelp,
+  IconHome,
   IconListDetails,
   IconSearch,
+  IconSettings,
   IconShoppingCart,
   IconUsers,
   IconShield,
+  IconTruck,
   IconTruckDelivery,
   IconAlertTriangle,
   IconMap,
@@ -38,6 +42,8 @@ const data = {
   navGroups: [
     {
       label: "Главная",
+      icon: IconHome,
+      defaultOpen: true,
       items: [
         {
           title: "Панель управления",
@@ -85,6 +91,8 @@ const data = {
     },
     {
       label: "Финансы",
+      icon: IconCoin,
+      defaultOpen: true,
       items: [
         {
           title: "Гарант",
@@ -102,6 +110,7 @@ const data = {
     },
     {
       label: "Логистические настройки",
+      icon: IconTruck,
       items: [
         {
           title: "Заказы на карте",
@@ -153,6 +162,7 @@ const data = {
     },
     {
       label: "Системные настройки",
+      icon: IconSettings,
       items: [
         {
           title: "Статусы заказов",
