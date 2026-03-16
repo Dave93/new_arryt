@@ -84,7 +84,6 @@ export function NavMain({
                           asChild
                           tooltip={item.title}
                           isActive={pathname === item.url || pathname.startsWith(`${item.url}/`)}
-                          size="sm"
                         >
                           <Link href={item.url}>
                             {item.icon && <item.icon />}
