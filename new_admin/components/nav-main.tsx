@@ -2,17 +2,19 @@
 
 import { type Icon } from "@tabler/icons-react"
 import { usePathname } from "next/navigation"
+import { ChevronRight } from "lucide-react"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@radix-ui/react-collapsible"
 import {
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
-import { Plus } from "lucide-react"
 import usePermissions from "@/hooks/use-permissions"
 import { useMemo } from "react"
 
@@ -26,6 +28,8 @@ type NavItem = {
 
 export type NavGroup = {
   label?: string
+  icon?: Icon
+  defaultOpen?: boolean
   items: NavItem[]
 }
 
@@ -50,37 +54,52 @@ export function NavMain({
   }, [JSON.stringify(groups), JSON.stringify(permissions)])
 
   return (
-    <>
-      {filteredGroups.map((group, groupIndex) => (
-        <SidebarGroup key={group.label ?? groupIndex}>
-          {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
-          <SidebarGroupContent className="flex flex-col gap-2">
-            <SidebarMenu>
-              {group.items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    tooltip={item.title}
-                    asChild
-                    isActive={pathname === item.url || pathname.startsWith(`${item.url}/`)}
-                  >
-                    <Link href={item.url}>
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                    </Link>
+    <SidebarGroup>
+      <SidebarMenu>
+        {filteredGroups.map((group, groupIndex) => {
+          const hasActiveItem = group.items.some(
+            (item) => pathname === item.url || pathname.startsWith(`${item.url}/`)
+          )
+
+          return (
+            <Collapsible
+              key={group.label ?? groupIndex}
+              asChild
+              defaultOpen={hasActiveItem || group.defaultOpen}
+              className="group/collapsible"
+            >
+              <SidebarMenuItem className="mt-4 first:mt-0">
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton tooltip={group.label}>
+                    {group.icon && <group.icon />}
+                    <span>{group.label}</span>
+                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                   </SidebarMenuButton>
-                  {item.actionLink && (
-                    <SidebarMenuAction asChild>
-                      <Link href={item.actionLink}>
-                        <Plus />
-                      </Link>
-                    </SidebarMenuAction>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      ))}
-    </>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenu className="pl-4 pt-1">
+                    {group.items.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          tooltip={item.title}
+                          isActive={pathname === item.url || pathname.startsWith(`${item.url}/`)}
+                          size="sm"
+                        >
+                          <Link href={item.url}>
+                            {item.icon && <item.icon />}
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+          )
+        })}
+      </SidebarMenu>
+    </SidebarGroup>
   )
 }
