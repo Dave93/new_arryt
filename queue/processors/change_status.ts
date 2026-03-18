@@ -138,7 +138,7 @@ export default async function processChangeStatus(redis: Redis, db: DB, cacheCon
                     .execute();
 
                 if (orderData.length > 0) {
-                    await processOrderCompleteQueue.add(orderData[0].id, orderData[0], {
+                    await processOrderCompleteQueue.add(orderData[0].id, JSON.parse(JSON.stringify(orderData[0])), {
                         attempts: 3, removeOnComplete: true
                     });
                 }
