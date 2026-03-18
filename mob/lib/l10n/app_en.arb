@@ -156,5 +156,6 @@
     "from_label": "From",
     "to_label": "To",
     "tracking_location_title": "Location tracking",
-    "last_update_label": "Last update"
+    "last_update_label": "Last update",
+    "balance_info_tooltip": "You should collect this amount from the cashier at the end of your shift"
 }

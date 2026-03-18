@@ -484,4 +484,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get last_update_label => 'Oxirgi yangilanish';
+
+  @override
+  String get balance_info_tooltip => 'Bu summani ish smenasi oxirida kassadan olishingiz kerak';
 }

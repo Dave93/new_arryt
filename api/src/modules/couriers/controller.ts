@@ -1,4 +1,4 @@
-import { timesheet, users_roles, terminals, users_terminals, orders, order_transactions, courier_terminal_balance, work_schedule_entries, work_schedules, users_work_schedules, manager_withdraw_transactions, manager_withdraw } from "../../../drizzle/schema";
+import { timesheet, users_roles, terminals, users_terminals, orders, order_transactions, courier_terminal_balance, work_schedule_entries, work_schedules, users_work_schedules, manager_withdraw_transactions, manager_withdraw, organization } from "../../../drizzle/schema";
 import { desc, getTableColumns, ilike, lte, or, gte, inArray, isNotNull, sql, ne, gt, arrayContains, not, asc, SQLWrapper } from "drizzle-orm";
 import { InferSelectModel } from "drizzle-orm";
 import { and } from "drizzle-orm";
@@ -888,11 +888,13 @@ export const CouriersController = new Elysia({
     const rows = await drizzle
       .select({
         terminal_name: terminals.name,
+        icon_url: organization.icon_url,
         transaction_type: order_transactions.transaction_type,
         total: sql<number>`sum(${order_transactions.not_paid_amount})`,
       })
       .from(order_transactions)
       .leftJoin(terminals, eq(order_transactions.terminal_id, terminals.id))
+      .leftJoin(organization, eq(terminals.organization_id, organization.id))
       .where(
         and(
           eq(order_transactions.courier_id, user.user.id),
@@ -902,15 +904,15 @@ export const CouriersController = new Elysia({
           lte(order_transactions.created_at, dayjs().add(10, 'day').toISOString()),
         )
       )
-      .groupBy(terminals.name, order_transactions.transaction_type)
+      .groupBy(terminals.name, organization.icon_url, order_transactions.transaction_type)
       .execute();
 
     // Group by terminal
-    const terminalMap = new Map<string, { terminal_name: string; order_amount: number; bonus_amount: number }>();
+    const terminalMap = new Map<string, { terminal_name: string; icon_url: string | null; order_amount: number; bonus_amount: number }>();
     for (const row of rows) {
       const name = row.terminal_name ?? 'Unknown';
       if (!terminalMap.has(name)) {
-        terminalMap.set(name, { terminal_name: name, order_amount: 0, bonus_amount: 0 });
+        terminalMap.set(name, { terminal_name: name, icon_url: row.icon_url, order_amount: 0, bonus_amount: 0 });
       }
       const entry = terminalMap.get(name)!;
       if (row.transaction_type === 'order') {
@@ -924,6 +926,7 @@ export const CouriersController = new Elysia({
 
     return Array.from(terminalMap.values()).map(entry => ({
       terminal_name: entry.terminal_name,
+      icon_url: entry.icon_url,
       order_amount: entry.order_amount,
       bonus_amount: entry.bonus_amount,
       balance: entry.order_amount + entry.bonus_amount,

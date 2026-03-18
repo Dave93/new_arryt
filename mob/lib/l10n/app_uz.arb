@@ -155,5 +155,6 @@
     "from_label": "Dan",
     "to_label": "Gacha",
     "tracking_location_title": "Joylashuvni kuzatish",
-    "last_update_label": "Oxirgi yangilanish"
+    "last_update_label": "Oxirgi yangilanish",
+    "balance_info_tooltip": "Bu summani ish smenasi oxirida kassadan olishingiz kerak"
 }

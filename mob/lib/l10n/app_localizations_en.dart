@@ -482,4 +482,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get last_update_label => 'Last update';
+
+  @override
+  String get balance_info_tooltip => 'You should collect this amount from the cashier at the end of your shift';
 }

@@ -915,6 +915,8 @@ abstract class AppLocalizations {
   String get tracking_location_title;
 
   String get last_update_label;
+
+  String get balance_info_tooltip;
 }
 
 class _AppLocalizationsDelegate

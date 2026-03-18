@@ -232,186 +232,129 @@ class _ProfilePageViewState extends State<ProfilePageView>
         RefreshIndicator(
           onRefresh: _loadData,
           child: CustomScrollView(slivers: [
-            SliverAppBar(
-              expandedHeight: 130.0,
-              stretch: true,
-              floating: false,
-              pinned: true,
-              toolbarHeight: 70,
-              flexibleSpace: FlexibleSpaceBar(
-                  collapseMode: CollapseMode.parallax,
-                  titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                  title: LayoutBuilder(
-                    builder:
-                        (BuildContext context, BoxConstraints constraints) {
-                      final topPadding = MediaQuery.of(context).padding.top;
-                      final bool isCollapsed = constraints.maxHeight <= topPadding + 85;
-                      final textColor =
-                          isCollapsed ? Colors.black : Colors.white;
-
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (user?.userProfile?.last_name != null) ...[
-                            AutoSizeText(
-                              "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
-                              style: TextStyle(
-                                color: textColor,
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              minFontSize: 12,
-                            ),
-                          ],
-                          if (user?.userProfile?.phone != null) ...[
-                            const SizedBox(height: 2),
-                            AutoSizeText(
-                              user?.userProfile?.phone ?? '',
-                              style: TextStyle(
-                                color: textColor.withOpacity(0.9),
-                                fontSize: 12.0,
-                              ),
-                              maxLines: 1,
-                            ),
-                          ],
-                        ],
-                      );
-                    },
+            SliverToBoxAdapter(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).primaryColor,
+                      Theme.of(context).primaryColor.withOpacity(0.7),
+                    ],
                   ),
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Theme.of(context).primaryColor,
-                          Theme.of(context).primaryColor.withOpacity(0.7),
-                        ],
-                      ),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(28),
-                        bottomRight: Radius.circular(28),
-                      ),
-                    ),
-                    child: SafeArea(
-                      bottom: false,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                        child: Column(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(28),
+                    bottomRight: Radius.circular(28),
+                  ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                    child: Column(
+                      children: [
+                        Row(
                           children: [
-                            // Avatar + Name + Phone
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 32,
-                                  backgroundColor:
-                                      Colors.white.withOpacity(0.2),
-                                  child: Text(
-                                    _getInitials(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (user?.userProfile?.last_name != null)
-                                        AutoSizeText(
-                                          "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          maxLines: 1,
-                                          minFontSize: 16,
-                                        ),
-                                      if (user?.userProfile?.phone != null) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          user?.userProfile?.phone ?? '',
-                                          style: TextStyle(
-                                            color:
-                                                Colors.white.withOpacity(0.85),
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            // Wallet button
-                            GestureDetector(
-                              onTap: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  builder: (context) {
-                                    return const MyBalanceByTerminal();
-                                  },
-                                );
-                              },
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 14),
-                                decoration: BoxDecoration(
+                            CircleAvatar(
+                              radius: 32,
+                              backgroundColor: Colors.white.withOpacity(0.2),
+                              child: Text(
+                                _getInitials(),
+                                style: const TextStyle(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.account_balance_wallet_outlined,
-                                          color: Theme.of(context).primaryColor,
-                                          size: 26,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          AppLocalizations.of(context)!
-                                              .wallet_label,
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            color: Colors.grey.shade700,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Text(
-                                      CurrencyFormatter.format(
-                                          walletBalance, euroSettings),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (user?.userProfile?.last_name != null)
+                                    AutoSizeText(
+                                      "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
                                       style: const TextStyle(
-                                        fontSize: 26,
-                                        color: Colors.black,
+                                        color: Colors.white,
+                                        fontSize: 22,
                                         fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      minFontSize: 16,
+                                    ),
+                                  if (user?.userProfile?.phone != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      user?.userProfile?.phone ?? '',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.85),
+                                        fontSize: 16,
                                       ),
                                     ),
                                   ],
-                                ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (context) {
+                                return const MyBalanceByTerminal();
+                              },
+                            );
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.account_balance_wallet_outlined,
+                                      color: Theme.of(context).primaryColor,
+                                      size: 26,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      AppLocalizations.of(context)!.wallet_label,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  CurrencyFormatter.format(
+                                      walletBalance, euroSettings),
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
             ),
             SliverList(

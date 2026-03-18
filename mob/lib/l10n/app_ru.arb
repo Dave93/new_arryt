@@ -155,5 +155,6 @@
     "from_label": "От",
     "to_label": "До",
     "tracking_location_title": "Отслеживание местоположения",
-    "last_update_label": "Последнее обновление"
+    "last_update_label": "Последнее обновление",
+    "balance_info_tooltip": "Эту сумму вы должны получить с кассы в конце рабочей смены"
 }
