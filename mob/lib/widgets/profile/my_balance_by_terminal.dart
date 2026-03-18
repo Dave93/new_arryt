@@ -138,12 +138,18 @@ class _MyBalanceByTerminalViewState extends State<MyBalanceByTerminalView> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final item = balanceByTerminal[index];
-                    return Card(
-                      shape: RoundedRectangleBorder(
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      elevation: 3,
-                      shadowColor: Colors.black.withOpacity(0.15),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
                         child: Column(
@@ -151,15 +157,40 @@ class _MyBalanceByTerminalViewState extends State<MyBalanceByTerminalView> {
                           children: [
                             Row(
                               children: [
-                                if (item.iconUrl != null) ...[
-                                  CachedNetworkImage(
-                                    imageUrl: item.iconUrl!,
-                                    height: 28,
-                                    width: 28,
-                                    errorWidget: (context, url, error) =>
-                                        const SizedBox.shrink(),
+                                if (item.iconUrl != null &&
+                                    item.iconUrl!.isNotEmpty) ...[
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: CachedNetworkImage(
+                                      imageUrl: item.iconUrl!,
+                                      height: 32,
+                                      width: 32,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          Container(
+                                        height: 32,
+                                        width: 32,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                        height: 32,
+                                        width: 32,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: const Icon(Icons.store,
+                                            size: 18, color: Colors.grey),
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 10),
                                 ],
                                 Expanded(
                                   child: Text(
