@@ -69,7 +69,11 @@ export default async function processChangeStatus(redis: Redis, db: DB, cacheCon
         if (afterStatus.cancel) {
             // Check if order had reached "Ожидает гостя" (sort >= 5) before cancellation.
             // If yes — courier keeps the payment. If no — cancel transactions.
+            // Skip if beforeStatus is also cancel (duplicate status change).
             const waitingGuestSort = 5;
+            if (beforeStatus.cancel) {
+                return;
+            }
             const cancelledBeforeWaitingGuest = (beforeStatus.sort ?? 0) < waitingGuestSort;
 
             if (cancelledBeforeWaitingGuest) {
