@@ -304,7 +304,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                          "${(widget.order.pre_distance).toStringAsFixed(4)} км"),
+                          "${(widget.order.pre_distance).toStringAsFixed(4)} ${AppLocalizations.of(context)!.km_label}"),
                     ],
                   ),
                 ],

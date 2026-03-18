@@ -70,8 +70,8 @@ class _ProfileLogoutButtonState extends State<ProfileLogoutButton> {
               _logout(context);
             },
             child: Text(
-              AppLocalizations.of(context)!.logout_btn.toUpperCase(),
-              style: const TextStyle(color: Colors.white),
+              AppLocalizations.of(context)!.logout_btn,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
             )));
   }
 }

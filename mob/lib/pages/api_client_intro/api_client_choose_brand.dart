@@ -85,7 +85,7 @@ class _ApiClientChooseBrandState extends State<ApiClientChooseBrand> {
               const Spacer(),
               SizedBox(
                 width: double.infinity,
-                child: AutoSizeText('Выберите\n бренд'.toUpperCase(),
+                child: AutoSizeText(AppLocalizations.of(context)!.choose_brand.toUpperCase(),
                     maxLines: 2,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineLarge!.copyWith(

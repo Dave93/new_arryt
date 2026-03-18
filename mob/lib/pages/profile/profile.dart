@@ -171,13 +171,13 @@ class _ProfilePageViewState extends State<ProfilePageView>
   String cardLabel(String code) {
     switch (code) {
       case "today":
-        return AppLocalizations.of(context)!.orderStatToday.toUpperCase();
+        return AppLocalizations.of(context)!.orderStatToday;
       case "week":
-        return AppLocalizations.of(context)!.orderStatWeek.toUpperCase();
+        return AppLocalizations.of(context)!.orderStatWeek;
       case "month":
-        return AppLocalizations.of(context)!.orderStatMonth.toUpperCase();
+        return AppLocalizations.of(context)!.orderStatMonth;
       case "yesterday":
-        return AppLocalizations.of(context)!.orderStatYesterday.toUpperCase();
+        return AppLocalizations.of(context)!.orderStatYesterday;
       default:
         return "";
     }
@@ -208,6 +208,14 @@ class _ProfilePageViewState extends State<ProfilePageView>
     _controller.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  String _getInitials() {
+    final first = user?.userProfile?.first_name ?? '';
+    final last = user?.userProfile?.last_name ?? '';
+    final f = first.isNotEmpty ? first[0] : '';
+    final l = last.isNotEmpty ? last[0] : '';
+    return '$l$f'.toUpperCase();
   }
 
   @override
@@ -276,15 +284,135 @@ class _ProfilePageViewState extends State<ProfilePageView>
                   background: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                         colors: [
                           Theme.of(context).primaryColor,
-                          Theme.of(context).primaryColor.withOpacity(0.8),
+                          Theme.of(context).primaryColor.withOpacity(0.7),
                         ],
                       ),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(28),
+                        bottomRight: Radius.circular(28),
+                      ),
                     ),
-                  )),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                        child: Column(
+                          children: [
+                            // Avatar + Name + Phone
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 32,
+                                  backgroundColor:
+                                      Colors.white.withOpacity(0.2),
+                                  child: Text(
+                                    _getInitials(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (user?.userProfile?.last_name != null)
+                                        AutoSizeText(
+                                          "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 1,
+                                          minFontSize: 16,
+                                        ),
+                                      if (user?.userProfile?.phone != null) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          user?.userProfile?.phone ?? '',
+                                          style: TextStyle(
+                                            color:
+                                                Colors.white.withOpacity(0.85),
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            // Wallet button
+                            GestureDetector(
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  builder: (context) {
+                                    return const MyBalanceByTerminal();
+                                  },
+                                );
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.account_balance_wallet_outlined,
+                                          color: Theme.of(context).primaryColor,
+                                          size: 26,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          AppLocalizations.of(context)!
+                                              .wallet_label,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            color: Colors.grey.shade700,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      CurrencyFormatter.format(
+                                          walletBalance, euroSettings),
+                                      style: const TextStyle(
+                                        fontSize: 26,
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
             SliverList(
               delegate:
@@ -292,90 +420,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
                 return BlocBuilder<UserDataBloc, UserDataState>(
                     builder: (context, state) {
                   return Column(children: [
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        GestureDetector(
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                      AppLocalizations.of(context)!
-                                          .wallet_label
-                                          .toUpperCase(),
-                                      style: const TextStyle(
-                                          fontSize: 18,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(
-                                    width: 5,
-                                  ),
-                                  Icon(
-                                    Icons.unfold_more_sharp,
-                                    color: Theme.of(context).primaryColor,
-                                    size: 30,
-                                  )
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                      CurrencyFormatter.format(
-                                          walletBalance, euroSettings),
-                                      style: const TextStyle(
-                                          fontSize: 30,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ],
-                          ),
-                          onTap: () {
-                            showModalBottomSheet(
-                                context: context,
-                                builder: (context) {
-                                  return const MyBalanceByTerminal();
-                                });
-                          },
-                        ),
-                        Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                    AppLocalizations.of(context)!
-                                        .courierScoreLabel
-                                        .toUpperCase(),
-                                    style: const TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(rating.toStringAsFixed(2),
-                                    style: const TextStyle(
-                                        fontSize: 30,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
+                    const SizedBox(height: 16),
                     const MyPerformance(),
                     const SizedBox(height: 10),
                     if (_ordersStat.isNotEmpty) _buildOrderStatCard(),
@@ -424,7 +469,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
-                unselectedLabelStyle: const TextStyle(fontSize: 11),
+                unselectedLabelStyle: const TextStyle(fontSize: 16),
                 tabs: _ordersStat
                     .map((e) => Tab(
                           text: _getShortLabel(e.labelCode),
@@ -464,43 +509,36 @@ class _ProfilePageViewState extends State<ProfilePageView>
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildStatRow(
-            AppLocalizations.of(context)!.successOrderLabel.toUpperCase(),
+            AppLocalizations.of(context)!.successOrderLabel,
             e.successCount.toString(),
           ),
           const SizedBox(height: 8),
           _buildStatRow(
-            AppLocalizations.of(context)!.failedOrderLabel.toUpperCase(),
+            AppLocalizations.of(context)!.failedOrderLabel,
             e.failedCount.toString(),
           ),
           const SizedBox(height: 8),
           _buildStatRow(
-            AppLocalizations.of(context)!.orderStatOrderPrice.toUpperCase(),
+            AppLocalizations.of(context)!.orderStatOrderPrice,
             CurrencyFormatter.format(e.orderPrice, euroSettings),
           ),
           const SizedBox(height: 8),
           _buildStatRow(
-            AppLocalizations.of(context)!.orderStatBonusPrice.toUpperCase(),
+            AppLocalizations.of(context)!.orderStatBonusPrice,
             CurrencyFormatter.format(e.bonusPrice, euroSettings),
           ),
           if (e.dailyGarantPrice != null) ...[
             const SizedBox(height: 8),
             _buildStatRow(
-              AppLocalizations.of(context)!
-                  .orderStatDailyGarantPrice
-                  .toUpperCase(),
+              AppLocalizations.of(context)!.orderStatDailyGarantPrice,
               CurrencyFormatter.format(e.dailyGarantPrice!, euroSettings),
             ),
           ],
           const SizedBox(height: 8),
-          _buildStatRow(
-            AppLocalizations.of(context)!.orderStatFuelPrice.toUpperCase(),
-            CurrencyFormatter.format(e.fuelPrice, euroSettings),
-          ),
-          const SizedBox(height: 8),
           Divider(color: Colors.grey.shade300),
           const SizedBox(height: 8),
           _buildStatRow(
-            AppLocalizations.of(context)!.orderStatTotalPrice.toUpperCase(),
+            AppLocalizations.of(context)!.orderStatTotalPrice,
             CurrencyFormatter.format(e.totalPrice, euroSettings),
             isTotal: true,
           ),
@@ -517,7 +555,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 16,
               color: isTotal ? Colors.black : Colors.grey.shade700,
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
             ),
@@ -526,7 +564,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
         Text(
           value,
           style: TextStyle(
-            fontSize: isTotal ? 16 : 14,
+            fontSize: 16,
             color: Colors.black,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
           ),

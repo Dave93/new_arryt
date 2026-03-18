@@ -1,6 +1,6 @@
 import { DB } from "@api/src/lib/db";
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm";
-import { order_actions, orders, users } from "@api/drizzle/schema";
+import { courier_terminal_balance, order_actions, order_transactions, orders, users } from "@api/drizzle/schema";
 import Redis from "ioredis";
 import { CacheControlService } from "@api/src/modules/cache/service";
 import { Queue } from "bullmq";
@@ -65,6 +65,66 @@ export default async function processChangeStatus(redis: Redis, db: DB, cacheCon
         }).where(
             eq(orders.id, data.order_id)
         ).execute();
+
+        if (afterStatus.cancel) {
+            // Check if order had reached "Ожидает гостя" (sort >= 5) before cancellation.
+            // If yes — courier keeps the payment. If no — cancel transactions.
+            const waitingGuestSort = 5;
+            const cancelledBeforeWaitingGuest = (beforeStatus.sort ?? 0) < waitingGuestSort;
+
+            if (cancelledBeforeWaitingGuest) {
+                // Order was cancelled before "Ожидает гостя" — revoke payment
+                const pendingTransactions = await db.select({
+                    id: order_transactions.id,
+                    not_paid_amount: order_transactions.not_paid_amount,
+                    courier_id: order_transactions.courier_id,
+                    terminal_id: order_transactions.terminal_id,
+                })
+                    .from(order_transactions)
+                    .where(and(
+                        eq(order_transactions.order_id, data.order_id),
+                        eq(order_transactions.status, 'pending'),
+                    ))
+                    .execute();
+
+                if (pendingTransactions.length > 0) {
+                    // Mark transactions as failed
+                    await db.update(order_transactions)
+                        .set({ status: 'failed' })
+                        .where(and(
+                            eq(order_transactions.order_id, data.order_id),
+                            eq(order_transactions.status, 'pending'),
+                        ))
+                        .execute();
+
+                    // Decrease courier_terminal_balance for each transaction
+                    for (const tx of pendingTransactions) {
+                        if (tx.courier_id && tx.terminal_id) {
+                            const balance = await db.select({
+                                id: courier_terminal_balance.id,
+                                balance: courier_terminal_balance.balance,
+                            })
+                                .from(courier_terminal_balance)
+                                .where(and(
+                                    eq(courier_terminal_balance.courier_id, tx.courier_id),
+                                    eq(courier_terminal_balance.terminal_id, tx.terminal_id),
+                                ))
+                                .limit(1)
+                                .execute();
+
+                            if (balance.length > 0) {
+                                const newBalance = balance[0].balance - tx.not_paid_amount;
+                                await db.update(courier_terminal_balance)
+                                    .set({ balance: newBalance })
+                                    .where(eq(courier_terminal_balance.id, balance[0].id))
+                                    .execute();
+                            }
+                        }
+                    }
+                }
+            }
+            // If cancelled at "Ожидает гостя" or later — transactions stay pending (courier gets paid)
+        }
 
         // if (afterStatus?.finish) {
 

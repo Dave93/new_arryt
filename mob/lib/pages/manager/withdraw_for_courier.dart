@@ -177,10 +177,10 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                 const SizedBox(
                   height: 20,
                 ),
-                const Text(
-                  "Не оплаченные суммы",
+                Text(
+                  AppLocalizations.of(context)!.unpaid_amounts,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 Expanded(
                   child: ListView.builder(
@@ -190,13 +190,13 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                       String typeText = '';
                       switch (transactions[index].transaction_type) {
                         case 'daily_garant':
-                          typeText = 'Дневной гарант';
+                          typeText = AppLocalizations.of(context)!.type_daily_garant;
                           break;
                         case 'bonus':
-                          typeText = 'Бонус';
+                          typeText = AppLocalizations.of(context)!.type_bonus;
                           break;
                         case 'order':
-                          typeText = 'Доставка';
+                          typeText = AppLocalizations.of(context)!.type_delivery;
                           break;
                       }
 
@@ -247,9 +247,9 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Text(
-                                    'Заказ: ',
-                                    style: TextStyle(color: Colors.grey),
+                                  Text(
+                                    '${AppLocalizations.of(context)!.order_label}: ',
+                                    style: const TextStyle(color: Colors.grey),
                                   ),
                                   Text(
                                     transactions[index]
@@ -264,9 +264,9 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Text(
-                                    'Филиал: ',
-                                    style: TextStyle(color: Colors.grey),
+                                  Text(
+                                    '${AppLocalizations.of(context)!.terminal_label}: ',
+                                    style: const TextStyle(color: Colors.grey),
                                   ),
                                   Expanded(
                                     child: Text(
@@ -282,9 +282,9 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Text(
-                                    'Тип: ',
-                                    style: TextStyle(color: Colors.grey),
+                                  Text(
+                                    '${AppLocalizations.of(context)!.type_label}: ',
+                                    style: const TextStyle(color: Colors.grey),
                                   ),
                                   Text(
                                     typeText,

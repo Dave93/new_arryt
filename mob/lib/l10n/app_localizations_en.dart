@@ -81,7 +81,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Turn on the work mode in the upper right corner to accept orders';
 
   @override
-  String get logout_btn => 'Logout';
+  String get logout_btn => 'Log out of account';
 
   @override
   String get order_card_comments => 'Comments';
@@ -153,10 +153,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderStatYesterday => 'Yesterday';
 
   @override
-  String get successOrderLabel => 'Success';
+  String get successOrderLabel => 'Delivered';
 
   @override
-  String get failedOrderLabel => 'Failed';
+  String get failedOrderLabel => 'Cancelled';
 
   @override
   String get orderStatTotalPrice => 'Total price';
@@ -180,7 +180,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get courierFuelLabel => 'Fuel';
 
   @override
-  String get orderStatOrderPrice => 'Order price';
+  String get orderStatOrderPrice => 'Delivery price';
 
   @override
   String get orderStatFuelPrice => 'Fuel price';
@@ -392,4 +392,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get total_active_couriers_label => 'Total active couriers';
+
+  @override
+  String get terminal_label => 'Terminal';
+
+  @override
+  String get balance_remaining => 'Remaining balance';
+
+  @override
+  String get product_label => 'Product';
+
+  @override
+  String get price_label => 'Price';
+
+  @override
+  String get quantity_label => 'Qty';
+
+  @override
+  String get total_label => 'Total';
+
+  @override
+  String get no_orders_label => 'No orders';
+
+  @override
+  String get cancel_reason_customer_changed_mind => 'Customer changed mind';
+
+  @override
+  String get cancel_reason_no_answer => 'No answer to call';
+
+  @override
+  String get cancel_reason_late => 'Late with order';
+
+  @override
+  String get close_label => 'Close';
+
+  @override
+  String get cancel_order_label => 'Cancel order';
+
+  @override
+  String get accept_order_label => 'Accept order';
+
+  @override
+  String get choose_terminal_for_route => 'Choose terminal to build route from';
+
+  @override
+  String get km_label => 'km';
+
+  @override
+  String get choose_organization => 'Choose organization';
+
+  @override
+  String get withdraws_list => 'Withdrawals list';
+
+  @override
+  String get date_label => 'Date';
+
+  @override
+  String get manager_label => 'Manager';
+
+  @override
+  String get unpaid_amounts => 'Unpaid amounts';
+
+  @override
+  String get type_daily_garant => 'Daily guarantee';
+
+  @override
+  String get type_bonus => 'Bonus';
+
+  @override
+  String get type_delivery => 'Delivery';
+
+  @override
+  String get order_label => 'Order';
+
+  @override
+  String get type_label => 'Type';
+
+  @override
+  String get balances_empty => 'Balances are empty';
+
+  @override
+  String get from_label => 'From';
+
+  @override
+  String get to_label => 'To';
+
+  @override
+  String get tracking_location_title => 'Location tracking';
+
+  @override
+  String get last_update_label => 'Last update';
 }

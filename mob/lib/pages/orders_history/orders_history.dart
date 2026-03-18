@@ -423,7 +423,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              const Text('От',
+                              Text(AppLocalizations.of(context)!.from_label,
                                   style: TextStyle(
                                       color: Colors.grey, fontSize: 10)),
                               Padding(
@@ -466,14 +466,14 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: _value == 0
                                 ? <Widget>[
-                                    const Text('До',
+                                    Text(AppLocalizations.of(context)!.to_label,
                                         style: TextStyle(
                                             fontSize: 16,
                                             color: Colors.grey,
                                             fontWeight: FontWeight.w500))
                                   ]
                                 : <Widget>[
-                                    const Text('До',
+                                    Text(AppLocalizations.of(context)!.to_label,
                                         style: TextStyle(
                                             color: Colors.grey, fontSize: 10)),
                                     Padding(
