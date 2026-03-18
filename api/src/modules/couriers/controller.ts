@@ -926,7 +926,7 @@ export const CouriersController = new Elysia({
 
     return Array.from(terminalMap.values()).map(entry => ({
       terminal_name: entry.terminal_name,
-      icon_url: entry.icon_url,
+      icon_url: entry.icon_url?.replace('/model_uploads/', '/public/model_uploads/'),
       order_amount: entry.order_amount,
       bonus_amount: entry.bonus_amount,
       balance: entry.order_amount + entry.bonus_amount,
