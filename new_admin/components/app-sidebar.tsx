@@ -3,24 +3,28 @@
 import * as React from "react"
 import {
   IconChartBar,
+  IconCoin,
   IconDashboard,
   IconFileDescription,
   IconFolder,
   IconHelp,
-  IconInnerShadowTop,
+  IconHome,
   IconListDetails,
   IconSearch,
   IconSettings,
   IconShoppingCart,
   IconUsers,
   IconShield,
+  IconTruck,
   IconTruckDelivery,
   IconAlertTriangle,
   IconMap,
   IconFlame,
+  IconWallet,
+  IconUserCheck,
 } from "@tabler/icons-react"
 
-import { NavMain } from "@/components/nav-main"
+import { NavMain, type NavGroup } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -35,162 +39,182 @@ import {
 import Link from "next/link"
 
 const data = {
-  navMain: [
+  navGroups: [
     {
-      title: "Панель управления",
-      url: "/dashboard",
-      icon: IconDashboard,
+      label: "Главная",
+      icon: IconHome,
+      defaultOpen: true,
+      items: [
+        {
+          title: "Панель управления",
+          url: "/dashboard",
+          icon: IconDashboard,
+        },
+        {
+          title: "Заказы",
+          url: "/dashboard/orders",
+          icon: IconShoppingCart,
+          permission: "orders.list",
+        },
+        {
+          title: "Пропущенные заказы",
+          url: "/dashboard/missed_orders",
+          icon: IconAlertTriangle,
+          permission: "orders.list",
+        },
+        {
+          title: "Пользователи",
+          url: "/dashboard/users",
+          icon: IconUsers,
+          actionLink: "/dashboard/users/create/",
+          permission: "users.edit",
+        },
+        {
+          title: "Выплаты курьерам",
+          url: "/dashboard/manager_withdraw",
+          icon: IconTruckDelivery,
+          permission: "manager_withdraw.list",
+        },
+        {
+          title: "Кошелёк курьеров",
+          url: "/dashboard/courier_balance",
+          icon: IconWallet,
+          permission: "manager_withdraw.edit",
+        },
+        {
+          title: "Перекличка курьеров",
+          url: "/dashboard/roll_call",
+          icon: IconUserCheck,
+          permission: "terminals.list",
+        },
+      ],
     },
     {
-      title: "Заказы",
-      url: "/dashboard/orders",
-      icon: IconShoppingCart,
-      permission: "orders.list",
+      label: "Финансы",
+      icon: IconCoin,
+      defaultOpen: true,
+      items: [
+        {
+          title: "Гарант",
+          url: "/dashboard/orders/yuriy_orders_garant_report",
+          icon: IconChartBar,
+          permission: "orders.list",
+        },
+        {
+          title: "Фин. гарант",
+          url: "/dashboard/orders/orders_garant_report",
+          icon: IconChartBar,
+          permission: "orders.list",
+        },
+      ],
     },
     {
-      title: "Заказы на карте",
-      url: "/dashboard/orders/map",
-      icon: IconMap,
-      permission: "orders.list",
+      label: "Логистические настройки",
+      icon: IconTruck,
+      items: [
+        {
+          title: "Заказы на карте",
+          url: "/dashboard/orders/map",
+          icon: IconMap,
+          permission: "orders.list",
+        },
+        {
+          title: "Тепловая карта",
+          url: "/dashboard/heat-map",
+          icon: IconFlame,
+          permission: "orders.list",
+        },
+        {
+          title: "Тарификация доставки",
+          url: "/dashboard/delivery_pricing",
+          icon: IconTruckDelivery,
+          actionLink: "/dashboard/delivery_pricing/create",
+          permission: "delivery_pricing.edit",
+        },
+        {
+          title: "Дневной гарант",
+          url: "/dashboard/daily_garant",
+          icon: IconListDetails,
+          actionLink: "/dashboard/daily_garant/create",
+          permission: "daily_garant.edit",
+        },
+        {
+          title: "Бонусы за заказы",
+          url: "/dashboard/order_bonus_pricing",
+          icon: IconListDetails,
+          actionLink: "/dashboard/order_bonus_pricing/create",
+          permission: "order_bonus_pricing.edit",
+        },
+        {
+          title: "Построенные бонусы",
+          url: "/dashboard/constructed_bonus_pricing",
+          icon: IconListDetails,
+          actionLink: "/dashboard/constructed_bonus_pricing/create",
+          permission: "constructed_bonus_pricing.edit",
+        },
+        {
+          title: "Эффективность курьеров",
+          url: "/dashboard/courier_efficiency",
+          icon: IconChartBar,
+          permission: "courier_efficiency.list",
+        },
+      ],
     },
     {
-      title: "Тепловая карта",
-      url: "/dashboard/heat-map",
-      icon: IconFlame,
-      permission: "orders.list",
-    },
-    {
-      title: "Фин. гарант",
-      url: "/dashboard/orders/orders_garant_report",
-      icon: IconChartBar,
-      permission: "orders.list",
-    },
-    {
-      title: "Гарант",
-      url: "/dashboard/orders/yuriy_orders_garant_report",
-      icon: IconChartBar,
-      permission: "orders.list",
-    },
-    {
-      title: "Пропущенные заказы",
-      url: "/dashboard/missed_orders",
-      icon: IconAlertTriangle,
-      permission: "orders.list",
-    },
-    {
-      title: "Статусы заказов",
-      url: "/dashboard/order_status",
-      icon: IconListDetails,
-      actionLink: "/dashboard/order_status/create",
-      permission: "order_status.edit",
-    },
-    {
-      title: "Разрешения",
-      url: "/dashboard/permissions",
-      icon: IconFileDescription,
-      actionLink: "/dashboard/permissions/create",
-      permission: "permissions.edit",
-    },
-    {
-      title: "Роли",
-      url: "/dashboard/roles",
-      icon: IconShield,
-      actionLink: "/dashboard/roles/create",
-      permission: "roles.edit",
-    },
-    {
-      title: "Организации",
-      url: "/dashboard/organization",
-      icon: IconFolder,
-      actionLink: "/dashboard/organization/create",
-      permission: "organization.edit",
-    },
-    {
-      title: "Терминалы",
-      url: "/dashboard/terminals",
-      icon: IconListDetails,
-      actionLink: "/dashboard/terminals/create",
-      permission: "terminals.edit",
-    },
-    {
-      title: "Тарификация доставки",
-      url: "/dashboard/delivery_pricing",
-      icon: IconTruckDelivery,
-      actionLink: "/dashboard/delivery_pricing/create",
-      permission: "delivery_pricing.edit",
-    },
-    {
-      title: "Дневные гарантии",
-      url: "/dashboard/daily_garant",
-      icon: IconListDetails,
-      actionLink: "/dashboard/daily_garant/create",
-      permission: "daily_garant.edit",
-    },
-    {
-      title: "Бонусы за заказы",
-      url: "/dashboard/order_bonus_pricing",
-      icon: IconListDetails,
-      actionLink: "/dashboard/order_bonus_pricing/create",
-      permission: "order_bonus_pricing.edit",
-    },
-    {
-      title: "Построенные бонусы",
-      url: "/dashboard/constructed_bonus_pricing",
-      icon: IconListDetails,
-      actionLink: "/dashboard/constructed_bonus_pricing/create",
-      permission: "constructed_bonus_pricing.edit",
-    },
-    {
-      title: "Графики работы",
-      url: "/dashboard/work_schedules",
-      icon: IconListDetails,
-      actionLink: "/dashboard/work_schedules/create",
-      permission: "work_schedules.edit",
-    },
-    {
-      title: "Эффективность курьеров",
-      url: "/dashboard/courier_efficiency",
-      icon: IconChartBar,
-      permission: "courier_efficiency.list",
-    },
-    {
-      title: "Выплаты курьерам",
-      url: "/dashboard/manager_withdraw",
-      icon: IconTruckDelivery,
-      permission: "manager_withdraw.list",
-    },
-    {
-      title: "Кошелёк курьеров",
-      url: "/dashboard/courier_balance",
-      icon: IconListDetails,
-      permission: "manager_withdraw.edit",
-    },
-    {
-      title: "Перекличка курьеров",
-      url: "/dashboard/roll_call",
-      icon: IconUsers,
-      permission: "terminals.list",
-    },
-    {
-      title: "Пользователи",
-      url: "/dashboard/users",
-      icon: IconUsers,
-      actionLink: "/dashboard/users/create/",
-      permission: "users.edit",
-    },
-    {
-      title: "Клиенты",
-      url: "/dashboard/customers",
-      icon: IconUsers,
-      permission: "customers.edit",
-    },
-    {
-      title: "Настройки",
-      url: "/dashboard/settings",
+      label: "Системные настройки",
       icon: IconSettings,
-      permission: "settings.edit",
+      items: [
+        {
+          title: "Статусы заказов",
+          url: "/dashboard/order_status",
+          icon: IconListDetails,
+          actionLink: "/dashboard/order_status/create",
+          permission: "order_status.edit",
+        },
+        {
+          title: "Разрешения",
+          url: "/dashboard/permissions",
+          icon: IconFileDescription,
+          actionLink: "/dashboard/permissions/create",
+          permission: "permissions.edit",
+        },
+        {
+          title: "Роли",
+          url: "/dashboard/roles",
+          icon: IconShield,
+          actionLink: "/dashboard/roles/create",
+          permission: "roles.edit",
+        },
+        {
+          title: "Организации",
+          url: "/dashboard/organization",
+          icon: IconFolder,
+          actionLink: "/dashboard/organization/create",
+          permission: "organization.edit",
+        },
+        {
+          title: "Терминалы",
+          url: "/dashboard/terminals",
+          icon: IconListDetails,
+          actionLink: "/dashboard/terminals/create",
+          permission: "terminals.edit",
+        },
+        {
+          title: "Графики работы",
+          url: "/dashboard/work_schedules",
+          icon: IconListDetails,
+          actionLink: "/dashboard/work_schedules/create",
+          permission: "work_schedules.edit",
+        },
+        {
+          title: "Клиенты",
+          url: "/dashboard/customers",
+          icon: IconUsers,
+          permission: "customers.edit",
+        },
+      ],
     },
-  ],
+  ] satisfies NavGroup[],
   navSecondary: [
     {
       title: "Помощь",
@@ -203,7 +227,6 @@ const data = {
       icon: IconSearch,
     },
   ],
-  documents: []
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -224,7 +247,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain groups={data.navGroups} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

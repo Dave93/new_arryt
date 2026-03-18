@@ -13,6 +13,8 @@ import {
   eq,
   ne,
   and,
+  or,
+  ilike,
   desc, sql, SQLWrapper
 } from "drizzle-orm";
 import { generate } from "otp-generator";
@@ -227,7 +229,7 @@ export const UsersController = new Elysia({
   .get(
     "/api/users",
     async ({
-      query: { limit, offset, sort, filters, fields },
+      query: { limit, offset, sort, filters, fields, search },
       drizzle,
       user,
       set,
@@ -247,6 +249,16 @@ export const UsersController = new Elysia({
           work_schedules,
           users_terminals,
         });
+      }
+      if (search && search.trim()) {
+        const searchPattern = `%${search.trim()}%`;
+        whereClause.push(
+          or(
+            ilike(users.first_name, searchPattern),
+            ilike(users.last_name, searchPattern),
+            ilike(users.phone, searchPattern),
+          )
+        );
       }
       const usersCount = await drizzle
         .select({ count: sql<number>`count(*)` })
@@ -304,6 +316,7 @@ export const UsersController = new Elysia({
         sort: t.Optional(t.String()),
         filters: t.Optional(t.String()),
         fields: t.Optional(t.String()),
+        search: t.Optional(t.String()),
       }),
     }
   )
@@ -430,9 +443,6 @@ export const UsersController = new Elysia({
       });
     }
 
-    console.log('password', password);
-    console.log('user[0].password', user[0].password);
-
     const isPasswordValid = await Bun.password.verify(password, user[0].password);
     if (!isPasswordValid) {
       return status(404, {
@@ -483,8 +493,6 @@ export const UsersController = new Elysia({
 
     cookie.session.value = accessToken;
     cookie.refreshToken.value = refreshToken;
-
-    console.log('process.env.ENV', process.env.ENV);
 
     if (process.env.ENV === "development") {
       cookie.session.domain = "localhost";
@@ -562,7 +570,6 @@ export const UsersController = new Elysia({
       });
       const now = new Date();
       const expiration_time = addMinutesToDate(now, 10);
-      console.log(otp);
       if (phone == "+998977021803") {
         otp = "555555";
       }
@@ -891,6 +898,9 @@ export const UsersController = new Elysia({
           card_number: t.Optional(t.String()),
           car_model: t.Optional(t.String()),
           car_number: t.Optional(t.String()),
+          is_fired: t.Optional(t.Boolean()),
+          fired_reason: t.Optional(t.String()),
+          should_rehire: t.Optional(t.Boolean()),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),
@@ -993,6 +1003,9 @@ export const UsersController = new Elysia({
           car_number: t.Optional(t.Nullable(t.String())),
           order_start_date: t.Optional(t.Nullable(t.String())),
           doc_files: t.Optional(t.Nullable(t.Array(t.String()))),
+          is_fired: t.Optional(t.Boolean()),
+          fired_reason: t.Optional(t.Nullable(t.String())),
+          should_rehire: t.Optional(t.Boolean()),
         }),
         fields: t.Optional(t.String()),
       }),

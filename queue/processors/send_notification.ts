@@ -68,7 +68,6 @@ export const processSendNotification = async (redis: Redis, db: DB, cacheControl
                 });
 
                 const response = await responseJson.json();
-                console.log('response', response);
                 return {
                     failureCount: response.failure,
                     successCount: response.success,

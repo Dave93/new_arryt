@@ -13,22 +13,15 @@ type PushCourierToQueueData = {
 }
 
 export default async function processPushCourierToQueue(redis: Redis, db: DB, cacheControl: CacheControlService, data: PushCourierToQueueData) {
-    console.time('processPushCourierToQueue');
     const { courier_id, terminal_id, workStartTime, workEndTime } = data;
 
-    console.time('getTerminals');
     const terminals = await cacheControl.getTerminals();
-    console.timeEnd('getTerminals');
 
-    console.time('findTerminal');
     const terminal = terminals.find((terminal) => terminal.id === terminal_id);
     if (!terminal) {
-        console.timeEnd('processPushCourierToQueue');
         return;
     }
-    console.timeEnd('findTerminal');
 
-    console.time('buildOrderQueueKey');
     let orderQueueKey = `${process.env.PROJECT_PREFIX}_order_queue`;
 
     const courier = (await db.select({
@@ -50,11 +43,7 @@ export default async function processPushCourierToQueue(redis: Redis, db: DB, ca
 
     orderQueueKey += `_${queueTerminals.sort().join('_')}`;
 
-    console.log('workStartTime', workStartTime);
-    console.log('workEndTime', workEndTime);
-
     const currentTime = dayjs().hour();
-    console.log('currentTime', currentTime);
 
     let currentDate = dayjs().format('YYYY_MM_DD');
 
@@ -62,25 +51,11 @@ export default async function processPushCourierToQueue(redis: Redis, db: DB, ca
         currentDate = dayjs().subtract(1, 'day').format('YYYY_MM_DD');
     }
 
-    console.log('currentDate', currentDate);
-
     orderQueueKey += `_${currentDate}`;
-    console.timeEnd('buildOrderQueueKey');
 
-    console.log('orderQueueKey', orderQueueKey);
-
-    console.time('checkCourierExists');
     const courierExists = await redis.lpos(orderQueueKey, courier_id);
-    console.timeEnd('checkCourierExists');
 
-    console.time('updateRedis');
     if (courierExists === null) {
         await redis.rpush(orderQueueKey, courier_id);
-        console.log(`Courier ${courier_id} added to the queue ${orderQueueKey}`);
-    } else {
-        console.log(`Courier ${courier_id} already exists in the queue ${orderQueueKey}`);
     }
-    console.timeEnd('updateRedis');
-
-    console.timeEnd('processPushCourierToQueue');
 }

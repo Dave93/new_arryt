@@ -15,14 +15,10 @@ type storeLocationData = {
 
 export default async function processStoreLocation(redis: Redis, db: DB, cacheControl: CacheControlService, data: storeLocationData) {
     try {
-        // console.log('store location data', data);
-        console.time('store_location');
-        console.log('store location data', data);
         const orderStatuses = await cacheControl.getOrderStatuses();
 
         const terminalsList = await cacheControl.getTerminals();
         try {
-            // console.log('key', `${process.env.PROJECT_PREFIX}_user_location`)
             await redis.hset(`${process.env.PROJECT_PREFIX}_user_location`, data.user_id, JSON.stringify({
                 user_id: data.user_id,
                 lat: data.lat,
@@ -33,8 +29,6 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
             console.log('redis error', e);
         }
         const orderStatusesNotOnWay = orderStatuses.filter((status) => status.in_terminal);
-        // console.log('store location line', 22);
-
 
         const ordersNotOnWay = await db.select({
             id: orders.id,
@@ -50,18 +44,12 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
                 lte(orders.created_at, dayjs().toISOString())
             )
         ).execute();
-        // console.log('store location line', 36);
         for (const order of ordersNotOnWay) {
-
-            // console.log('store location line', 39);
             const terminal = terminalsList.find((terminal) => terminal.id === order.terminal_id);
             const distance = await getDistance(
                 { latitude: terminal!.latitude, longitude: terminal!.longitude },
                 { latitude: data.lat, longitude: data.lon },
             );
-            console.log('store location line', 45);
-            console.log('distance', distance);
-            console.log('order number', order.order_number);
             if (distance >= 200) {
                 await db.update(orders).set({
                     order_status_id: orderStatuses.find((status) => status.on_way && status.organization_id == order.organization_id)!.id,
@@ -73,15 +61,11 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
                     )
                 ).execute();
             }
-            // console.log('store location line', 57);
         }
 
-        // console.log('store location line', 60);
         const orderStatusesThatNeedLocation = orderStatuses.filter(
             (orderStatus) => orderStatus.need_location && !orderStatus.finish,
         );
-
-        // console.log('store location line', 61);
 
         const ordersThatNeedLocation = await db.select({
             id: orders.id,
@@ -97,19 +81,8 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
                 lte(orders.created_at, dayjs().toISOString())
             )
         ).execute();
-        // console.log('store location line', 81);
         let orderLocations = [];
         for (const order of ordersThatNeedLocation) {
-            // console.log('needLocation insert', {
-            //     order_id: order.id,
-            //     order_created_at: order.created_at,
-            //     terminal_id: order.terminal_id,
-            //     courier_id: data.user_id,
-            //     order_status_id: order.order_status_id,
-            //     lat: +data.lat,
-            //     lon: +data.lon,
-            //     created_by: data.user_id,
-            // })
             orderLocations.push({
                 order_id: order.id,
                 order_created_at: order.created_at,
@@ -183,7 +156,6 @@ export default async function processStoreLocation(redis: Redis, db: DB, cacheCo
             }
         }
 
-        console.timeEnd('store_location');
     } catch (error) {
         console.error('processStoreLocation', error);
     }

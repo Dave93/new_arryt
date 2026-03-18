@@ -7,8 +7,10 @@ import Redis from "ioredis";
 
 export default async function processYandexCallback(redis: Redis, db: DB, cacheControl: CacheControlService, data: any) {
 
-    console.log('processYandexCallback', data);
-    console.log('time', dayjs().format('DD.MM.YYYY HH:mm:ss'));
+    console.log('[YC] === START processYandexCallback ===');
+    console.log('[YC] callback data:', JSON.stringify(data));
+    console.log('[YC] callback status:', data.status);
+    console.log('[YC] time:', dayjs().format('DD.MM.YYYY HH:mm:ss'));
     const claimId = data.claim_id;
     const order = await db.query.orders.findFirst({
         where: and(
@@ -17,11 +19,20 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
         ),
     });
 
+    if (!order) {
+        console.log(`[YC] SKIP: order not found for claim_id=${claimId}`);
+        return 'processYandexCallback';
+    }
+
+    console.log(`[YC] order found: id=${order.id}, order_number=${order.order_number}, courier_id=${order.courier_id}, current_status_id=${order.order_status_id}, org_id=${order.organization_id}`);
+
     if (order) {
         const yandexCourier = await db.query.users.findFirst({
             where: eq(users.phone, '+998908251218'),
         });
+        console.log(`[YC] yandexCourier lookup: found=${!!yandexCourier}, id=${yandexCourier?.id}`);
         if (order.courier_id != yandexCourier?.id) {
+            console.log(`[YC] SKIP: courier mismatch. order.courier_id=${order.courier_id}, yandexCourier.id=${yandexCourier?.id}`);
             return {
                 success: true,
             }
@@ -74,64 +85,70 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
                 },
             });
             yandexResponse = await yandexFetch.json();
-            // console.log('yandexResponse', yandexResponse);
+            console.log(`[YC] claims/info response: status=${yandexResponse.status}, performer_info=${JSON.stringify(yandexResponse.performer_info)}`);
         } catch (error) {
-            console.log('yandexResponseError', error);
+            console.log('[YC] ERROR: claims/info request failed', error);
             return {
                 success: false,
             };
         }
-        // console.log('yandexResponse', yandexResponse);
-        const orderStatusId = orderStatusByOrganization[order.organization_id][yandexResponse.status];
-        // if (
-        //     yandexCourierWaitTime &&
-        //     dateDiff >= yandexCourierWaitTime &&
-        //     courierSearchingStatuses.includes(data.status)
-        // ) {
-        //     const approveUrl = `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${data.claim_id}`;
-        //     const approveResponse = await lastValueFrom(
-        //         this.httpService
-        //             .post(
-        //                 approveUrl,
-        //                 {
-        //                     cancel_state: 'free',
-        //                     version: yandexResponse.version,
-        //                 },
-        //                 {
-        //                     headers: {
-        //                         'Accept-Language': 'ru',
-        //                         Authorization: `Bearer ${this.configService.get('YANDEX_DELIVERY_TOKEN')}`,
-        //                     },
-        //                 },
-        //             )
-        //             .pipe(map((response) => response.data)),
-        //     );
-        //     await this.prismaService.orders.update({
-        //         where: {
-        //             id: order.id,
-        //         },
-        //         data: {
-        //             orders_couriers: {
-        //                 disconnect: true,
-        //             },
-        //         },
-        //         select: {
-        //             id: true,
-        //         },
-        //     });
+        const orgStatuses = orderStatusByOrganization[order.organization_id];
+        const orderStatusId = orgStatuses?.[yandexResponse.status];
+        console.log(`[YC] status mapping: yandex_status="${yandexResponse.status}", mapped_orderStatusId=${orderStatusId}, available_mappings=${JSON.stringify(orgStatuses)}`);
 
-        //     await this.searchService.deleteYandexDeliveryOrder(order.id);
-        //     await this.orderIndexQueue.add(
-        //         'processOrderIndex',
-        //         {
-        //             orderId: order.id,
-        //         },
-        //         { attempts: 3, removeOnComplete: true },
+        const yandexCancelStatuses = ['performer_not_found', 'cancelled', 'cancelled_by_taxi', 'cancelled_with_payment', 'cancelled_with_items_on_hands', 'failed', 'estimating_failed', 'returned_finish'];
+
+        const operatorCancelFlag = await redis.get(`yandex_operator_cancel:${claimId}`);
+        if (operatorCancelFlag) {
+            console.log(`[YC] SKIP: operator-initiated cancel for claim_id=${claimId}, order_id=${order.id}`);
+            await redis.del(`yandex_operator_cancel:${claimId}`);
+
+            await db.update(orders).set({
+                courier_id: null,
+                yandex_id: null,
+            }).where(and(eq(orders.id, order.id), gte(orders.created_at, dayjs().subtract(2, 'day').toISOString())));
+
+            return 'processYandexCallback';
+        }
+
+        // if (yandexCancelStatuses.includes(yandexResponse.status)) {
+        //     console.log(`[YC] Yandex order cancelled: status=${yandexResponse.status}, order_id=${order.id}, order_number=${order.order_number}`);
+
+        //     const initialStatus = orderStatuses.find(
+        //         (s) => s.sort == 1 && s.organization_id == order.organization_id,
         //     );
+
+        //     if (initialStatus) {
+        //         await db.update(orders).set({
+        //             courier_id: null,
+        //             yandex_id: null,
+        //             order_status_id: initialStatus.id,
+        //         }).where(and(eq(orders.id, order.id), gte(orders.created_at, dayjs().subtract(2, 'day').toISOString())));
+
+        //         await db.insert(order_actions).values({
+        //             terminal_id: order.terminal_id,
+        //             order_id: order.id,
+        //             order_created_at: order.created_at,
+        //             action: 'STATUS_CHANGE',
+        //             action_text: `Яндекс Доставка отменена (${yandexResponse.status}). Заказ возвращён в пропущенные.`,
+        //             duration: 0,
+        //         });
+
+        //         console.log(`[YC] Order ${order.order_number} returned to missed orders, status set to ${initialStatus.id}`);
+        //     }
+
+        //     return 'processYandexCallback';
         // }
-        // else
+
+        if (!orderStatusId) {
+            console.log(`[YC] SKIP: no orderStatusId mapping for yandex status "${yandexResponse.status}" in org ${order.organization_id}`);
+        }
         if (orderStatusId) {
+            if (order.order_status_id == orderStatusId) {
+                console.log(`[YC] SKIP voice forwarding: status unchanged. order.order_status_id=${order.order_status_id} == orderStatusId=${orderStatusId}`);
+            }
             if (order.order_status_id != orderStatusId) {
+                console.log(`[YC] status changed: ${order.order_status_id} -> ${orderStatusId}, proceeding with voice forwarding`);
                 const lastOrderActions = await db.select({
                     id: order_actions.id,
                     created_at: order_actions.created_at,
@@ -159,7 +176,10 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
                         }),
                     });
                     const voiceForwardResponse = await voiceForwardFetch.json();
-                    // console.log('voiceForwardResponse', voiceForwardResponse);
+                    console.log(`[YC] voiceForward response:`, JSON.stringify(voiceForwardResponse));
+                    if (!voiceForwardResponse.phone) {
+                        console.log(`[YC] SKIP webhook: no phone in voiceForward response`);
+                    }
                     if (voiceForwardResponse.phone) {
                         // await this.searchService.updateYandexDeliveryOrders([
                         //     {
@@ -172,9 +192,13 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
                         // ]);
 
                         const webhookUrl = org.webhook;
+                        console.log(`[YC] webhookUrl=${webhookUrl}, phone=${voiceForwardResponse.phone}`);
+                        if (!webhookUrl) {
+                            console.log(`[YC] SKIP webhook: org has no webhook URL`);
+                        }
                         if (webhookUrl) {
                             const orderIsSent = await redis.get(`courier_info_sent:${order.id}_${voiceForwardResponse.phone}`) == 'true';
-
+                            console.log(`[YC] orderIsSent=${orderIsSent} (key: courier_info_sent:${order.id}_${voiceForwardResponse.phone})`);
                             if (!orderIsSent) {
                                 const apiToken = await db.query.api_tokens.findFirst({
                                     where: eq(api_tokens.organization_id, org.id),
@@ -212,7 +236,7 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
                         }
                     }
                 } catch (e) {
-                    console.log('voiceForwardError', e);
+                    console.log('[YC] ERROR: voiceForward/webhook failed', e);
                 }
 
                 // get last order action created_at difference from now in seconds

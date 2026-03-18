@@ -603,6 +603,7 @@ export const OrdersController = new Elysia({
           created_at: orders.created_at,
           courier_id: orders.courier_id,
           terminal_id: orders.terminal_id,
+          delivery_address: orders.delivery_address,
         })
         .from(orders)
         .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
@@ -1583,6 +1584,7 @@ export const OrdersController = new Elysia({
                   quantity: item.quantity,
                   name: item.name,
                   price: parseInt(item.price),
+                  weight: item.weight ? item.weight/1000 : null,
                 })
                 .execute();
             }
@@ -1761,6 +1763,7 @@ export const OrdersController = new Elysia({
             quantity: t.Number(),
             name: t.String(),
             price: t.String(),
+            weight: t.Optional(t.Nullable(t.Number())),
           }),
         ),
       }),
@@ -2898,6 +2901,318 @@ export const OrdersController = new Elysia({
       return {
         data: result[0],
       };
+    },
+    {
+      permission: "orders.edit",
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/api/orders/:id/cancel_yandex",
+    async ({
+      params: { id },
+      drizzle,
+      redis,
+      cacheControl,
+    }) => {
+      const order = await drizzle
+        .select({
+          id: orders.id,
+          yandex_id: orders.yandex_id,
+          terminal_id: orders.terminal_id,
+          created_at: orders.created_at,
+        })
+        .from(orders)
+        .where(eq(orders.id, id))
+        .execute();
+
+      if (!order[0]?.yandex_id) {
+        return { success: false, message: "Order has no active Yandex delivery" };
+      }
+
+      const claimId = order[0].yandex_id;
+
+      try {
+        await fetch(
+          `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${claimId}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept-Language": "ru",
+              Authorization: `Bearer ${process.env.YANDEX_DELIVERY_TOKEN}`,
+            },
+            body: JSON.stringify({ cancel_state: "free" }),
+          },
+        );
+      } catch (e) {
+        console.log("[cancel_yandex] ERROR: Yandex cancel request failed", e);
+      }
+
+      await redis.set(`yandex_operator_cancel:${claimId}`, "true", "EX", 7200);
+
+      await drizzle
+        .update(orders)
+        .set({
+          courier_id: null,
+          yandex_id: null,
+        })
+        .where(eq(orders.id, id));
+
+      await drizzle.insert(order_actions).values({
+        terminal_id: order[0].terminal_id,
+        order_id: order[0].id,
+        order_created_at: order[0].created_at,
+        action: "STATUS_CHANGE",
+        action_text: "Оператор отменил Яндекс Доставку",
+        duration: 0,
+      });
+
+      return { success: true };
+    },
+    {
+      permission: "orders.edit",
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/api/orders/:id/recreate_yandex",
+    async ({
+      params: { id },
+      body: { taxi_class },
+      drizzle,
+      redis,
+      cacheControl,
+      queues: { processCheckAndSendYandex },
+    }) => {
+      const order = await drizzle
+        .select({
+          id: orders.id,
+          yandex_id: orders.yandex_id,
+          terminal_id: orders.terminal_id,
+          created_at: orders.created_at,
+          organization_id: orders.organization_id,
+        })
+        .from(orders)
+        .where(eq(orders.id, id))
+        .execute();
+
+      if (!order[0]) {
+        return { success: false, message: "Order not found" };
+      }
+
+      if (order[0].yandex_id) {
+        const claimId = order[0].yandex_id;
+        try {
+          await fetch(
+            `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${claimId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept-Language": "ru",
+                Authorization: `Bearer ${process.env.YANDEX_DELIVERY_TOKEN}`,
+              },
+              body: JSON.stringify({ cancel_state: "free" }),
+            },
+          );
+        } catch (e) {
+          console.log("[recreate_yandex] ERROR: Yandex cancel request failed", e);
+        }
+
+        await redis.set(`yandex_operator_cancel:${claimId}`, "true", "EX", 7200);
+      }
+
+      const orderStatuses = await cacheControl.getOrderStatuses();
+      const initialStatus = orderStatuses.find(
+        (s) => s.sort == 1 && s.organization_id == order[0].organization_id,
+      );
+
+      await drizzle
+        .update(orders)
+        .set({
+          courier_id: null,
+          yandex_id: null,
+          order_status_id: initialStatus?.id ?? order[0].id,
+        })
+        .where(eq(orders.id, id));
+
+      await drizzle.insert(order_actions).values({
+        terminal_id: order[0].terminal_id,
+        order_id: order[0].id,
+        order_created_at: order[0].created_at,
+        action: "STATUS_CHANGE",
+        action_text: `Пересоздан заказ Яндекс Доставки (taxi_class: ${taxi_class})`,
+        duration: 0,
+      });
+
+      await processCheckAndSendYandex.add(
+        "checkAndSendYandex",
+        { id, taxi_class },
+        { removeOnComplete: true },
+      );
+
+      return { success: true };
+    },
+    {
+      permission: "orders.edit",
+      params: t.Object({
+        id: t.String(),
+      }),
+      body: t.Object({
+        taxi_class: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/api/orders/:id/cancel_noor",
+    async ({
+      params: { id },
+      drizzle,
+      redis,
+      cacheControl,
+    }) => {
+      const order = await drizzle
+        .select({
+          id: orders.id,
+          noor_id: orders.noor_id,
+          terminal_id: orders.terminal_id,
+          created_at: orders.created_at,
+        })
+        .from(orders)
+        .where(eq(orders.id, id))
+        .execute();
+
+      if (!order[0]?.noor_id) {
+        return { success: false, message: "Order has no active Noor delivery" };
+      }
+
+      const noorId = order[0].noor_id;
+
+      try {
+        await fetch(
+          `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept-Language": "ru",
+              "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
+            },
+          },
+        );
+      } catch (e) {
+        console.log("[cancel_noor] ERROR: Noor cancel request failed", e);
+      }
+
+      await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", 7200);
+
+      await drizzle
+        .update(orders)
+        .set({
+          courier_id: null,
+          noor_id: null,
+        })
+        .where(eq(orders.id, id));
+
+      await drizzle.insert(order_actions).values({
+        terminal_id: order[0].terminal_id,
+        order_id: order[0].id,
+        order_created_at: order[0].created_at,
+        action: "STATUS_CHANGE",
+        action_text: "Оператор отменил Noor Доставку",
+        duration: 0,
+      });
+
+      return { success: true };
+    },
+    {
+      permission: "orders.edit",
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/api/orders/:id/recreate_noor",
+    async ({
+      params: { id },
+      drizzle,
+      redis,
+      cacheControl,
+      queues: { processCheckAndSendNoor },
+    }) => {
+      const order = await drizzle
+        .select({
+          id: orders.id,
+          noor_id: orders.noor_id,
+          terminal_id: orders.terminal_id,
+          created_at: orders.created_at,
+          organization_id: orders.organization_id,
+        })
+        .from(orders)
+        .where(eq(orders.id, id))
+        .execute();
+
+      if (!order[0]) {
+        return { success: false, message: "Order not found" };
+      }
+
+      if (order[0].noor_id) {
+        const noorId = order[0].noor_id;
+        try {
+          await fetch(
+            `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept-Language": "ru",
+                "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
+              },
+            },
+          );
+        } catch (e) {
+          console.log("[recreate_noor] ERROR: Noor cancel request failed", e);
+        }
+
+        await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", 7200);
+      }
+
+      const orderStatuses = await cacheControl.getOrderStatuses();
+      const initialStatus = orderStatuses.find(
+        (s) => s.sort == 1 && s.organization_id == order[0].organization_id,
+      );
+
+      await drizzle
+        .update(orders)
+        .set({
+          courier_id: null,
+          noor_id: null,
+          order_status_id: initialStatus?.id ?? order[0].id,
+        })
+        .where(eq(orders.id, id));
+
+      await drizzle.insert(order_actions).values({
+        terminal_id: order[0].terminal_id,
+        order_id: order[0].id,
+        order_created_at: order[0].created_at,
+        action: "STATUS_CHANGE",
+        action_text: "Пересоздан заказ Noor Доставки",
+        duration: 0,
+      });
+
+      await processCheckAndSendNoor.add(
+        "checkAndSendNoor",
+        { id },
+        { removeOnComplete: true },
+      );
+
+      return { success: true };
     },
     {
       permission: "orders.edit",

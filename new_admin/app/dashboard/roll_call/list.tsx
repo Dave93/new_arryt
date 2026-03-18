@@ -9,6 +9,7 @@ import { CalendarIcon, FilterIcon, PhoneIcon, Calculator } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { apiClient } from "../../../lib/eden-client";
 import {
@@ -24,15 +25,15 @@ import {
   PopoverTrigger,
 } from "../../../components/ui/popover";
 import { Calendar } from "../../../components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/select";
 import { Badge } from "../../../components/ui/badge";
 import { cn } from "../../../lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../../../components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -57,9 +58,16 @@ interface Courier {
   daily_garant_id?: string;
 }
 
+interface Terminal {
+  id: string;
+  name: string;
+  region: string;
+}
+
 // Define filter schema
 const filterSchema = z.object({
   date: z.date(),
+  region: z.string().optional(),
 });
 
 type FilterValues = z.infer<typeof filterSchema>;
@@ -120,15 +128,30 @@ function CourierDriveTypeIcon({ driveType }: { driveType?: string }) {
 
 export default function RollCallList() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [terminals, setTerminals] = useState<Terminal[]>([]);
   const queryClient = useQueryClient();
-  
+
   // Initialize form with default values
   const form = useForm<FilterValues>({
     resolver: zodResolver(filterSchema),
     defaultValues: {
       date: new Date(),
+      region: "capital",
     },
   });
+
+  // Fetch terminals for region mapping
+  useEffect(() => {
+    const fetchTerminals = async () => {
+      try {
+        const { data: terminalsData } = await apiClient.api.terminals.cached.get();
+        if (terminalsData && Array.isArray(terminalsData)) {
+          setTerminals(terminalsData as Terminal[]);
+        }
+      } catch {}
+    };
+    fetchTerminals();
+  }, []);
 
   // Get the current filter values
   const filterValues = form.watch();
@@ -157,14 +180,30 @@ export default function RollCallList() {
     }
   });
 
-  // Filter data based on search query
+  // Build a map of terminal id -> region
+  const terminalRegionMap = useMemo(() => {
+    const map = new Map<string, string>();
+    terminals.forEach(t => map.set(t.id, t.region));
+    return map;
+  }, [terminals]);
+
+  // Filter data based on search query and region
   const filteredData = useMemo(() => {
-    if (!searchQuery) return data;
-    
-    return data.filter((item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [data, searchQuery]);
+    let result = data;
+
+    const region = filterValues.region;
+    if (region && region !== "all" && terminalRegionMap.size > 0) {
+      result = result.filter((item) => terminalRegionMap.get(item.id) === region);
+    }
+
+    if (searchQuery) {
+      result = result.filter((item) =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return result;
+  }, [data, searchQuery, filterValues.region, terminalRegionMap]);
 
   // Simple debounce implementation using useCallback and setTimeout
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,153 +225,176 @@ export default function RollCallList() {
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Перекличка курьеров</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-[240px] pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Выберите дату</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" onClick={onRefresh}>
-                  <FilterIcon className="h-4 w-4 mr-2" />
-                  Обновить
-                </Button>
-              </div>
-              <Input
-                placeholder="Поиск филиала..."
-                className="max-w-sm"
-                onChange={handleSearchChange}
-              />
-            </div>
-          </form>
-        </Form>
+    <>
+    <PageTitle title="Перекличка курьеров" />
+    <div className="px-4 py-2">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="flex items-center gap-3">
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[240px] pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Выберите дату</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="region"
+              render={({ field }) => (
+                <FormItem>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value || "all"}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder="Регион" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="all">Все регионы</SelectItem>
+                      <SelectItem value="capital">Столица</SelectItem>
+                      <SelectItem value="region">Регион</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+            <Button type="submit" size="sm" onClick={onRefresh}>
+              <FilterIcon className="h-4 w-4 mr-2" />
+              Обновить
+            </Button>
+            <Input
+              placeholder="Поиск филиала..."
+              className="max-w-[200px]"
+              onChange={handleSearchChange}
+            />
+          </div>
+        </form>
+      </Form>
+    </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="w-full">
-                <CardHeader>
-                  <Skeleton className="h-8 w-3/4" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-4 w-1/3 mb-4" />
-                  <div className="space-y-3">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredData.map((terminal) => (
-              <Card key={terminal.id} className="w-full">
-                <CardHeader>
-                  <CardTitle>{terminal.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {terminal.couriers.length} курьеров
-                  </p>
-                  <div className="space-y-3">
-                    {terminal.couriers.map((courier) => (
-                      <div key={courier.id} className="flex items-center justify-between p-2 border rounded-md">
-                        <div className="flex items-center">
-                          <Badge 
-                            variant={courier.is_online ? "default" : "destructive"}
-                            className="mr-2"
-                          >
-                            {courier.is_online ? "Онлайн" : "Офлайн"}
-                          </Badge>
-                          <div>
-                            <span className="font-medium">
-                              {courier.first_name} {courier.last_name}
-                            </span>
-                            <CourierDriveTypeIcon driveType={courier.drive_type} />
-                          </div>
+    <div className="px-4 py-1">
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="w-full">
+              <CardHeader className="p-4">
+                <Skeleton className="h-6 w-3/4" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <Skeleton className="h-4 w-1/3 mb-3" />
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredData.map((terminal) => (
+            <Card key={terminal.id} className="w-full">
+              <CardHeader className="px-5 py-4">
+                <CardTitle className="text-lg font-semibold">{terminal.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {terminal.couriers.length} курьеров
+                </p>
+              </CardHeader>
+              <CardContent className="px-5 pb-5 pt-0">
+                <div className="space-y-3">
+                  {terminal.couriers.map((courier) => (
+                    <div key={courier.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Badge
+                          variant={courier.is_online ? "default" : "destructive"}
+                          className="shrink-0 text-xs px-2.5 py-0.5"
+                        >
+                          {courier.is_online ? "Онлайн" : "Офлайн"}
+                        </Badge>
+                        <div className="min-w-0">
+                          <span className="font-medium text-sm leading-tight block truncate">
+                            {courier.first_name} {courier.last_name}
+                          </span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge 
-                            variant={courier.is_late ? "destructive" : courier.is_online ? "outline" : "destructive"}
-                          >
-                            {courier.created_at
-                              ? format(new Date(courier.created_at), "HH:mm")
-                              : courier.is_online
-                              ? "не сегодня"
-                              : "не в сети"}
-                          </Badge>
-                          {courier.app_version && (
-                            <Badge variant="outline">v{courier.app_version}</Badge>
-                          )}
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => {
-                              if (courier.phone) {
-                                window.location.href = `tel:${courier.phone.replace("+998", "")}`;
-                              }
-                            }}
-                          >
-                            <PhoneIcon className="h-4 w-4" />
-                          </Button>
-                          {courier.daily_garant_id && (
-                            <DailyGarantButton
-                              day={filterValues.date}
-                              user_id={courier.id}
-                              onSuccess={refetch}
-                            />
-                          )}
-                        </div>
+                        <CourierDriveTypeIcon driveType={courier.drive_type} />
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <Badge
+                          variant={
+                            courier.created_at
+                              ? courier.is_late ? "destructive" : "default"
+                              : "destructive"
+                          }
+                          className="text-sm px-3 py-1 font-semibold"
+                        >
+                          {courier.created_at
+                            ? format(new Date(courier.created_at), "HH:mm")
+                            : courier.is_online
+                            ? "не сегодня"
+                            : "не в сети"}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => {
+                            if (courier.phone) {
+                              window.location.href = `tel:${courier.phone.replace("+998", "")}`;
+                            }
+                          }}
+                        >
+                          <PhoneIcon className="h-4 w-4" />
+                        </Button>
+                        {courier.daily_garant_id && (
+                          <DailyGarantButton
+                            day={filterValues.date}
+                            user_id={courier.id}
+                            onSuccess={refetch}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+    </>
   );
 } 

@@ -15,6 +15,7 @@ import { DynamicMap } from "../../../../components/dynamic-map";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { format } from "date-fns";
+import { PageTitle } from "@/components/page-title";
 
 // Определение типа терминала
 interface Terminal {
@@ -78,6 +79,7 @@ export default function TerminalDetails() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={terminal.name || "Загрузка..."} />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/terminals">
@@ -85,7 +87,7 @@ export default function TerminalDetails() {
             Назад к списку
           </Link>
         </Button>
-        
+
         <Button asChild>
           <Link href={`/dashboard/terminals/edit?id=${terminal.id}`}>
             <Edit className="h-4 w-4 mr-2" />
@@ -95,9 +97,7 @@ export default function TerminalDetails() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{terminal.name}</CardTitle>
-        </CardHeader>
+        <CardHeader></CardHeader>
         <CardContent>
           <Tabs defaultValue="details">
             <TabsList>

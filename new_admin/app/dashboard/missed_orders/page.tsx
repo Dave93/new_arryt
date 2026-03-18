@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/eden-client";
 import { DateRange } from "react-day-picker";
@@ -22,6 +23,7 @@ import { sortBy } from "lodash";
 import { ru } from "date-fns/locale";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import { SendOrderToYandex } from "@/components/orders/send-to-yandex";
+import { SendOrderToNoor } from "@/components/orders/send-to-noor";
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
 
 // Define MissedOrder interface
@@ -106,10 +108,20 @@ const columns: ColumnDef<MissedOrder>[] = [
   },
   {
     id: "yandex",
-    header: "Отправить в Яндекс",
+    header: "Яндекс",
     cell: ({ row }) => (
       <div className="flex flex-col gap-2">
         <SendOrderToYandex order={row.original} />
+      </div>
+    ),
+    size: 150,
+  },
+  {
+    id: "noor",
+    header: "Noor",
+    cell: ({ row }) => (
+      <div className="flex flex-col gap-2">
+        <SendOrderToNoor order={row.original} />
       </div>
     ),
     size: 150,
@@ -348,11 +360,10 @@ export default function MissedOrdersPage() {
   });
 
   return (
+    <>
+    <PageTitle title="Пропущенные заказы" />
     <Card>
-      <CardHeader>
-        <CardTitle>Пропущенные заказы</CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="flex flex-col gap-4 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <DateRangePicker
@@ -423,5 +434,6 @@ export default function MissedOrdersPage() {
         />
       </CardContent>
     </Card>
+    </>
   );
 } 

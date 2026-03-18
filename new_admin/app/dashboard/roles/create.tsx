@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import {
@@ -28,6 +27,7 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { PageTitle } from "@/components/page-title";
 
 // Define the form schema with validation
 const formSchema = z.object({
@@ -72,6 +72,7 @@ export default function RoleCreate() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Create Role" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/roles">
@@ -83,7 +84,6 @@ export default function RoleCreate() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Create Role</CardTitle>
           <CardDescription>
             Add a new role to the system.
           </CardDescription>

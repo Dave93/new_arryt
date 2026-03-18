@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -13,6 +13,7 @@ import { Eye, Plus, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "../../../components/ui/switch";
 import { format } from "date-fns";
+import { PageTitle } from "@/components/page-title";
 
 // Константа для преобразования типов оплаты
 const PAYMENT_TYPE_NAMES = {
@@ -174,9 +175,10 @@ export default function OrganizationList() {
   });
 
   return (
+    <>
+    <PageTitle title="Список организаций" />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Список организаций</CardTitle>
         <div className="flex items-center space-x-2">
           <Input
             placeholder="Поиск организаций..."
@@ -205,5 +207,6 @@ export default function OrganizationList() {
         />
       </CardContent>
     </Card>
+    </>
   );
 } 
