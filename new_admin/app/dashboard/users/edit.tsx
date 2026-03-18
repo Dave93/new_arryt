@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "../../../components/ui/form";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { apiClient } from "../../../lib/eden-client";
@@ -28,6 +28,7 @@ import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { UsersModel } from "../../../../api/src/modules/user/dto/list.dto";
 import { FileUpload } from "../../../components/ui/file-upload";
+import { PageTitle } from "@/components/page-title";
 
 // Определение типов
 interface Terminal {
@@ -97,7 +98,7 @@ const userStatuses = [
 ];
 
 // Схема формы с валидацией Zod
-const formSchema = z.object({
+const baseFormSchema = z.object({
   id: z.string(),
   first_name: z.string().min(1, { message: "Имя обязательно" }),
   last_name: z.string().min(1, { message: "Фамилия обязательна" }),
@@ -113,6 +114,19 @@ const formSchema = z.object({
   card_number: z.string().optional(),
   car_model: z.string().optional(),
   car_number: z.string().optional(),
+  is_fired: z.boolean().optional(),
+  fired_reason: z.string().optional(),
+  should_rehire: z.boolean().optional(),
+});
+
+const formSchema = baseFormSchema.refine((data) => {
+  if (data.is_fired && (!data.fired_reason || data.fired_reason.trim() === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Причина увольнения обязательна при отметке 'Уволен'",
+  path: ["fired_reason"],
 });
 
 export default function UserEdit() {
@@ -123,7 +137,7 @@ export default function UserEdit() {
   const [userFiles, setUserFiles] = useState<any[]>([]);
 
   // Инициализация формы
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<z.infer<typeof baseFormSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       id: "",
@@ -141,6 +155,9 @@ export default function UserEdit() {
       card_number: "",
       car_model: "",
       car_number: "",
+      is_fired: false,
+      fired_reason: "",
+      should_rehire: false,
     },
   });
 
@@ -229,6 +246,9 @@ export default function UserEdit() {
               "terminals.name",
               "roles.id",
               "roles.name",
+              "is_fired",
+              "fired_reason",
+              "should_rehire",
             ].join(","),
           },
         });
@@ -242,13 +262,16 @@ export default function UserEdit() {
   });
 
   // Загрузка файлов пользователя
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7474";
   const { data: existingFiles = [] } = useQuery({
     queryKey: ["userAssets", id],
     queryFn: async () => {
       if (!id) return [];
       try {
-        const response = await apiClient.api["user-assets"]({ userId: id }).get({});
-        return response.data?.assets || [];
+        const res = await fetch(`${API_URL}/api/user-assets/${id}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data?.assets || [];
       } catch (error) {
         console.error("Не удалось загрузить файлы пользователя:", error);
         return [];
@@ -290,6 +313,9 @@ export default function UserEdit() {
           card_number: user.card_number || "",
           car_model: user.car_model || "",
           car_number: user.car_number || "",
+          is_fired: user.is_fired || false,
+          fired_reason: user.fired_reason || "",
+          should_rehire: user.should_rehire || false,
         });
         
         console.log("Form values after reset:", form.getValues());
@@ -298,7 +324,7 @@ export default function UserEdit() {
   }, [user, form]);
 
   // Обработка отправки формы
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof baseFormSchema>) => {
     setIsSubmitting(true);
     try {
       // Transform "none" value back to empty string for daily_garant_id
@@ -318,6 +344,9 @@ export default function UserEdit() {
           drive_type: formData.drive_type || undefined,
           status: formData.status as "active" | "inactive" | "blocked",
           daily_garant_id: formData.daily_garant_id || undefined,
+          is_fired: formData.is_fired || false,
+          fired_reason: formData.is_fired ? formData.fired_reason : null,
+          should_rehire: formData.should_rehire || false,
         },
       });
       
@@ -337,6 +366,7 @@ export default function UserEdit() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Редактировать пользователя" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/users">
@@ -347,9 +377,6 @@ export default function UserEdit() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Редактировать пользователя</CardTitle>
-        </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -687,35 +714,91 @@ export default function UserEdit() {
                 />
               </div>
 
+              {form.watch("drive_type") === "car" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="car_model"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Модель автомобиля</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Введите модель автомобиля" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="car_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Номер автомобиля</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Введите номер автомобиля" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
-                  name="car_model"
+                  name="is_fired"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Модель автомобиля</FormLabel>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Уволен</FormLabel>
+                        <FormDescription>Отметьте, если сотрудник уволен</FormDescription>
+                      </div>
                       <FormControl>
-                        <Input placeholder="Введите модель автомобиля" {...field} />
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
 
                 <FormField
                   control={form.control}
-                  name="car_number"
+                  name="should_rehire"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Номер автомобиля</FormLabel>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Стоит ли брать обратно</FormLabel>
+                        <FormDescription>Можно ли рассматривать повторный найм</FormDescription>
+                      </div>
                       <FormControl>
-                        <Input placeholder="Введите номер автомобиля" {...field} />
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="fired_reason"
+                render={({ field: { value, ...field } }) => (
+                  <FormItem className={form.watch("is_fired") ? "" : "hidden"}>
+                    <FormLabel>Причина увольнения *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Укажите причину увольнения" {...field} value={value ?? ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {id && (
                 <div className="space-y-2">

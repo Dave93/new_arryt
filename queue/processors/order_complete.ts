@@ -23,7 +23,6 @@ export const processOrderComplete = async (db: DB, cacheControl: CacheControlSer
             lte(order_transactions.created_at, dayjs().format('YYYY-MM-DD HH:mm:ss')),
         ))
         .limit(1);
-    // console.log('orderTransaction.length', orderTransaction.length)
     if (orderTransaction.length > 0) {
         return;
     }
@@ -41,16 +40,13 @@ export const processOrderComplete = async (db: DB, cacheControl: CacheControlSer
 
 
     let startBalance = 0;
-    // console.log('startBalance', startBalance)
     if (courierTerminalBalance.length) {
         startBalance = courierTerminalBalance[0].balance;
     }
 
     let orderBonusPricing = await cacheControl.getConstructedBonusPricingByOrganization(data.organization_id);
-    // console.log('orderBonusPricing', orderBonusPricing)
     if (orderBonusPricing) {
         const duration = dayjs().diff(data.created_at, 'minutes');
-        // console.log('duration', duration)
         let pricing = orderBonusPricing.pricing as any[] | string;
         if (typeof pricing === 'string') {
             pricing = JSON.parse(pricing) as any[];
@@ -73,7 +69,6 @@ export const processOrderComplete = async (db: DB, cacheControl: CacheControlSer
         // sort resultRules by time_to
         resultRules.sort((a, b) => a.time_to - b.time_to);
 
-        // console.log('resultRules', resultRules)
         const bonusPrice: number = resultRules?.find((rule) => duration > rule.time_from && duration <= rule.time_to)?.price;
         if (bonusPrice && bonusPrice > 0) {
             await db.insert(order_transactions)
@@ -151,7 +146,6 @@ export const processOrderComplete = async (db: DB, cacheControl: CacheControlSer
     //     }
 
     // } catch (e) {
-    //     console.log('process Fuel Bonus Error', e);
     // }
 
     if (organization.payment_type == 'cash') {

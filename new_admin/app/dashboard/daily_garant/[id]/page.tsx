@@ -11,6 +11,7 @@ import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
 import { format } from "date-fns";
+import { PageTitle } from "@/components/page-title";
 
 // Скелетон для состояния загрузки
 function DailyGarantSkeleton() {
@@ -89,6 +90,7 @@ export default function DailyGarantShow() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={dailyGarant.name || "Загрузка..."} />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/daily_garant">
@@ -96,7 +98,7 @@ export default function DailyGarantShow() {
             Назад к списку
           </Link>
         </Button>
-        
+
         <Button asChild>
           <Link href={`/dashboard/daily_garant/edit?id=${id}`}>
             <Edit className="h-4 w-4 mr-2" />
@@ -106,9 +108,7 @@ export default function DailyGarantShow() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{dailyGarant.name}</CardTitle>
-        </CardHeader>
+        <CardHeader></CardHeader>
         <CardContent>
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

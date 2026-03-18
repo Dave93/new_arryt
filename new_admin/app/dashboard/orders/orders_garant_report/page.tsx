@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -16,6 +15,7 @@ import { FileDown, Loader2, CalendarIcon, ArrowUpDown, ArrowUp, ArrowDown } from
 import { cn } from "@/lib/utils";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import * as XLSX from "xlsx";
+import { PageTitle } from "@/components/page-title";
 import { saveAs } from "file-saver";
 
 // Define the GarantReportItem interface
@@ -340,31 +340,29 @@ export default function OrdersGarantReportPage() {
     return <ArrowUpDown className="w-4 h-4 ml-2" />;
   };
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-row items-center justify-between">
-        <h1 className="text-2xl font-bold">Фин. гарант</h1>
-        <Button 
-          onClick={exportToExcel} 
-          disabled={isExporting}
-          className="gap-2"
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <FileDown className="h-4 w-4" />
-          )}
-          {isExporting ? "Экспорт..." : "Экспорт в Excel"}
-        </Button>
-      </div>
+  const exportButton = (
+    <Button
+      onClick={exportToExcel}
+      disabled={isExporting}
+      size="sm"
+      className="gap-2"
+    >
+      {isExporting ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <FileDown className="h-4 w-4" />
+      )}
+      {isExporting ? "Экспорт..." : "Экспорт в Excel"}
+    </Button>
+  );
 
-      {/* Filters Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Фильтры</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  return (
+    <div className="flex flex-col gap-1">
+      <PageTitle title="Фин. гарант" actions={exportButton} />
+
+      {/* Filters */}
+      <div className="sticky top-0 bg-background z-20 px-4 py-2 border-b">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
             <div className="space-y-2">
               <Label>Месяц</Label>
               <Popover>
@@ -506,24 +504,21 @@ export default function OrdersGarantReportPage() {
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
 
-          <div className="flex justify-end mt-6">
-            <Button onClick={handleFilter} disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Фильтровать
-            </Button>
+            <div className="flex items-end">
+              <Button size="sm" onClick={handleFilter} disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Фильтровать
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Data Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="p-6">
-            <div className="overflow-x-auto">
+      <div className="px-4 py-1">
+        <div className="overflow-x-auto">
               <table
                 ref={tableRef}
                 className="w-full text-left border-collapse border border-gray-300"
@@ -722,10 +717,8 @@ export default function OrdersGarantReportPage() {
                   )}
                 </tbody>
               </table>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

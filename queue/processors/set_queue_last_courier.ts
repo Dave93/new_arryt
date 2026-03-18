@@ -13,22 +13,15 @@ type PushCourierToQueueData = {
 }
 
 export default async function processSetQueueLastCourier(redis: Redis, db: DB, cacheControl: CacheControlService, data: PushCourierToQueueData) {
-    console.time('processSetQueueLastCourier');
     const { courier_id, terminal_id, workStartTime, workEndTime } = data;
 
-    console.time('getTerminals');
     const terminals = await cacheControl.getTerminals();
-    console.timeEnd('getTerminals');
 
-    console.time('findTerminal');
     const terminal = terminals.find((terminal) => terminal.id === terminal_id);
     if (!terminal) {
-        console.timeEnd('processSetQueueLastCourier');
         return;
     }
-    console.timeEnd('findTerminal');
 
-    console.time('buildOrderQueueKey');
     let orderQueueKey = `${process.env.PROJECT_PREFIX}_last_courier`;
 
     const courier = (await db.select({
@@ -50,11 +43,7 @@ export default async function processSetQueueLastCourier(redis: Redis, db: DB, c
 
     orderQueueKey += `_${queueTerminals.sort().join('_')}`;
 
-    console.log('workStartTime', workStartTime);
-    console.log('workEndTime', workEndTime);
-
     const currentTime = dayjs().hour();
-    console.log('currentTime', currentTime);
 
     let currentDate = dayjs().format('YYYY_MM_DD');
 
@@ -62,17 +51,8 @@ export default async function processSetQueueLastCourier(redis: Redis, db: DB, c
         currentDate = dayjs().subtract(1, 'day').format('YYYY_MM_DD');
     }
 
-    console.log('currentDate', currentDate);
-
     orderQueueKey += `_${currentDate}`;
 
-    console.log('orderQueueKey', orderQueueKey);
-    console.timeEnd('buildOrderQueueKey');
-
     // Check if courier_id exists in the Redis list
-    console.time('setRedisKey');
     await redis.set(orderQueueKey, courier_id);
-    console.timeEnd('setRedisKey');
-
-    console.timeEnd('processSetQueueLastCourier');
 }

@@ -26,7 +26,6 @@ async function main() {
             left join terminals t on ctb.terminal_id = t.id
             where ctb.balance > 0 and u.status = 'active' and u.phone != '+998908251218'
             order by ctb.balance desc`))).rows;
-        // console.log('courierTerminalBalance', courierTerminalBalance);
         // group by terminal name using lodash
         const groupedByTerminal = _.groupBy(courierTerminalBalance, 'terminal_id');
 
@@ -75,14 +74,9 @@ async function main() {
 
             if (!response.ok) {
                 console.error(`Failed to send message to chat ${chatId}`);
-                console.log(await response.text());
-            } else {
-                console.log(await response.json());
-                console.log(`Message sent to chat ${chatId}`);
             }
         }
 
-        console.log('Everything is done');
     } catch (error) {
         console.error('An error occurred:', error);
     } finally {

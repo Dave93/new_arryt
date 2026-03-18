@@ -9,8 +9,7 @@ import { FilterIcon, Download, Wallet } from "lucide-react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { Skeleton } from "../../../components/ui/skeleton";
+import { PageTitle } from "@/components/page-title";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef } from "@tanstack/react-table";
 import {
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
+import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import {
   Form,
   FormControl,
@@ -243,6 +243,13 @@ export default function CourierBalanceList() {
   }, []);
 
 
+  // Terminal options for MultipleSelector
+  const terminalOptions: Option[] = terminals.map(t => ({ value: t.id, label: t.name }));
+  const selectedTerminalOptions: Option[] = (form.watch("terminal_id") || [])
+    .map((id: string) => terminals.find(t => t.id === id))
+    .filter((t: Terminal | undefined): t is Terminal => !!t)
+    .map((t: Terminal) => ({ value: t.id, label: t.name }));
+
   // Define columns for the courier balance table
   const columns: ColumnDef<CourierBalance>[] = [
     {
@@ -304,7 +311,7 @@ export default function CourierBalanceList() {
         const { terminal_id, courier_id, status } = filterValues;
         
         const { data: couriersBalanceData } = await apiClient.api.couriers.terminal_balance.post({
-            terminal_id: terminal_id?.length && terminal_id[0] !== "all" ? terminal_id : undefined,
+            terminal_id: terminal_id?.length ? terminal_id : undefined,
             courier_id: courier_id && courier_id !== "all" ? [courier_id] : undefined,
             status: status
         }, {
@@ -365,140 +372,97 @@ export default function CourierBalanceList() {
   // @ts-ignore
   const totalBalance = data?.reduce((sum, item) => sum + Number(item.balance), 0);
 
+  const exportButton = (
+    <Button variant="outline" size="sm" onClick={handleExport}>
+      <Download className="h-4 w-4 mr-2" />
+      Экспорт
+    </Button>
+  );
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Кошелёк курьеров</CardTitle>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Экспорт
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="flex flex-wrap gap-4">
-              {/* Terminal selector */}
-              <FormField
-                control={form.control}
-                name="terminal_id"
-                render={({ field }) => (
-                  <FormItem className="flex-1 min-w-[200px]">
-                    <FormLabel>Филиал</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(value === "all" ? ["all"] : [value])}
-                      value={field.value?.[0] || "all"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите филиал" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все филиалы</SelectItem>
-                        {terminals.map((terminal) => (
-                          <SelectItem key={terminal.id} value={terminal.id}>
-                            {terminal.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
+    <>
+    <PageTitle title="Кошелёк курьеров" actions={exportButton} />
+    <div className="px-4 py-2">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="flex items-end gap-3 flex-wrap">
+            {/* Terminal selector */}
+            <FormField
+              control={form.control}
+              name="terminal_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Филиал</FormLabel>
+                  <MultipleSelector
+                    value={selectedTerminalOptions}
+                    onChange={(opts) => field.onChange(opts.map(o => o.value))}
+                    options={terminalOptions}
+                    placeholder="Выберите филиалы"
+                    className="w-full"
+                  />
+                </FormItem>
+              )}
+            />
 
-              {/* Status selector */}
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem className="flex-1 min-w-[200px]">
-                    <FormLabel>Статус</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange([value])}
-                      value={field.value?.[0] || undefined}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите статус" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Активные</SelectItem>
-                        <SelectItem value="inactive">Неактивные</SelectItem>
-                        <SelectItem value="blocked">Заблокированные</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
+            {/* Status selector */}
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Статус</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange([value])}
+                    value={field.value?.[0] || undefined}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите статус" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="active">Активные</SelectItem>
+                      <SelectItem value="inactive">Неактивные</SelectItem>
+                      <SelectItem value="blocked">Заблокированные</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
 
-              {/* Courier selector (simplified) */}
-              <FormField
-                control={form.control}
-                name="courier_id"
-                render={({ field }) => (
-                  <FormItem className="flex-1 min-w-[200px]">
-                    <FormLabel>Курьер</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || "all"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите курьера" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все курьеры</SelectItem>
-                        {/* Implement dynamic courier options here if needed */}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
+            <Input
+              placeholder="Поиск..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-[200px]"
+            />
 
-            <div className="flex items-center justify-between">
-              <Input
-                placeholder="Поиск..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-sm"
-              />
-              <Button type="submit">
-                <FilterIcon className="h-4 w-4 mr-2" />
-                Фильтр
-              </Button>
-            </div>
-          </form>
-        </Form>
-
-        {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
+            <Button type="submit" size="sm">
+              <FilterIcon className="h-4 w-4 mr-2" />
+              Фильтр
+            </Button>
           </div>
-        ) : (
-          <>
-            {/* @ts-ignore */}
-            <DataTable columns={columns} data={data} pageSize={100} />
-            {/* @ts-ignore */}
-            {data.length > 0 && (
-              <div className="flex justify-end mt-4">
-                <div className="text-base font-medium">
-                  Общий баланс: <span className="font-bold">{new Intl.NumberFormat("ru-RU").format(totalBalance)}</span>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+        </form>
+      </Form>
+    </div>
+
+    <div className="px-4 py-1">
+      {/* @ts-ignore */}
+      <DataTable
+        columns={columns}
+        // @ts-ignore
+        data={data}
+        loading={isLoading}
+        pageSize={100}
+        footerContent={data.length > 0 ? (
+          <tr className="border-t font-semibold">
+            <td className="p-3" colSpan={4}>Общий баланс:</td>
+            <td className="p-3">{new Intl.NumberFormat("ru-RU").format(totalBalance)}</td>
+            <td className="p-3"></td>
+          </tr>
+        ) : undefined}
+      />
+    </div>
+    </>
   );
 } 

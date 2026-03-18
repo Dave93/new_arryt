@@ -34,6 +34,7 @@ interface DataTableProps<TData, TValue> {
   onPaginationChange?: OnChangeFn<PaginationState>;
   onRowClick?: (row: TData) => void;
   isRowDisabled?: (row: TData) => boolean;
+  footerContent?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -47,6 +48,7 @@ export function DataTable<TData, TValue>({
   onPaginationChange,
   onRowClick,
   isRowDisabled,
+  footerContent,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -95,7 +97,7 @@ export function DataTable<TData, TValue>({
   return (
     <div>
       <div className="bg-background rounded-md border overflow-hidden">
-        <div className="max-h-[calc(100vh-25rem)] overflow-auto">
+        <div className="max-h-[calc(100vh-18rem)] overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead className="[&_tr]:border-b">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -171,6 +173,11 @@ export function DataTable<TData, TValue>({
                 </tr>
               )}
             </tbody>
+            {footerContent && (
+              <tfoot className="sticky bottom-0 z-10 bg-muted border-t">
+                {footerContent}
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

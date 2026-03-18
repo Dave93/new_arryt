@@ -18,8 +18,13 @@ import { Check, ChevronsUpDown, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import "leaflet/dist/leaflet.css";
+import { PageTitle } from "@/components/page-title";
 import { ChangeOrderCourier } from "@/components/orders/change-courier";
 import { RemoveOrderCourier } from "@/components/orders/remove-courier";
+import { CancelYandexOrder } from "@/components/orders/cancel-yandex-order";
+import { RecreateYandexOrder } from "@/components/orders/recreate-yandex-order";
+import { CancelNoorOrder } from "@/components/orders/cancel-noor-order";
+import { RecreateNoorOrder } from "@/components/orders/recreate-noor-order";
 
 // Define the Order Location type
 interface OrderLocation {
@@ -96,6 +101,8 @@ interface Order {
     name: string;
   };
   finished_date?: string | null;
+  yandex_id?: string | null;
+  noor_id?: string | null;
 }
 
 // Define the Order Status type (based on reference and likely API structure)
@@ -208,8 +215,9 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             "couriers.id", "couriers.first_name", "couriers.last_name",
             "organization.id", "organization.name",
             "terminals.id", "terminals.name",
-            "finished_date"
-            // Add other fields as required
+            "finished_date",
+            "yandex_id",
+            "noor_id"
           ].join(","),
         },
       });
@@ -458,10 +466,10 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
   return (
 
       <Card className="h-full">
+        <PageTitle title={`Заказ №${orderData.order_number}` || "Загрузка..."} />
         <CardHeader>
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
-              <CardTitle>Заказ №{orderData.order_number}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 {orderData.finished_date 
                   ? `Доставка завершена за ${Math.round(
@@ -618,6 +626,42 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         <span className="font-medium">Терминал:</span>{" "}
                         {orderData.terminals.name}
                       </p>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Яндекс Доставка</h3>
+                    <div className="space-y-2">
+                      {orderData.yandex_id ? (
+                        <>
+                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                            Активная доставка
+                          </Badge>
+                          <div className="flex items-center gap-2 mt-2">
+                            <CancelYandexOrder orderId={orderId} />
+                            <RecreateYandexOrder orderId={orderId} hasYandexId={true} />
+                          </div>
+                        </>
+                      ) : (
+                        <RecreateYandexOrder orderId={orderId} hasYandexId={false} />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Noor Доставка</h3>
+                    <div className="space-y-2">
+                      {orderData.noor_id ? (
+                        <>
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                            Активная доставка
+                          </Badge>
+                          <div className="flex items-center gap-2 mt-2">
+                            <CancelNoorOrder orderId={orderId} />
+                            <RecreateNoorOrder orderId={orderId} hasNoorId={true} />
+                          </div>
+                        </>
+                      ) : (
+                        <RecreateNoorOrder orderId={orderId} hasNoorId={false} />
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,7 +1,6 @@
 import { Suspense } from "react"
 import { DashboardStatsCards } from "@/components/dashboard/stats-cards"
 import { OrderCharts } from "@/components/dashboard/order-charts"
-import { RecentOrdersTable } from "@/components/dashboard/recent-orders-table"
 import { TopLists } from "@/components/dashboard/top-lists"
 import { DashboardDateRangeFilter } from "@/components/dashboard/date-range-filter"
 
@@ -19,9 +18,6 @@ export default function Page() {
       </Suspense>
       <Suspense fallback={<div>Загрузка топ списков...</div>}>
         <TopLists />
-      </Suspense>
-      <Suspense fallback={<div>Загрузка последних заказов...</div>}>
-        <RecentOrdersTable />
       </Suspense>
     </div>
   )

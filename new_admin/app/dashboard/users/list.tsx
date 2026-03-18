@@ -5,7 +5,8 @@ import { debounce } from "lodash";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import { PageTitle } from "@/components/page-title";
 import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -31,6 +32,8 @@ interface User {
   drive_type: string;
   created_at: string;
   app_version: string;
+  is_fired: boolean;
+  should_rehire: boolean;
   work_schedules?: {
     id: string;
     name: string;
@@ -144,6 +147,32 @@ const columns: ColumnDef<User>[] = [
       const value = row.getValue("app_version") as string;
       return <div>{value || "-"}</div>;
     },
+  },
+  {
+    accessorKey: "is_fired",
+    header: "Уволен",
+    cell: ({ row }) => (
+      <div className="flex justify-center">
+        {row.original.is_fired ? (
+          <Badge variant="destructive">Да</Badge>
+        ) : (
+          <span className="text-muted-foreground">Нет</span>
+        )}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "should_rehire",
+    header: "Брать обратно",
+    cell: ({ row }) => (
+      <div className="flex justify-center">
+        {row.original.should_rehire ? (
+          <Badge variant="default">Да</Badge>
+        ) : (
+          <span className="text-muted-foreground">Нет</span>
+        )}
+      </div>
+    ),
   },
   {
     accessorKey: "created_at",
@@ -413,6 +442,8 @@ export default function UsersList() {
               "drive_type",
               "created_at",
               "app_version",
+              "is_fired",
+              "should_rehire",
               "work_schedules.id",
               "work_schedules.name",
             ].join(","),
@@ -425,6 +456,7 @@ export default function UsersList() {
               },
             ]),
             ...(filters.length > 0 ? { filters: JSON.stringify(filters) } : {}),
+            ...(searchQuery ? { search: searchQuery } : {}),
           },
         });
 
@@ -464,22 +496,26 @@ export default function UsersList() {
   };
 
   return (
+    <>
+    <PageTitle title="Пользователи" />
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center space-x-4 space-y-4 justify-between flex-col w-full">
-          <CardTitle className="text-left w-full flex flex-row items-center justify-between">
-            <div>
-            Пользователи
-            </div>
-
+          <div className="text-left w-full flex flex-row items-center justify-end">
           <Button asChild>
             <Link href="/dashboard/users/create/">
               <Plus className="h-4 w-4 mr-2" />
               Создать
             </Link>
           </Button>
-          </CardTitle>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 w-full mb-4">
+            <Input
+              placeholder="Поиск по имени или фамилии..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full"
+            />
             <Input
               placeholder="Фильтр по номеру телефона..."
               value={phoneInput}
@@ -697,5 +733,6 @@ export default function UsersList() {
         />
       </CardContent>
     </Card>
+    </>
   );
 } 

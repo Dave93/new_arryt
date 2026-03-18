@@ -232,10 +232,56 @@ class _ProfilePageViewState extends State<ProfilePageView>
         RefreshIndicator(
           onRefresh: _loadData,
           child: CustomScrollView(slivers: [
-            SliverToBoxAdapter(
-              child: BlocBuilder<UserDataBloc, UserDataState>(
-                builder: (context, state) {
-                  return Container(
+            SliverAppBar(
+              expandedHeight: 130.0,
+              stretch: true,
+              floating: false,
+              pinned: true,
+              toolbarHeight: 70,
+              flexibleSpace: FlexibleSpaceBar(
+                  collapseMode: CollapseMode.parallax,
+                  titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+                  title: LayoutBuilder(
+                    builder:
+                        (BuildContext context, BoxConstraints constraints) {
+                      final topPadding = MediaQuery.of(context).padding.top;
+                      final bool isCollapsed = constraints.maxHeight <= topPadding + 85;
+                      final textColor =
+                          isCollapsed ? Colors.black : Colors.white;
+
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (user?.userProfile?.last_name != null) ...[
+                            AutoSizeText(
+                              "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              minFontSize: 12,
+                            ),
+                          ],
+                          if (user?.userProfile?.phone != null) ...[
+                            const SizedBox(height: 2),
+                            AutoSizeText(
+                              user?.userProfile?.phone ?? '',
+                              style: TextStyle(
+                                color: textColor.withOpacity(0.9),
+                                fontSize: 12.0,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                  background: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,

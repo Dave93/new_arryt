@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import {
@@ -39,6 +38,7 @@ import {
 import { Badge } from "../../../components/ui/badge";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { Search } from "lucide-react";
+import { PageTitle } from "@/components/page-title";
 
 // Define the form schema with validation
 const formSchema = z.object({
@@ -258,6 +258,7 @@ export default function RoleEdit() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="Edit Role" />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/roles">
@@ -269,7 +270,6 @@ export default function RoleEdit() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Edit Role</CardTitle>
           <CardDescription>
             Update role details and permissions.
           </CardDescription>

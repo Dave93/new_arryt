@@ -91,6 +91,20 @@ export const processYandexCallbackQueue = new Queue(
   }
 );
 
+export const processCheckAndSendNoor = new Queue(
+  `${process.env.TASKS_PREFIX}_check_and_send_noor`,
+  {
+      connection: client,
+  }
+);
+
+export const processNoorCallbackQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_noor_callback`,
+  {
+      connection: client,
+  }
+);
+
 export const processSendNotificationQueue = new Queue(
   `${process.env.TASKS_PREFIX}_send_notification`,
   {
@@ -140,6 +154,8 @@ const queues = {
   processOrderChangeCourierQueue,
   processStoreLocationQueue,
   processYandexCallbackQueue,
+  processCheckAndSendNoor,
+  processNoorCallbackQueue,
   processSendNotificationQueue,
   processPushCourierToQueue,
   processSetQueueLastCourier,
@@ -318,9 +334,6 @@ export const contextWitUser = baseContext
             
             const cookieToken = cookie.session.value;
             const cookieRefreshToken = cookie.refreshToken.value;
-
-            console.log(`cookieToken: ${cookieToken}`);
-            console.log(`cookieRefreshToken: ${cookieRefreshToken}`);
 
             if (!authorization && !cookieToken && !cookieRefreshToken) {
               return { user: null };

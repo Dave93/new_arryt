@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components
 import { Badge } from "../../../../components/ui/badge";
 import { format } from "date-fns";
 import { Input } from "../../../../components/ui/input";
+import { PageTitle } from "@/components/page-title";
 
 interface Role {
   id: string;
@@ -115,6 +116,7 @@ export default function RoleShow() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={role?.name || "Загрузка..."} />
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/roles">
@@ -122,7 +124,7 @@ export default function RoleShow() {
             Back to roles
           </Link>
         </Button>
-        
+
         <Button asChild>
           <Link href={`/dashboard/roles/edit?id=${id}`}>
             <Edit className="h-4 w-4 mr-2" />
@@ -132,9 +134,7 @@ export default function RoleShow() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{role?.name}</CardTitle>
-        </CardHeader>
+        <CardHeader></CardHeader>
         <CardContent>
           <Tabs defaultValue="details">
             <TabsList>

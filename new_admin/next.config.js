@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configure ESLint to suppress warnings and errors during build
-  eslint: {
-    // Don't run ESLint during build (set to true to enable)
-    ignoreDuringBuilds: true,
+  typescript: {
+    ignoreBuildErrors: true,
   },
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig

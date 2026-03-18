@@ -15,12 +15,9 @@ type TryAssignCourierData = {
 }
 
 export default async function processTryAssignCourier(redis: Redis, db: DB, cacheControl: CacheControlService, data: TryAssignCourierData, tryAssignCourierQueue: Queue) {
-    console.time('processTryAssignCourier');
     const { order_id, created_at } = data;
 
-    console.time('getTerminals');
     const terminals = await cacheControl.getTerminals();
-    console.timeEnd('getTerminals');
 
     const order = await db
         .select({
@@ -39,13 +36,9 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
         )
         .execute();
 
-    console.log('order', order);
-
     const organizationStatuses = await cacheControl.getOrderStatuses();
 
     const orderStatus = organizationStatuses.find(status => status.id === order[0].order_status_id);
-
-    console.log('orderStatus', orderStatus);
 
     const deliveryPricing = await cacheControl.getDeliveryPricingById(order[0].delivery_pricing_id!);
 
@@ -66,7 +59,6 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
         else {
 
             const nextCourier = await cacheControl.getNextQueueCourier(order[0].terminal_id, deliveryPricing!.drive_type, data.courier_id);
-            console.log('nextCourier', nextCourier);
 
             if (nextCourier) {
                 await db.update(orders).set({
@@ -122,8 +114,6 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
 
                         if (!response.ok) {
                             console.error('Failed to send push notification:', await response.text());
-                        } else {
-                            console.log('Push notification sent successfully');
                         }
                     } catch (error) {
                         console.error('Error sending push notification:', error);
@@ -142,8 +132,5 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
             }
         }
     }
-
-    console.log('organizationStatuses', organizationStatuses);
-    console.timeEnd('processTryAssignCourier');
 
 }

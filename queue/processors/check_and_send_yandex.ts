@@ -8,7 +8,7 @@ import { sleep, sleepSync } from "bun";
 import { eq, getTableColumns } from "drizzle-orm";
 import Redis from "ioredis/built/Redis";
 
-export default async function processCheckAndSendYandex(db: DB, redis: Redis, cacheControl: CacheControlService, orderId: string) {
+export default async function processCheckAndSendYandex(db: DB, redis: Redis, cacheControl: CacheControlService, orderId: string, taxiClass?: string) {
     const orderStatuses = await cacheControl.getOrderStatuses();
 
     const newOrders = await db.select({
@@ -24,15 +24,10 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         ));
 
     const order = newOrders[0];
-    console.log('order', order);
-
 
     const newStatus = orderStatuses.find(status => status.sort == 1 && status.organization_id == order.organization_id);
     const nextStatus = orderStatuses.find(status => status.sort == 2 && status.organization_id == order.organization_id);
-    console.log('newStatus', newStatus);
     if (!order.courier_id && order.order_status_id == newStatus!.id) {
-        console.log('order.order_status_id', order.order_status_id);
-        console.log('newStatus!.id', newStatus!.id);
         const yandexSenderName = await getSetting(redis, 'yandex_sender_name');
         const yandexSenderPhone = await getSetting(redis, 'yandex_sender_phone');
 
@@ -40,11 +35,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         if (order.payment_type == 'Наличными') {
             orderPrice += +order.order_price;
         }
-        if (orderId == '1179932') {
-            console.log('orderData', order);
-        }
-        
-            orderPrice += +order.customer_delivery_price;
+        orderPrice += +order.customer_delivery_price;
 
         const organization = await cacheControl.getOrganization(order.organization_id);
 
@@ -59,7 +50,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         comment += `${organization.name} // sotib olish uchun naqd pul olib yuring / иметь с собой наличные для выкупа `;
 
         if (orderPrice > 0) {
-            comment += `// цена ${new Intl.NumberFormat('ru').format(orderPrice)} сум`;
+            comment += `// цена ${new Intl.NumberFormat('ru').format(orderPrice)} сум `;
         }
 
         comment += `//ID: ${order.order_number}`;
@@ -83,11 +74,6 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
         const orderPriceLabel = new Intl.NumberFormat('ru').format(orderPrice);
 
         let cargo_options = ['thermobag'];
-        // console.log('yandexSenderName', yandexSenderName);
-        // console.log('yandexSenderPhone', yandexSenderPhone);
-        // console.log('order!.orders_terminals!.manager_name', order!.orders_terminals!.manager_name);
-        // console.log('order!.orders_terminals!.phone', order!.orders_terminals!.phone);
-        // console.log('isClient', isClient);
         const yandexData = {
             auto_accept: true,
             callback_properties: {
@@ -96,7 +82,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             client_requirements: {
                 cargo_options,
                 door_to_door: true,
-                taxi_class: expressTerminals.includes(order!.orders_terminals!.id) ? 'express' : 'courier',
+                taxi_class: taxiClass || (expressTerminals.includes(order!.orders_terminals!.id) ? 'express' : 'courier'),
             },
             emergency_contact: {
                 name: yandexSenderName ? yandexSenderName : order!.orders_terminals!.manager_name,
@@ -191,7 +177,6 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             skip_client_notify: false,
             skip_door_to_door: false,
         };
-        console.log('yandexData', JSON.stringify(yandexData));
         const items = await db.select().from(order_items).where(eq(order_items.order_id, order.id));
         items.forEach((item) => {
             // @ts-ignore
@@ -202,7 +187,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                 cost_value: item.price.toString(),
                 title: item.name,
                 quantity: item.quantity,
-                weight: 0,
+                weight: item.weight ?? 0,
                 fiscalization:
                     orderPrice > 0 && orderPrice <= 500000
                         ? {
@@ -213,6 +198,27 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                         : undefined,
             });
         });
+
+        if (+order.customer_delivery_price > 0) {
+            // @ts-ignore
+            yandexData.items.push({
+                pickup_point: 1,
+                dropoff_point: 2,
+                cost_currency: 'UZS',
+                cost_value: order.customer_delivery_price.toString(),
+                title: 'Доставка / Yetkazib berish',
+                quantity: 1,
+                weight: 0,
+                fiscalization:
+                    orderPrice > 0 && orderPrice <= 500000
+                        ? {
+                            article: 'доставка',
+                            supplier_inn: '1111111111',
+                            vat_code_str: 'vat12',
+                        }
+                        : undefined,
+            });
+        }
 
         const yandexUrl = `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/create?request_id=${order.id}`;
 
@@ -225,9 +231,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             },
             body: JSON.stringify(yandexData),
         });
-        // console.log('yandexReponse', await yandexReponse.json());
         const yandexJson = await yandexReponse.json();
-        console.log('yandexJson', yandexJson);
         const yandexCourier = await db.select({
             id: users.id,
         }).from(users).where(eq(users.phone, '+998908251218'));
@@ -256,7 +260,6 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             });
 
             const approveJson = await approveResponse.json();
-            // console.log('approveJson', approveJson);
             // await searchService.indexYandexDeliveryOrder(order.id, {
             //     // @ts-ignore
             //     ...yandexJson,
