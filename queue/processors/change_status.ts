@@ -122,7 +122,6 @@ export default async function processChangeStatus(redis: Redis, db: DB, cacheCon
                         }
                     }
                 }
-            }
             } else {
                 // Cancelled at "Ожидает гостя" or later — courier should be paid.
                 // Trigger order_complete to create bonus + delivery transactions.
