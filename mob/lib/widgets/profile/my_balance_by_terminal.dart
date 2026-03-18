@@ -2,7 +2,6 @@ import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/balance_by_terminal.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:currency_formatter/currency_formatter.dart';
-import 'package:data_table_2/data_table_2.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
@@ -24,8 +23,8 @@ class MyBalanceByTerminalView extends StatefulWidget {
 }
 
 class _MyBalanceByTerminalViewState extends State<MyBalanceByTerminalView> {
-  CurrencyFormatterSettings euroSettings = CurrencyFormatterSettings(
-    symbol: '',
+  CurrencyFormatterSettings sumSettings = CurrencyFormatterSettings(
+    symbol: 'сум',
     symbolSide: SymbolSide.right,
     thousandSeparator: ' ',
     decimalSeparator: ',',
@@ -62,39 +61,75 @@ class _MyBalanceByTerminalViewState extends State<MyBalanceByTerminalView> {
     });
   }
 
+  Widget _buildRow(String label, int amount, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isTotal ? 15 : 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isTotal ? Colors.black : Colors.grey.shade700,
+            ),
+          ),
+          Text(
+            CurrencyFormatter.format(amount, sumSettings),
+            style: TextStyle(
+              fontSize: isTotal ? 15 : 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : DataTable2(
-              columnSpacing: 12,
-              // minWidth: 600,
-              columns: [
-                DataColumn2(
-                  label: Text(AppLocalizations.of(context)!.terminal_label),
-                  size: ColumnSize.L,
+          : balanceByTerminal.isEmpty
+              ? Center(child: Text(l10n.balances_empty))
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: balanceByTerminal.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = balanceByTerminal[index];
+                    return Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.terminalName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildRow(l10n.delivery_price, item.orderAmount),
+                            _buildRow(l10n.orderStatBonusPrice, item.bonusAmount),
+                            Divider(color: Colors.grey.shade300),
+                            _buildRow(l10n.orderStatTotalPrice, item.balance, isTotal: true),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                DataColumn(
-                  label: Text(AppLocalizations.of(context)!.balance_remaining),
-                ),
-              ],
-              rows: List<DataRow>.generate(
-                balanceByTerminal.length,
-                (index) => DataRow(
-                  cells: [
-                    DataCell(
-                      Text(balanceByTerminal[index].terminalName),
-                    ),
-                    DataCell(
-                      Text(CurrencyFormatter.format(
-                          balanceByTerminal[index].balance, euroSettings)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
     );
   }
 }
