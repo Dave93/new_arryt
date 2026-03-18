@@ -78,10 +78,10 @@ class _CancelOrderModalState extends State<CancelOrderModal> {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.black)),
-            buttons: const [
-              "Передумал клиент",
-              "Не отвечает на звонок",
-              "Опоздали с заказом"
+            buttons: [
+              AppLocalizations.of(context)!.cancel_reason_customer_changed_mind,
+              AppLocalizations.of(context)!.cancel_reason_no_answer,
+              AppLocalizations.of(context)!.cancel_reason_late,
             ],
             onSelected: (val, index, isSelected) async {
               cancelOrderByText(val);
@@ -252,10 +252,10 @@ class _CancelOrderModalState extends State<CancelOrderModal> {
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(50),
                       color: Theme.of(context).primaryColor),
-                  child: const Center(
+                  child: Center(
                       child: Text(
-                    'ЗАКРЫТЬ',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.close_label.toUpperCase(),
+                    style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.white),

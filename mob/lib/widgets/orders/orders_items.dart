@@ -3,6 +3,7 @@ import 'package:arryt/helpers/api_server.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 
 import '../../models/order_items.dart';
 
@@ -62,19 +63,19 @@ class _OrderItemsTableState extends State<OrderItemsTable> {
       child: DataTable2(
         columnSpacing: 12,
         // minWidth: 600,
-        columns: const [
+        columns: [
           DataColumn2(
-            label: Text("Товар"),
+            label: Text(AppLocalizations.of(context)!.product_label),
             size: ColumnSize.L,
           ),
           DataColumn(
-            label: Text("Цена"),
+            label: Text(AppLocalizations.of(context)!.price_label),
           ),
           DataColumn(
-            label: Text("Кол-во"),
+            label: Text(AppLocalizations.of(context)!.quantity_label),
           ),
           DataColumn(
-            label: Text("Всего"),
+            label: Text(AppLocalizations.of(context)!.total_label),
           ),
         ],
         rows: List<DataRow>.generate(

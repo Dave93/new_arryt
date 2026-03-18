@@ -81,7 +81,7 @@ class AppLocalizationsUz extends AppLocalizations {
       'Buyurtmalarni qabul qilish uchun yuqoridagi ish rejimini yoqishni bosing';
 
   @override
-  String get logout_btn => 'Chiqish';
+  String get logout_btn => 'Akkountdan chiqish';
 
   @override
   String get order_card_comments => 'Izohlar';
@@ -181,7 +181,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get courierFuelLabel => 'Benzin';
 
   @override
-  String get orderStatOrderPrice => 'Buyurtma narxi';
+  String get orderStatOrderPrice => 'Yetkazish narxi';
 
   @override
   String get orderStatFuelPrice => 'Benzin';
@@ -394,4 +394,94 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get total_active_couriers_label => 'Umumiy aktiv kuryerlar';
+
+  @override
+  String get terminal_label => 'Filial';
+
+  @override
+  String get balance_remaining => 'Qoldiq summasi';
+
+  @override
+  String get product_label => 'Mahsulot';
+
+  @override
+  String get price_label => 'Narxi';
+
+  @override
+  String get quantity_label => 'Soni';
+
+  @override
+  String get total_label => 'Jami';
+
+  @override
+  String get no_orders_label => 'Buyurtmalar yo\'q';
+
+  @override
+  String get cancel_reason_customer_changed_mind => 'Mijoz fikrini o\'zgartirdi';
+
+  @override
+  String get cancel_reason_no_answer => 'Qo\'ng\'iroqqa javob bermaydi';
+
+  @override
+  String get cancel_reason_late => 'Buyurtma bilan kechikdik';
+
+  @override
+  String get close_label => 'Yopish';
+
+  @override
+  String get cancel_order_label => 'Buyurtmani bekor qilish';
+
+  @override
+  String get accept_order_label => 'Buyurtmani qabul qilish';
+
+  @override
+  String get choose_terminal_for_route => 'Yo\'nalish tuzish uchun filialni tanlang';
+
+  @override
+  String get km_label => 'km';
+
+  @override
+  String get choose_organization => 'Tashkilotni tanlang';
+
+  @override
+  String get withdraws_list => 'Pul o\'tkazmalari ro\'yxati';
+
+  @override
+  String get date_label => 'Sana';
+
+  @override
+  String get manager_label => 'Menejer';
+
+  @override
+  String get unpaid_amounts => 'To\'lanmagan summalar';
+
+  @override
+  String get type_daily_garant => 'Kunlik garant';
+
+  @override
+  String get type_bonus => 'Bonus';
+
+  @override
+  String get type_delivery => 'Yetkazish';
+
+  @override
+  String get order_label => 'Buyurtma';
+
+  @override
+  String get type_label => 'Tur';
+
+  @override
+  String get balances_empty => 'Balanslar bo\'sh';
+
+  @override
+  String get from_label => 'Dan';
+
+  @override
+  String get to_label => 'Gacha';
+
+  @override
+  String get tracking_location_title => 'Joylashuvni kuzatish';
+
+  @override
+  String get last_update_label => 'Oxirgi yangilanish';
 }

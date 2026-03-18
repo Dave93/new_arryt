@@ -651,12 +651,12 @@ class _AcceptOrderState extends State<AcceptOrder> {
               padding: const EdgeInsets.all(16.0),
               child: ActionSlider.dual(
                 controller: _actionSliderController,
-                startChild: Text('Отменить заказ'.toUpperCase(),
+                startChild: Text(AppLocalizations.of(context)!.cancel_order_label.toUpperCase(),
                     style: const TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.bold,
                         fontSize: 15)),
-                endChild: Text('Принять заказ'.toUpperCase(),
+                endChild: Text(AppLocalizations.of(context)!.accept_order_label.toUpperCase(),
                     style: const TextStyle(
                         color: Colors.green,
                         fontWeight: FontWeight.bold,

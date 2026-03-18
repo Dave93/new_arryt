@@ -141,7 +141,7 @@ class _BuildOrderRouteButtonState extends State<BuildOrderRouteButton> {
                                 children: const [
                                   Flexible(
                                     child: AutoSizeText(
-                                      'Выберите филиал, с которого построить маршрут',
+                                      AppLocalizations.of(context)!.choose_terminal_for_route,
                                       maxLines: 3,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(

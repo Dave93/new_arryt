@@ -164,7 +164,7 @@ class _ManagerCouriersListViewState extends State<ManagerCouriersListView> {
                         },
                       ),
                     )
-                  : const Center(child: Text('Балансы пусты'))
+                  : Center(child: Text(AppLocalizations.of(context)!.balances_empty))
             ],
           ),
         ));

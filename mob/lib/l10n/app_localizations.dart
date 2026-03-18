@@ -855,6 +855,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total active couriers'**
   String get total_active_couriers_label;
+
+  String get terminal_label;
+
+  String get balance_remaining;
+
+  String get product_label;
+
+  String get price_label;
+
+  String get quantity_label;
+
+  String get total_label;
+
+  String get no_orders_label;
+
+  String get cancel_reason_customer_changed_mind;
+
+  String get cancel_reason_no_answer;
+
+  String get cancel_reason_late;
+
+  String get close_label;
+
+  String get cancel_order_label;
+
+  String get accept_order_label;
+
+  String get choose_terminal_for_route;
+
+  String get km_label;
+
+  String get choose_organization;
+
+  String get withdraws_list;
+
+  String get date_label;
+
+  String get manager_label;
+
+  String get unpaid_amounts;
+
+  String get type_daily_garant;
+
+  String get type_bonus;
+
+  String get type_delivery;
+
+  String get order_label;
+
+  String get type_label;
+
+  String get balances_empty;
+
+  String get from_label;
+
+  String get to_label;
+
+  String get tracking_location_title;
+
+  String get last_update_label;
 }
 
 class _AppLocalizationsDelegate

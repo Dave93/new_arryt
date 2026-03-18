@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -155,10 +156,10 @@ class _CallCenterWebViewState extends State<CallCenterWebView> {
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(50),
                     color: Theme.of(context).primaryColor),
-                child: const Center(
+                child: Center(
                     child: Text(
-                  'ЗАКРЫТЬ',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.close_label.toUpperCase(),
+                  style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.white),

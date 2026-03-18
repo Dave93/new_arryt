@@ -1,4 +1,5 @@
 import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -36,7 +37,7 @@ class CourierWithDrawListView extends StatefulWidget {
 
 class _CourierWithDrawListViewState extends State<CourierWithDrawListView> {
   CurrencyFormatterSettings euroSettings = CurrencyFormatterSettings(
-    symbol: 'сум',
+    symbol: '',
     symbolSide: SymbolSide.right,
     thousandSeparator: ' ',
     decimalSeparator: ',',
@@ -106,7 +107,7 @@ class _CourierWithDrawListViewState extends State<CourierWithDrawListView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Список выводов'),
+        title: Text(AppLocalizations.of(context)!.withdraws_list),
       ),
       body: LoadingOverlay(
         isLoading: loading,
@@ -133,11 +134,11 @@ class _CourierWithDrawListViewState extends State<CourierWithDrawListView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Дата: ${DateFormat('dd.MM.yyyy').format(DateTime.parse(withDrawList[index].created_at))}',
+                      '${AppLocalizations.of(context)!.date_label}: ${DateFormat('dd.MM.yyyy').format(DateTime.parse(withDrawList[index].created_at))}',
                       style: const TextStyle(fontSize: 18),
                     ),
                     Text(
-                      'Менеджер: ${withDrawList[index].manager?.firstName} ${withDrawList[index].manager?.lastName}',
+                      '${AppLocalizations.of(context)!.manager_label}: ${withDrawList[index].manager?.firstName} ${withDrawList[index].manager?.lastName}',
                       style: const TextStyle(fontSize: 18),
                     ),
                   ],

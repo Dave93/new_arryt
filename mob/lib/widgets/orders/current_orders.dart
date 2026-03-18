@@ -233,9 +233,9 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
                                                   .height *
                                               0.8,
                                         ),
-                                        child: const IntrinsicHeight(
+                                        child: IntrinsicHeight(
                                           child: Center(
-                                              child: Text('Заказов нет')),
+                                              child: Text(AppLocalizations.of(context)!.no_orders_label)),
                                         ),
                                       )
                                     ],

@@ -5,6 +5,7 @@ import 'package:arryt/models/organizations.dart';
 import 'package:arryt/pages/callcenter/callcenter_webview.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
@@ -96,7 +97,7 @@ class _CallCenterOrganizationsListState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Выберите организацию'),
+        title: Text(AppLocalizations.of(context)!.choose_organization),
         centerTitle: true,
       ),
       body: ListView.builder(

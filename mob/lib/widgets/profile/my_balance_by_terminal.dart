@@ -1,5 +1,6 @@
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/models/balance_by_terminal.dart';
+import 'package:arryt/l10n/app_localizations.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:dio/dio.dart';
@@ -24,7 +25,7 @@ class MyBalanceByTerminalView extends StatefulWidget {
 
 class _MyBalanceByTerminalViewState extends State<MyBalanceByTerminalView> {
   CurrencyFormatterSettings euroSettings = CurrencyFormatterSettings(
-    symbol: 'сум',
+    symbol: '',
     symbolSide: SymbolSide.right,
     thousandSeparator: ' ',
     decimalSeparator: ',',
@@ -70,13 +71,13 @@ class _MyBalanceByTerminalViewState extends State<MyBalanceByTerminalView> {
           : DataTable2(
               columnSpacing: 12,
               // minWidth: 600,
-              columns: const [
+              columns: [
                 DataColumn2(
-                  label: Text("Филиал"),
+                  label: Text(AppLocalizations.of(context)!.terminal_label),
                   size: ColumnSize.L,
                 ),
                 DataColumn(
-                  label: Text("Сумма остатка"),
+                  label: Text(AppLocalizations.of(context)!.balance_remaining),
                 ),
               ],
               rows: List<DataRow>.generate(

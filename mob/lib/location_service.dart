@@ -59,8 +59,8 @@ void _handleLocationUpdate(Position position, ServiceInstance service) async {
 
     if (service is AndroidServiceInstance) {
       service.setForegroundNotificationInfo(
-        title: "Отслеживание местоположения",
-        content: "Последнее обновление: ${position.timestamp}",
+        title: "Location tracking",
+        content: "Last update: ${position.timestamp}",
       );
     }
 

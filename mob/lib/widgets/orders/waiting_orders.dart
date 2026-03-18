@@ -244,8 +244,8 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
                                           MediaQuery.of(context).size.height *
                                               0.8,
                                     ),
-                                    child: const IntrinsicHeight(
-                                      child: Center(child: Text('Заказов нет')),
+                                    child: IntrinsicHeight(
+                                      child: Center(child: Text(AppLocalizations.of(context)!.no_orders_label)),
                                     ),
                                   )
                                 ],
