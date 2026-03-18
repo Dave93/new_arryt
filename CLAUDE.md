@@ -3,136 +3,104 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-This is a multi-service food delivery platform called Arryt, consisting of:
-- **API** - Elysia-based backend API with PostgreSQL database using Drizzle ORM
-- **Queue** - Bull/BullMQ queue processing system for order management and notifications
-- **New Admin** - Next.js 15 admin dashboard with React 19 and Tailwind CSS
-- **Duck API** - DuckDB-based analytics API using Hono framework
-- **Mob** - Flutter mobile application for couriers
-- **Crons** - Scheduled tasks and background jobs
 
-## Common Development Commands
+Arryt is a multi-service food delivery platform. All backend services use **Bun** as the runtime.
 
-### API Service
+| Service | Framework | Port | Purpose |
+|---------|-----------|------|---------|
+| **api** | Elysia | 3000 | Main backend API (PostgreSQL + Drizzle ORM) |
+| **new_admin** | Next.js 15 | 8889 | Admin dashboard (React 19 + Tailwind CSS) |
+| **queue** | BullMQ | — | 16 async job processors (notifications, courier assignment, tracking) |
+| **crons** | Croner | — | Scheduled tasks (reports, cleanup) |
+| **duck_api** | Hono | — | DuckDB analytics API with PostgreSQL logical replication |
+| **mcp_server** | MCP | 3001 | Terminal operations tool for Claude |
+| **mob** | Flutter | — | Courier mobile app |
+
+## Development Commands
+
 ```bash
-cd api
-bun run dev                    # Start development server (port 3000 or API_PORT)
-bun run drizzle-kit generate   # Generate Drizzle migrations
-bun run drizzle-kit push       # Apply database migrations
+# API
+cd api && bun run dev
+bun run drizzle-kit generate   # Generate migrations
+bun run drizzle-kit push       # Apply migrations
+
+# Admin Dashboard
+cd new_admin && bun run dev    # Port 8889
+bun run build
+bun run lint / bun run lint:fix
+
+# Queue
+cd queue && bun run index.ts
+
+# Crons
+cd crons && bun run index.ts
+
+# Duck API
+cd duck_api && bun run dev
+
+# Mobile
+cd mob && flutter pub get && flutter run
 ```
 
-### Admin Dashboard
-```bash
-cd new_admin
-bun run dev        # Start development server on port 8889
-bun run build      # Build for production
-bun run lint       # Run linting
-bun run lint:fix   # Fix linting issues
+## Architecture
+
+### Service Communication
+
+```
+Admin Dashboard (:8889) --[Eden Client]--> API (:3000) --[BullMQ]--> Queue Workers
+                                              |                          |
+                                         PostgreSQL <--------------------+
+                                           + Redis (sessions, cache, queues)
+
+Parallel: Crons (scheduled), Duck API (analytics via DuckDB), MCP Server (:3001)
 ```
 
-### Queue Service
-```bash
-cd queue
-bun run index.ts   # Start queue processors
-```
+The **Eden Client** (`new_admin/lib/eden-client.ts`) provides end-to-end type safety between the Elysia API and the Next.js admin — types flow from the `BackendApp` type exported by the API.
 
-### Duck API
-```bash
-cd duck_api
-bun run dev        # Start development server with watch mode
-```
+### API Structure
 
-### Mobile App
-```bash
-cd mob
-flutter pub get    # Install dependencies
-flutter run        # Run on connected device/emulator
-flutter build apk  # Build Android APK
-flutter build ios  # Build iOS app
-```
+- **Entry**: `api/src/index.ts` — Uses clustering (4 workers in prod, single in dev)
+- **App setup**: `api/src/app.ts` — CORS, static files, module registration
+- **Context injection**: `api/src/context/index.ts` — Decorates Elysia with `drizzle`, `redis`, `cacheControl`, BullMQ queues
+- **Module groups** (`api/src/modules/controllers.ts`):
+  - **User group**: users, couriers, customers, roles, permissions, assets
+  - **System group**: organizations, terminals, delivery_pricing, brands, work_schedules, system_configs, dashboard, charts
+  - **Orders group**: orders, order_status, order_actions, order_transactions, missed_orders
+- Each module has a `controller.ts` with Elysia endpoints using `contextWithUser` for auth + DI
+- **Schema**: `api/drizzle/schema.ts` — 30+ tables. Key: `users`, `orders`, `terminals`, `organizations`, `order_status`, `delivery_pricing`, `work_schedules`, `api_tokens`
+- **Auth**: JWT Bearer tokens stored in `api_tokens` table, Redis session caching via `CacheControlService`
 
-## Architecture & Key Patterns
+### Queue Processors (16 queues)
 
-### API Architecture
-- **Framework**: Elysia (Bun-based web framework)
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: JWT tokens stored in api_tokens table
-- **File Structure**:
-  - `/api/src/modules/` - Feature modules with controllers
-  - `/api/src/context/` - Shared context (DB, Redis)
-  - `/api/drizzle/` - Database schema and migrations
-  - Controllers follow pattern: `controller.ts` with list/create/update/delete endpoints
+Key queues: `new_order_notify`, `order_complete`, `order_change_status`, `try_assign_courier`, `courier_store_location`, `send_notification` (FCM), `yandex_callback`, `update_user_cache`
 
-### Admin Dashboard Architecture
-- **Framework**: Next.js 15 with App Router
-- **UI Components**: shadcn/ui with Radix UI primitives
-- **State Management**: Zustand for global state, React Query for server state
-- **API Client**: Eden client for type-safe API calls
-- **Authentication**: JWT-based with AuthGuard wrapper
-- **CRUD Pattern**: Standardized list/create/edit/show pages
-- **File Structure**:
-  - `/new_admin/app/` - Next.js app router pages
-  - `/new_admin/components/` - Reusable UI components
-  - `/new_admin/lib/` - Utilities, API client, stores
-  - `/new_admin/hooks/` - Custom React hooks
+### Cron Jobs
 
-### Queue System
-- **Framework**: Bull/BullMQ with Redis
-- **Processors**: Located in `/queue/processors/`
-- **Key Queues**:
-  - `change_status` - Order status updates
-  - `order_complete` - Order completion processing
-  - `new_order_notify` - New order notifications
-  - `store_location` - Courier location tracking
-  - `yandex_callback` - External delivery integration
+- Balance report to Telegram (10:30 AM daily)
+- Close unclosed work schedules (5:00 AM daily)
+- Courier balance reports via Telegram bot (every 10 min)
+- Courier performance calculation
+- Financial withdrawal reports
 
-### Database Schema
-- **ORM**: Drizzle ORM with PostgreSQL
-- **Key Tables**:
-  - `users` - System users (admins, couriers, managers)
-  - `orders` - Order data with status tracking
-  - `terminals` - Restaurant/pickup locations
-  - `organizations` - Multi-tenant organizations
-  - `api_tokens` - API authentication tokens
-  - `work_schedules` - Courier work schedules
+### Admin Dashboard Patterns
 
-## Important Development Notes
+- **CRUD pages**: `list.tsx`, `create.tsx`, `edit.tsx`, `show.tsx` with `[id]` dynamic routes
+- **API calls**: `apiClient` from `lib/eden-client.ts` with `useGetAuthHeaders()` hook
+- **State**: Zustand stores (`*-store.ts` in `/lib`), React Query for server state
+- **Forms**: react-hook-form + Zod validation
+- **UI**: shadcn/ui + Radix UI, icons from `@tabler/icons-react`
+- **Tables**: TanStack React Table with `DataTable` component
+- **Maps**: Leaflet + React Leaflet for terminal/delivery visualization
+- **Sidebar nav**: Update `data.navMain` array in `components/app-sidebar.tsx`
+- **Code style**: double quotes, trailing commas, named exports, `"use client"` directive
 
-### API Development
-- All controllers use Elysia's type-safe routing
-- Authentication via Bearer token in headers
-- Use transaction pattern for complex operations
-- Redis for caching and real-time features
+### Multi-Tenancy
 
-### Admin Dashboard Development
-- Follow the established CRUD patterns in `.cursorrules`
-- Use existing UI components from `/components/ui/`
-- API calls through `apiClient` with `useGetAuthHeaders()`
-- Form validation with Zod schemas
-- Toast notifications for user feedback
-- Responsive design with Tailwind utilities
-
-### Queue Processing
-- Each processor handles specific business logic
-- Use Redis for job coordination
-- Implement proper error handling and retries
-- Log important events for debugging
-
-### Mobile App Development
-- Flutter 2.17.5+ with Dart
-- Auto-route for navigation
-- Firebase for analytics and crash reporting
-- WebSocket connections for real-time updates
-- Background service for location tracking
+All data is partitioned by `organization_id`. Queries must respect org scoping.
 
 ## Environment Variables
-- API requires `DATABASE_URL`, `API_PORT`, `REDIS_URL`
-- Admin requires API endpoint configuration
-- Queue requires Redis and database connections
-- Check respective `.env` files for required variables
 
-## Testing Approach
-Currently, the project does not have automated tests configured. Manual testing is performed during development. Consider implementing:
-- Unit tests for business logic
-- Integration tests for API endpoints
-- E2E tests for critical user flows
+- **API**: `DATABASE_URL`, `API_PORT`, `REDIS_URL`
+- **Admin**: `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:3000/api`)
+- **Queue/Crons**: Redis + database connections
+- Check respective `.env` files for full list

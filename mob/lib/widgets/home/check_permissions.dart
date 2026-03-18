@@ -56,43 +56,29 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
     myTimer.cancel();
   }
 
-  /// Opens location permission page directly on Android, or app settings on iOS
+  /// Requests location permission, then opens location settings page directly
   Future<void> _openAppPermissions() async {
-    if (Platform.isAndroid) {
-      final packageInfo = await PackageInfo.fromPlatform();
+    // First, request permission via system dialog
+    LocationPermission permission = await Geolocator.requestPermission();
 
-      // List of intents to try in order of preference
-      final intents = [
-        // 1. Try to open location permission page directly (Android 6.0+)
-        AndroidIntent(
-          action: 'android.intent.action.MANAGE_APP_PERMISSION',
-          arguments: {
-            'android.intent.extra.PACKAGE_NAME': packageInfo.packageName,
-            'android.intent.extra.PERMISSION_GROUP_NAME': 'android.permission-group.LOCATION',
-          },
-        ),
-        // 2. Fallback to app details settings
-        AndroidIntent(
-          action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
-          data: 'package:${packageInfo.packageName}',
-        ),
-      ];
-
-      for (final intent in intents) {
+    // If we got whileInUse or denied, open the app's location permission page
+    // so user can select "Allow all the time"
+    if (permission != LocationPermission.always) {
+      if (Platform.isAndroid) {
+        final packageInfo = await PackageInfo.fromPlatform();
         try {
+          // Open the app's location permission page directly
+          final intent = AndroidIntent(
+            action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
+            data: 'package:${packageInfo.packageName}',
+          );
           await intent.launch();
-          return; // Success - exit
         } catch (e) {
-          // Try next intent
-          continue;
+          await AppSettings.openAppSettings(asAnotherTask: true);
         }
+      } else {
+        await AppSettings.openAppSettings(asAnotherTask: true);
       }
-
-      // 3. Final fallback - use app_settings package
-      await AppSettings.openAppSettings(asAnotherTask: true);
-    } else {
-      // iOS - open app settings
-      await AppSettings.openAppSettings(asAnotherTask: true);
     }
   }
 

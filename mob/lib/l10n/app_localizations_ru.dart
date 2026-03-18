@@ -80,7 +80,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Включите режим работы сверху в углу, чтобы принимать заказы';
 
   @override
-  String get logout_btn => 'Выйти';
+  String get logout_btn => 'Выйти из аккаунта';
 
   @override
   String get order_card_comments => 'Комментарии';
@@ -153,10 +153,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get orderStatYesterday => 'Вчера';
 
   @override
-  String get successOrderLabel => 'Успешные';
+  String get successOrderLabel => 'Доставленные';
 
   @override
-  String get failedOrderLabel => 'Отказы';
+  String get failedOrderLabel => 'Отмененные';
 
   @override
   String get orderStatTotalPrice => 'Итого';
@@ -180,7 +180,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get courierFuelLabel => 'Топливо';
 
   @override
-  String get orderStatOrderPrice => 'Сумма заказов';
+  String get orderStatOrderPrice => 'Сумма доставок';
 
   @override
   String get orderStatFuelPrice => 'Сумма за топливо';
@@ -391,4 +391,94 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get total_active_couriers_label => 'Всего активных курьеров';
+
+  @override
+  String get terminal_label => 'Филиал';
+
+  @override
+  String get balance_remaining => 'Сумма остатка';
+
+  @override
+  String get product_label => 'Товар';
+
+  @override
+  String get price_label => 'Цена';
+
+  @override
+  String get quantity_label => 'Кол-во';
+
+  @override
+  String get total_label => 'Всего';
+
+  @override
+  String get no_orders_label => 'Заказов нет';
+
+  @override
+  String get cancel_reason_customer_changed_mind => 'Передумал клиент';
+
+  @override
+  String get cancel_reason_no_answer => 'Не отвечает на звонок';
+
+  @override
+  String get cancel_reason_late => 'Опоздали с заказом';
+
+  @override
+  String get close_label => 'Закрыть';
+
+  @override
+  String get cancel_order_label => 'Отменить заказ';
+
+  @override
+  String get accept_order_label => 'Принять заказ';
+
+  @override
+  String get choose_terminal_for_route => 'Выберите филиал, с которого построить маршрут';
+
+  @override
+  String get km_label => 'км';
+
+  @override
+  String get choose_organization => 'Выберите организацию';
+
+  @override
+  String get withdraws_list => 'Список выводов';
+
+  @override
+  String get date_label => 'Дата';
+
+  @override
+  String get manager_label => 'Менеджер';
+
+  @override
+  String get unpaid_amounts => 'Не оплаченные суммы';
+
+  @override
+  String get type_daily_garant => 'Дневной гарант';
+
+  @override
+  String get type_bonus => 'Бонус';
+
+  @override
+  String get type_delivery => 'Доставка';
+
+  @override
+  String get order_label => 'Заказ';
+
+  @override
+  String get type_label => 'Тип';
+
+  @override
+  String get balances_empty => 'Балансы пусты';
+
+  @override
+  String get from_label => 'От';
+
+  @override
+  String get to_label => 'До';
+
+  @override
+  String get tracking_location_title => 'Отслеживание местоположения';
+
+  @override
+  String get last_update_label => 'Последнее обновление';
 }
