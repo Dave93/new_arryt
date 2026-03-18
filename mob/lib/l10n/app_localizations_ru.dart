@@ -481,4 +481,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get last_update_label => 'Последнее обновление';
+
+  @override
+  String get balance_info_tooltip => 'Эту сумму вы должны получить с кассы в конце рабочей смены';
 }
