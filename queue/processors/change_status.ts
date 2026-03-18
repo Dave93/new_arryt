@@ -123,34 +123,27 @@ export default async function processChangeStatus(redis: Redis, db: DB, cacheCon
                     }
                 }
             }
-            // If cancelled at "Ожидает гостя" or later — transactions stay pending (courier gets paid)
+            } else {
+                // Cancelled at "Ожидает гостя" or later — courier should be paid.
+                // Trigger order_complete to create bonus + delivery transactions.
+                const orderData = await db
+                    .select()
+                    .from(orders)
+                    .where(and(
+                        eq(orders.id, data.order_id),
+                        gte(orders.created_at, dayjs().subtract(4, 'days').format('YYYY-MM-DD HH:mm:ss')),
+                        lte(orders.created_at, dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')),
+                    ))
+                    .limit(1)
+                    .execute();
+
+                if (orderData.length > 0) {
+                    await processOrderCompleteQueue.add(orderData[0].id, orderData[0], {
+                        attempts: 3, removeOnComplete: true
+                    });
+                }
+            }
         }
-
-        // if (afterStatus?.finish) {
-
-        //     const ordersListPrepare = await db
-        //         .select()
-        //         .from(orders)
-        //         .where(and(
-        //             eq(orders.id, sql.placeholder('order_id')),
-        //             gte(orders.created_at, sql.placeholder('startDate')),
-        //             lte(orders.created_at, sql.placeholder('endDate')),
-        //         ))
-        //         .limit(1)
-        //         .orderBy(asc(orders.created_at))
-        //         .prepare('queue_find_order')
-
-        //     const ordersList = await ordersListPrepare
-        //         .execute({
-        //             order_id: data.order_id,
-        //             startDate: dayjs().subtract(4, 'days').format('YYYY-MM-DD HH:mm:ss'),
-        //             endDate: dayjs().add(2, 'days').format('YYYY-MM-DD HH:mm:ss')
-        //         });
-
-        //     await processOrderCompleteQueue.add(ordersList[0].id, ordersList[0], {
-        //         attempts: 3, removeOnComplete: true
-        //     });
-        // }
     }
 
 }
