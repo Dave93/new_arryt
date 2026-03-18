@@ -885,29 +885,49 @@ export const CouriersController = new Elysia({
     permission: 'orders.edit',
   })
   .get('/api/couriers/terminal_balance', async ({ user, drizzle, set }) => {
-    const courierTerminalBalancePrepare = drizzle
+    const rows = await drizzle
       .select({
-        id: courier_terminal_balance.id,
-        balance: courier_terminal_balance.balance,
-        terminal_id: courier_terminal_balance.terminal_id,
         terminal_name: terminals.name,
-        terminal_address: terminals.address,
+        transaction_type: order_transactions.transaction_type,
+        total: sql<number>`sum(${order_transactions.not_paid_amount})`,
       })
-      .from(courier_terminal_balance)
-      .leftJoin(terminals, eq(courier_terminal_balance.terminal_id, terminals.id))
+      .from(order_transactions)
+      .leftJoin(terminals, eq(order_transactions.terminal_id, terminals.id))
       .where(
         and(
-          eq(courier_terminal_balance.courier_id, sql.placeholder('courier_id')),
-          gt(courier_terminal_balance.balance, 0)
+          eq(order_transactions.courier_id, user.user.id),
+          eq(order_transactions.status, 'pending'),
+          ne(order_transactions.transaction_type, 'work_schedule_bonus'),
+          gte(order_transactions.created_at, dayjs().subtract(45, 'day').toISOString()),
+          lte(order_transactions.created_at, dayjs().add(10, 'day').toISOString()),
         )
       )
-      .prepare('courier_terminal_balance_by_courier_id');
+      .groupBy(terminals.name, order_transactions.transaction_type)
+      .execute();
 
-    const courierTerminalBalance = await courierTerminalBalancePrepare.execute({
-      // @ts-ignore
-      courier_id: user.user.id
-    });
-    return courierTerminalBalance;
+    // Group by terminal
+    const terminalMap = new Map<string, { terminal_name: string; order_amount: number; bonus_amount: number }>();
+    for (const row of rows) {
+      const name = row.terminal_name ?? 'Unknown';
+      if (!terminalMap.has(name)) {
+        terminalMap.set(name, { terminal_name: name, order_amount: 0, bonus_amount: 0 });
+      }
+      const entry = terminalMap.get(name)!;
+      if (row.transaction_type === 'order') {
+        entry.order_amount += +row.total;
+      } else if (row.transaction_type === 'order_bonus') {
+        entry.bonus_amount += +row.total;
+      } else {
+        entry.order_amount += +row.total;
+      }
+    }
+
+    return Array.from(terminalMap.values()).map(entry => ({
+      terminal_name: entry.terminal_name,
+      order_amount: entry.order_amount,
+      bonus_amount: entry.bonus_amount,
+      balance: entry.order_amount + entry.bonus_amount,
+    }));
   }, {
     permission: 'orders.list',
   })
