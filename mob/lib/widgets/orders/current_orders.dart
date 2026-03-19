@@ -39,7 +39,7 @@ class _MyCurrentOrderListViewState extends State<MyCurrentOrderListView> {
 
   // Mock data only works in debug mode - NEVER in release builds
   // Set _enableMockInDebug to true to test with mock data during development
-  static final bool _enableMockInDebug = true;
+  static final bool _enableMockInDebug = false;
   static bool get _useMockData => kDebugMode && _enableMockInDebug;
 
   Future<void> _loadOrders() async {
