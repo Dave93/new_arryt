@@ -28,80 +28,94 @@ class OrdersPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: SafeArea(
-      child: DefaultTabController(
-        length: 2,
-        child: Scaffold(
-          appBar: AppBar(
-              toolbarHeight: 100,
-              title: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(AppLocalizations.of(context)!.orders,
-                          style: const TextStyle(
-                              color: Colors.black, fontSize: 35)),
-                      ValueListenableBuilder<Box<UserData>>(
-                          valueListenable:
-                              HiveHelper.getUserDataBox().listenable(),
-                          builder: (context, box, _) {
-                            final userData = HiveHelper.getUserData();
-                            if (userData != null) {
-                              Role? userRole;
-                              if (userData.roles.isNotEmpty) {
-                                userRole = userData.roles.first;
-                              }
-                              if (userRole == null) {
-                                return const SizedBox();
-                              }
+    final l10n = AppLocalizations.of(context)!;
+    final primaryColor = Theme.of(context).primaryColor;
 
-                              if (userRole.code == 'courier') {
-                                return const HomeViewWorkSwitch();
-                              } else {
-                                return const SizedBox();
-                              }
-                            } else {
-                              return const SizedBox();
-                            }
-                          }),
-                    ]),
+    return Scaffold(
+      body: SafeArea(
+        child: DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              toolbarHeight: 70,
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(l10n.orders,
+                      style: const TextStyle(
+                          fontSize: 28, fontWeight: FontWeight.bold)),
+                  ValueListenableBuilder<Box<UserData>>(
+                      valueListenable:
+                          HiveHelper.getUserDataBox().listenable(),
+                      builder: (context, box, _) {
+                        final userData = HiveHelper.getUserData();
+                        if (userData != null) {
+                          Role? userRole;
+                          if (userData.roles.isNotEmpty) {
+                            userRole = userData.roles.first;
+                          }
+                          if (userRole == null) {
+                            return const SizedBox();
+                          }
+                          if (userRole.code == 'courier') {
+                            return const HomeViewWorkSwitch();
+                          } else {
+                            return const SizedBox();
+                          }
+                        } else {
+                          return const SizedBox();
+                        }
+                      }),
+                ],
               ),
               elevation: 0,
               backgroundColor: Colors.transparent,
-              primary: true,
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(20),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                preferredSize: const Size.fromHeight(48),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: TabBar(
-                    labelStyle: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                    indicator: BoxDecoration(
+                      color: primaryColor,
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.grey.shade600,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    dividerHeight: 0,
                     tabs: [
-                      Tab(
-                          text: AppLocalizations.of(context)!
-                              .order_tab_current
-                              .toUpperCase()),
-                      Tab(
-                          text: AppLocalizations.of(context)!
-                              .order_tab_waiting
-                              .toUpperCase()),
+                      Tab(text: l10n.order_tab_current),
+                      Tab(text: l10n.order_tab_waiting),
                     ],
                   ),
                 ),
-              )),
-          body: const TabBarView(
-            physics: NeverScrollableScrollPhysics(),
-            children: [
-              MyCurrentOrdersList(),
-              MyWaitingOrdersList(),
-            ],
+              ),
+            ),
+            body: const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: TabBarView(
+                physics: NeverScrollableScrollPhysics(),
+                children: [
+                  MyCurrentOrdersList(),
+                  MyWaitingOrdersList(),
+                ],
+              ),
+            ),
           ),
         ),
       ),
-    ));
+    );
   }
 }
