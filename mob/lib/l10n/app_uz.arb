@@ -156,5 +156,8 @@
     "to_label": "Gacha",
     "tracking_location_title": "Joylashuvni kuzatish",
     "last_update_label": "Oxirgi yangilanish",
-    "balance_info_tooltip": "Bu summani ish smenasi oxirida kassadan olishingiz kerak"
+    "balance_info_tooltip": "Bu summani ish smenasi oxirida kassadan olishingiz kerak",
+    "logout_confirm": "Akkountdan chiqishni xohlaysizmi?",
+    "yes_label": "Ha",
+    "no_label": "Yo'q"
 }

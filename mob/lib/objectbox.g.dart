@@ -295,7 +295,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
       id: const obx_int.IdUid(6, 4076473343368338481),
       name: 'OrderNextButton',
-      lastPropertyId: const obx_int.IdUid(10, 8870530454611102339),
+      lastPropertyId: const obx_int.IdUid(12, 4677753184531677017),
       flags: 0,
       properties: <obx_int.ModelProperty>[
         obx_int.ModelProperty(
@@ -348,6 +348,16 @@ final _entities = <obx_int.ModelEntity>[
             id: const obx_int.IdUid(10, 8870530454611102339),
             name: 'inTerminal',
             type: 1,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(11, 3354199050096497851),
+            name: 'nameUz',
+            type: 9,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(12, 4677753184531677017),
+            name: 'nameEn',
+            type: 9,
             flags: 0)
       ],
       relations: <obx_int.ModelRelation>[],
@@ -355,7 +365,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
       id: const obx_int.IdUid(7, 7714239418338821462),
       name: 'OrderStatus',
-      lastPropertyId: const obx_int.IdUid(6, 8247046388510205858),
+      lastPropertyId: const obx_int.IdUid(8, 1780434058472946175),
       flags: 0,
       properties: <obx_int.ModelProperty>[
         obx_int.ModelProperty(
@@ -387,6 +397,16 @@ final _entities = <obx_int.ModelEntity>[
             id: const obx_int.IdUid(6, 8247046388510205858),
             name: 'onWay',
             type: 1,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(7, 2063912654312667079),
+            name: 'nameUz',
+            type: 9,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(8, 1780434058472946175),
+            name: 'nameEn',
+            type: 9,
             flags: 0)
       ],
       relations: <obx_int.ModelRelation>[],
@@ -951,7 +971,11 @@ obx_int.ModelDefinition getObjectBoxModel() {
           final nameOffset = fbb.writeString(object.name);
           final colorOffset =
               object.color == null ? null : fbb.writeString(object.color!);
-          fbb.startTable(11);
+          final nameUzOffset =
+              object.nameUz == null ? null : fbb.writeString(object.nameUz!);
+          final nameEnOffset =
+              object.nameEn == null ? null : fbb.writeString(object.nameEn!);
+          fbb.startTable(13);
           fbb.addInt64(0, object.id);
           fbb.addOffset(1, identityOffset);
           fbb.addOffset(2, nameOffset);
@@ -962,6 +986,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
           fbb.addBool(7, object.waiting);
           fbb.addBool(8, object.onWay);
           fbb.addBool(9, object.inTerminal);
+          fbb.addOffset(10, nameUzOffset);
+          fbb.addOffset(11, nameEnOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -972,6 +998,10 @@ obx_int.ModelDefinition getObjectBoxModel() {
               .vTableGet(buffer, rootOffset, 6, '');
           final nameParam = const fb.StringReader(asciiOptimization: true)
               .vTableGet(buffer, rootOffset, 8, '');
+          final nameUzParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGetNullable(buffer, rootOffset, 24);
+          final nameEnParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGetNullable(buffer, rootOffset, 26);
           final colorParam = const fb.StringReader(asciiOptimization: true)
               .vTableGetNullable(buffer, rootOffset, 10);
           final sortParam =
@@ -989,6 +1019,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
           final object = OrderNextButton(
               identity: identityParam,
               name: nameParam,
+              nameUz: nameUzParam,
+              nameEn: nameEnParam,
               color: colorParam,
               sort: sortParam,
               finish: finishParam,
@@ -1011,13 +1043,19 @@ obx_int.ModelDefinition getObjectBoxModel() {
         objectToFB: (OrderStatus object, fb.Builder fbb) {
           final identityOffset = fbb.writeString(object.identity);
           final nameOffset = fbb.writeString(object.name);
-          fbb.startTable(7);
+          final nameUzOffset =
+              object.nameUz == null ? null : fbb.writeString(object.nameUz!);
+          final nameEnOffset =
+              object.nameEn == null ? null : fbb.writeString(object.nameEn!);
+          fbb.startTable(9);
           fbb.addInt64(0, object.id);
           fbb.addOffset(1, identityOffset);
           fbb.addOffset(2, nameOffset);
           fbb.addBool(3, object.cancel);
           fbb.addBool(4, object.finish);
           fbb.addBool(5, object.onWay);
+          fbb.addOffset(6, nameUzOffset);
+          fbb.addOffset(7, nameEnOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -1028,6 +1066,10 @@ obx_int.ModelDefinition getObjectBoxModel() {
               .vTableGet(buffer, rootOffset, 6, '');
           final nameParam = const fb.StringReader(asciiOptimization: true)
               .vTableGet(buffer, rootOffset, 8, '');
+          final nameUzParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGetNullable(buffer, rootOffset, 16);
+          final nameEnParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGetNullable(buffer, rootOffset, 18);
           final cancelParam =
               const fb.BoolReader().vTableGet(buffer, rootOffset, 10, false);
           final finishParam =
@@ -1037,6 +1079,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
           final object = OrderStatus(
               identity: identityParam,
               name: nameParam,
+              nameUz: nameUzParam,
+              nameEn: nameEnParam,
               cancel: cancelParam,
               finish: finishParam,
               onWay: onWayParam)
@@ -1489,6 +1533,14 @@ class OrderNextButton_ {
   /// See [OrderNextButton.inTerminal].
   static final inTerminal =
       obx.QueryBooleanProperty<OrderNextButton>(_entities[4].properties[9]);
+
+  /// See [OrderNextButton.nameUz].
+  static final nameUz =
+      obx.QueryStringProperty<OrderNextButton>(_entities[4].properties[10]);
+
+  /// See [OrderNextButton.nameEn].
+  static final nameEn =
+      obx.QueryStringProperty<OrderNextButton>(_entities[4].properties[11]);
 }
 
 /// [OrderStatus] entity fields to define ObjectBox queries.
@@ -1516,6 +1568,14 @@ class OrderStatus_ {
   /// See [OrderStatus.onWay].
   static final onWay =
       obx.QueryBooleanProperty<OrderStatus>(_entities[5].properties[5]);
+
+  /// See [OrderStatus.nameUz].
+  static final nameUz =
+      obx.QueryStringProperty<OrderStatus>(_entities[5].properties[6]);
+
+  /// See [OrderStatus.nameEn].
+  static final nameEn =
+      obx.QueryStringProperty<OrderStatus>(_entities[5].properties[7]);
 }
 
 /// [Organizations] entity fields to define ObjectBox queries.

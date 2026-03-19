@@ -202,6 +202,8 @@ export const order_bonus_pricing = pgTable("order_bonus_pricing", {
 export const order_status = pgTable("order_status", {
 	id: uuid("id").defaultRandom().primaryKey().notNull(),
 	name: text("name").notNull(),
+	name_uz: text("name_uz"),
+	name_en: text("name_en"),
 	sort: integer("sort").default(0).notNull(),
 	organization_id: uuid("organization_id").notNull().references(() => organization.id, { onUpdate: "cascade" }),
 	color: text("color"),

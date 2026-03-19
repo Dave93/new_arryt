@@ -62,16 +62,52 @@ class _ProfileLogoutButtonState extends State<ProfileLogoutButton> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-        child: RoundedLoadingButton(
-            controller: _btnController,
-            color: Colors.red,
-            onPressed: () {
-              _logout(context);
-            },
-            child: Text(
-              AppLocalizations.of(context)!.logout_btn,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            )));
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+          ),
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                content: Text(
+                  AppLocalizations.of(context)!.logout_confirm,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(AppLocalizations.of(context)!.no_label),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(
+                      AppLocalizations.of(context)!.yes_label,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              HiveHelper.clearUserData();
+            }
+          },
+          child: Text(
+            AppLocalizations.of(context)!.logout_btn,
+            style: const TextStyle(fontSize: 16),
+          ),
+        ),
+      ),
+    );
   }
 }

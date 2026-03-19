@@ -487,4 +487,13 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get balance_info_tooltip => 'Bu summani ish smenasi oxirida kassadan olishingiz kerak';
+
+  @override
+  String get logout_confirm => 'Akkountdan chiqishni xohlaysizmi?';
+
+  @override
+  String get yes_label => 'Ha';
+
+  @override
+  String get no_label => 'Yo\'q';
 }

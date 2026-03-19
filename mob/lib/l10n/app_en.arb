@@ -157,5 +157,8 @@
     "to_label": "To",
     "tracking_location_title": "Location tracking",
     "last_update_label": "Last update",
-    "balance_info_tooltip": "You should collect this amount from the cashier at the end of your shift"
+    "balance_info_tooltip": "You should collect this amount from the cashier at the end of your shift",
+    "logout_confirm": "Are you sure you want to log out?",
+    "yes_label": "Yes",
+    "no_label": "No"
 }

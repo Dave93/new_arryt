@@ -283,14 +283,29 @@ class NewOrderTerminals {
 class NewOrderStatus {
   final String id;
   final String name;
+  final String? nameUz;
+  final String? nameEn;
   final bool cancel;
   final bool finish;
   NewOrderStatus({
     required this.id,
     required this.name,
+    this.nameUz,
+    this.nameEn,
     required this.cancel,
     required this.finish,
   });
+
+  String localizedName(String locale) {
+    switch (locale) {
+      case 'uz':
+        return nameUz ?? name;
+      case 'en':
+        return nameEn ?? name;
+      default:
+        return name;
+    }
+  }
 
   NewOrderStatus copyWith({
     String? identity,
@@ -317,6 +332,8 @@ class NewOrderStatus {
     return NewOrderStatus(
       id: map['id'] as String,
       name: map['name'] as String,
+      nameUz: map['name_uz'] as String?,
+      nameEn: map['name_en'] as String?,
       cancel: map['cancel'] as bool,
       finish: map['finish'] as bool,
     );
@@ -349,6 +366,8 @@ class NewOrderStatus {
 class NewOrderOrderNextButton {
   String id;
   String name;
+  String? nameUz;
+  String? nameEn;
   String? color;
   int sort;
   bool finish;
@@ -356,9 +375,22 @@ class NewOrderOrderNextButton {
   bool waiting;
   bool onWay;
   bool inTerminal;
+  String localizedName(String locale) {
+    switch (locale) {
+      case 'uz':
+        return nameUz ?? name;
+      case 'en':
+        return nameEn ?? name;
+      default:
+        return name;
+    }
+  }
+
   NewOrderOrderNextButton(
       {required this.id,
       required this.name,
+      this.nameUz,
+      this.nameEn,
       this.color,
       required this.sort,
       required this.finish,
@@ -407,6 +439,8 @@ class NewOrderOrderNextButton {
     return NewOrderOrderNextButton(
         id: map['id'] as String,
         name: map['name'] as String,
+        nameUz: map['name_uz'] as String?,
+        nameEn: map['name_en'] as String?,
         color: map['color'],
         sort: map['sort'] as int,
         finish: map['finish'] as bool,

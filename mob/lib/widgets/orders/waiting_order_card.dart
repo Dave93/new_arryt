@@ -178,470 +178,292 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
     }
   }
 
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          Flexible(
+            child: Text(value,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final primary = Theme.of(context).primaryColor;
+
     return Container(
-      margin: const EdgeInsets.all(10),
-      decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(20)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.grey,
-                spreadRadius: 1,
-                blurRadius: 15,
-                offset: Offset(0, 5))
-          ],
-          color: Colors.white),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            decoration: const BoxDecoration(
-                color: Color.fromRGBO(232, 232, 232, 1.0),
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20))),
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Row(
+              children: [
+                if (widget.order.organization.iconUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: CachedNetworkImage(
+                      imageUrl: widget.order.organization.iconUrl!,
+                      height: 28, width: 28, fit: BoxFit.cover,
+                      errorWidget: (c, u, e) => const Icon(Icons.store, size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text("#${widget.order.order_number}",
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Text(
+                  DateFormat('dd.MM.yyyy HH:mm').format(widget.order.created_at.toLocal()),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ),
+
+          // Delivery price highlight
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                widget.order.organization != null &&
-                        widget.order.organization.iconUrl != null
-                    ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: CachedNetworkImage(
-                          height: 30,
-                          imageUrl: widget.order.organization.iconUrl!,
-                          progressIndicatorBuilder:
-                              (context, url, downloadProgress) =>
-                                  CircularProgressIndicator(
-                                      value: downloadProgress.progress),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
-                        ),
-                      )
-                    : const SizedBox(width: 0),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "#${widget.order.order_number}",
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(widget.order.orderStatus.localizedName(Localizations.localeOf(context).languageCode),
+                      style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+                Text(
+                  CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Customer info
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
+                _infoRow(l10n.customer_name, widget.order.customer.name),
+                _infoRow(l10n.customer_phone, widget.order.customer.phone),
+                _infoRow(l10n.pre_distance_label,
+                    "${widget.order.pre_distance.toStringAsFixed(2)} ${l10n.km_label}"),
+                _infoRow(l10n.order_total_price,
+                    CurrencyFormatter.format(widget.order.order_price, euroSettings)),
+                _infoRow(l10n.payment_type, widget.order.paymentType?.toUpperCase() ?? ''),
+              ],
+            ),
+          ),
+
+          // Location row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      launchYandexNavi(widget.order.from_lat, widget.order.from_lon);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.store_outlined, size: 16, color: primary),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(widget.order.terminal.name,
+                                style: TextStyle(fontSize: 12, color: primary, fontWeight: FontWeight.w500),
+                                maxLines: 2, overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    DateFormat('dd.MM.yyyy HH:mm')
-                        .format(widget.order.created_at.toLocal()),
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _buildRoute(),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.location_on_outlined, size: 16, color: primary),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(widget.order.delivery_address ?? '',
+                                style: TextStyle(fontSize: 12, color: primary, fontWeight: FontWeight.w500),
+                                maxLines: 2, overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.customer_name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(widget.order.customer.name),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.customer_phone,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(widget.order.customer.phone),
-                    ],
-                  ),
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //   children: [
-                  //     Text(
-                  //       AppLocalizations.of(context)!.address,
-                  //       style: const TextStyle(fontWeight: FontWeight.bold),
-                  //     ),
-                  //     const Spacer(),
-                  //     Flexible(
-                  //       fit: FlexFit.loose,
-                  //       child: Text(
-                  //         widget.order.delivery_address ?? '',
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //   children: [
-                  //     Text(
-                  //       AppLocalizations.of(context)!.customer_phone,
-                  //       style: const TextStyle(fontWeight: FontWeight.bold),
-                  //     ),
-                  //     TextButton(
-                  //       onPressed: () {
-                  //         FlutterPhoneDirectCaller.callNumber(
-                  //             widget.order.customer.target!.phone);
-                  //       },
-                  //       child: Text(widget.order.customer.target!.phone),
-                  //     ),
-                  //   ],
-                  // ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.pre_distance_label,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                          "${(widget.order.pre_distance).toStringAsFixed(4)} ${AppLocalizations.of(context)!.km_label}"),
-                    ],
-                  ),
-                ],
-              )),
 
-          Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10),
+          // Address details
+          if (widget.order.house != null || widget.order.entrance != null || widget.order.flat != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                      flex: 2,
-                      child: GestureDetector(
-                        onTap: () async {
-                          final coords = Coords(
-                              widget.order.from_lat, widget.order.from_lon);
-                          launchYandexNavi(
-                              widget.order.from_lat, widget.order.from_lon);
-                        },
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                widget.order.terminal.name,
-                                maxLines: 8,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 5,
-                            ),
-                            Icon(
-                              Icons.navigation_outlined,
-                              color: Theme.of(context).primaryColor,
-                            )
-                          ],
-                        ),
-                      )),
-                  const Expanded(
-                    flex: 1,
-                    child: SizedBox(width: double.infinity),
-                  ),
-                  Expanded(
-                      flex: 3,
-                      child: GestureDetector(
-                        onTap: () async {
-                          _buildRoute();
-                        },
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.location_pin,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            SizedBox(
-                              width: 5,
-                            ),
-                            Flexible(
-                              child: Text(
-                                widget.order.delivery_address ?? '',
-                                maxLines: 8,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
+                  if (widget.order.house != null && widget.order.house!.isNotEmpty)
+                    _addressChip(l10n.house_label, widget.order.house!),
+                  if (widget.order.entrance != null && widget.order.entrance!.isNotEmpty)
+                    _addressChip(l10n.entrance_label, widget.order.entrance!),
+                  if (widget.order.flat != null && widget.order.flat!.isNotEmpty)
+                    _addressChip(l10n.flat_label, widget.order.flat!),
                 ],
-              )),
+              ),
+            ),
 
-          Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.additional_phone_label,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(widget.order.additional_phone ?? ''),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.house_label,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(widget.order.house ?? ''),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.entrance_label,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        widget.order.entrance ?? '',
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.flat_label,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const Spacer(),
-                      Flexible(
-                        fit: FlexFit.loose,
-                        child: Text(
-                          widget.order.flat ?? '',
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              )),
-          Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.order_total_price,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
-                      ),
-                      Text(
-                        CurrencyFormatter.format(
-                            widget.order.order_price, euroSettings),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.delivery_price,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
-                      ),
-                      Text(
-                        CurrencyFormatter.format(
-                            widget.order.delivery_price, euroSettings),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.order_status_label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
-                      ),
-                      Text(
-                        widget.order.orderStatus.name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.payment_type,
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                      Text(
-                        widget.order.paymentType?.toUpperCase() ?? '',
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ],
-                  ),
-                ],
-              )),
-          // Padding(
-          //     padding: const EdgeInsets.all(8.0),
-          //     child: Row(
-          //       mainAxisAlignment: MainAxisAlignment.center,
-          //       children: [
-          //         GestureDetector(
-          //           onTap: () async {
-          //             final coords =
-          //                 Coords(widget.order.to_lat, widget.order.to_lon);
-          //             final title = widget.order.delivery_address ?? '';
-          //             final availableMaps = await MapLauncher.installedMaps;
-          //             showModalBottomSheet(
-          //               context: context,
-          //               builder: (BuildContext context) {
-          //                 return SafeArea(
-          //                   child: SingleChildScrollView(
-          //                     child: Container(
-          //                       child: Wrap(
-          //                         children: <Widget>[
-          //                           for (var map in availableMaps)
-          //                             ListTile(
-          //                               onTap: () => map.showMarker(
-          //                                 coords: coords,
-          //                                 title: title,
-          //                               ),
-          //                               title: Text(map.mapName),
-          //                               leading: SvgPicture.asset(
-          //                                 map.icon,
-          //                                 height: 30.0,
-          //                                 width: 30.0,
-          //                               ),
-          //                             ),
-          //                         ],
-          //                       ),
-          //                     ),
-          //                   ),
-          //                 );
-          //               },
-          //             );
-          //           },
-          //           child: const Icon(
-          //             Icons.location_pin,
-          //             color: Colors.deepPurple,
-          //             size: 40,
-          //           ),
-          //         ),
-          //       ],
-          //     )),
+          const SizedBox(height: 4),
+
+          // Action buttons
           Container(
-            color: Theme.of(context).primaryColor,
-            child: IntrinsicHeight(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  GestureDetector(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
                     onTap: () {
                       AutoRouter.of(context).pushNamed(
                           '/order/customer-comments/${widget.order.customer.id}/${widget.order.id}');
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 15.0),
-                      child: Text(
-                        AppLocalizations.of(context)!
-                            .order_card_comments
-                            .toUpperCase(),
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontSize: 14, color: Colors.white),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.comment_outlined, size: 15, color: primary),
+                          const SizedBox(width: 4),
+                          Text(l10n.order_card_comments,
+                              style: TextStyle(fontSize: 12, color: primary, fontWeight: FontWeight.w500)),
+                        ],
                       ),
                     ),
                   ),
-                  const VerticalDivider(
-                    color: Colors.white,
-                    thickness: 1,
-                    width: 1,
-                  ),
-                  GestureDetector(
+                ),
+                Container(width: 1, height: 28, color: Colors.grey.shade200),
+                Expanded(
+                  child: InkWell(
                     onTap: () {
                       showBarModalBottomSheet(
                         context: context,
                         expand: false,
-                        builder: (context) => OrderItemsTable(
-                          orderId: widget.order.id,
-                        ),
+                        builder: (context) => OrderItemsTable(orderId: widget.order.id),
                       );
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 15.0),
-                      child: Text(
-                          AppLocalizations.of(context)!
-                              .order_card_items
-                              .toUpperCase(),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontSize: 14, color: Colors.white)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.receipt_outlined, size: 15, color: primary),
+                          const SizedBox(width: 4),
+                          Text(l10n.order_card_items,
+                              style: TextStyle(fontSize: 12, color: primary, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(
-            height: 10,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                  child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(0),
-                  backgroundColor: Colors.green.shade500,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(0),
-                  ),
-                ),
-                onPressed: () async {
+
+          // Accept button
+          SizedBox(
+            width: double.infinity,
+            child: Material(
+              color: Colors.green,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+              child: InkWell(
+                onTap: () async {
                   if (loading) return;
                   _approveOrder(widget.order.id);
                 },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20.0),
-                  child: loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          AppLocalizations.of(context)!.order_card_btn_accept,
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
                 ),
-              ))
-            ],
-          )
-          // Container(
-          //   decoration: const BoxDecoration(
-          //       borderRadius: BorderRadius.only(
-          //           bottomLeft: Radius.circular(19),
-          //           bottomRight: Radius.circular(19))),
-          //   clipBehavior: Clip.antiAlias,
-          //   child: ,
-          // )
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Center(
+                    child: loading
+                        ? const SizedBox(
+                            width: 20, height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2))
+                        : Text(l10n.order_card_btn_accept,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _addressChip(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text("$label: $value",
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
     );
   }
 }

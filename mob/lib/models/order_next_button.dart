@@ -8,6 +8,8 @@ class OrderNextButton {
   @Index()
   String identity;
   String name;
+  String? nameUz;
+  String? nameEn;
   String? color;
   int sort;
   bool finish;
@@ -15,9 +17,22 @@ class OrderNextButton {
   bool waiting;
   bool onWay;
   bool inTerminal;
+  String localizedName(String locale) {
+    switch (locale) {
+      case 'uz':
+        return nameUz ?? name;
+      case 'en':
+        return nameEn ?? name;
+      default:
+        return name;
+    }
+  }
+
   OrderNextButton(
       {required this.identity,
       required this.name,
+      this.nameUz,
+      this.nameEn,
       this.color,
       required this.sort,
       required this.finish,
@@ -66,6 +81,8 @@ class OrderNextButton {
     return OrderNextButton(
         identity: map['id'] as String,
         name: map['name'] as String,
+        nameUz: map['name_uz'] as String?,
+        nameEn: map['name_en'] as String?,
         color: map['color'],
         sort: map['sort'] as int,
         finish: map['finish'] as bool,
