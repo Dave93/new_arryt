@@ -341,26 +341,17 @@ export const CouriersController = new Elysia({
       endDate: dayjs().endOf('month').add(1, 'day').toISOString()
     }))[0];
 
-    const sqlTotalBalancePrepare = await drizzle
+    const sqlTotalBalance = (await drizzle
       .select({
         not_paid_amount: sql<number>`sum(not_paid_amount)`,
       })
       .from(order_transactions)
       .where(and(
-        eq(order_transactions.courier_id, sql.placeholder('courierId')),
-        gte(order_transactions.created_at, sql.placeholder('startDate')),
-        lte(order_transactions.created_at, sql.placeholder('endDate')),
+        eq(order_transactions.courier_id, user.user.id),
         eq(order_transactions.status, 'pending'),
         ne(order_transactions.transaction_type, 'work_schedule_bonus')
       ))
-      .prepare('courier_total_balance');
-
-    const sqlTotalBalance = (await sqlTotalBalancePrepare.execute({
-      // @ts-ignore
-      courierId: user.user.id,
-      startDate: dayjs().subtract(45, 'day').toISOString(),
-      endDate: dayjs().add(10, 'day').toISOString()
-    }))[0];
+      .execute())[0];
     const sqlTotalFuelPrepare = await drizzle
       .select({
         amount: sql<number>`sum(amount)`,
@@ -900,8 +891,6 @@ export const CouriersController = new Elysia({
           eq(order_transactions.courier_id, user.user.id),
           eq(order_transactions.status, 'pending'),
           ne(order_transactions.transaction_type, 'work_schedule_bonus'),
-          gte(order_transactions.created_at, dayjs().subtract(45, 'day').toISOString()),
-          lte(order_transactions.created_at, dayjs().add(10, 'day').toISOString()),
         )
       )
       .groupBy(terminals.name, organization.icon_url, order_transactions.transaction_type)
