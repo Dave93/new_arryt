@@ -484,4 +484,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get balance_info_tooltip => 'Эту сумму вы должны получить с кассы в конце рабочей смены';
+
+  @override
+  String get logout_confirm => 'Вы уверены, что хотите выйти из аккаунта?';
+
+  @override
+  String get yes_label => 'Да';
+
+  @override
+  String get no_label => 'Нет';
 }

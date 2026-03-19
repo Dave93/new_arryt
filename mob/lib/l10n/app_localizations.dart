@@ -917,6 +917,12 @@ abstract class AppLocalizations {
   String get last_update_label;
 
   String get balance_info_tooltip;
+
+  String get logout_confirm;
+
+  String get yes_label;
+
+  String get no_label;
 }
 
 class _AppLocalizationsDelegate

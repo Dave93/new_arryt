@@ -143,7 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Text(AppLocalizations.of(context)!.choose_lang.toUpperCase(),
                 style: const TextStyle(color: Colors.black)),
             const SizedBox(height: 16),
-            _buildLanguageSwitcher(context)
+            _buildLanguageSwitcher(context),
           ],
         ),
       ),
