@@ -6,7 +6,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:easy_refresh/easy_refresh.dart';
-import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
@@ -354,6 +353,189 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
     _scrollController.dispose();
   }
 
+  Widget _buildInfoRow(String label, String value, {bool bold = false, double fontSize = 14}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: fontSize,
+          )),
+          Flexible(
+            child: Text(value, style: TextStyle(
+              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+              fontSize: fontSize,
+            ), textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderCard(OrderModel element) {
+    final l10n = AppLocalizations.of(context)!;
+    final isFinished = element.orderStatus.target?.finish == true;
+    final isCancelled = element.orderStatus.target?.cancel == true;
+    final statusColor = isCancelled
+        ? Colors.red
+        : isFinished
+            ? Colors.green
+            : Colors.orange;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: Row(
+              children: [
+                if (element.organization.target?.iconUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: CachedNetworkImage(
+                      imageUrl: element.organization.target!.iconUrl!,
+                      height: 28, width: 28, fit: BoxFit.cover,
+                      errorWidget: (c, u, e) => const Icon(Icons.store, size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text("#${element.order_number}",
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Text(
+                  DateFormat('dd.MM.yyyy HH:mm')
+                      .format(DateTime.parse(element.created_at.toString()).toLocal()),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          // Status chip
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    element.orderStatus.target?.localizedName(Localizations.localeOf(context).languageCode) ?? '',
+                    style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  CurrencyFormatter.format(element.delivery_price, euroSettings),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Details
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Column(
+              children: [
+                _buildInfoRow(l10n.customer_name, element.customer.target!.name),
+                _buildInfoRow(l10n.customer_phone, element.customer.target!.phone),
+                _buildInfoRow(l10n.terminal_label, element.terminal.target!.name),
+                if (element.delivery_address != null && element.delivery_address!.isNotEmpty)
+                  _buildInfoRow(l10n.address, element.delivery_address!),
+                _buildInfoRow(l10n.order_total_price,
+                    CurrencyFormatter.format(element.order_price, euroSettings)),
+                _buildInfoRow(l10n.payment_type,
+                    element.paymentType?.toUpperCase() ?? ''),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Action buttons
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(14),
+                bottomRight: Radius.circular(14),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      AutoRouter.of(context).pushNamed(
+                          '/order/customer-comments/${element.customer.target!.identity}/${element.identity}');
+                    },
+                    borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(14)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.comment_outlined, size: 16, color: Theme.of(context).primaryColor),
+                          const SizedBox(width: 6),
+                          Text(l10n.order_card_comments,
+                              style: TextStyle(fontSize: 13, color: Theme.of(context).primaryColor, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 30, color: Colors.grey.shade200),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      showBarModalBottomSheet(
+                        context: context,
+                        expand: false,
+                        builder: (context) => ApiGraphqlProvider(
+                          child: OrderItemsTable(orderId: element.identity),
+                        ),
+                      );
+                    },
+                    borderRadius: const BorderRadius.only(bottomRight: Radius.circular(14)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.receipt_outlined, size: 16, color: Theme.of(context).primaryColor),
+                          const SizedBox(width: 6),
+                          Text(l10n.order_card_items,
+                              style: TextStyle(fontSize: 13, color: Theme.of(context).primaryColor, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _scrollController.addListener(() {
@@ -374,744 +556,124 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
           .toList();
     }
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.ordersHistory.toUpperCase()),
+        title: Text(l10n.ordersHistory.replaceAll('\n', ' ')),
+        centerTitle: true,
+        elevation: 0,
       ),
       body: LoadingOverlay(
         isLoading: _loading,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
-          child: Column(children: [
-            Row(children: <Widget>[
-              Expanded(
-                  flex: 5,
-                  child: RawMaterialButton(
-                      padding: const EdgeInsets.all(5),
-                      onPressed: () async {
-                        if (_value == 0) {
-                          final DateTime? date = await showDialog<DateTime?>(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return DateRangePicker(_startDate, null,
-                                    displayDate: _startDate);
-                              });
-                          if (date != null) {
-                            _onSelectedDateChanged(date);
-                          }
-                        } else {
-                          final picker.PickerDateRange? range =
-                              await showDialog<picker.PickerDateRange?>(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return DateRangePicker(
-                                        null,
-                                        picker.PickerDateRange(
-                                          _startDate,
-                                          _endDate,
-                                        ),
-                                        displayDate: _startDate);
-                                  });
-
-                          if (range != null) {
-                            _onSelectedRangeChanged(range);
-                          }
-                        }
-                      },
-                      child: Container(
-                          alignment: Alignment.topCenter,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(AppLocalizations.of(context)!.from_label,
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 10)),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                                child: Text(
-                                    DateFormat('dd MMM yyyy')
-                                        .format(_startDate),
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500)),
-                              ),
-                            ],
-                          )))),
-              Expanded(
-                  flex: 5,
-                  child: RawMaterialButton(
-                      padding: const EdgeInsets.all(5),
-                      onPressed: _value == 0
-                          ? null
-                          : () async {
-                              final picker.PickerDateRange? range =
-                                  await showDialog<picker.PickerDateRange>(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return DateRangePicker(
-                                            null,
-                                            picker.PickerDateRange(
-                                                _startDate, _endDate),
-                                            displayDate: _endDate);
-                                      });
-
-                              if (range != null) {
-                                _onSelectedRangeChanged(range);
-                              }
-                            },
-                      child: Container(
-                          padding: EdgeInsets.zero,
-                          alignment: Alignment.topCenter,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: _value == 0
-                                ? <Widget>[
-                                    Text(AppLocalizations.of(context)!.to_label,
-                                        style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.w500))
-                                  ]
-                                : <Widget>[
-                                    Text(AppLocalizations.of(context)!.to_label,
-                                        style: TextStyle(
-                                            color: Colors.grey, fontSize: 10)),
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.fromLTRB(0, 5, 5, 0),
-                                      child: Text(
-                                          DateFormat('dd MMM yyyy')
-                                              .format(_endDate),
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w500)),
-                                    ),
-                                  ],
-                          ))))
-            ]),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-              child: TextField(
-                  controller: phoneSearchController,
-                  autofocus: false,
-                  onChanged: (value) {
-                    setState(() {
-                      filterPhone = value;
-                    });
-                  },
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!
-                          .orderListPhoneFieldLabel,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide(
-                              width: 2,
-                              color: Theme.of(context).primaryColor)))),
+        child: Column(children: [
+          // Date filter card
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            _posts.isEmpty
-                ? Expanded(
-                    child: Center(
-                        child: Text(AppLocalizations.of(context)!.noOrders)))
-                : Expanded(
-                    child: EasyRefresh(
-                      controller: _controller,
-                      header: const BezierCircleHeader(),
-                      onRefresh: () async {
-                        await _loadOrders(true);
-                        _controller.finishRefresh();
-                        _controller.resetFooter();
-                      },
-                      child: ListView.builder(
-                          controller: _scrollController,
-                          shrinkWrap: true,
-                          itemCount: resultPosts.length,
-                          itemBuilder: (context, index) {
-                            OrderModel element = resultPosts[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              child: ExpandablePanel(
-                                  header: Container(
-                                    color: Colors.grey[200],
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        element.organization.target != null &&
-                                                element.organization.target!
-                                                        .iconUrl !=
-                                                    null
-                                            ? Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: CachedNetworkImage(
-                                                  height: 30,
-                                                  imageUrl: element.organization
-                                                      .target!.iconUrl!,
-                                                  progressIndicatorBuilder: (context,
-                                                          url,
-                                                          downloadProgress) =>
-                                                      CircularProgressIndicator(
-                                                          value:
-                                                              downloadProgress
-                                                                  .progress),
-                                                  errorWidget: (context, url,
-                                                          error) =>
-                                                      const Icon(Icons.error),
-                                                ),
-                                              )
-                                            : const SizedBox(width: 0),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text(
-                                            "#${element.order_number}",
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text(
-                                            DateFormat('dd.MM.yyyy HH:mm')
-                                                .format(DateTime.parse(element
-                                                        .created_at
-                                                        .toString())
-                                                    .toLocal()),
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  collapsed: Column(children: [
-                                    Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10.0, vertical: 4.0),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  AppLocalizations.of(context)!
-                                                      .courierName,
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Text(
-                                                    "${element.courier.target!.firstName} ${element.courier.target!.lastName}"),
-                                              ],
-                                            ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  AppLocalizations.of(context)!
-                                                      .customer_name,
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Text(element
-                                                    .customer.target!.name),
-                                              ],
-                                            ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  AppLocalizations.of(context)!
-                                                      .customer_phone,
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                                Text(element
-                                                    .customer.target!.phone),
-                                              ],
-                                            ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Flexible(
-                                                    child: Text(
-                                                  element.terminal.target!.name,
-                                                  maxLines: 4,
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                )),
-                                                Flexible(
-                                                  fit: FlexFit.loose,
-                                                  child: Text(
-                                                    element.delivery_address ??
-                                                        '',
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  AppLocalizations.of(context)!
-                                                      .order_total_price,
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 20),
-                                                ),
-                                                Text(
-                                                  CurrencyFormatter.format(
-                                                      element.order_price,
-                                                      euroSettings),
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 20),
-                                                ),
-                                              ],
-                                            ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  AppLocalizations.of(context)!
-                                                      .delivery_price,
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 20),
-                                                ),
-                                                Text(
-                                                  CurrencyFormatter.format(
-                                                      element.delivery_price,
-                                                      euroSettings),
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 20),
-                                                ),
-                                              ],
-                                            ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  AppLocalizations.of(context)!
-                                                      .payment_type,
-                                                  style: const TextStyle(
-                                                      fontSize: 20),
-                                                ),
-                                                Text(
-                                                  element.paymentType
-                                                          ?.toUpperCase() ??
-                                                      '',
-                                                  style: const TextStyle(
-                                                      fontSize: 20),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        )),
-                                    const SizedBox(
-                                      height: 5,
-                                    ),
-                                    Container(
-                                      color: Theme.of(context).primaryColor,
-                                      child: IntrinsicHeight(
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceAround,
-                                          children: [
-                                            GestureDetector(
-                                              onTap: () {
-                                                AutoRouter.of(context).pushNamed(
-                                                    '/order/customer-comments/${element.customer.target!.identity}/${element.identity}');
-                                              },
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 15.0),
-                                                child: Text(
-                                                  AppLocalizations.of(context)!
-                                                      .order_card_comments
-                                                      .toUpperCase(),
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .titleMedium
-                                                      ?.copyWith(
-                                                          fontSize: 14,
-                                                          color: Colors.white),
-                                                ),
-                                              ),
-                                            ),
-                                            const VerticalDivider(
-                                              color: Colors.white,
-                                              thickness: 1,
-                                              width: 1,
-                                            ),
-                                            GestureDetector(
-                                              onTap: () {
-                                                showBarModalBottomSheet(
-                                                  context: context,
-                                                  expand: false,
-                                                  builder: (context) =>
-                                                      ApiGraphqlProvider(
-                                                    child: OrderItemsTable(
-                                                      orderId: element.identity,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 15.0),
-                                                child: Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .order_card_items
-                                                        .toUpperCase(),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .titleMedium
-                                                        ?.copyWith(
-                                                            fontSize: 14,
-                                                            color:
-                                                                Colors.white)),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ]),
-                                  expanded: Column(
-                                    children: [
-                                      Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .courierName,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                  Text(
-                                                      "${element.courier.target!.firstName} ${element.courier.target!.lastName}"),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .customer_name,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                  Text(element
-                                                      .customer.target!.name),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .customer_phone,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                  Text(element
-                                                      .customer.target!.phone),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .address,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                  const Spacer(),
-                                                  Flexible(
-                                                    fit: FlexFit.loose,
-                                                    child: Text(
-                                                      element.delivery_address ??
-                                                          '',
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .pre_distance_label,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                  Text(
-                                                      "${(element.pre_distance).toStringAsFixed(4)} км"),
-                                                ],
-                                              ),
-                                            ],
-                                          )),
-                                      Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 8.0, horizontal: 10),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Flexible(
-                                                  child: Text(
-                                                element.terminal.target!.name,
-                                                maxLines: 4,
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              )),
-                                              Flexible(
-                                                  child: Text(
-                                                element.delivery_address ?? '',
-                                                maxLines: 4,
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              )),
-                                            ],
-                                          )),
-                                      Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .order_total_price,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 20),
-                                                  ),
-                                                  Text(
-                                                    CurrencyFormatter.format(
-                                                        element.order_price,
-                                                        euroSettings),
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 20),
-                                                  ),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .delivery_price,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 20),
-                                                  ),
-                                                  Text(
-                                                    CurrencyFormatter.format(
-                                                        element.delivery_price,
-                                                        euroSettings),
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 20),
-                                                  ),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .order_status_label,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 20),
-                                                  ),
-                                                  Text(
-                                                    element.orderStatus.target!
-                                                        .name,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 20),
-                                                  ),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .payment_type,
-                                                    style: const TextStyle(
-                                                        fontSize: 20),
-                                                  ),
-                                                  Text(
-                                                    element.paymentType
-                                                            ?.toUpperCase() ??
-                                                        '',
-                                                    style: const TextStyle(
-                                                        fontSize: 20),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          )),
-                                      const SizedBox(
-                                        height: 5,
-                                      ),
-                                      Container(
-                                        color: Theme.of(context).primaryColor,
-                                        child: IntrinsicHeight(
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceAround,
-                                            children: [
-                                              GestureDetector(
-                                                onTap: () {
-                                                  AutoRouter.of(context).pushNamed(
-                                                      '/order/customer-comments/${element.customer.target!.identity}/${element.identity}');
-                                                },
-                                                child: Padding(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      vertical: 15.0),
-                                                  child: Text(
-                                                    AppLocalizations.of(
-                                                            context)!
-                                                        .order_card_comments
-                                                        .toUpperCase(),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .titleMedium
-                                                        ?.copyWith(
-                                                            fontSize: 14),
-                                                  ),
-                                                ),
-                                              ),
-                                              const VerticalDivider(
-                                                color: Colors.white,
-                                                thickness: 1,
-                                                width: 1,
-                                              ),
-                                              GestureDetector(
-                                                onTap: () {
-                                                  showBarModalBottomSheet(
-                                                    context: context,
-                                                    expand: false,
-                                                    builder: (context) =>
-                                                        ApiGraphqlProvider(
-                                                      child: OrderItemsTable(
-                                                        orderId:
-                                                            element.identity,
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                                child: Padding(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      vertical: 15.0),
-                                                  child: Text(
-                                                      AppLocalizations.of(
-                                                              context)!
-                                                          .order_card_items
-                                                          .toUpperCase(),
-                                                      style: Theme.of(context)
-                                                          .textTheme
-                                                          .titleMedium
-                                                          ?.copyWith(
-                                                              fontSize: 14)),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )),
-                            );
-                          }),
-                    ),
+            child: InkWell(
+              onTap: () async {
+                final picker.PickerDateRange? range =
+                    await showDialog<picker.PickerDateRange?>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return DateRangePicker(
+                              null,
+                              picker.PickerDateRange(_startDate, _endDate),
+                              displayDate: _startDate);
+                        });
+                if (range != null) {
+                  _onSelectedRangeChanged(range);
+                }
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_outlined,
+                      size: 20, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.from_label,
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                      Text(DateFormat('dd MMM yyyy').format(_startDate),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    ],
                   ),
-          ]),
-        ),
+                  const SizedBox(width: 16),
+                  Icon(Icons.arrow_forward, size: 16, color: Colors.grey.shade400),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.to_label,
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                      Text(DateFormat('dd MMM yyyy').format(_endDate),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Phone search
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: TextField(
+                controller: phoneSearchController,
+                autofocus: false,
+                onChanged: (value) {
+                  setState(() {
+                    filterPhone = value;
+                  });
+                },
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    hintText: l10n.orderListPhoneFieldLabel,
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none))),
+          ),
+          // Orders list
+          _posts.isEmpty
+              ? Expanded(
+                  child: Center(child: Text(l10n.noOrders,
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 16))))
+              : Expanded(
+                  child: EasyRefresh(
+                    controller: _controller,
+                    header: const BezierCircleHeader(),
+                    onRefresh: () async {
+                      await _loadOrders(true);
+                      _controller.finishRefresh();
+                      _controller.resetFooter();
+                    },
+                    child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        itemCount: resultPosts.length,
+                        itemBuilder: (context, index) {
+                          return _buildOrderCard(resultPosts[index]);
+                        }),
+                  ),
+                ),
+        ]),
       ),
     );
   }

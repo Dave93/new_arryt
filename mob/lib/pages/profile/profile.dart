@@ -215,7 +215,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
     final last = user?.userProfile?.last_name ?? '';
     final f = first.isNotEmpty ? first[0] : '';
     final l = last.isNotEmpty ? last[0] : '';
-    return '$l$f'.toUpperCase();
+    return '$f$l'.toUpperCase();
   }
 
   @override
@@ -259,13 +259,10 @@ class _ProfilePageViewState extends State<ProfilePageView>
                             CircleAvatar(
                               radius: 32,
                               backgroundColor: Colors.white.withOpacity(0.2),
-                              child: Text(
-                                _getInitials(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 36,
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -275,7 +272,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
                                 children: [
                                   if (user?.userProfile?.last_name != null)
                                     AutoSizeText(
-                                      "${user?.userProfile?.last_name} ${user?.userProfile?.first_name}",
+                                      "${user?.userProfile?.first_name} ${user?.userProfile?.last_name}",
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 22,

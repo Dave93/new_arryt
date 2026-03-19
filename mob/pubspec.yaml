@@ -79,6 +79,7 @@ dependencies:
       ref: develop
   json_annotation: ^4.8.1
   keframe: ^3.0.0
+  liquid_glass_bottom_bar: ^0.0.6
   load_switch: ^2.1.0
   loader_overlay: ^4.0.2+1
   loading_overlay: ^0.3.0
