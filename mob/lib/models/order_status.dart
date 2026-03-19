@@ -9,16 +9,31 @@ class OrderStatus {
   int id = 0;
   final String identity;
   final String name;
+  final String? nameUz;
+  final String? nameEn;
   final bool cancel;
   final bool finish;
   final bool onWay;
   OrderStatus({
     required this.identity,
     required this.name,
+    this.nameUz,
+    this.nameEn,
     required this.cancel,
     required this.finish,
     required this.onWay,
   });
+
+  String localizedName(String locale) {
+    switch (locale) {
+      case 'uz':
+        return nameUz ?? name;
+      case 'en':
+        return nameEn ?? name;
+      default:
+        return name;
+    }
+  }
 
   OrderStatus copyWith({
     String? identity,
@@ -27,6 +42,8 @@ class OrderStatus {
     return OrderStatus(
       identity: identity ?? this.identity,
       name: name ?? this.name,
+      nameUz: nameUz,
+      nameEn: nameEn,
       cancel: cancel,
       finish: finish,
       onWay: onWay,
@@ -37,6 +54,8 @@ class OrderStatus {
     return <String, dynamic>{
       'id': identity,
       'name': name,
+      'name_uz': nameUz,
+      'name_en': nameEn,
       'cancel': cancel,
       'finish': finish,
       'on_way': onWay,
@@ -47,6 +66,8 @@ class OrderStatus {
     return OrderStatus(
       identity: map['id'] as String,
       name: map['name'] as String,
+      nameUz: map['name_uz'] as String?,
+      nameEn: map['name_en'] as String?,
       cancel: map['cancel'] as bool,
       finish: map['finish'] as bool,
       onWay: map['on_way'] as bool,

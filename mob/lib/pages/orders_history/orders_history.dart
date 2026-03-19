@@ -438,7 +438,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    element.orderStatus.target?.name ?? '',
+                    element.orderStatus.target?.localizedName(Localizations.localeOf(context).languageCode) ?? '',
                     style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),

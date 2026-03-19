@@ -452,7 +452,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(widget.order.orderStatus.target?.name ?? '',
+                  child: Text(widget.order.orderStatus.target?.localizedName(Localizations.localeOf(context).languageCode) ?? '',
                       style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
                 Text(
@@ -650,7 +650,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                             child: loading
                                 ? const SizedBox(width: 20, height: 20,
                                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : Text(e.name,
+                                : Text(e.localizedName(Localizations.localeOf(context).languageCode),
                                     style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                           ),
                         ),

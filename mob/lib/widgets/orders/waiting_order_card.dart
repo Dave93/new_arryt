@@ -256,7 +256,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                     color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(widget.order.orderStatus.name,
+                  child: Text(widget.order.orderStatus.localizedName(Localizations.localeOf(context).languageCode),
                       style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
                 Text(

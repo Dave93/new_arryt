@@ -276,6 +276,8 @@ export const OrdersController = new Elysia({
           orders_order_status: {
             id: order_status.id,
             name: order_status.name,
+            name_uz: order_status.name_uz,
+            name_en: order_status.name_en,
             finish: order_status.finish,
             cancel: order_status.cancel,
             on_way: order_status.on_way,
@@ -465,6 +467,8 @@ export const OrdersController = new Elysia({
           orders_order_status: {
             id: order_status.id,
             name: order_status.name,
+            name_uz: order_status.name_uz,
+            name_en: order_status.name_en,
             finish: order_status.finish,
             cancel: order_status.cancel,
             on_way: order_status.on_way,
@@ -1056,6 +1060,8 @@ export const OrdersController = new Elysia({
           orders_order_status: {
             id: order_status.id,
             name: order_status.name,
+            name_uz: order_status.name_uz,
+            name_en: order_status.name_en,
             finish: order_status.finish,
             cancel: order_status.cancel,
             on_way: order_status.on_way,
@@ -3296,6 +3302,8 @@ export const OrdersController = new Elysia({
           orders_order_status: {
             id: order_status.id,
             name: order_status.name,
+            name_uz: order_status.name_uz,
+            name_en: order_status.name_en,
             finish: order_status.finish,
             cancel: order_status.cancel,
             on_way: order_status.on_way,
@@ -3855,6 +3863,8 @@ export const OrdersController = new Elysia({
           orders_order_status: {
             id: order_status.id,
             name: order_status.name,
+            name_uz: order_status.name_uz,
+            name_en: order_status.name_en,
             finish: order_status.finish,
             cancel: order_status.cancel,
             on_way: order_status.on_way,
