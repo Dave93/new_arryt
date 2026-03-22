@@ -1034,15 +1034,30 @@ export const externalControler = new Elysia({
     .post('/api/external/noor-callback', async ({ body, request: { headers }, status, queues: {
         processNoorCallbackQueue
     } }) => {
+        const allHeaders: Record<string, string> = {};
+        headers.forEach((value, key) => {
+            allHeaders[key] = value;
+        });
+        console.log('[NOOR-WEBHOOK] === INCOMING REQUEST ===');
+        console.log('[NOOR-WEBHOOK] time:', new Date().toISOString());
+        console.log('[NOOR-WEBHOOK] headers:', JSON.stringify(allHeaders));
+        console.log('[NOOR-WEBHOOK] body:', JSON.stringify(body));
+
         const token = headers.get('x-auth');
         if (!token || token !== process.env.NOOR_WEBHOOK_TOKEN) {
+            console.log('[NOOR-WEBHOOK] AUTH FAILED: x-auth token mismatch or missing');
             return status(403, { error: 'Forbidden' });
         }
+
+        console.log('[NOOR-WEBHOOK] AUTH OK, processing...');
 
         if (body?.id) {
             await processNoorCallbackQueue.add(`${body.id}_${(new Date()).getTime()}`, body, {
                 attempts: 3, removeOnComplete: true,
             });
+            console.log('[NOOR-WEBHOOK] added to queue, noor_id:', body.id);
+        } else {
+            console.log('[NOOR-WEBHOOK] SKIP: no id in body');
         }
 
         return {
