@@ -2102,33 +2102,36 @@ export const CouriersController = new Elysia({
   })
 
   .post('/api/couriers/withdraw', async ({ user, drizzle, set, redis, status, body: { amount, terminal_id, courier_id } }) => {
-    const courierBalance = await drizzle.select({
-      id: courier_terminal_balance.id,
-      balance: courier_terminal_balance.balance,
-      organization_id: courier_terminal_balance.organization_id,
-    }).from(courier_terminal_balance).where(
+    // Calculate real balance from order_transactions (source of truth)
+    const pendingBalance = (await drizzle.select({
+      total: sql<number>`COALESCE(sum(${order_transactions.not_paid_amount}), 0)`,
+    }).from(order_transactions).where(
       and(
-        eq(courier_terminal_balance.courier_id, courier_id),
-        eq(courier_terminal_balance.terminal_id, terminal_id)
+        eq(order_transactions.courier_id, courier_id),
+        eq(order_transactions.terminal_id, terminal_id),
+        eq(order_transactions.status, 'pending'),
+        gt(order_transactions.not_paid_amount, 0),
       )
-    ).execute();
+    ).execute())[0];
 
+    const availableBalance = +pendingBalance.total;
 
-    if (!courierBalance.length) {
+    if (availableBalance <= 0) {
       return status(404, {
         message: "Courier balance not found"
       });
     }
 
-    if (courierBalance[0].balance < amount) {
+    if (availableBalance < amount) {
       return status(400, {
         message: "Сумма вывода больше чем сумма на балансе"
       });
     }
 
-
-
-    const newBalance = courierBalance[0].balance - amount;
+    // Get organization_id from terminal
+    const terminalData = (await drizzle.select({
+      organization_id: terminals.organization_id,
+    }).from(terminals).where(eq(terminals.id, terminal_id)).limit(1).execute())[0];
 
     const settingsWorkStartTime = getHours(
       await getSetting(redis, "work_start_time")
@@ -2145,6 +2148,8 @@ export const CouriersController = new Elysia({
       currentDate = dayjs().subtract(1, 'day').toISOString();
     }
 
+    const newBalance = availableBalance - amount;
+
     const managerWithdraw = await drizzle.insert(manager_withdraw).values({
       amount,
       terminal_id,
@@ -2153,8 +2158,8 @@ export const CouriersController = new Elysia({
       payed_date: currentDate,
       // @ts-ignore
       manager_id: user.user.id,
-      organization_id: courierBalance[0].organization_id,
-      amount_before: courierBalance[0].balance,
+      organization_id: terminalData?.organization_id,
+      amount_before: availableBalance,
       amount_after: newBalance
     })
       .returning({
@@ -2162,16 +2167,7 @@ export const CouriersController = new Elysia({
       })
       .execute();
 
-
-    await drizzle.update(courier_terminal_balance).set({
-      balance: newBalance
-    }).where(
-      and(
-        eq(courier_terminal_balance.id, courierBalance[0].id),
-      )
-    ).execute();
-
-
+    // Mark order_transactions as paid (FIFO)
     const orderTransactions = await drizzle.select({
       id: order_transactions.id,
       not_paid_amount: order_transactions.not_paid_amount,
@@ -2227,6 +2223,32 @@ export const CouriersController = new Elysia({
           amountToWithdraw = 0;
         }
       }
+    }
+
+    // Sync courier_terminal_balance to match order_transactions
+    const newPendingBalance = (await drizzle.select({
+      total: sql<number>`COALESCE(sum(${order_transactions.not_paid_amount}), 0)`,
+    }).from(order_transactions).where(
+      and(
+        eq(order_transactions.courier_id, courier_id),
+        eq(order_transactions.terminal_id, terminal_id),
+        eq(order_transactions.status, 'pending'),
+        gt(order_transactions.not_paid_amount, 0),
+      )
+    ).execute())[0];
+
+    const ctb = await drizzle.select({ id: courier_terminal_balance.id })
+      .from(courier_terminal_balance)
+      .where(and(
+        eq(courier_terminal_balance.courier_id, courier_id),
+        eq(courier_terminal_balance.terminal_id, terminal_id),
+      ))
+      .limit(1).execute();
+
+    if (ctb.length) {
+      await drizzle.update(courier_terminal_balance).set({
+        balance: +newPendingBalance.total,
+      }).where(eq(courier_terminal_balance.id, ctb[0].id)).execute();
     }
   }, {
     permission: 'order_transactions.list',
