@@ -265,10 +265,6 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
               orderModel.orderStatus.target!.cancel) {
             objectBox.deleteCurrentOrder(widget.order.identity);
           } else {
-            if (orderModel.orderStatus.target!.onWay) {
-              _buildRoute();
-            }
-
             objectBox.updateCurrentOrder(widget.order.identity, orderModel);
           }
         }
@@ -362,6 +358,11 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
     await launchUrl(launchUri);
   }
 
+  bool _isLightColor(Color color) {
+    final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
+    return luminance > 0.6;
+  }
+
   Color? _parseColor(String? hex) {
     if (hex == null || hex.isEmpty) return null;
     hex = hex.replaceFirst('#', '');
@@ -410,7 +411,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text("$label: $value",
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+          style: const TextStyle(fontSize: 11, color: Colors.black)),
     );
   }
 
@@ -439,7 +440,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
         children: [
           // Header: logo + order# + status + date
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
             child: Row(
               children: [
                 if (widget.order.organization.target?.iconUrl != null) ...[
@@ -456,46 +457,103 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                 Text("#${widget.order.order_number}",
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                        widget.order.orderStatus.target?.localizedName(Localizations.localeOf(context).languageCode) ?? '',
+                        style: TextStyle(
+                          color: Colors.grey.shade800,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ),
-                  child: Text(
-                      widget.order.orderStatus.target?.localizedName(Localizations.localeOf(context).languageCode) ?? '',
-                      style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
                 const Spacer(),
                 Text(
-                  DateFormat('dd.MM HH:mm').format(widget.order.created_at.toLocal()),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  DateFormat('dd.MM.yyyy HH:mm').format(widget.order.created_at.toLocal()),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade800, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
 
-          // Customer info
+          // Customer + Address
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Column(
               children: [
                 _infoRow(l10n.customer_name, widget.order.customer.target!.name),
-                _infoRow(l10n.customer_phone, widget.order.customer.target!.phone),
+                GestureDetector(
+                  onTap: () => _makePhoneCall(widget.order.customer.target!.phone),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(l10n.customer_phone, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                        Row(
+                          children: [
+                            Icon(Icons.phone, size: 14, color: Colors.green.shade600),
+                            const SizedBox(width: 4),
+                            Text(widget.order.customer.target!.phone,
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.green.shade700)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (widget.order.additional_phone != null && widget.order.additional_phone!.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => _makePhoneCall(widget.order.additional_phone!),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(l10n.additional_phone_label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                          Row(
+                            children: [
+                              Icon(Icons.phone, size: 14, color: Colors.green.shade600),
+                              const SizedBox(width: 4),
+                              Text(widget.order.additional_phone!,
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.green.shade700)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-
-          // Address
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 6, 14, 4),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            child: Row(
+              children: [
+                Icon(Icons.store_outlined, size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 6),
+                Text(widget.order.terminal.target!.name,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
             child: GestureDetector(
               onTap: () => _buildRoute(),
               child: Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
@@ -527,11 +585,10 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
             ),
           ),
 
-          // Address details + additional phone
-          if (widget.order.house != null || widget.order.entrance != null || widget.order.flat != null ||
-              (widget.order.additional_phone != null && widget.order.additional_phone!.isNotEmpty))
+          // Address details
+          if (widget.order.house != null || widget.order.entrance != null || widget.order.flat != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               child: Wrap(
                 spacing: 6,
                 runSpacing: 4,
@@ -542,38 +599,18 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                     _addressChip(l10n.entrance_label, widget.order.entrance!),
                   if (widget.order.flat != null && widget.order.flat!.isNotEmpty)
                     _addressChip(l10n.flat_label, widget.order.flat!),
-                  if (widget.order.additional_phone != null && widget.order.additional_phone!.isNotEmpty)
-                    GestureDetector(
-                      onTap: () => _makePhoneCall(widget.order.additional_phone!),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.phone, color: Colors.green.shade700, size: 12),
-                            const SizedBox(width: 4),
-                            Text(widget.order.additional_phone!,
-                                style: TextStyle(fontSize: 11, color: Colors.green.shade700)),
-                          ],
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
 
           // Payment section
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
             child: Column(
               children: [
                 // Check amount
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(10),
@@ -597,7 +634,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                 // Delivery price (always shown)
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(10),
@@ -618,24 +655,28 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                // Collect from customer — big card
+                const SizedBox(height: 6),
+                // Collect from customer
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Column(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.person_outline, size: 20, color: Colors.green.shade700),
+                          Icon(Icons.person_outline, size: 16, color: Colors.green.shade700),
                           const SizedBox(width: 8),
                           Text(l10n.collect_from_customer,
-                              style: TextStyle(fontSize: 15, color: Colors.green.shade700, fontWeight: FontWeight.w600)),
-                          const Spacer(),
+                              style: TextStyle(fontSize: 13, color: Colors.green.shade700)),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
                           Text(
                             CurrencyFormatter.format(
                               (widget.order.paymentType?.toLowerCase() == 'наличными' ||
@@ -647,15 +688,13 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                                   : 0,
                               euroSettings,
                             ),
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                          ),
+                          Text(
+                            _localizePaymentType(widget.order.paymentType, Localizations.localeOf(context).languageCode).toUpperCase(),
+                            style: TextStyle(fontSize: 10, color: Colors.green.shade600),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 6),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(_localizePaymentType(widget.order.paymentType, Localizations.localeOf(context).languageCode).toUpperCase(),
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade700)),
                       ),
                     ],
                   ),
@@ -668,7 +707,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
 
           // Call customer button
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: Colors.green,
               borderRadius: BorderRadius.circular(10),

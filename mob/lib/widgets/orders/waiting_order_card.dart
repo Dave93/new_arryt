@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:map_launcher/map_launcher.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../helpers/urlLauncher.dart';
 import '../../models/new_order.dart';
@@ -216,11 +217,22 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
     );
   }
 
+  void _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    await launchUrl(launchUri);
+  }
+
+  bool _isLightColor(Color color) {
+    final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
+    return luminance > 0.6;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final primary = Theme.of(context).primaryColor;
-    final _statusColor = _parseColor(widget.order.orderStatus.color) ?? Colors.orange;
+    final statusColor = _parseColor(widget.order.orderStatus.color) ?? Colors.orange;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -241,7 +253,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
             child: Row(
               children: [
                 if (widget.order.organization.iconUrl != null) ...[
@@ -257,116 +269,137 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                 ],
                 Text("#${widget.order.order_number}",
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                        widget.order.orderStatus.localizedName(locale),
+                        style: TextStyle(color: Colors.grey.shade800, fontSize: 11, fontWeight: FontWeight.w600),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
                 const Spacer(),
                 Text(
                   DateFormat('dd.MM.yyyy HH:mm').format(widget.order.created_at.toLocal()),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade800, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
-
-          // Status + delivery price
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(widget.order.orderStatus.localizedName(Localizations.localeOf(context).languageCode),
-                      style: TextStyle(color: _statusColor, fontSize: 12, fontWeight: FontWeight.w600)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
 
           // Customer info
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Column(
               children: [
                 _infoRow(l10n.customer_name, widget.order.customer.name),
-                _infoRow(l10n.customer_phone, widget.order.customer.phone),
-                _infoRow(l10n.pre_distance_label,
-                    "${widget.order.pre_distance.toStringAsFixed(2)} ${l10n.km_label}"),
-                _infoRow(l10n.order_total_price,
-                    CurrencyFormatter.format(widget.order.order_price, euroSettings)),
-                _infoRow(l10n.delivery_price,
-                    CurrencyFormatter.format(widget.order.delivery_price, euroSettings)),
-                _infoRow(l10n.payment_type, _localizePaymentType(widget.order.paymentType, Localizations.localeOf(context).languageCode).toUpperCase()),
+                GestureDetector(
+                  onTap: () => _makePhoneCall(widget.order.customer.phone),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(l10n.customer_phone, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                        Row(
+                          children: [
+                            Icon(Icons.phone, size: 14, color: Colors.green.shade600),
+                            const SizedBox(width: 4),
+                            Text(widget.order.customer.phone,
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.green.shade700)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (widget.order.additional_phone != null && widget.order.additional_phone!.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => _makePhoneCall(widget.order.additional_phone!),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(l10n.additional_phone_label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                          Row(
+                            children: [
+                              Icon(Icons.phone, size: 14, color: Colors.green.shade600),
+                              const SizedBox(width: 4),
+                              Text(widget.order.additional_phone!,
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.green.shade700)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
 
-          // Location row
+          // Terminal
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
             child: Row(
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      launchYandexNavi(widget.order.from_lat, widget.order.from_lon);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primary.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.store_outlined, size: 16, color: primary),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(widget.order.terminal.name,
-                                style: TextStyle(fontSize: 12, color: primary, fontWeight: FontWeight.w500),
-                                maxLines: 2, overflow: TextOverflow.ellipsis),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _buildRoute(),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primary.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.location_on_outlined, size: 16, color: primary),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(widget.order.delivery_address ?? '',
-                                style: TextStyle(fontSize: 12, color: primary, fontWeight: FontWeight.w500),
-                                maxLines: 2, overflow: TextOverflow.ellipsis),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                Icon(Icons.store_outlined, size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 6),
+                Text(widget.order.terminal.name,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
               ],
+            ),
+          ),
+          // Address
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
+            child: GestureDetector(
+              onTap: () => _buildRoute(),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 18, color: primary),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(widget.order.delivery_address ?? '',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        "${widget.order.pre_distance.toStringAsFixed(2)} ${l10n.km_label}",
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
 
           // Address details
           if (widget.order.house != null || widget.order.entrance != null || widget.order.flat != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: Row(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
                 children: [
                   if (widget.order.house != null && widget.order.house!.isNotEmpty)
                     _addressChip(l10n.house_label, widget.order.house!),
@@ -377,6 +410,100 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                 ],
               ),
             ),
+
+          // Payment section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.receipt_long_outlined, size: 16, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          Text("${l10n.order_check_amount} (${_localizePaymentType(widget.order.paymentType, locale)})",
+                              style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                        ],
+                      ),
+                      Text(CurrencyFormatter.format(widget.order.order_price, euroSettings),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.delivery_dining_outlined, size: 16, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          Text(l10n.delivery_price,
+                              style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                        ],
+                      ),
+                      Text(CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.person_outline, size: 16, color: Colors.green.shade700),
+                          const SizedBox(width: 8),
+                          Text(l10n.collect_from_customer,
+                              style: TextStyle(fontSize: 13, color: Colors.green.shade700)),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            CurrencyFormatter.format(
+                              (widget.order.paymentType?.toLowerCase() == 'наличными' ||
+                                      widget.order.paymentType?.toLowerCase() == 'cash')
+                                  ? widget.order.order_price
+                                  : 0,
+                              euroSettings,
+                            ),
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                          ),
+                          Text(
+                            _localizePaymentType(widget.order.paymentType, locale).toUpperCase(),
+                            style: TextStyle(fontSize: 10, color: Colors.green.shade600),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 4),
 
@@ -483,7 +610,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text("$label: $value",
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+          style: const TextStyle(fontSize: 11, color: Colors.black)),
     );
   }
 }
