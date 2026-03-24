@@ -268,16 +268,9 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                   child: Text(widget.order.orderStatus.localizedName(Localizations.localeOf(context).languageCode),
                       style: TextStyle(color: _statusColor, fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(l10n.delivery_price,
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                    Text(
-                      CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+                Text(
+                  CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -295,6 +288,8 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                     "${widget.order.pre_distance.toStringAsFixed(2)} ${l10n.km_label}"),
                 _infoRow(l10n.order_total_price,
                     CurrencyFormatter.format(widget.order.order_price, euroSettings)),
+                _infoRow(l10n.delivery_price,
+                    CurrencyFormatter.format(widget.order.delivery_price, euroSettings)),
                 _infoRow(l10n.payment_type, widget.order.paymentType?.toUpperCase() ?? ''),
               ],
             ),
