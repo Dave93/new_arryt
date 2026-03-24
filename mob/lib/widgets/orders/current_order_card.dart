@@ -359,6 +359,14 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
     await launchUrl(launchUri);
   }
 
+  Color? _parseColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    final value = int.tryParse(hex, radix: 16);
+    return value != null ? Color(value) : null;
+  }
+
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -393,8 +401,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final primary = Theme.of(context).primaryColor;
-    final isOnWay = widget.order.orderStatus.target?.onWay == true;
-    final statusColor = isOnWay ? Colors.blue : primary;
+    final statusColor = _parseColor(widget.order.orderStatus.target?.color) ?? primary;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -475,6 +482,8 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                     "${widget.order.pre_distance.toStringAsFixed(2)} ${l10n.km_label}"),
                 _infoRow(l10n.order_total_price,
                     CurrencyFormatter.format(widget.order.order_price, euroSettings)),
+                _infoRow(l10n.delivery_price,
+                    CurrencyFormatter.format(widget.order.delivery_price, euroSettings)),
                 widget.order.cDeliveryPrice == null || widget.order.cDeliveryPrice == 0
                     ? _infoRow(l10n.get_from_cachier,
                         CurrencyFormatter.format(widget.order.delivery_price, euroSettings))
