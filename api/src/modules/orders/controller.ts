@@ -282,6 +282,7 @@ export const OrdersController = new Elysia({
             cancel: order_status.cancel,
             on_way: order_status.on_way,
             in_terminal: order_status.in_terminal,
+            color: order_status.color,
           },
           orders_terminals: {
             id: terminals.id,
@@ -473,6 +474,7 @@ export const OrdersController = new Elysia({
             cancel: order_status.cancel,
             on_way: order_status.on_way,
             in_terminal: order_status.in_terminal,
+            color: order_status.color,
           },
           orders_terminals: {
             id: terminals.id,
@@ -1066,6 +1068,7 @@ export const OrdersController = new Elysia({
             cancel: order_status.cancel,
             on_way: order_status.on_way,
             in_terminal: order_status.in_terminal,
+            color: order_status.color,
           },
           orders_terminals: {
             id: terminals.id,
@@ -3308,6 +3311,7 @@ export const OrdersController = new Elysia({
             cancel: order_status.cancel,
             on_way: order_status.on_way,
             in_terminal: order_status.in_terminal,
+            color: order_status.color,
           },
           orders_terminals: {
             id: terminals.id,
@@ -3869,6 +3873,7 @@ export const OrdersController = new Elysia({
             cancel: order_status.cancel,
             on_way: order_status.on_way,
             in_terminal: order_status.in_terminal,
+            color: order_status.color,
           },
           orders_terminals: {
             id: terminals.id,

@@ -11,6 +11,7 @@ class OrderStatus {
   final String name;
   final String? nameUz;
   final String? nameEn;
+  final String? color;
   final bool cancel;
   final bool finish;
   final bool onWay;
@@ -19,6 +20,7 @@ class OrderStatus {
     required this.name,
     this.nameUz,
     this.nameEn,
+    this.color,
     required this.cancel,
     required this.finish,
     required this.onWay,
@@ -68,6 +70,7 @@ class OrderStatus {
       name: map['name'] as String,
       nameUz: map['name_uz'] as String?,
       nameEn: map['name_en'] as String?,
+      color: map['color'] as String?,
       cancel: map['cancel'] as bool,
       finish: map['finish'] as bool,
       onWay: map['on_way'] as bool,
