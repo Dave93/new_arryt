@@ -159,5 +159,7 @@
     "balance_info_tooltip": "Эту сумму вы должны получить с кассы в конце рабочей смены",
     "logout_confirm": "Вы уверены, что хотите выйти из аккаунта?",
     "yes_label": "Да",
-    "no_label": "Нет"
+    "no_label": "Нет",
+    "order_check_amount": "Сумма чека",
+    "collect_from_customer": "Взять с клиента"
 }

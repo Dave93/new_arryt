@@ -186,6 +186,19 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
     return value != null ? Color(value) : null;
   }
 
+  String _localizePaymentType(String? type, String locale) {
+    if (type == null) return '';
+    final lower = type.toLowerCase();
+    if (lower == 'наличными' || lower == 'cash') {
+      switch (locale) {
+        case 'uz': return 'Naqd';
+        case 'en': return 'Cash';
+        default: return 'Наличными';
+      }
+    }
+    return type;
+  }
+
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -268,10 +281,6 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                   child: Text(widget.order.orderStatus.localizedName(Localizations.localeOf(context).languageCode),
                       style: TextStyle(color: _statusColor, fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
-                Text(
-                  CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
               ],
             ),
           ),
@@ -290,7 +299,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                     CurrencyFormatter.format(widget.order.order_price, euroSettings)),
                 _infoRow(l10n.delivery_price,
                     CurrencyFormatter.format(widget.order.delivery_price, euroSettings)),
-                _infoRow(l10n.payment_type, widget.order.paymentType?.toUpperCase() ?? ''),
+                _infoRow(l10n.payment_type, _localizePaymentType(widget.order.paymentType, Localizations.localeOf(context).languageCode).toUpperCase()),
               ],
             ),
           ),

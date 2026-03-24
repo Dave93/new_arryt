@@ -105,6 +105,9 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
           OrderStatus orderStatus = OrderStatus(
             identity: order['orders_order_status']['id'],
             name: order['orders_order_status']['name'],
+            nameUz: order['orders_order_status']['name_uz'],
+            nameEn: order['orders_order_status']['name_en'],
+            color: order['orders_order_status']['color'],
             cancel: order['orders_order_status']['cancel'],
             finish: order['orders_order_status']['finish'],
             onWay: order['orders_order_status']['on_way'],
@@ -374,6 +377,19 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
     );
   }
 
+  String _localizePaymentType(String? type, String locale) {
+    if (type == null) return '';
+    final lower = type.toLowerCase();
+    if (lower == 'наличными' || lower == 'cash') {
+      switch (locale) {
+        case 'uz': return 'Naqd';
+        case 'en': return 'Cash';
+        default: return 'Наличными';
+      }
+    }
+    return type;
+  }
+
   Widget _buildOrderCard(OrderModel element) {
     final l10n = AppLocalizations.of(context)!;
     final isFinished = element.orderStatus.target?.finish == true;
@@ -464,7 +480,7 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                 _buildInfoRow(l10n.order_total_price,
                     CurrencyFormatter.format(element.order_price, euroSettings)),
                 _buildInfoRow(l10n.payment_type,
-                    element.paymentType?.toUpperCase() ?? ''),
+                    _localizePaymentType(element.paymentType, Localizations.localeOf(context).languageCode).toUpperCase()),
               ],
             ),
           ),

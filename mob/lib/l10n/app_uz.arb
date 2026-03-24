@@ -159,5 +159,7 @@
     "balance_info_tooltip": "Bu summani ish smenasi oxirida kassadan olishingiz kerak",
     "logout_confirm": "Akkountdan chiqishni xohlaysizmi?",
     "yes_label": "Ha",
-    "no_label": "Yo'q"
+    "no_label": "Yo'q",
+    "order_check_amount": "Chek summasi",
+    "collect_from_customer": "Mijozdan olish"
 }

@@ -496,4 +496,10 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get no_label => 'Yo\'q';
+
+  @override
+  String get order_check_amount => 'Chek summasi';
+
+  @override
+  String get collect_from_customer => 'Mijozdan olish';
 }
