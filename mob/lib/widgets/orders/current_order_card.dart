@@ -359,6 +359,14 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
     await launchUrl(launchUri);
   }
 
+  Color? _parseColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    final value = int.tryParse(hex, radix: 16);
+    return value != null ? Color(value) : null;
+  }
+
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -393,8 +401,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final primary = Theme.of(context).primaryColor;
-    final isOnWay = widget.order.orderStatus.target?.onWay == true;
-    final statusColor = isOnWay ? Colors.blue : primary;
+    final statusColor = _parseColor(widget.order.orderStatus.target?.color) ?? primary;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -455,9 +462,16 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                   child: Text(widget.order.orderStatus.target?.localizedName(Localizations.localeOf(context).languageCode) ?? '',
                       style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
-                Text(
-                  CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(l10n.delivery_price,
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                    Text(
+                      CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ],
             ),

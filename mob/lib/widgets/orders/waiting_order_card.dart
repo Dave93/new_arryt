@@ -178,6 +178,14 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
     }
   }
 
+  Color? _parseColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    final value = int.tryParse(hex, radix: 16);
+    return value != null ? Color(value) : null;
+  }
+
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -199,6 +207,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final primary = Theme.of(context).primaryColor;
+    final _statusColor = _parseColor(widget.order.orderStatus.color) ?? Colors.orange;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -244,7 +253,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
             ),
           ),
 
-          // Delivery price highlight
+          // Status + delivery price
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
@@ -253,15 +262,22 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: _statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(widget.order.orderStatus.localizedName(Localizations.localeOf(context).languageCode),
-                      style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600)),
+                      style: TextStyle(color: _statusColor, fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
-                Text(
-                  CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(l10n.delivery_price,
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                    Text(
+                      CurrencyFormatter.format(widget.order.delivery_price, euroSettings),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ],
             ),
