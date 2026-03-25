@@ -1,5 +1,6 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/helpers/error_translator.dart';
 import 'package:arryt/widgets/orders/orders_items.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -115,7 +116,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
           loading = false;
         });
         return AnimatedSnackBar.material(
-          response.data['message'] ?? "Error",
+          translateServerError(context, response.data['message'] ?? "Error"),
           type: AnimatedSnackBarType.error,
         ).show(context);
       } else {
@@ -137,7 +138,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
         loading = false;
       });
       return AnimatedSnackBar.material(
-        e.error.toString(),
+        translateServerError(context, e.error.toString()),
         type: AnimatedSnackBarType.error,
       ).show(context);
     } catch (e) {
@@ -145,7 +146,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
         loading = false;
       });
       return AnimatedSnackBar.material(
-        e.toString() ?? 'Error',
+        translateServerError(context, e.toString()),
         type: AnimatedSnackBarType.error,
       ).show(context);
     }
@@ -160,7 +161,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
 
       if (response.statusCode != 200) {
         return AnimatedSnackBar.material(
-          response.data['message'] ?? "Error",
+          translateServerError(context, response.data['message'] ?? "Error"),
           type: AnimatedSnackBarType.error,
         ).show(context);
       } else {

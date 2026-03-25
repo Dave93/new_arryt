@@ -37,6 +37,31 @@ String translateServerError(BuildContext context, String errorMessage) {
       'ru': 'Вы не на линии',
       'uz': 'Siz oflayn holatdasiz',
     },
+    'You are too far from order': {
+      'en': 'You are too far from order',
+      'ru': 'Вы слишком далеко от заказа',
+      'uz': 'Siz buyurtmadan juda uzoqdasiz',
+    },
+    'Time entry already opened by another courier': {
+      'en': 'Shift already opened by another courier',
+      'ru': 'Смена уже открыта другим курьером',
+      'uz': 'Smena boshqa kuryer tomonidan ochilgan',
+    },
+    'Time entry already opened': {
+      'en': 'Shift already opened',
+      'ru': 'Смена уже открыта',
+      'uz': 'Smena allaqachon ochilgan',
+    },
+    'Courier balance not found': {
+      'en': 'Courier balance not found',
+      'ru': 'Баланс курьера не найден',
+      'uz': 'Kuryer balansi topilmadi',
+    },
+    'User is not courier': {
+      'en': 'User is not a courier',
+      'ru': 'Пользователь не является курьером',
+      'uz': 'Foydalanuvchi kuryer emas',
+    },
   };
 
   // Check if we have a translation for this error

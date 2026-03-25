@@ -14,6 +14,7 @@ import 'package:arryt/models/order.dart';
 import 'package:arryt/widgets/orders/orders_items.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../helpers/error_translator.dart';
 import '../../helpers/urlLauncher.dart';
 import '../../models/customer.dart';
 import '../../models/order_next_button.dart';
@@ -204,7 +205,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
           loading = false;
         });
         return AnimatedSnackBar.material(
-          response.data['error'] ?? response.data['message'] ?? "Error",
+          translateServerError(context, response.data['error'] ?? response.data['message'] ?? "Error"),
           type: AnimatedSnackBarType.error,
         ).show(context);
       }
@@ -214,7 +215,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
           loading = false;
         });
         return AnimatedSnackBar.material(
-          response.data['message'] ?? "Error",
+          translateServerError(context, response.data['message'] ?? "Error"),
           type: AnimatedSnackBarType.error,
         ).show(context);
       } else {
@@ -286,7 +287,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
         errorMessage = e.error.toString();
       }
       return AnimatedSnackBar.material(
-        errorMessage,
+        translateServerError(context, errorMessage),
         type: AnimatedSnackBarType.error,
       ).show(context);
     } catch (e) {
