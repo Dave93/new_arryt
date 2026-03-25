@@ -23,7 +23,7 @@ class OrderNextButton {
     'Принят': 'Qabul qilindi',
     'В филиале': 'Filialda',
     'В пути': "Yo'lda",
-    'Ожидает гостя': 'Mehmonni kutmoqda',
+    'Ожидает гостя': 'Mijozni kutmoqda',
     'Доставлен': 'Yetkazildi',
     'Отмена': 'Bekor qilindi',
   };

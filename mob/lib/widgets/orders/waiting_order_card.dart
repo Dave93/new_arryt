@@ -487,7 +487,10 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                             CurrencyFormatter.format(
                               (widget.order.paymentType?.toLowerCase() == 'наличными' ||
                                       widget.order.paymentType?.toLowerCase() == 'cash')
-                                  ? widget.order.order_price
+                                  ? widget.order.order_price +
+                                      (widget.order.customer_delivery_price != null && widget.order.customer_delivery_price != 0
+                                          ? widget.order.customer_delivery_price!
+                                          : 0)
                                   : 0,
                               euroSettings,
                             ),

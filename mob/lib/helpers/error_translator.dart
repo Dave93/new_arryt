@@ -38,9 +38,9 @@ String translateServerError(BuildContext context, String errorMessage) {
       'uz': 'Siz oflayn holatdasiz',
     },
     'You are too far from order': {
-      'en': 'You are too far from order',
-      'ru': 'Вы слишком далеко от заказа',
-      'uz': 'Siz buyurtmadan juda uzoqdasiz',
+      'en': 'You are too far from the customer',
+      'ru': 'Вы слишком далеко от клиента',
+      'uz': 'Siz mijozdan juda uzoqdasiz',
     },
     'Time entry already opened by another courier': {
       'en': 'Shift already opened by another courier',
