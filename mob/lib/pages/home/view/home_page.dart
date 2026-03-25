@@ -212,7 +212,7 @@ class _HomeViewPageState extends State<HomeViewPage> {
         {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': l10n.profile},
         {'icon': Icons.account_balance_wallet_outlined, 'activeIcon': Icons.account_balance_wallet, 'label': l10n.couriersListTabLabel},
         {'icon': Icons.history_outlined, 'activeIcon': Icons.history, 'label': l10n.ordersHistory.replaceAll('\n', ' ')},
-        {'icon': Icons.assignment_outlined, 'activeIcon': Icons.assignment, 'label': l10n.ordersManagement.replaceAll('\n', ' ')},
+        // {'icon': Icons.assignment_outlined, 'activeIcon': Icons.assignment, 'label': l10n.ordersManagement.replaceAll('\n', ' ')},
         {'icon': Icons.settings_outlined, 'activeIcon': Icons.settings, 'label': l10n.settings},
       ];
     }
@@ -232,7 +232,7 @@ class _HomeViewPageState extends State<HomeViewPage> {
         const ProfilePageView(),
         const ManagerCouriersList(),
         const OrdersHistory(),
-        const OrdersManagement(),
+        // const OrdersManagement(),
         const SettingsPage(),
       ];
     } else {
