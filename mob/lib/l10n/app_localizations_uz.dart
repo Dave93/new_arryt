@@ -411,7 +411,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get quantity_label => 'Soni';
 
   @override
-  String get total_label => 'Jami';
+  String get total_label => 'Hammasi';
 
   @override
   String get no_orders_label => 'Buyurtmalar yo\'q';

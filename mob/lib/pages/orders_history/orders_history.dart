@@ -63,8 +63,10 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
   late int _numberOfPostsPerRequest;
   late List<OrderModel> _posts;
   late ScrollController _scrollController;
-  final TextEditingController phoneSearchController = TextEditingController();
-  String filterPhone = '';
+  final TextEditingController searchController = TextEditingController();
+  String searchQuery = '';
+  String? selectedPaymentType;
+  String _activeDateFilter = 'week';
 
   Future<void> _loadOrders(bool reload) async {
     // var client = GraphQLProvider.of(context).value;
@@ -356,6 +358,97 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
     _scrollController.dispose();
   }
 
+  Widget _dateChip(String label, String key, VoidCallback onTap, {IconData? icon}) {
+    final selected = _activeDateFilter == key;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? Theme.of(context).primaryColor : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected ? Theme.of(context).primaryColor : Colors.grey.shade300,
+            ),
+            boxShadow: selected
+                ? [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 14, color: selected ? Colors.white : Theme.of(context).primaryColor),
+                const SizedBox(width: 4),
+              ],
+              Text(label, style: TextStyle(
+                fontSize: 13,
+                color: selected ? Colors.white : Colors.grey.shade800,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _capitalizeFirst(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1);
+  }
+
+  Widget _filterChip({required String name, required int count, required bool selected, required VoidCallback onTap}) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? Theme.of(context).primaryColor : Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: selected ? Theme.of(context).primaryColor : Colors.grey.shade300,
+            ),
+            boxShadow: selected
+                ? [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(name,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: selected ? Colors.white : Colors.grey.shade800,
+                    fontWeight: FontWeight.w500,
+                  )),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: selected ? Colors.white.withOpacity(0.25) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text('$count',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: selected ? Colors.white : Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    )),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoRow(String label, String value, {bool bold = false, double fontSize = 14}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -433,40 +526,28 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                 ],
                 Text("#${element.order_number}",
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    element.orderStatus.target?.localizedName(Localizations.localeOf(context).languageCode) ?? '',
+                    style: TextStyle(color: Colors.grey.shade800, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
                 const Spacer(),
                 Text(
                   DateFormat('dd.MM.yyyy HH:mm')
                       .format(DateTime.parse(element.created_at.toString()).toLocal()),
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
-          // Status chip
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    element.orderStatus.target?.localizedName(Localizations.localeOf(context).languageCode) ?? '',
-                    style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  CurrencyFormatter.format(element.delivery_price, euroSettings),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           // Details
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -477,10 +558,32 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                 _buildInfoRow(l10n.terminal_label, element.terminal.target!.name),
                 if (element.delivery_address != null && element.delivery_address!.isNotEmpty)
                   _buildInfoRow(l10n.address, element.delivery_address!),
-                _buildInfoRow(l10n.order_total_price,
-                    CurrencyFormatter.format(element.order_price, euroSettings)),
-                _buildInfoRow(l10n.payment_type,
-                    _localizePaymentType(element.paymentType, Localizations.localeOf(context).languageCode).toUpperCase()),
+                _buildInfoRow(l10n.delivery_price,
+                    CurrencyFormatter.format(element.delivery_price, euroSettings)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(l10n.order_total_price,
+                          style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.bold)),
+                      Text(CurrencyFormatter.format(element.order_price, euroSettings),
+                          style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(l10n.payment_type,
+                          style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.bold)),
+                      Text(_capitalizeFirst(_localizePaymentType(element.paymentType, Localizations.localeOf(context).languageCode)),
+                          style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -564,15 +667,37 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
 
     List<OrderModel> resultPosts = _posts;
 
-    if (_posts.isNotEmpty) {
-      resultPosts = _posts
-          .where((element) => element.customer.target!.phone
-              .toLowerCase()
-              .contains(filterPhone.toLowerCase()))
+    if (_posts.isNotEmpty && searchQuery.isNotEmpty) {
+      final query = searchQuery.toLowerCase();
+      resultPosts = _posts.where((element) {
+        final phone = element.customer.target!.phone.toLowerCase();
+        final orderNum = element.order_number.toLowerCase();
+        return phone.contains(query) || orderNum.contains(query);
+      }).toList();
+    }
+
+    if (selectedPaymentType != null && resultPosts.isNotEmpty) {
+      resultPosts = resultPosts
+          .where((e) => e.paymentType?.toLowerCase() == selectedPaymentType!.toLowerCase())
           .toList();
     }
 
+    // Collect unique payment types for filter, cash first
+    final paymentTypes = _posts
+        .map((e) => e.paymentType)
+        .where((e) => e != null && e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) {
+        final aIsCash = a?.toLowerCase() == 'наличными' || a?.toLowerCase() == 'cash';
+        final bIsCash = b?.toLowerCase() == 'наличными' || b?.toLowerCase() == 'cash';
+        if (aIsCash) return -1;
+        if (bIsCash) return 1;
+        return 0;
+      });
+
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       appBar: AppBar(
@@ -583,89 +708,121 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
       body: LoadingOverlay(
         isLoading: _loading,
         child: Column(children: [
-          // Date filter card
-          Container(
-            margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: InkWell(
-              onTap: () async {
-                final picker.PickerDateRange? range =
-                    await showDialog<picker.PickerDateRange?>(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return DateRangePicker(
-                              null,
-                              picker.PickerDateRange(_startDate, _endDate),
-                              displayDate: _startDate);
-                        });
-                if (range != null) {
-                  _onSelectedRangeChanged(range);
-                }
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Row(
+          // Date quick filters
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
                 children: [
-                  Icon(Icons.calendar_today_outlined,
-                      size: 20, color: Theme.of(context).primaryColor),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.from_label,
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                      Text(DateFormat('dd MMM yyyy').format(_startDate),
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.arrow_forward, size: 16, color: Colors.grey.shade400),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.to_label,
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                      Text(DateFormat('dd MMM yyyy').format(_endDate),
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+                  _dateChip(l10n.orderStatToday, 'today', () {
+                    final now = DateTime.now();
+                    setState(() { _activeDateFilter = 'today'; });
+                    _startDate = DateTime(now.year, now.month, now.day);
+                    _endDate = now.add(const Duration(days: 1));
+                    _loadOrders(true);
+                  }),
+                  _dateChip(l10n.orderStatYesterday, 'yesterday', () {
+                    final now = DateTime.now();
+                    setState(() { _activeDateFilter = 'yesterday'; });
+                    _startDate = DateTime(now.year, now.month, now.day - 1);
+                    _endDate = DateTime(now.year, now.month, now.day);
+                    _loadOrders(true);
+                  }),
+                  _dateChip(l10n.orderStatWeek, 'week', () {
+                    final now = DateTime.now();
+                    setState(() { _activeDateFilter = 'week'; });
+                    _startDate = now.subtract(Duration(days: now.weekday - 1));
+                    _endDate = now.add(Duration(days: 7 - now.weekday));
+                    _loadOrders(true);
+                  }),
+                  _dateChip(l10n.orderStatMonth, 'month', () {
+                    final now = DateTime.now();
+                    setState(() { _activeDateFilter = 'month'; });
+                    _startDate = DateTime(now.year, now.month, 1);
+                    _endDate = DateTime(now.year, now.month + 1, 0);
+                    _loadOrders(true);
+                  }),
+                  _dateChip("${DateFormat('dd.MM').format(_startDate)} - ${DateFormat('dd.MM').format(_endDate)}", 'custom', () async {
+                    final picker.PickerDateRange? range =
+                        await showDialog<picker.PickerDateRange?>(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return DateRangePicker(
+                                  null,
+                                  picker.PickerDateRange(_startDate, _endDate),
+                                  displayDate: _startDate);
+                            });
+                    if (range != null) {
+                      setState(() { _activeDateFilter = 'custom'; });
+                      _onSelectedRangeChanged(range);
+                    }
+                  }, icon: Icons.calendar_today_outlined),
                 ],
               ),
             ),
           ),
-          // Phone search
+          // Search by phone or order ID
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: TextField(
-                controller: phoneSearchController,
+                controller: searchController,
                 autofocus: false,
                 onChanged: (value) {
                   setState(() {
-                    filterPhone = value;
+                    searchQuery = value;
                   });
                 },
-                keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.search, size: 20),
-                    hintText: l10n.orderListPhoneFieldLabel,
+                    hintText: "${l10n.orderListPhoneFieldLabel} / ID",
                     filled: true,
                     fillColor: Colors.grey.shade100,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none))),
+                        borderSide: BorderSide.none),
+                    suffixIcon: searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              setState(() {
+                                searchController.clear();
+                                searchQuery = '';
+                              });
+                            },
+                          )
+                        : null)),
           ),
+          // Payment type filter
+          if (paymentTypes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: SizedBox(
+                height: 36,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _filterChip(
+                      name: l10n.total_label,
+                      count: _posts.length,
+                      selected: selectedPaymentType == null,
+                      onTap: () => setState(() => selectedPaymentType = null),
+                    ),
+                    ...paymentTypes.map((type) {
+                      final count = _posts.where((e) => e.paymentType?.toLowerCase() == type?.toLowerCase()).length;
+                      return _filterChip(
+                        name: _capitalizeFirst(_localizePaymentType(type, locale)),
+                        count: count,
+                        selected: selectedPaymentType?.toLowerCase() == type?.toLowerCase(),
+                        onTap: () => setState(() => selectedPaymentType = type),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
           // Orders list
           _posts.isEmpty
               ? Expanded(
