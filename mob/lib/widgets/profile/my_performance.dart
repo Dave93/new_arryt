@@ -131,7 +131,10 @@ class _MyPerformanceState extends State<MyPerformance> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Flexible(
+                child: Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
               const SizedBox(width: 6),
               if (diff != 0)
                 Container(
