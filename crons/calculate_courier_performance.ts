@@ -154,7 +154,7 @@ async function main() {
 
                 // Run queries concurrently
                 const [completedOrdersCount, averageScore, allOrders] = await Promise.all([
-                    // Get completed orders count (all terminals, not just assigned)
+                    // Get completed orders count for assigned terminals
                     db
                         .select({
                             count: sql<number>`count(*)::int`,
@@ -165,6 +165,7 @@ async function main() {
                                 eq(orders.courier_id, courier.id),
                                 gte(orders.created_at, startOfMonth),
                                 lte(orders.created_at, endOfMonth),
+                                inArray(orders.terminal_id, terminalIds),
                                 inArray(orders.order_status_id, notCancelledOrderStatuses)
                             )
                         )
@@ -181,6 +182,7 @@ async function main() {
                                 eq(orders.courier_id, courier.id),
                                 gte(orders.created_at, startOfMonth),
                                 lte(orders.created_at, endOfMonth),
+                                inArray(orders.terminal_id, terminalIds),
                                 sql`${orders.finished_date} IS NOT NULL`
                             )
                         )
@@ -200,6 +202,7 @@ async function main() {
                                 eq(orders.courier_id, courier.id),
                                 gte(orders.created_at, startOfMonth),
                                 lte(orders.created_at, endOfMonth),
+                                inArray(orders.terminal_id, terminalIds),
                                 inArray(orders.order_status_id, notCancelledOrderStatuses)
                             )
                         )
