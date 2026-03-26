@@ -70,6 +70,7 @@ async function main() {
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const startOfMonth = `${year}-${month}-01 00:00:00`;
         const endOfMonth = `${year}-${month}-${lastDay} 23:59:59`;
+        console.log('Date range:', startOfMonth, '-', endOfMonth);
 
 
         // const startOfMonth = '2024-11-01T00:00:00.000Z';
@@ -129,8 +130,17 @@ async function main() {
         // Group orders by courier
         const ordersByCourier = _.groupBy(allCourierOrders, 'courier_id');
 
+        // Deduplicate couriers (courier can be assigned to multiple terminals)
+        const uniqueCourierIds = new Set<string>();
+        const uniqueCouriers = couriers.filter(c => {
+            if (uniqueCourierIds.has(c.id)) return false;
+            uniqueCourierIds.add(c.id);
+            return true;
+        });
+        process.stdout.write(`Processing ${uniqueCouriers.length} unique couriers (from ${couriers.length} total)\n`);
+
         // Calculate performance for each courier
-        for (const courier of couriers) {
+        for (const courier of uniqueCouriers) {
             try {
                 const terminalIds = await getLinkedTerminalIds(courier.terminal_id);
 
@@ -201,6 +211,11 @@ async function main() {
                 const deliveryCount = completedOrdersCount[0]?.count || 0;
                 const rating = averageScore[0]?.avg_score || 0;
 
+                // Debug for specific courier
+                if (courier.id === 'df0e1387-b696-4444-b1a5-1ac34d1fc6c7') {
+                    process.stdout.write(`DEBUG Nurmamatov: count=${JSON.stringify(completedOrdersCount[0])}, deliveryCount=${deliveryCount}, allOrders=${allOrders.length}, statuses=${notCancelledOrderStatuses.length}\n`);
+                }
+
                 // Calculate average delivery time for finished orders
                 const finishedOrders = allOrders.filter(order => order.finished_date);
                 const totalMinutes = finishedOrders.reduce((sum, order) => {
@@ -233,7 +248,8 @@ async function main() {
             } catch (error) {
                 console.error('Error processing courier:', {
                     courier_id: courier.id,
-                    error: error instanceof Error ? error.message : 'Unknown error'
+                    terminal_id: courier.terminal_id,
+                    error: error instanceof Error ? error.stack : 'Unknown error'
                 });
                 // Continue with next courier
                 continue;
