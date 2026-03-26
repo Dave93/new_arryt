@@ -923,6 +923,10 @@ abstract class AppLocalizations {
   String get yes_label;
 
   String get no_label;
+
+  String get order_check_amount;
+
+  String get collect_from_customer;
 }
 
 class _AppLocalizationsDelegate

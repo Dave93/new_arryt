@@ -6,6 +6,7 @@ import 'package:currency_text_input_formatter/currency_text_input_formatter.dart
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_overlay/loading_overlay.dart';
@@ -166,6 +167,31 @@ class _WithdrawForCourierViewState extends State<WithdrawForCourierView> {
                           borderRadius: BorderRadius.circular(20)),
                       hintText:
                           AppLocalizations.of(context)!.typeWithdrawAmount,
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (value.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                _amountController.clear();
+                                setState(() { value = ''; });
+                              },
+                              child: Icon(Icons.clear, size: 20, color: Colors.grey.shade500),
+                            ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () {
+                              final formatted = CurrencyFormatter.format(widget.balance, euroSettings).replaceAll('сум', '').trim();
+                              _amountController.text = formatted;
+                              setState(() { value = formatted; });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: HugeIcon(icon: HugeIcons.strokeRoundedMagnet, color: Theme.of(context).primaryColor, size: 24),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     onChanged: (value) {
                       setState(() {

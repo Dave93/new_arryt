@@ -382,47 +382,56 @@ class _ProfilePageViewState extends State<ProfilePageView>
   }
 
   Widget _buildOrderStatCard() {
+    final primary = Theme.of(context).primaryColor;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicatorColor: Colors.white,
-                indicatorWeight: 3,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white60,
-                labelStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                unselectedLabelStyle: const TextStyle(fontSize: 16),
-                tabs: _ordersStat
-                    .map((e) => Tab(
-                          text: _getShortLabel(e.labelCode),
-                        ))
-                    .toList(),
-              ),
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Pill-shape tabs
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
             ),
-            IndexedStack(
-              index: _currentTabIndex,
-              children: _ordersStat.map((e) => _buildStatContent(e)).toList(),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.grey.shade600,
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 13),
+              dividerHeight: 0,
+              tabs: _ordersStat
+                  .map((e) => Tab(
+                        height: 36,
+                        text: _getShortLabel(e.labelCode),
+                      ))
+                  .toList(),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          IndexedStack(
+            index: _currentTabIndex,
+            children: _ordersStat.map((e) => _buildStatContent(e)).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -443,73 +452,64 @@ class _ProfilePageViewState extends State<ProfilePageView>
   }
 
   Widget _buildStatContent(OrderMobilePeriodStat e) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildStatRow(
+          AppLocalizations.of(context)!.successOrderLabel,
+          e.successCount.toString(),
+        ),
+        _buildStatRow(
+          AppLocalizations.of(context)!.failedOrderLabel,
+          e.failedCount.toString(),
+        ),
+        _buildStatRow(
+          AppLocalizations.of(context)!.orderStatOrderPrice,
+          CurrencyFormatter.format(e.orderPrice, euroSettings),
+        ),
+        _buildStatRow(
+          AppLocalizations.of(context)!.orderStatBonusPrice,
+          CurrencyFormatter.format(e.bonusPrice, euroSettings),
+        ),
+        if (e.dailyGarantPrice != null)
           _buildStatRow(
-            AppLocalizations.of(context)!.successOrderLabel,
-            e.successCount.toString(),
+            AppLocalizations.of(context)!.orderStatDailyGarantPrice,
+            CurrencyFormatter.format(e.dailyGarantPrice!, euroSettings),
           ),
-          const SizedBox(height: 8),
-          _buildStatRow(
-            AppLocalizations.of(context)!.failedOrderLabel,
-            e.failedCount.toString(),
-          ),
-          const SizedBox(height: 8),
-          _buildStatRow(
-            AppLocalizations.of(context)!.orderStatOrderPrice,
-            CurrencyFormatter.format(e.orderPrice, euroSettings),
-          ),
-          const SizedBox(height: 8),
-          _buildStatRow(
-            AppLocalizations.of(context)!.orderStatBonusPrice,
-            CurrencyFormatter.format(e.bonusPrice, euroSettings),
-          ),
-          if (e.dailyGarantPrice != null) ...[
-            const SizedBox(height: 8),
-            _buildStatRow(
-              AppLocalizations.of(context)!.orderStatDailyGarantPrice,
-              CurrencyFormatter.format(e.dailyGarantPrice!, euroSettings),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Divider(color: Colors.grey.shade300),
-          const SizedBox(height: 8),
-          _buildStatRow(
-            AppLocalizations.of(context)!.orderStatTotalPrice,
-            CurrencyFormatter.format(e.totalPrice, euroSettings),
-            isTotal: true,
-          ),
-        ],
-      ),
+        Divider(color: Colors.grey.shade200, height: 16),
+        _buildStatRow(
+          AppLocalizations.of(context)!.orderStatTotalPrice,
+          CurrencyFormatter.format(e.totalPrice, euroSettings),
+          isTotal: true,
+        ),
+      ],
     );
   }
 
   Widget _buildStatRow(String label, String value, {bool isTotal = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
             label,
             style: TextStyle(
-              fontSize: 16,
-              color: isTotal ? Colors.black : Colors.grey.shade700,
+              fontSize: isTotal ? 16 : 14,
+              color: isTotal ? Colors.black : Colors.grey.shade600,
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
             ),
           ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isTotal ? 16 : 14,
+              color: Colors.black,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

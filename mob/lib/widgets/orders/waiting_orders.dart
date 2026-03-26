@@ -233,7 +233,12 @@ class _MyWaitingOrdersListViewState extends State<MyWaitingOrdersListView> {
                                 itemBuilder: (context, index) {
                                   return WaitingOrderCard(
                                       order: orders[index],
-                                      onUpdate: () => _loadOrders());
+                                      onUpdate: () {
+                                        setState(() {
+                                          orders.removeAt(index);
+                                        });
+                                        _loadOrders();
+                                      });
                                 },
                               ))
                             : ListView(

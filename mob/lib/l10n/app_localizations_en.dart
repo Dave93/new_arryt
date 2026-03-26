@@ -494,4 +494,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get no_label => 'No';
+
+  @override
+  String get order_check_amount => 'Check amount';
+
+  @override
+  String get collect_from_customer => 'Collect from customer';
 }

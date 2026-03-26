@@ -365,7 +365,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
       id: const obx_int.IdUid(7, 7714239418338821462),
       name: 'OrderStatus',
-      lastPropertyId: const obx_int.IdUid(8, 1780434058472946175),
+      lastPropertyId: const obx_int.IdUid(9, 6245291873622354715),
       flags: 0,
       properties: <obx_int.ModelProperty>[
         obx_int.ModelProperty(
@@ -406,6 +406,11 @@ final _entities = <obx_int.ModelEntity>[
         obx_int.ModelProperty(
             id: const obx_int.IdUid(8, 1780434058472946175),
             name: 'nameEn',
+            type: 9,
+            flags: 0),
+        obx_int.ModelProperty(
+            id: const obx_int.IdUid(9, 6245291873622354715),
+            name: 'color',
             type: 9,
             flags: 0)
       ],
@@ -1047,7 +1052,9 @@ obx_int.ModelDefinition getObjectBoxModel() {
               object.nameUz == null ? null : fbb.writeString(object.nameUz!);
           final nameEnOffset =
               object.nameEn == null ? null : fbb.writeString(object.nameEn!);
-          fbb.startTable(9);
+          final colorOffset =
+              object.color == null ? null : fbb.writeString(object.color!);
+          fbb.startTable(10);
           fbb.addInt64(0, object.id);
           fbb.addOffset(1, identityOffset);
           fbb.addOffset(2, nameOffset);
@@ -1056,6 +1063,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
           fbb.addBool(5, object.onWay);
           fbb.addOffset(6, nameUzOffset);
           fbb.addOffset(7, nameEnOffset);
+          fbb.addOffset(8, colorOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -1070,6 +1078,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
               .vTableGetNullable(buffer, rootOffset, 16);
           final nameEnParam = const fb.StringReader(asciiOptimization: true)
               .vTableGetNullable(buffer, rootOffset, 18);
+          final colorParam = const fb.StringReader(asciiOptimization: true)
+              .vTableGetNullable(buffer, rootOffset, 20);
           final cancelParam =
               const fb.BoolReader().vTableGet(buffer, rootOffset, 10, false);
           final finishParam =
@@ -1081,6 +1091,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
               name: nameParam,
               nameUz: nameUzParam,
               nameEn: nameEnParam,
+              color: colorParam,
               cancel: cancelParam,
               finish: finishParam,
               onWay: onWayParam)
@@ -1576,6 +1587,10 @@ class OrderStatus_ {
   /// See [OrderStatus.nameEn].
   static final nameEn =
       obx.QueryStringProperty<OrderStatus>(_entities[5].properties[7]);
+
+  /// See [OrderStatus.color].
+  static final color =
+      obx.QueryStringProperty<OrderStatus>(_entities[5].properties[8]);
 }
 
 /// [Organizations] entity fields to define ObjectBox queries.

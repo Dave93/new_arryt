@@ -92,6 +92,12 @@ class ListenNewCurrentOrder extends StatelessWidget {
                         ['orders_order_status']['id'],
                     name: result.data?['addedNewCurrentOrder']
                         ['orders_order_status']['name'],
+                    nameUz: result.data?['addedNewCurrentOrder']
+                        ['orders_order_status']['name_uz'],
+                    nameEn: result.data?['addedNewCurrentOrder']
+                        ['orders_order_status']['name_en'],
+                    color: result.data?['addedNewCurrentOrder']
+                        ['orders_order_status']['color'],
                     cancel: result.data?['addedNewCurrentOrder']
                         ['orders_order_status']['cancel'],
                     finish: result.data?['addedNewCurrentOrder']

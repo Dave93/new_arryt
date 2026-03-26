@@ -26,12 +26,33 @@ class OrderStatus {
     required this.onWay,
   });
 
+  static const _uzMap = {
+    'Корзина': 'Savatcha',
+    'Новый': 'Yangi',
+    'Принят': 'Qabul qilindi',
+    'В филиале': 'Filialda',
+    'В пути': "Yo'lda",
+    'Ожидает гостя': 'Mijozni kutmoqda',
+    'Доставлен': 'Yetkazildi',
+    'Отмена': 'Bekor qilindi',
+  };
+  static const _enMap = {
+    'Корзина': 'Cart',
+    'Новый': 'New',
+    'Принят': 'Accepted',
+    'В филиале': 'At terminal',
+    'В пути': 'On the way',
+    'Ожидает гостя': 'Waiting for guest',
+    'Доставлен': 'Delivered',
+    'Отмена': 'Cancelled',
+  };
+
   String localizedName(String locale) {
     switch (locale) {
       case 'uz':
-        return nameUz ?? name;
+        return nameUz ?? _uzMap[name] ?? name;
       case 'en':
-        return nameEn ?? name;
+        return nameEn ?? _enMap[name] ?? name;
       default:
         return name;
     }

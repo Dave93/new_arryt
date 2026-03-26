@@ -131,7 +131,7 @@
     "product_label": "Mahsulot",
     "price_label": "Narxi",
     "quantity_label": "Soni",
-    "total_label": "Jami",
+    "total_label": "Hammasi",
     "no_orders_label": "Buyurtmalar yo'q",
     "cancel_reason_customer_changed_mind": "Mijoz fikrini o'zgartirdi",
     "cancel_reason_no_answer": "Qo'ng'iroqqa javob bermaydi",
@@ -159,5 +159,7 @@
     "balance_info_tooltip": "Bu summani ish smenasi oxirida kassadan olishingiz kerak",
     "logout_confirm": "Akkountdan chiqishni xohlaysizmi?",
     "yes_label": "Ha",
-    "no_label": "Yo'q"
+    "no_label": "Yo'q",
+    "order_check_amount": "Chek summasi",
+    "collect_from_customer": "Mijozdan olish"
 }

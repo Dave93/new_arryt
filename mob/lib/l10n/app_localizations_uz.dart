@@ -411,7 +411,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get quantity_label => 'Soni';
 
   @override
-  String get total_label => 'Jami';
+  String get total_label => 'Hammasi';
 
   @override
   String get no_orders_label => 'Buyurtmalar yo\'q';
@@ -496,4 +496,10 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get no_label => 'Yo\'q';
+
+  @override
+  String get order_check_amount => 'Chek summasi';
+
+  @override
+  String get collect_from_customer => 'Mijozdan olish';
 }

@@ -188,6 +188,9 @@ class _CancelOrderModalState extends State<CancelOrderModal> {
                       OrderStatus orderStatus = OrderStatus(
                         identity: order['orders_order_status']['id'],
                         name: order['orders_order_status']['name'],
+                        nameUz: order['orders_order_status']['name_uz'],
+                        nameEn: order['orders_order_status']['name_en'],
+                        color: order['orders_order_status']['color'],
                         cancel: order['orders_order_status']['cancel'],
                         finish: order['orders_order_status']['finish'],
                       );

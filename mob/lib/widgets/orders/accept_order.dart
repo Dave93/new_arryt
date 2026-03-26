@@ -45,12 +45,15 @@ class _AcceptOrderState extends State<AcceptOrder> {
       ApiServer api = new ApiServer();
       final response = await api.get('/api/orders/${widget.orderId}', {
         'fields':
-            'id,delivery_type,created_at,order_price,order_number,delivery_price,delivery_address,payment_type,from_lat,from_lon,to_lat,to_lon,order_items,pre_distance,organization.id,organization.name,couriers.id,couriers.first_name,couriers.last_name,customers.id,customers.name,customers.phone,order_status.id,order_status.name,order_status.color,order_status.cancel,order_status.finish,order_status.on_way,terminals.id,terminals.name,organization.icon_url,organization.description,organization.max_distance,organization.max_active_order_count,organization.max_order_close_distance,organization.support_chat_url,organization.active'
+            'id,delivery_type,created_at,order_price,order_number,delivery_price,delivery_address,payment_type,from_lat,from_lon,to_lat,to_lon,order_items,pre_distance,organization.id,organization.name,couriers.id,couriers.first_name,couriers.last_name,customers.id,customers.name,customers.phone,order_status.id,order_status.name,order_status.name_uz,order_status.name_en,order_status.color,order_status.cancel,order_status.finish,order_status.on_way,terminals.id,terminals.name,organization.icon_url,organization.description,organization.max_distance,organization.max_active_order_count,organization.max_order_close_distance,organization.support_chat_url,organization.active'
       });
       if (response.statusCode == 200) {
         OrderStatus orderStatus = OrderStatus(
           identity: response.data['data']['order_status']['id'],
           name: response.data['data']['order_status']['name'],
+          nameUz: response.data['data']['order_status']['name_uz'],
+          nameEn: response.data['data']['order_status']['name_en'],
+          color: response.data['data']['order_status']['color'],
           cancel: response.data['data']['order_status']['cancel'],
           finish: response.data['data']['order_status']['finish'],
           onWay: response.data['data']['order_status']['on_way'],

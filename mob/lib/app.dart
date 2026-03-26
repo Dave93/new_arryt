@@ -1,5 +1,6 @@
 import 'dart:isolate';
 import 'dart:ui';
+import 'package:flutter/services.dart';
 
 import 'package:arryt/main.dart';
 import 'package:auto_route/auto_route.dart';
@@ -23,6 +24,7 @@ import 'widgets/home/order_accept_slider.dart';
 class App extends StatelessWidget {
   const App({super.key});
 
+  static Locale? savedLocale;
   static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   static FirebaseAnalyticsObserver observer =
       FirebaseAnalyticsObserver(analytics: analytics);
@@ -81,7 +83,7 @@ class _AppViewState extends State<AppView> {
       child: BlocBuilder<UserDataBloc, UserDataState>(
         builder: (context, state) {
           return ChangeNotifierProvider(
-              create: (context) => LocaleProvider(),
+              create: (context) => LocaleProvider()..initWithLocale(App.savedLocale),
               builder: (context, child) {
                 return Consumer<LocaleProvider>(
                     builder: (context, provider, child) {
@@ -101,6 +103,13 @@ class _AppViewState extends State<AppView> {
                           colorScheme: ColorScheme.fromSeed(
                             seedColor: Colors.deepPurple,
                             brightness: Brightness.light,
+                          ),
+                          appBarTheme: const AppBarTheme(
+                            systemOverlayStyle: SystemUiOverlayStyle(
+                              statusBarColor: Colors.transparent,
+                              statusBarIconBrightness: Brightness.dark,
+                              statusBarBrightness: Brightness.light,
+                            ),
                           ),
                           useMaterial3: true,
                           fontFamily: GoogleFonts.nunito().fontFamily,

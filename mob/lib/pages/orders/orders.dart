@@ -106,7 +106,7 @@ class OrdersPage extends StatelessWidget {
             body: const Padding(
               padding: EdgeInsets.only(top: 8),
               child: TabBarView(
-                physics: NeverScrollableScrollPhysics(),
+                physics: const BouncingScrollPhysics(),
                 children: [
                   MyCurrentOrdersList(),
                   MyWaitingOrdersList(),
