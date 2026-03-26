@@ -146,7 +146,7 @@ async function main() {
         // Calculate performance for each courier
         for (const courier of uniqueCouriers) {
             try {
-                // Use only directly assigned terminals (no linked)
+                // Use only directly assigned terminals
                 const terminalIds = courier.allTerminalIds;
 
                 // Delete existing record for this courier for current month
