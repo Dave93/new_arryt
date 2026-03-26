@@ -146,9 +146,8 @@ async function main() {
         // Calculate performance for each courier
         for (const courier of uniqueCouriers) {
             try {
-                // Get all linked terminals for all assigned terminals
-                const allLinked = await Promise.all(courier.allTerminalIds.map(tid => getLinkedTerminalIds(tid)));
-                const terminalIds = [...new Set(allLinked.flat())];
+                // Use only directly assigned terminals (no linked)
+                const terminalIds = courier.allTerminalIds;
 
                 // Delete existing record for this courier for current month
                 await db.delete(courier_performances)
