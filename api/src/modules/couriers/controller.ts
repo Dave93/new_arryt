@@ -766,25 +766,28 @@ export const CouriersController = new Elysia({
     const monthStart = now.startOf('month').format('YYYY-MM-DD HH:mm:ss');
     const monthEnd = now.endOf('month').format('YYYY-MM-DD HH:mm:ss');
 
+    // Exclude "Корзина" status (sort = 0)
+    const cartStatuses = await drizzle.select({ id: order_status.id })
+      .from(order_status).where(eq(order_status.sort, 0)).execute();
+    const cartStatusIds = cartStatuses.map(s => s.id);
+
     const [todayResult, monthResult, ratingResult] = await Promise.all([
       drizzle.select({
         count: sql<number>`count(*)::int`,
       }).from(orders)
-        .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
         .where(and(
           inArray(orders.terminal_id, terminalIds),
           gte(orders.created_at, todayStart),
-          eq(order_status.finish, true),
+          cartStatusIds.length > 0 ? not(inArray(orders.order_status_id, cartStatusIds)) : undefined,
         )).execute(),
       drizzle.select({
         count: sql<number>`count(*)::int`,
       }).from(orders)
-        .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
         .where(and(
           inArray(orders.terminal_id, terminalIds),
           gte(orders.created_at, monthStart),
           lte(orders.created_at, monthEnd),
-          eq(order_status.finish, true),
+          cartStatusIds.length > 0 ? not(inArray(orders.order_status_id, cartStatusIds)) : undefined,
         )).execute(),
       drizzle.select({
         avg: sql<number>`COALESCE(AVG(score), 0)`,
