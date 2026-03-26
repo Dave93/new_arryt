@@ -78,7 +78,9 @@ class _ProfilePageViewState extends State<ProfilePageView>
         });
       }
       // Load terminal stats
-      var statsResponse = await api.get('/api/orders/manager_terminal_stats', {});
+      print('Loading manager terminal stats...');
+      var statsResponse = await api.get('/api/couriers/manager_terminal_stats', {});
+      print('Manager stats response: ${statsResponse.statusCode} ${statsResponse.data}');
       if (statsResponse.statusCode == 200 && statsResponse.data != null) {
         setState(() {
           _managerTodayOrders = statsResponse.data['today_orders'] ?? 0;
