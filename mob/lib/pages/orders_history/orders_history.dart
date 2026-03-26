@@ -124,9 +124,9 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
             phone: order['orders_customers']['phone'],
           );
           Couriers courier = Couriers(
-            identity: order['orders_couriers']['id'],
-            firstName: order['orders_couriers']['first_name'],
-            lastName: order['orders_couriers']['last_name'],
+            identity: order['orders_couriers']?['id'] ?? '',
+            firstName: order['orders_couriers']?['first_name'] ?? '',
+            lastName: order['orders_couriers']?['last_name'] ?? '',
           );
           Organizations organizations = Organizations(
               order['orders_organization']['id'],
