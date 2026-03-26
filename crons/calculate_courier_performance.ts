@@ -8,7 +8,8 @@ import {
     roles,
     users_terminals,
     orders,
-    terminals
+    terminals,
+    order_status
 } from "@api/drizzle/schema";
 import Redis from "ioredis";
 import _ from 'lodash';
@@ -62,10 +63,13 @@ async function getLinkedTerminalIds(terminalId: string): Promise<string[]> {
 
 async function main() {
     try {
-        // Get first day of current month at 00:00:00
+        // Get first day of current month at 00:00:00 (local timezone)
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const startOfMonth = `${year}-${month}-01 00:00:00`;
+        const endOfMonth = `${year}-${month}-${lastDay} 23:59:59`;
 
 
         // const startOfMonth = '2024-11-01T00:00:00.000Z';
@@ -92,8 +96,12 @@ async function main() {
             )
             .execute();
 
-        const orderStatuses = await cacheControl.getOrderStatuses();
-        const notCancelledOrderStatuses = orderStatuses.filter(status => !status.cancel).map(status => status.id);
+        // Read statuses directly from DB instead of cache
+        const orderStatusesFromDb = await db.select({
+            id: order_status.id,
+            cancel: order_status.cancel,
+        }).from(order_status).execute();
+        const notCancelledOrderStatuses = orderStatusesFromDb.filter(s => !s.cancel).map(s => s.id);
 
         // Group couriers by terminal for ranking
         const couriersByTerminal = _.groupBy(couriers as CourierWithTerminal[], 'terminal_id');
@@ -138,7 +146,7 @@ async function main() {
 
                 // Run queries concurrently
                 const [completedOrdersCount, averageScore, allOrders] = await Promise.all([
-                    // Get completed orders count (excluding cancelled orders)
+                    // Get completed orders count (all terminals, not just assigned)
                     db
                         .select({
                             count: sql<number>`count(*)::int`,
@@ -149,7 +157,6 @@ async function main() {
                                 eq(orders.courier_id, courier.id),
                                 gte(orders.created_at, startOfMonth),
                                 lte(orders.created_at, endOfMonth),
-                                inArray(orders.terminal_id, terminalIds),
                                 inArray(orders.order_status_id, notCancelledOrderStatuses)
                             )
                         )
@@ -166,7 +173,6 @@ async function main() {
                                 eq(orders.courier_id, courier.id),
                                 gte(orders.created_at, startOfMonth),
                                 lte(orders.created_at, endOfMonth),
-                                inArray(orders.terminal_id, terminalIds),
                                 sql`${orders.finished_date} IS NOT NULL`
                             )
                         )
@@ -186,7 +192,6 @@ async function main() {
                                 eq(orders.courier_id, courier.id),
                                 gte(orders.created_at, startOfMonth),
                                 lte(orders.created_at, endOfMonth),
-                                inArray(orders.terminal_id, terminalIds),
                                 inArray(orders.order_status_id, notCancelledOrderStatuses)
                             )
                         )
