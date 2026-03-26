@@ -814,8 +814,6 @@ export const CouriersController = new Elysia({
       avg_rating: +(ratingResult[0]?.avg || 0),
       avg_delivery_time: avgTimeResult[0]?.avg_time || 0,
     };
-  }, {
-    permission: 'orders.list',
   })
   .get('/api/couriers/my_couriers', async ({ drizzle, user, set, cacheControl }) => {
 
