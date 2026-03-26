@@ -46,7 +46,6 @@ class _MyPerformanceState extends State<MyPerformance> {
           isLoading = false;
         });
       }
-      // Handle error appropriately
     }
   }
 
@@ -56,218 +55,81 @@ class _MyPerformanceState extends State<MyPerformance> {
     return '${hours.toString().padLeft(2, '0')}:${remainingMinutes.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildMetricCard({
+  Widget _buildMetricTile({
+    required IconData icon,
+    required Color iconColor,
     required String title,
-    required dynamic currentValue,
-    required dynamic previousValue,
-    String? unit,
-    bool isTime = false,
+    required String value,
+    required int diff,
+    bool invertDiff = false,
   }) {
-    final difference = currentValue - previousValue;
-    final isPositive = difference > 0;
+    final isPositive = invertDiff ? diff < 0 : diff > 0;
+    final diffColor = diff == 0 ? Colors.grey : (isPositive ? Colors.green : Colors.red);
 
-    String displayValue =
-        isTime ? _formatTime(currentValue) : currentValue.toString();
-
-    String displayDifference =
-        isTime ? _formatTime(difference.abs()) : difference.abs().toString();
-
-    return Expanded(
-      child: SizedBox(
-        height: 140,
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Container(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style:
-                            Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (isPositive ? Colors.green : Colors.red)
-                            .withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isPositive
-                                ? Icons.arrow_downward
-                                : Icons.arrow_upward,
-                            color: isPositive ? Colors.green : Colors.red,
-                            size: 12,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            displayDifference,
-                            style: TextStyle(
-                              color: isPositive ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: Text(
-                    displayValue + (unit ?? ''),
-                    style:
-                        Theme.of(context).textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildPositionCard({
-    required int position,
-    required int total,
-    required int previousPosition,
-  }) {
-    final difference = previousPosition - position;
-    final isPositive = difference > 0;
-
-    return Expanded(
-      child: SizedBox(
-        height: 140,
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 22),
           ),
-          child: Container(
-            padding: const EdgeInsets.all(12.0),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.position_label,
-                        style:
-                            Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (difference != 0) ...[
-                      const SizedBox(width: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (isPositive ? Colors.green : Colors.red)
-                              .withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isPositive
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward,
-                              color: isPositive ? Colors.green : Colors.red,
-                              size: 12,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              difference.abs().toString(),
-                              style: TextStyle(
-                                color: isPositive ? Colors.green : Colors.red,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      position.toString(),
-                      style: Theme.of(context)
-                          .textTheme
-                          .displaySmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    Text(
-                      ' / ',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineLarge
-                          ?.copyWith(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                    Text(
-                      total.toString(),
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineLarge
-                          ?.copyWith(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                  ],
-                ),
+                Text(title,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
-        ),
+          if (diff != 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: diffColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+                    color: diffColor,
+                    size: 12,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    diff.abs().toString(),
+                    style: TextStyle(
+                      color: diffColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -279,45 +141,62 @@ class _MyPerformanceState extends State<MyPerformance> {
     }
 
     if (performanceData == null) {
-      return const Center(child: Text('No performance data available'));
+      return const SizedBox.shrink();
     }
 
     final current = performanceData!['currentPerformance'];
     final previous = performanceData!['previousPerformance'];
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(
         children: [
           Row(
             children: [
-              _buildMetricCard(
-                title: AppLocalizations.of(context)!.rating_label,
-                currentValue: current['rating'],
-                previousValue: previous['rating'],
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.star_outline_rounded,
+                  iconColor: Colors.amber,
+                  title: l10n.rating_label,
+                  value: current['rating'].toString(),
+                  diff: current['rating'] - previous['rating'],
+                ),
               ),
-              const SizedBox(width: 12),
-              _buildMetricCard(
-                title: AppLocalizations.of(context)!.deliveries_label,
-                currentValue: current['delivery_count'],
-                previousValue: previous['delivery_count'],
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.delivery_dining_outlined,
+                  iconColor: Colors.green,
+                  title: l10n.deliveries_label,
+                  value: current['delivery_count'].toString(),
+                  diff: current['delivery_count'] - previous['delivery_count'],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
-              _buildMetricCard(
-                title: AppLocalizations.of(context)!.avg_time_label,
-                currentValue: current['delivery_average_time'],
-                previousValue: previous['delivery_average_time'],
-                isTime: true,
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.schedule_outlined,
+                  iconColor: Colors.blue,
+                  title: l10n.avg_time_label,
+                  value: _formatTime(current['delivery_average_time']),
+                  diff: current['delivery_average_time'] - previous['delivery_average_time'],
+                  invertDiff: true,
+                ),
               ),
-              const SizedBox(width: 12),
-              _buildPositionCard(
-                position: current['position'],
-                total: current['total_active_couriers'],
-                previousPosition: previous['position'],
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.leaderboard_outlined,
+                  iconColor: Theme.of(context).primaryColor,
+                  title: l10n.position_label,
+                  value: '${current['position']}/${current['total_active_couriers']}',
+                  diff: previous['position'] - current['position'],
+                ),
               ),
             ],
           ),
