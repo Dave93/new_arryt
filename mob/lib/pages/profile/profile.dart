@@ -56,8 +56,8 @@ class _ProfilePageViewState extends State<ProfilePageView>
   bool get _isCourier => user?.roles.isNotEmpty == true && user!.roles.first.code == 'courier';
 
   Future<void> _loadData() async {
+    await _loadStatistics();
     if (_isCourier) {
-      await _loadStatistics();
       await _loadProfileNumbers();
     } else {
       await _loadManagerData();
@@ -407,10 +407,11 @@ class _ProfilePageViewState extends State<ProfilePageView>
                     if (isCourier) ...[
                       const MyPerformance(),
                       const SizedBox(height: 10),
-                      if (_ordersStat.isNotEmpty) _buildOrderStatCard(),
                     ] else ...[
                       _buildManagerStats(),
+                      const SizedBox(height: 10),
                     ],
+                    if (_ordersStat.isNotEmpty) _buildOrderStatCard(),
                     const SizedBox(height: 50),
                     const ProfileLogoutButton(),
                     const SizedBox(height: 20),
@@ -449,68 +450,36 @@ class _ProfilePageViewState extends State<ProfilePageView>
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: Column(
               children: [
-                _managerStatItem(uniqueCourierIds.length.toString(), l10n.couriersListTabLabel, Icons.people_outline),
-                Container(width: 1, height: 40, color: Colors.white24),
-                _managerStatItem(terminals.length.toString(), l10n.terminal_label, Icons.store_outlined),
-                Container(width: 1, height: 40, color: Colors.white24),
-                _managerStatItem(_managerMonthOrders.toString(), l10n.orders, Icons.receipt_long_outlined),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _managerStatItem(uniqueCourierIds.length.toString(), l10n.couriersListTabLabel, Icons.people_outline),
+                    Container(width: 1, height: 40, color: Colors.white24),
+                    _managerStatItem(terminals.length.toString(), l10n.terminal_label, Icons.store_outlined),
+                    Container(width: 1, height: 40, color: Colors.white24),
+                    _managerStatItem(_managerMonthOrders.toString(), l10n.orders, Icons.receipt_long_outlined),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _managerStatItem(_managerTodayOrders.toString(), l10n.orderStatToday, Icons.today_outlined),
+                      Container(width: 1, height: 40, color: Colors.white24),
+                      _managerStatItem(_formatManagerTime(_managerAvgDeliveryTime), l10n.avg_time_label, Icons.schedule_outlined),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.today_outlined, color: Colors.green, size: 28),
-                      const SizedBox(height: 6),
-                      Text(_managerTodayOrders.toString(),
-                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text(l10n.orderStatToday,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(Icons.schedule_outlined, color: Colors.blue, size: 28),
-                      const SizedBox(height: 6),
-                      Text(_formatManagerTime(_managerAvgDeliveryTime),
-                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text(l10n.avg_time_label,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
