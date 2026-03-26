@@ -129,18 +129,26 @@ async function main() {
         // Group orders by courier
         const ordersByCourier = _.groupBy(allCourierOrders, 'courier_id');
 
-        // Deduplicate couriers (courier can be assigned to multiple terminals)
-        const uniqueCourierIds = new Set<string>();
-        const uniqueCouriers = couriers.filter(c => {
-            if (uniqueCourierIds.has(c.id)) return false;
-            uniqueCourierIds.add(c.id);
-            return true;
-        });
+        // Deduplicate couriers and collect all their terminal IDs
+        const courierTerminalMap = new Map<string, string[]>();
+        for (const c of couriers) {
+            if (!courierTerminalMap.has(c.id)) {
+                courierTerminalMap.set(c.id, []);
+            }
+            courierTerminalMap.get(c.id)!.push(c.terminal_id);
+        }
+        const uniqueCouriers = [...courierTerminalMap.entries()].map(([id, tids]) => ({
+            id,
+            terminal_id: tids[0],
+            allTerminalIds: tids,
+        }));
 
         // Calculate performance for each courier
         for (const courier of uniqueCouriers) {
             try {
-                const terminalIds = await getLinkedTerminalIds(courier.terminal_id);
+                // Get all linked terminals for all assigned terminals
+                const allLinked = await Promise.all(courier.allTerminalIds.map(tid => getLinkedTerminalIds(tid)));
+                const terminalIds = [...new Set(allLinked.flat())];
 
                 // Delete existing record for this courier for current month
                 await db.delete(courier_performances)
