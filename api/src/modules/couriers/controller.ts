@@ -749,7 +749,7 @@ export const CouriersController = new Elysia({
   }, {
     permission: 'orders.list',
   })
-  .get('/api/orders/manager_terminal_stats', async ({ user, drizzle }) => {
+  .get('/api/couriers/manager_terminal_stats', async ({ user, drizzle }) => {
     const userTerminalsList = await drizzle.select({
       terminal_id: users_terminals.terminal_id,
     }).from(users_terminals).where(
