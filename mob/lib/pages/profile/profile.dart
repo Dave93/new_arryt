@@ -78,16 +78,19 @@ class _ProfilePageViewState extends State<ProfilePageView>
         });
       }
       // Load terminal stats
-      print('Loading manager terminal stats...');
-      var statsResponse = await api.get('/api/couriers/manager_terminal_stats', {});
-      print('Manager stats response: ${statsResponse.statusCode} ${statsResponse.data}');
-      if (statsResponse.statusCode == 200 && statsResponse.data != null) {
-        setState(() {
-          _managerTodayOrders = statsResponse.data['today_orders'] ?? 0;
-          _managerMonthOrders = statsResponse.data['month_orders'] ?? 0;
-          _managerAvgRating = (statsResponse.data['avg_rating'] ?? 0).toDouble();
-          _managerAvgDeliveryTime = statsResponse.data['avg_delivery_time'] ?? 0;
-        });
+      try {
+        var statsResponse = await api.get('/api/couriers/manager_terminal_stats', {});
+        print('Manager stats: ${statsResponse.statusCode} ${statsResponse.data}');
+        if (statsResponse.statusCode == 200 && statsResponse.data != null) {
+          setState(() {
+            _managerTodayOrders = statsResponse.data['today_orders'] ?? 0;
+            _managerMonthOrders = statsResponse.data['month_orders'] ?? 0;
+            _managerAvgRating = (statsResponse.data['avg_rating'] ?? 0).toDouble();
+            _managerAvgDeliveryTime = statsResponse.data['avg_delivery_time'] ?? 0;
+          });
+        }
+      } catch (e) {
+        print('Manager stats error: $e');
       }
     } catch (e) {
       // ignore
