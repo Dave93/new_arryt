@@ -1,6 +1,7 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/bloc/block_imports.dart';
 import 'package:arryt/helpers/api_server.dart';
+import 'package:dio/dio.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:arryt/widgets/profile/my_balance_by_terminal.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -79,8 +80,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
       }
       // Load terminal stats
       try {
-        var statsResponse = await api.get('/api/couriers/manager_terminal_stats', {});
-        print('Manager stats: ${statsResponse.statusCode} ${statsResponse.data}');
+        var statsResponse = await api.get('/api/couriers/manager_terminal_stats', null);
         if (statsResponse.statusCode == 200 && statsResponse.data != null) {
           setState(() {
             _managerTodayOrders = statsResponse.data['today_orders'] ?? 0;
@@ -90,7 +90,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
           });
         }
       } catch (e) {
-        print('Manager stats error: $e');
+        // ignore stats error
       }
     } catch (e) {
       // ignore
