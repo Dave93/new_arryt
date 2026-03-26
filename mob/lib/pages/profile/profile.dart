@@ -66,6 +66,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
   int _managerTodayOrders = 0;
   int _managerMonthOrders = 0;
   double _managerAvgRating = 0;
+  int _managerAvgDeliveryTime = 0;
 
   Future<void> _loadManagerData() async {
     try {
@@ -83,6 +84,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
           _managerTodayOrders = statsResponse.data['today_orders'] ?? 0;
           _managerMonthOrders = statsResponse.data['month_orders'] ?? 0;
           _managerAvgRating = (statsResponse.data['avg_rating'] ?? 0).toDouble();
+          _managerAvgDeliveryTime = statsResponse.data['avg_delivery_time'] ?? 0;
         });
       }
     } catch (e) {
@@ -442,54 +444,78 @@ class _ProfilePageViewState extends State<ProfilePageView>
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _managerStatItem(uniqueCourierIds.length.toString(), l10n.couriersListTabLabel, Icons.people_outline),
-                    Container(width: 1, height: 40, color: Colors.white24),
-                    _managerStatItem(_managerTodayOrders.toString(), l10n.orderStatToday, Icons.today_outlined),
-                    Container(width: 1, height: 40, color: Colors.white24),
-                    _managerStatItem(_managerMonthOrders.toString(), l10n.orderStatMonth, Icons.calendar_month_outlined),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _managerStatItem(
-                      _managerAvgRating > 0 ? _managerAvgRating.toStringAsFixed(1) : '—',
-                      l10n.rating_label,
-                      Icons.star_outline_rounded,
-                    ),
-                    Container(width: 1, height: 40, color: Colors.white24),
-                    _managerStatItem(terminals.length.toString(), l10n.terminal_label, Icons.store_outlined),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                _managerStatItem(uniqueCourierIds.length.toString(), l10n.couriersListTabLabel, Icons.people_outline),
+                Container(width: 1, height: 40, color: Colors.white24),
+                _managerStatItem(terminals.length.toString(), l10n.terminal_label, Icons.store_outlined),
+                Container(width: 1, height: 40, color: Colors.white24),
+                _managerStatItem(_managerMonthOrders.toString(), l10n.orders, Icons.receipt_long_outlined),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      Text(l10n.orderStatTotalPrice,
-                          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
-                      Text(CurrencyFormatter.format(totalBalance, euroSettings),
-                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                      const Icon(Icons.today_outlined, color: Colors.green, size: 28),
+                      const SizedBox(height: 6),
+                      Text(_managerTodayOrders.toString(),
+                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(l10n.orderStatToday,
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.schedule_outlined, color: Colors.blue, size: 28),
+                      const SizedBox(height: 6),
+                      Text(_formatManagerTime(_managerAvgDeliveryTime),
+                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(l10n.avg_time_label,
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  String _formatManagerTime(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
   }
 
   Widget _managerStatItem(String value, String label, IconData icon) {

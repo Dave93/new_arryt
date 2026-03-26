@@ -796,10 +796,23 @@ export const CouriersController = new Elysia({
       )).execute(),
     ]);
 
+    const avgTimeResult = await drizzle.select({
+      avg_time: sql<number>`COALESCE(AVG(EXTRACT(EPOCH FROM (finished_date::timestamp - created_at::timestamp)) / 60), 0)::int`,
+    }).from(orders)
+      .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+      .where(and(
+        inArray(orders.terminal_id, terminalIds),
+        gte(orders.created_at, monthStart),
+        lte(orders.created_at, monthEnd),
+        eq(order_status.finish, true),
+        sql`finished_date IS NOT NULL`,
+      )).execute();
+
     return {
       today_orders: todayResult[0]?.count || 0,
       month_orders: monthResult[0]?.count || 0,
       avg_rating: +(ratingResult[0]?.avg || 0),
+      avg_delivery_time: avgTimeResult[0]?.avg_time || 0,
     };
   }, {
     permission: 'orders.list',
