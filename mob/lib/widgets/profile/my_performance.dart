@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 import 'dart:async';
 
 class MyPerformance extends StatefulWidget {
@@ -49,6 +50,14 @@ class _MyPerformanceState extends State<MyPerformance> {
     }
   }
 
+  String _localize(String locale, String ru, String uz, String en) {
+    switch (locale) {
+      case 'uz': return uz;
+      case 'en': return en;
+      default: return ru;
+    }
+  }
+
   String _formatTime(int minutes) {
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
@@ -61,13 +70,14 @@ class _MyPerformanceState extends State<MyPerformance> {
     required String title,
     required String value,
     required int diff,
+    String? tooltip,
     bool invertDiff = false,
   }) {
     final isPositive = invertDiff ? diff < 0 : diff > 0;
     final diffColor = diff == 0 ? Colors.grey : (isPositive ? Colors.green : Colors.red);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -79,56 +89,68 @@ class _MyPerformanceState extends State<MyPerformance> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                const SizedBox(height: 2),
-                Text(value,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          if (diff != 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: diffColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 18),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                    color: diffColor,
-                    size: 12,
-                  ),
-                  const SizedBox(width: 2),
-                  Text(
-                    diff.abs().toString(),
-                    style: TextStyle(
-                      color: diffColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    overflow: TextOverflow.ellipsis),
               ),
-            ),
+              if (tooltip != null)
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                        content: Text(tooltip, style: const TextStyle(fontSize: 15)),
+                        actionsPadding: const EdgeInsets.only(right: 8, bottom: 4),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Icon(Icons.help_outline, size: 14, color: Colors.grey.shade400),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 6),
+              if (diff != 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: diffColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(isPositive ? Icons.arrow_upward : Icons.arrow_downward, color: diffColor, size: 10),
+                      Text(diff.abs().toString(),
+                          style: TextStyle(color: diffColor, fontWeight: FontWeight.w600, fontSize: 11)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -147,11 +169,27 @@ class _MyPerformanceState extends State<MyPerformance> {
     final current = performanceData!['currentPerformance'];
     final previous = performanceData!['previousPerformance'];
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
+
+    final monthName = DateFormat('MMMM yyyy', Localizations.localeOf(context).languageCode).format(DateTime.now());
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_month_outlined, size: 16, color: Colors.grey.shade500),
+                const SizedBox(width: 6),
+                Text(
+                  monthName[0].toUpperCase() + monthName.substring(1),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
           Row(
             children: [
               Expanded(
@@ -161,6 +199,10 @@ class _MyPerformanceState extends State<MyPerformance> {
                   title: l10n.rating_label,
                   value: current['rating'].toString(),
                   diff: current['rating'] - previous['rating'],
+                  tooltip: _localize(locale,
+                      'Средняя оценка от клиентов за текущий месяц. Чем выше — тем лучше.',
+                      'Joriy oy uchun mijozlarning o\'rtacha bahosi. Qancha baland bo\'lsa, shuncha yaxshi.',
+                      'Average customer rating for the current month. Higher is better.'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -171,6 +213,10 @@ class _MyPerformanceState extends State<MyPerformance> {
                   title: l10n.deliveries_label,
                   value: current['delivery_count'].toString(),
                   diff: current['delivery_count'] - previous['delivery_count'],
+                  tooltip: _localize(locale,
+                      'Количество успешно завершённых доставок за текущий месяц.',
+                      'Joriy oyda muvaffaqiyatli yakunlangan yetkazishlar soni.',
+                      'Number of successfully completed deliveries this month.'),
                 ),
               ),
             ],
@@ -186,6 +232,10 @@ class _MyPerformanceState extends State<MyPerformance> {
                   value: _formatTime(current['delivery_average_time']),
                   diff: current['delivery_average_time'] - previous['delivery_average_time'],
                   invertDiff: true,
+                  tooltip: _localize(locale,
+                      'Среднее время от создания заказа до завершения доставки. Чем меньше — тем лучше.',
+                      'Buyurtma yaratilganidan yetkazish yakunlanguncha o\'rtacha vaqt. Qancha kam bo\'lsa, shuncha yaxshi.',
+                      'Average time from order creation to delivery completion. Lower is better.'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -196,6 +246,10 @@ class _MyPerformanceState extends State<MyPerformance> {
                   title: l10n.position_label,
                   value: '${current['position']}/${current['total_active_couriers']}',
                   diff: previous['position'] - current['position'],
+                  tooltip: _localize(locale,
+                      'Ваше место среди курьеров вашего филиала по количеству доставок и скорости.',
+                      'Filialingizdagi kuryerlar orasida yetkazishlar soni va tezligi bo\'yicha o\'rningiz.',
+                      'Your rank among couriers in your terminal by delivery count and speed.'),
                 ),
               ),
             ],
