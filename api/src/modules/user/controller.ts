@@ -220,8 +220,8 @@ export const UsersController = new Elysia({
     }
 
     // Override delivery_count with real-time data from orders (all terminals)
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-    const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString();
+    const startOfMonth = dayjs().startOf('month').format('YYYY-MM-DD HH:mm:ss');
+    const endOfMonth = dayjs().endOf('month').format('YYYY-MM-DD HH:mm:ss');
     const realTimeCount = await drizzle.select({
       count: sql<number>`count(*)::int`,
     }).from(orders)
