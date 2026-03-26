@@ -50,10 +50,44 @@ class _ProfilePageViewState extends State<ProfilePageView>
   double rating = 0;
   int _currentTabIndex = 0;
   UserData? user = HiveHelper.getUserData();
+  List<Map<String, dynamic>> _managerCouriers = [];
+
+  bool get _isCourier => user?.roles.isNotEmpty == true && user!.roles.first.code == 'courier';
 
   Future<void> _loadData() async {
-    await _loadStatistics();
-    await _loadProfileNumbers();
+    if (_isCourier) {
+      await _loadStatistics();
+      await _loadProfileNumbers();
+    } else {
+      await _loadManagerData();
+    }
+  }
+
+  int _managerTodayOrders = 0;
+  int _managerMonthOrders = 0;
+  double _managerAvgRating = 0;
+
+  Future<void> _loadManagerData() async {
+    try {
+      ApiServer api = ApiServer();
+      var response = await api.get('/api/couriers/my_couriers/balance', {});
+      if (response.statusCode == 200 && response.data != null) {
+        setState(() {
+          _managerCouriers = (response.data as List).map((e) => e as Map<String, dynamic>).toList();
+        });
+      }
+      // Load terminal stats
+      var statsResponse = await api.get('/api/orders/manager_terminal_stats', {});
+      if (statsResponse.statusCode == 200 && statsResponse.data != null) {
+        setState(() {
+          _managerTodayOrders = statsResponse.data['today_orders'] ?? 0;
+          _managerMonthOrders = statsResponse.data['month_orders'] ?? 0;
+          _managerAvgRating = (statsResponse.data['avg_rating'] ?? 0).toDouble();
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
   }
 
   Future<void> _loadProfileNumbers() async {
@@ -297,6 +331,7 @@ class _ProfilePageViewState extends State<ProfilePageView>
                           ],
                         ),
                         const SizedBox(height: 20),
+                        if (user?.roles.isNotEmpty == true && user!.roles.first.code == 'courier')
                         GestureDetector(
                           onTap: () {
                             showModalBottomSheet(
@@ -359,18 +394,19 @@ class _ProfilePageViewState extends State<ProfilePageView>
                   SliverChildBuilderDelegate((BuildContext context, int index) {
                 return BlocBuilder<UserDataBloc, UserDataState>(
                     builder: (context, state) {
+                  final isCourier = user?.roles.isNotEmpty == true && user!.roles.first.code == 'courier';
                   return Column(children: [
                     const SizedBox(height: 16),
-                    const MyPerformance(),
-                    const SizedBox(height: 10),
-                    if (_ordersStat.isNotEmpty) _buildOrderStatCard(),
-                    const SizedBox(
-                      height: 50,
-                    ),
+                    if (isCourier) ...[
+                      const MyPerformance(),
+                      const SizedBox(height: 10),
+                      if (_ordersStat.isNotEmpty) _buildOrderStatCard(),
+                    ] else ...[
+                      _buildManagerStats(),
+                    ],
+                    const SizedBox(height: 50),
                     const ProfileLogoutButton(),
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    const SizedBox(height: 20),
                   ]);
                 });
               }, childCount: 1),
@@ -379,6 +415,92 @@ class _ProfilePageViewState extends State<ProfilePageView>
         ),
       ],
     ));
+  }
+
+  Widget _buildManagerStats() {
+    final l10n = AppLocalizations.of(context)!;
+    final primary = Theme.of(context).primaryColor;
+
+    // Calculate totals from couriers data loaded via _loadData
+    final totalCouriers = _managerCouriers.length;
+    final totalBalance = _managerCouriers.fold<int>(0, (sum, c) => sum + (c['balance'] as int? ?? 0));
+    final uniqueCourierIds = _managerCouriers.map((c) => c['courier_id']).toSet();
+    final terminals = _managerCouriers.map((c) => c['terminal_name'] ?? '').toSet();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Column(
+        children: [
+          // Summary card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primary, primary.withOpacity(0.7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _managerStatItem(uniqueCourierIds.length.toString(), l10n.couriersListTabLabel, Icons.people_outline),
+                    Container(width: 1, height: 40, color: Colors.white24),
+                    _managerStatItem(_managerTodayOrders.toString(), l10n.orderStatToday, Icons.today_outlined),
+                    Container(width: 1, height: 40, color: Colors.white24),
+                    _managerStatItem(_managerMonthOrders.toString(), l10n.orderStatMonth, Icons.calendar_month_outlined),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _managerStatItem(
+                      _managerAvgRating > 0 ? _managerAvgRating.toStringAsFixed(1) : '—',
+                      l10n.rating_label,
+                      Icons.star_outline_rounded,
+                    ),
+                    Container(width: 1, height: 40, color: Colors.white24),
+                    _managerStatItem(terminals.length.toString(), l10n.terminal_label, Icons.store_outlined),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(l10n.orderStatTotalPrice,
+                          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+                      Text(CurrencyFormatter.format(totalBalance, euroSettings),
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _managerStatItem(String value, String label, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 24),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)),
+      ],
+    );
   }
 
   Widget _buildOrderStatCard() {

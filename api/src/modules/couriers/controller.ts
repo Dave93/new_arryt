@@ -749,6 +749,61 @@ export const CouriersController = new Elysia({
   }, {
     permission: 'orders.list',
   })
+  .get('/api/orders/manager_terminal_stats', async ({ user, drizzle }) => {
+    const userTerminalsList = await drizzle.select({
+      terminal_id: users_terminals.terminal_id,
+    }).from(users_terminals).where(
+      eq(users_terminals.user_id, user.user.id)
+    ).execute();
+
+    if (!userTerminalsList.length) {
+      return { today_orders: 0, month_orders: 0, avg_rating: 0 };
+    }
+
+    const terminalIds = userTerminalsList.map(t => t.terminal_id);
+    const now = dayjs();
+    const todayStart = now.startOf('day').format('YYYY-MM-DD HH:mm:ss');
+    const monthStart = now.startOf('month').format('YYYY-MM-DD HH:mm:ss');
+    const monthEnd = now.endOf('month').format('YYYY-MM-DD HH:mm:ss');
+
+    const [todayResult, monthResult, ratingResult] = await Promise.all([
+      drizzle.select({
+        count: sql<number>`count(*)::int`,
+      }).from(orders)
+        .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+        .where(and(
+          inArray(orders.terminal_id, terminalIds),
+          gte(orders.created_at, todayStart),
+          eq(order_status.finish, true),
+        )).execute(),
+      drizzle.select({
+        count: sql<number>`count(*)::int`,
+      }).from(orders)
+        .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+        .where(and(
+          inArray(orders.terminal_id, terminalIds),
+          gte(orders.created_at, monthStart),
+          lte(orders.created_at, monthEnd),
+          eq(order_status.finish, true),
+        )).execute(),
+      drizzle.select({
+        avg: sql<number>`COALESCE(AVG(score), 0)`,
+      }).from(orders).where(and(
+        inArray(orders.terminal_id, terminalIds),
+        gte(orders.created_at, monthStart),
+        lte(orders.created_at, monthEnd),
+        sql`score IS NOT NULL AND score > 0`,
+      )).execute(),
+    ]);
+
+    return {
+      today_orders: todayResult[0]?.count || 0,
+      month_orders: monthResult[0]?.count || 0,
+      avg_rating: +(ratingResult[0]?.avg || 0),
+    };
+  }, {
+    permission: 'orders.list',
+  })
   .get('/api/couriers/my_couriers', async ({ drizzle, user, set, cacheControl }) => {
 
     // @ts-ignore
