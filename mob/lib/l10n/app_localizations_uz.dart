@@ -81,7 +81,7 @@ class AppLocalizationsUz extends AppLocalizations {
       'Buyurtmalarni qabul qilish uchun yuqoridagi ish rejimini yoqishni bosing';
 
   @override
-  String get logout_btn => 'Akkountdan chiqish';
+  String get logout_btn => 'Akkauntdan chiqish';
 
   @override
   String get order_card_comments => 'Izohlar';
@@ -384,7 +384,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get rating_label => 'Reyting';
 
   @override
-  String get deliveries_label => 'Yetkazishlar';
+  String get deliveries_label => 'Yetkazildi';
 
   @override
   String get avg_time_label => 'O\'rtacha vaqt';
@@ -489,7 +489,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get balance_info_tooltip => 'Bu summani ish smenasi oxirida kassadan olishingiz kerak';
 
   @override
-  String get logout_confirm => 'Akkountdan chiqishni xohlaysizmi?';
+  String get logout_confirm => 'Akkauntdan chiqishni xohlaysizmi?';
 
   @override
   String get yes_label => 'Ha';

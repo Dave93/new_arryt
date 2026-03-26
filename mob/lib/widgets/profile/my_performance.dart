@@ -72,8 +72,10 @@ class _MyPerformanceState extends State<MyPerformance> {
     required int diff,
     String? tooltip,
     bool invertDiff = false,
+    bool isTimeDiff = false,
   }) {
     final isPositive = invertDiff ? diff < 0 : diff > 0;
+    final diffText = isTimeDiff ? _formatTime(diff.abs()) : diff.abs().toString();
     final diffColor = diff == 0 ? Colors.grey : (isPositive ? Colors.green : Colors.red);
 
     return Container(
@@ -90,10 +92,11 @@ class _MyPerformanceState extends State<MyPerformance> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
@@ -104,37 +107,38 @@ class _MyPerformanceState extends State<MyPerformance> {
                 child: Icon(icon, color: iconColor, size: 18),
               ),
               const SizedBox(width: 8),
-              Expanded(
+              Flexible(
                 child: Text(title,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     overflow: TextOverflow.ellipsis),
               ),
               if (tooltip != null)
-                GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                        content: Text(tooltip, style: const TextStyle(fontSize: 15)),
-                        actionsPadding: const EdgeInsets.only(right: 8, bottom: 4),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-                        ],
-                      ),
-                    );
-                  },
-                  child: Icon(Icons.help_outline, size: 14, color: Colors.grey.shade400),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                          content: Text(tooltip, style: const TextStyle(fontSize: 15)),
+                          actionsPadding: const EdgeInsets.only(right: 8, bottom: 4),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                          ],
+                        ),
+                      );
+                    },
+                    child: Icon(Icons.help_outline, size: 16, color: Colors.grey.shade400),
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Flexible(
-                child: Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-              ),
+              Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(width: 6),
               if (diff != 0)
                 Container(
@@ -147,7 +151,7 @@ class _MyPerformanceState extends State<MyPerformance> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(isPositive ? Icons.arrow_upward : Icons.arrow_downward, color: diffColor, size: 10),
-                      Text(diff.abs().toString(),
+                      Text(diffText,
                           style: TextStyle(color: diffColor, fontWeight: FontWeight.w600, fontSize: 11)),
                     ],
                   ),
@@ -174,25 +178,10 @@ class _MyPerformanceState extends State<MyPerformance> {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
 
-    final monthName = DateFormat('MMMM yyyy', Localizations.localeOf(context).languageCode).format(DateTime.now());
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_month_outlined, size: 16, color: Colors.grey.shade500),
-                const SizedBox(width: 6),
-                Text(
-                  monthName[0].toUpperCase() + monthName.substring(1),
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
           Row(
             children: [
               Expanded(
@@ -235,6 +224,7 @@ class _MyPerformanceState extends State<MyPerformance> {
                   value: _formatTime(current['delivery_average_time']),
                   diff: current['delivery_average_time'] - previous['delivery_average_time'],
                   invertDiff: true,
+                  isTimeDiff: true,
                   tooltip: _localize(locale,
                       'Среднее время от создания заказа до завершения доставки. Чем меньше — тем лучше.',
                       'Buyurtma yaratilganidan yetkazish yakunlanguncha o\'rtacha vaqt. Qancha kam bo\'lsa, shuncha yaxshi.',
