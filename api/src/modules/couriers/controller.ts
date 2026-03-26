@@ -416,15 +416,32 @@ export const CouriersController = new Elysia({
     const finishedStatusIdsSql = sql.raw(`order_status_id in ('${finishedStatusIds.join("','")}')`);
     const canceledStatusIdsSql = sql.raw(`order_status_id in ('${canceledStatusIds.join("','")}')`);
 
+    // Determine filter: courier filters by courier_id, manager by terminal_ids
     // @ts-ignore
-    const courierIdSql = sql.raw(user.user.id);
+    const userRoles = await drizzle.select({ code: roles.code }).from(users_roles)
+      .leftJoin(roles, eq(users_roles.role_id, roles.id))
+      // @ts-ignore
+      .where(eq(users_roles.user_id, user.user.id)).execute();
+    const isManager = userRoles.some((r: any) => r.code === 'manager');
+
+    let ownerFilter: any;
+    if (isManager) {
+      const userTerminals = await drizzle.select({ terminal_id: users_terminals.terminal_id })
+        // @ts-ignore
+        .from(users_terminals).where(eq(users_terminals.user_id, user.user.id)).execute();
+      const tids = userTerminals.map(t => t.terminal_id);
+      ownerFilter = tids.length > 0 ? sql.raw(`terminal_id in ('${tids.join("','")}')`) : sql.raw(`1=0`);
+    } else {
+      // @ts-ignore
+      ownerFilter = sql.raw(`courier_id = '${user.user.id}'`);
+    }
 
     const fromTodayDateSql = sql.raw(fromDate.toISOString());
     const toTodayDateSql = sql.raw(toDate.toISOString());
     const sqlTodayFinishedOrdersCountQuery = (await drizzle.execute<{ count: number }>(
       sql`SELECT count(*) as count
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
     )).rows[0];
     const sqlTodayCanceledOrdersCountQuery = (await drizzle
@@ -433,7 +450,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT count(*) as count
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${canceledStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
       )).rows[0];
     const sqlTodayFinishedOrdersAmountQuery = (await drizzle
@@ -442,7 +459,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(delivery_price) as amount
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}'`
       )).rows[0];
 
@@ -464,7 +481,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT count(*) as count
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
       )).rows[0];
     const sqlYesterdayCanceledOrdersCountQuery = (await drizzle
@@ -473,7 +490,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT count(*) as count
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${canceledStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
       )).rows[0];
 
@@ -483,7 +500,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(delivery_price) as amount
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}'`
       )).rows[0];
 
@@ -500,7 +517,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT count(*) as count
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
       )).rows[0];
 
@@ -510,7 +527,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT count(*) as count
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${canceledStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
       )).rows[0];
 
@@ -520,7 +537,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(delivery_price) as amount
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}'`
       )).rows[0];
 
@@ -537,7 +554,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT count(*) as count
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
       )).rows[0];
 
@@ -547,7 +564,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT count(*) as count
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${canceledStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
       )).rows[0];
 
@@ -557,7 +574,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(delivery_price) as amount
                 FROM orders
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND ${finishedStatusIdsSql} AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}'`
       )).rows[0];
 
@@ -568,7 +585,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type not in ('daily_garant', 'order')`
       )).rows[0];
 
@@ -579,7 +596,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type not in ('daily_garant', 'order')`
       )).rows[0];
 
@@ -590,7 +607,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type not in ('daily_garant', 'order')`
       )).rows[0];
 
@@ -601,7 +618,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type not in ('daily_garant', 'order')`
       )).rows[0];
 
@@ -612,7 +629,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'daily_garant'`
       )).rows[0];
 
@@ -623,7 +640,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'daily_garant'`
       )).rows[0];
 
@@ -634,7 +651,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'daily_garant'`
       )).rows[0];
 
@@ -645,7 +662,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'daily_garant'`
       )).rows[0];
 
@@ -656,7 +673,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromTodayDateSql}' AND created_at <= '${toTodayDateSql}' and transaction_type = 'work_schedule_bonus'`
       )).rows[0];
 
@@ -667,7 +684,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromYesterdayDateSql}' AND created_at <= '${toYesterdayDateSql}' and transaction_type = 'work_schedule_bonus'`
       )).rows[0];
 
@@ -678,7 +695,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromWeekDateSql}' AND created_at <= '${toWeekDateSql}' and transaction_type = 'work_schedule_bonus'`
       )).rows[0];
 
@@ -689,7 +706,7 @@ export const CouriersController = new Elysia({
       >(
         sql`SELECT sum(amount) as amount
                 FROM order_transactions
-                WHERE courier_id = '${courierIdSql}' 
+                WHERE ${ownerFilter} 
                 AND created_at >= '${fromMonthDateSql}' AND created_at <= '${toMonthDateSql}' and transaction_type = 'work_schedule_bonus'`
       )).rows[0];
 
