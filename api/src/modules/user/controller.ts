@@ -7,7 +7,7 @@ import {
   work_schedules,
   users_work_schedules,
   users_roles,
-  roles, terminals
+  roles, terminals, orders, order_status
 } from "../../../drizzle/schema";
 import {
   eq,
@@ -15,7 +15,7 @@ import {
   and,
   or,
   ilike,
-  desc, sql, SQLWrapper
+  desc, sql, gte, lte, SQLWrapper
 } from "drizzle-orm";
 import { generate } from "otp-generator";
 import { addMinutesToDate } from "../../lib/dates";
@@ -218,6 +218,22 @@ export const UsersController = new Elysia({
         previousPerformance = previousPerformanceRecord[0];
       }
     }
+
+    // Override delivery_count with real-time data from orders (all terminals)
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString();
+    const realTimeCount = await drizzle.select({
+      count: sql<number>`count(*)::int`,
+    }).from(orders)
+      .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+      .where(and(
+        eq(orders.courier_id, user.user.id),
+        gte(orders.created_at, startOfMonth),
+        lte(orders.created_at, endOfMonth),
+        eq(order_status.finish, true),
+      )).execute();
+
+    currentPerformance.delivery_count = realTimeCount[0]?.count || 0;
 
     return {
       currentPerformance,
