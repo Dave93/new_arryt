@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
 import { toast } from "sonner";
@@ -20,6 +20,8 @@ import {
   IconPhone,
   IconBuildingStore,
   IconBuilding,
+  IconCopy,
+  IconCheck,
 } from "@tabler/icons-react";
 import { ru } from "date-fns/locale";
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
@@ -101,6 +103,25 @@ function formatDuration(
 }
 
 // Define columns for the orders table
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={`h-5 w-5 ${copied ? "text-green-500" : "text-muted-foreground hover:text-foreground"}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+    >
+      {copied ? <IconCheck className="h-3 w-3" /> : <IconCopy className="h-3 w-3" />}
+    </Button>
+  );
+}
+
 const columns: ColumnDef<Order>[] = [
   {
     id: "select",
@@ -159,11 +180,14 @@ const columns: ColumnDef<Order>[] = [
     accessorKey: "order_number",
     header: "Заказ №",
     cell: ({ row }) => (
-      <OrderDetailSheet orderId={row.original.id}>
-        <Button variant="link" className="p-0 h-auto font-medium">
-          {row.getValue("order_number")}
-        </Button>
-      </OrderDetailSheet>
+      <div className="flex items-center gap-1">
+        <OrderDetailSheet orderId={row.original.id}>
+          <Button variant="link" className="p-0 h-auto font-medium">
+            {row.getValue("order_number")}
+          </Button>
+        </OrderDetailSheet>
+        <CopyButton value={row.getValue("order_number") as string} />
+      </div>
     ),
     size: 90,
   },
@@ -241,6 +265,120 @@ const columns: ColumnDef<Order>[] = [
     size: 120,
   },
   {
+    accessorKey: "pre_distance",
+    header: "Расстояние",
+    cell: ({ row }) => (
+      <div className="text-right text-primary font-semibold">
+        {row.original.pre_distance
+          ? `${row.original.pre_distance.toFixed(2)}`
+          : "—"}
+      </div>
+    ),
+    size: 90,
+  },
+  {
+    accessorKey: "delivery_price",
+    header: "Стоимость доставки",
+    cell: ({ row }) => (
+      <div className="text-right text-primary font-semibold">
+        {new Intl.NumberFormat("ru").format(row.getValue("delivery_price"))}
+      </div>
+    ),
+    size: 80,
+  },
+  {
+    accessorKey: "bonus",
+    header: "Бонус",
+    cell: ({ row }) => (
+      <div className="text-right">
+        {new Intl.NumberFormat("ru").format(row.original.bonus || 0)}
+      </div>
+    ),
+    size: 90,
+  },
+  {
+    id: "delivery_duration",
+    header: "Время доставки",
+    cell: ({ row }) => (
+      <div className="text-center">
+        {formatDuration(
+          row.original.created_at,
+          row.original.finished_date,
+          "—",
+        )}
+      </div>
+    ),
+    size: 100,
+  },
+  {
+    accessorKey: "order_price",
+    header: "Цена",
+    cell: ({ row }) => (
+      <div className="text-right font-medium">
+        {new Intl.NumberFormat("ru").format(row.getValue("order_price"))}
+      </div>
+    ),
+    size: 90,
+  },
+  {
+    accessorKey: "payment_type",
+    header: "Способ оплаты",
+    cell: ({ row }) => <div>{row.getValue("payment_type")}</div>,
+    size: 100,
+  },
+  {
+    accessorKey: "cooked_time",
+    header: "Готовка",
+    cell: ({ row }) => (
+      <div className="text-center">
+        {row.original.cooked_time ? (
+          <div>
+            <div>
+              {format(new Date(row.original.cooked_time), "HH:mm", {
+                locale: ru,
+              })}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {formatDuration(
+                row.original.created_at,
+                row.original.cooked_time,
+              )}
+            </div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </div>
+    ),
+    size: 100,
+  },
+  {
+    id: "handover_time",
+    header: "Передача",
+    cell: ({ row }) => (
+      <div className="text-center">
+        {row.original.picked_up_time && row.original.cooked_time ? (
+          <div>
+            <div>
+              {format(new Date(row.original.picked_up_time), "HH:mm", {
+                locale: ru,
+              })}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {formatDuration(
+                row.original.cooked_time,
+                row.original.picked_up_time,
+              )}
+            </div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </div>
+    ),
+    size: 100,
+  },
+  {
     accessorKey: "customer.name",
     header: "Клиент",
     cell: ({ row }) => (
@@ -272,151 +410,6 @@ const columns: ColumnDef<Order>[] = [
     ),
     size: 150,
   },
-  {
-    accessorKey: "order_price",
-    header: "Цена",
-    cell: ({ row }) => (
-      <div className="text-right font-medium">
-        {new Intl.NumberFormat("ru").format(row.getValue("order_price"))}
-      </div>
-    ),
-    size: 90,
-  },
-  {
-    accessorKey: "cooked_time",
-    header: "Время готовки",
-    cell: ({ row }) => (
-      <div className="text-right">
-        {row.original.cooked_time ? (
-          <div>
-            <div>
-              {format(new Date(row.original.cooked_time), "HH:mm", {
-                locale: ru,
-              })}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {formatDuration(
-                row.original.created_at,
-                row.original.cooked_time,
-              )}
-            </div>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </div>
-    ),
-    size: 100,
-  },
-  {
-    id: "cooking_duration",
-    header: "Длительность готовки",
-    cell: ({ row }) => (
-      <div className="text-center">
-        {formatDuration(
-          row.original.created_at,
-          row.original.cooked_time,
-          "N/A",
-        )}
-      </div>
-    ),
-    size: 100,
-  },
-  {
-    id: "handover_time",
-    header: "Время передачи",
-    cell: ({ row }) => (
-      <div className="text-right">
-        {row.original.picked_up_time && row.original.cooked_time ? (
-          <div>
-            <div>
-              {format(new Date(row.original.picked_up_time), "HH:mm", {
-                locale: ru,
-              })}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {formatDuration(
-                row.original.cooked_time,
-                row.original.picked_up_time,
-              )}
-            </div>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </div>
-    ),
-    size: 100,
-  },
-
-  {
-    id: "handover_duration",
-    header: "Длительность передачи",
-    cell: ({ row }) => (
-      <div className="text-center">
-        {row.original.cooked_time && row.original.picked_up_time
-          ? formatDuration(
-              row.original.cooked_time,
-              row.original.picked_up_time,
-              "N/A",
-            )
-          : "N/A"}
-      </div>
-    ),
-    size: 100,
-  },
-  {
-    id: "delivery_duration",
-    header: "Delivery Time",
-    cell: ({ row }) => (
-      <div className="text-center">
-        {formatDuration(
-          row.original.created_at,
-          row.original.finished_date,
-          "Not Finished",
-        )}
-      </div>
-    ),
-    size: 100,
-  },
-  {
-    accessorKey: "bonus",
-    header: "Bonus",
-    cell: ({ row }) => (
-      <div className="text-right">
-        {new Intl.NumberFormat("ru").format(row.original.bonus || 0)}
-      </div>
-    ),
-    size: 90,
-  },
-  {
-    accessorKey: "pre_distance",
-    header: "Distance",
-    cell: ({ row }) => (
-      <div className="text-right text-primary font-semibold">
-        {row.original.pre_distance
-          ? `${row.original.pre_distance.toFixed(2)} km`
-          : "N/A"}
-      </div>
-    ),
-    size: 100,
-  },
-  {
-    accessorKey: "delivery_price",
-    header: "Стоимость доставки",
-    cell: ({ row }) => (
-      <div className="text-right text-primary font-semibold">
-        {new Intl.NumberFormat("ru").format(row.getValue("delivery_price"))}
-      </div>
-    ),
-    size: 80,
-  },
-  {
-    accessorKey: "payment_type",
-    header: "Способ оплаты",
-    cell: ({ row }) => <div>{row.getValue("payment_type")}</div>,
-    size: 100,
-  },
 ];
 
 // Define a function to format Excel data
@@ -432,27 +425,26 @@ const formatExcelData = (orders: Order[]) => {
     Курьер: order.courier
       ? `${order.courier.first_name} ${order.courier.last_name}`
       : "Не назначен",
-    Клиент: order.customer.name,
-    "Телефон клиента": order.customer.phone,
-    "Цена заказа": order.order_price,
-    "Время готовки": order.cooked_time
-      ? format(new Date(order.cooked_time), "HH:mm", { locale: ru })
+    Расстояние: order.pre_distance
+      ? `${order.pre_distance.toFixed(2)}`
       : "—",
-    "Длительность готовки": formatDuration(order.created_at, order.cooked_time),
-    "Время передачи":
-      order.cooked_time && order.picked_up_time
-        ? formatDuration(order.cooked_time, order.picked_up_time)
-        : "N/A",
-    "Длительность доставки": formatDuration(
+    "Стоимость доставки": order.delivery_price,
+    Бонус: order.bonus || 0,
+    "Время доставки": formatDuration(
       order.created_at,
       order.finished_date,
     ),
-    Бонус: order.bonus || 0,
-    Расстояние: order.pre_distance
-      ? `${order.pre_distance.toFixed(2)} км`
-      : "N/A",
-    "Стоимость доставки": order.delivery_price,
+    Цена: order.order_price,
     "Способ оплаты": order.payment_type,
+    Готовка: order.cooked_time
+      ? `${format(new Date(order.cooked_time), "HH:mm", { locale: ru })} (${formatDuration(order.created_at, order.cooked_time)})`
+      : "—",
+    Передача:
+      order.cooked_time && order.picked_up_time
+        ? `${format(new Date(order.picked_up_time), "HH:mm", { locale: ru })} (${formatDuration(order.cooked_time, order.picked_up_time)})`
+        : "—",
+    Клиент: order.customer.name,
+    Телефон: order.customer.phone,
   }));
 };
 
@@ -886,43 +878,39 @@ export function OrdersContent() {
                       <td className="p-3" />
                       {/* courier */}
                       <td className="p-3" />
-                      {/* customer */}
-                      <td className="p-3" />
-                      {/* phone */}
-                      <td className="p-3" />
-                      {/* order_price */}
-                      <td className="p-3" />
-                      {/* cooked_time — Ср. время готовки */}
-                      <td className="p-3 text-right">
-                        {summaryData.avgCookingTime}
-                      </td>
-                      {/* cooking_duration */}
-                      <td className="p-3" />
-                      {/* handover_time */}
-                      <td className="p-3" />
-                      {/* handover_duration */}
-                      <td className="p-3" />
-                      {/* delivery_duration — Ср. время доставки */}
-                      <td className="p-3 text-center">
-                        {summaryData.avgDeliveryTime}
-                      </td>
-                      {/* bonus — Сумма бонусов */}
-                      <td className="p-3 text-right">
-                        {new Intl.NumberFormat("ru").format(
-                          summaryData.totalBonus,
-                        )}
-                      </td>
-                      {/* distance — Общая дистанция */}
+                      {/* pre_distance */}
                       <td className="p-3 text-right">
                         {summaryData.totalDistance.toFixed(2)} км
                       </td>
-                      {/* delivery_price — Стоимость доставки */}
+                      {/* delivery_price */}
                       <td className="p-3 text-right">
                         {new Intl.NumberFormat("ru").format(
                           summaryData.totalDeliveryPrice,
                         )}
                       </td>
+                      {/* bonus */}
+                      <td className="p-3 text-right">
+                        {new Intl.NumberFormat("ru").format(
+                          summaryData.totalBonus,
+                        )}
+                      </td>
+                      {/* delivery_duration */}
+                      <td className="p-3 text-center">
+                        {summaryData.avgDeliveryTime}
+                      </td>
+                      {/* order_price */}
+                      <td className="p-3" />
                       {/* payment_type */}
+                      <td className="p-3" />
+                      {/* cooked_time */}
+                      <td className="p-3 text-center">
+                        {summaryData.avgCookingTime}
+                      </td>
+                      {/* handover_time */}
+                      <td className="p-3" />
+                      {/* customer.name */}
+                      <td className="p-3" />
+                      {/* customer.phone */}
                       <td className="p-3" />
                     </tr>
                   ) : undefined

@@ -927,6 +927,8 @@ abstract class AppLocalizations {
   String get order_check_amount;
 
   String get collect_from_customer;
+
+  String get stat_info_delivered_orders;
 }
 
 class _AppLocalizationsDelegate

@@ -502,4 +502,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get collect_from_customer => 'Mijozdan olish';
+
+  @override
+  String get stat_info_delivered_orders => 'Bu yerda muvaffaqiyatli yetkazilgan buyurtmalar ko\'rsatilgan';
 }

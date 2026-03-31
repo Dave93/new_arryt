@@ -162,5 +162,6 @@
     "yes_label": "Yes",
     "no_label": "No",
     "order_check_amount": "Check amount",
-    "collect_from_customer": "Collect from customer"
+    "collect_from_customer": "Collect from customer",
+    "stat_info_delivered_orders": "These are successfully delivered orders"
 }

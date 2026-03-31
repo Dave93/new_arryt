@@ -491,7 +491,7 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
                                       (widget.order.customer_delivery_price != null && widget.order.customer_delivery_price != 0
                                           ? widget.order.customer_delivery_price!
                                           : 0)
-                                  : 0,
+                                  : (widget.order.customer_delivery_price ?? 0),
                               euroSettings,
                             ),
                             style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.green.shade700),

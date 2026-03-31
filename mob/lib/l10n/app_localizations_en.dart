@@ -500,4 +500,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collect_from_customer => 'Collect from customer';
+
+  @override
+  String get stat_info_delivered_orders => 'These are successfully delivered orders';
 }

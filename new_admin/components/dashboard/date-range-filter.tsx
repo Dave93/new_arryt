@@ -34,6 +34,27 @@ export function DashboardDateRangeFilter() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
+  const [activePreset, setActivePreset] = useState<string | null>(() => {
+    const from = searchParams.get("start_date")
+    const to = searchParams.get("end_date")
+    if (!from || !to) return "today"
+    const today = new Date()
+    const todayStr = format(today, "yyyy-MM-dd")
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayStr = format(yesterday, "yyyy-MM-dd")
+    const weekAgo = new Date(today)
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    const weekStr = format(weekAgo, "yyyy-MM-dd")
+    const monthAgo = new Date(today)
+    monthAgo.setMonth(monthAgo.getMonth() - 1)
+    const monthStr = format(monthAgo, "yyyy-MM-dd")
+    if (from === todayStr && to === todayStr) return "today"
+    if (from === yesterdayStr && to === yesterdayStr) return "yesterday"
+    if (from === weekStr && to === todayStr) return "week"
+    if (from === monthStr && to === todayStr) return "month"
+    return null
+  })
   const [date, setDate] = useState<DateRange | undefined>(() => {
     const from = searchParams.get("start_date")
     const to = searchParams.get("end_date")
@@ -110,17 +131,17 @@ export function DashboardDateRangeFilter() {
         newDate = { from: weekAgo, to: today }
         break
       case "month":
-        const monthAgo = new Date(today)
-        monthAgo.setMonth(monthAgo.getMonth() - 1)
-        newDate = { from: monthAgo, to: today }
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+        newDate = { from: monthStart, to: today }
         break
     }
 
+    setActivePreset(preset)
     setDate(newDate)
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 lg:px-6">
+    <div className="flex items-center gap-2 px-4 lg:px-6 sticky top-0 z-30 bg-background py-2 border-b">
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -153,7 +174,7 @@ export function DashboardDateRangeFilter() {
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={setDate}
+            onSelect={(range) => { setActivePreset(null); setDate(range); }}
             numberOfMonths={2}
             locale={ru}
           />
@@ -161,16 +182,16 @@ export function DashboardDateRangeFilter() {
       </Popover>
 
       <div className="flex gap-1 shrink-0">
-        <Button variant="ghost" size="sm" onClick={() => handlePresetClick("today")}>
+        <Button variant={activePreset === "today" ? "default" : "ghost"} size="sm" onClick={() => handlePresetClick("today")}>
           Сегодня
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => handlePresetClick("yesterday")}>
+        <Button variant={activePreset === "yesterday" ? "default" : "ghost"} size="sm" onClick={() => handlePresetClick("yesterday")}>
           Вчера
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => handlePresetClick("week")}>
+        <Button variant={activePreset === "week" ? "default" : "ghost"} size="sm" onClick={() => handlePresetClick("week")}>
           Неделя
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => handlePresetClick("month")}>
+        <Button variant={activePreset === "month" ? "default" : "ghost"} size="sm" onClick={() => handlePresetClick("month")}>
           Месяц
         </Button>
       </div>
