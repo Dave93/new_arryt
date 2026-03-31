@@ -686,7 +686,7 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
                                       (widget.order.cDeliveryPrice != null && widget.order.cDeliveryPrice != 0
                                           ? widget.order.cDeliveryPrice!
                                           : 0)
-                                  : 0,
+                                  : (widget.order.cDeliveryPrice ?? 0),
                               euroSettings,
                             ),
                             style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.green.shade700),

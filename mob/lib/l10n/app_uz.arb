@@ -161,5 +161,6 @@
     "yes_label": "Ha",
     "no_label": "Yo'q",
     "order_check_amount": "Chek summasi",
-    "collect_from_customer": "Mijozdan olish"
+    "collect_from_customer": "Mijozdan olish",
+    "stat_info_delivered_orders": "Bu yerda muvaffaqiyatli yetkazilgan buyurtmalar ko'rsatilgan"
 }

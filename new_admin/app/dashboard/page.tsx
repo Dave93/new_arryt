@@ -3,6 +3,7 @@ import { DashboardStatsCards } from "@/components/dashboard/stats-cards"
 import { OrderCharts } from "@/components/dashboard/order-charts"
 import { TopLists } from "@/components/dashboard/top-lists"
 import { DashboardDateRangeFilter } from "@/components/dashboard/date-range-filter"
+import { DeliverySources } from "@/components/dashboard/delivery-sources"
 
 export default function Page() {
   return (
@@ -12,6 +13,9 @@ export default function Page() {
       </Suspense>
       <Suspense fallback={<div>Загрузка статистики...</div>}>
         <DashboardStatsCards />
+      </Suspense>
+      <Suspense fallback={<div>Загрузка...</div>}>
+        <DeliverySources />
       </Suspense>
       <Suspense fallback={<div>Загрузка графиков...</div>}>
         <OrderCharts />

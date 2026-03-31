@@ -574,7 +574,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                     </Popover>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2 text-lg">Информация о заказе</h3>
+                    <h3 className="font-semibold mb-2 text-lg">Информация о заказе #{order.order_number}</h3>
                     <div className="space-y-2 text-sm">
                       <p>
                         <span className="font-medium">Дата создания:</span>{" "}

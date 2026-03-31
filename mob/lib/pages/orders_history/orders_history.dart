@@ -346,6 +346,13 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
       controlFinishLoad: true,
     );
     initializeDateFormatting();
+    _scrollController.addListener(() {
+      var nextPageTrigger = 0.7 * _scrollController.position.maxScrollExtent;
+      if (_scrollController.position.pixels > nextPageTrigger && !_isLastPage && !_loading) {
+        _pageNumber++;
+        _loadOrders(false);
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadOrders(true);
     });
@@ -556,6 +563,10 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                 _buildInfoRow(l10n.customer_name, element.customer.target!.name),
                 _buildInfoRow(l10n.customer_phone, element.customer.target!.phone),
                 _buildInfoRow(l10n.terminal_label, element.terminal.target!.name),
+                if (element.courier.target != null &&
+                    (element.courier.target!.firstName.isNotEmpty || element.courier.target!.lastName.isNotEmpty))
+                  _buildInfoRow(l10n.courierName,
+                      '${element.courier.target!.firstName} ${element.courier.target!.lastName}'.trim()),
                 if (element.delivery_address != null && element.delivery_address!.isNotEmpty)
                   _buildInfoRow(l10n.address, element.delivery_address!),
                 _buildInfoRow(l10n.delivery_price,
@@ -657,14 +668,6 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
 
   @override
   Widget build(BuildContext context) {
-    _scrollController.addListener(() {
-      var nextPageTrigger = 0.7 * _scrollController.position.maxScrollExtent;
-      if (_scrollController.position.pixels > nextPageTrigger && !_isLastPage) {
-        _pageNumber++;
-        _loadOrders(false);
-      }
-    });
-
     List<OrderModel> resultPosts = _posts;
 
     if (_posts.isNotEmpty && searchQuery.isNotEmpty) {
@@ -718,28 +721,28 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                 children: [
                   _dateChip(l10n.orderStatToday, 'today', () {
                     final now = DateTime.now();
-                    setState(() { _activeDateFilter = 'today'; });
+                    setState(() { _activeDateFilter = 'today'; _pageNumber = 1; });
                     _startDate = DateTime(now.year, now.month, now.day);
                     _endDate = now.add(const Duration(days: 1));
                     _loadOrders(true);
                   }),
                   _dateChip(l10n.orderStatYesterday, 'yesterday', () {
                     final now = DateTime.now();
-                    setState(() { _activeDateFilter = 'yesterday'; });
+                    setState(() { _activeDateFilter = 'yesterday'; _pageNumber = 1; });
                     _startDate = DateTime(now.year, now.month, now.day - 1);
                     _endDate = DateTime(now.year, now.month, now.day);
                     _loadOrders(true);
                   }),
                   _dateChip(l10n.orderStatWeek, 'week', () {
                     final now = DateTime.now();
-                    setState(() { _activeDateFilter = 'week'; });
+                    setState(() { _activeDateFilter = 'week'; _pageNumber = 1; });
                     _startDate = now.subtract(Duration(days: now.weekday - 1));
                     _endDate = now.add(Duration(days: 7 - now.weekday));
                     _loadOrders(true);
                   }),
                   _dateChip(l10n.orderStatMonth, 'month', () {
                     final now = DateTime.now();
-                    setState(() { _activeDateFilter = 'month'; });
+                    setState(() { _activeDateFilter = 'month'; _pageNumber = 1; });
                     _startDate = DateTime(now.year, now.month, 1);
                     _endDate = DateTime(now.year, now.month + 1, 0);
                     _loadOrders(true);
