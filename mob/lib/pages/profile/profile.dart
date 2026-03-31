@@ -1,6 +1,7 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/bloc/block_imports.dart';
 import 'package:arryt/helpers/api_server.dart';
+import 'package:dio/dio.dart';
 import 'package:arryt/models/user_data.dart';
 import 'package:arryt/widgets/profile/my_balance_by_terminal.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -50,10 +51,50 @@ class _ProfilePageViewState extends State<ProfilePageView>
   double rating = 0;
   int _currentTabIndex = 0;
   UserData? user = HiveHelper.getUserData();
+  List<Map<String, dynamic>> _managerCouriers = [];
+
+  bool get _isCourier => user?.roles.isNotEmpty == true && user!.roles.first.code == 'courier';
 
   Future<void> _loadData() async {
     await _loadStatistics();
-    await _loadProfileNumbers();
+    if (_isCourier) {
+      await _loadProfileNumbers();
+    } else {
+      await _loadManagerData();
+    }
+  }
+
+  int _managerTodayOrders = 0;
+  int _managerMonthOrders = 0;
+  double _managerAvgRating = 0;
+  int _managerAvgDeliveryTime = 0;
+
+  Future<void> _loadManagerData() async {
+    try {
+      ApiServer api = ApiServer();
+      var response = await api.get('/api/couriers/my_couriers/balance', {});
+      if (response.statusCode == 200 && response.data != null) {
+        setState(() {
+          _managerCouriers = (response.data as List).map((e) => e as Map<String, dynamic>).toList();
+        });
+      }
+      // Load terminal stats
+      try {
+        var statsResponse = await api.get('/api/couriers/manager_terminal_stats', null);
+        if (statsResponse.statusCode == 200 && statsResponse.data != null) {
+          setState(() {
+            _managerTodayOrders = statsResponse.data['today_orders'] ?? 0;
+            _managerMonthOrders = statsResponse.data['month_orders'] ?? 0;
+            _managerAvgRating = (statsResponse.data['avg_rating'] ?? 0).toDouble();
+            _managerAvgDeliveryTime = statsResponse.data['avg_delivery_time'] ?? 0;
+          });
+        }
+      } catch (e) {
+        // ignore stats error
+      }
+    } catch (e) {
+      // ignore
+    }
   }
 
   Future<void> _loadProfileNumbers() async {
@@ -221,208 +262,313 @@ class _ProfilePageViewState extends State<ProfilePageView>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        // appBar: AppBar(
-        //   elevation: 0,
-        //   backgroundColor: Colors.transparent,
-        //   title: Text(AppLocalizations.of(context)!.profile.toUpperCase(),
-        //       style: const TextStyle(color: Colors.black)),
-        // ),
-        body: Stack(
+        body: Column(
       children: [
-        RefreshIndicator(
-          onRefresh: _loadData,
-          child: CustomScrollView(slivers: [
-            SliverToBoxAdapter(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(context).primaryColor,
-                      Theme.of(context).primaryColor.withOpacity(0.7),
-                    ],
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadData,
+            child: CustomScrollView(slivers: [
+              SliverToBoxAdapter(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(context).primaryColor,
+                        Theme.of(context).primaryColor.withOpacity(0.7),
+                      ],
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(28),
+                      bottomRight: Radius.circular(28),
+                    ),
                   ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(28),
-                    bottomRight: Radius.circular(28),
-                  ),
-                ),
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 32,
-                              backgroundColor: Colors.white.withOpacity(0.2),
-                              child: const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 36,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (user?.userProfile?.last_name != null)
-                                    AutoSizeText(
-                                      "${user?.userProfile?.first_name} ${user?.userProfile?.last_name}",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (user?.userProfile?.last_name != null)
+                                      AutoSizeText(
+                                        "${user?.userProfile?.first_name} ${user?.userProfile?.last_name}",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        minFontSize: 14,
                                       ),
-                                      maxLines: 1,
-                                      minFontSize: 16,
+                                    if (user?.userProfile?.phone != null) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        user?.userProfile?.phone ?? '',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.85),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (user?.roles.isNotEmpty == true && user!.roles.first.code == 'courier') ...[
+                            const SizedBox(height: 12),
+                            GestureDetector(
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  builder: (context) {
+                                    return const MyBalanceByTerminal();
+                                  },
+                                );
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.account_balance_wallet_outlined,
+                                          color: Theme.of(context).primaryColor,
+                                          size: 22,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          AppLocalizations.of(context)!.wallet_label,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey.shade700,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  if (user?.userProfile?.phone != null) ...[
-                                    const SizedBox(height: 4),
                                     Text(
-                                      user?.userProfile?.phone ?? '',
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.85),
-                                        fontSize: 16,
+                                      CurrencyFormatter.format(
+                                          walletBalance, euroSettings),
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (context) {
-                                return const MyBalanceByTerminal();
-                              },
-                            );
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.account_balance_wallet_outlined,
-                                      color: Theme.of(context).primaryColor,
-                                      size: 26,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      AppLocalizations.of(context)!.wallet_label,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.grey.shade700,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  CurrencyFormatter.format(
-                                      walletBalance, euroSettings),
-                                  style: const TextStyle(
-                                    fontSize: 26,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            SliverList(
-              delegate:
-                  SliverChildBuilderDelegate((BuildContext context, int index) {
-                return BlocBuilder<UserDataBloc, UserDataState>(
-                    builder: (context, state) {
-                  return Column(children: [
-                    const SizedBox(height: 16),
-                    const MyPerformance(),
-                    const SizedBox(height: 10),
-                    if (_ordersStat.isNotEmpty) _buildOrderStatCard(),
-                    const SizedBox(
-                      height: 50,
-                    ),
-                    const ProfileLogoutButton(),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                  ]);
-                });
-              }, childCount: 1),
-            )
-          ]),
+              SliverList(
+                delegate:
+                    SliverChildBuilderDelegate((BuildContext context, int index) {
+                  return BlocBuilder<UserDataBloc, UserDataState>(
+                      builder: (context, state) {
+                    final isCourier = user?.roles.isNotEmpty == true && user!.roles.first.code == 'courier';
+                    return Column(children: [
+                      const SizedBox(height: 12),
+                      if (isCourier) ...[
+                        const MyPerformance(),
+                        const SizedBox(height: 10),
+                      ] else ...[
+                        _buildManagerStats(),
+                        const SizedBox(height: 10),
+                      ],
+                      if (_ordersStat.isNotEmpty) _buildOrderStatCard(),
+                      const SizedBox(height: 16),
+                    ]);
+                  });
+                }, childCount: 1),
+              )
+            ]),
+          ),
+        ),
+        SafeArea(
+          top: false,
+          child: const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: ProfileLogoutButton(),
+          ),
         ),
       ],
     ));
   }
 
+  Widget _buildManagerStats() {
+    final l10n = AppLocalizations.of(context)!;
+    final primary = Theme.of(context).primaryColor;
+
+    // Calculate totals from couriers data loaded via _loadData
+    final totalCouriers = _managerCouriers.length;
+    final totalBalance = _managerCouriers.fold<int>(0, (sum, c) => sum + (c['balance'] as int? ?? 0));
+    final uniqueCourierIds = _managerCouriers.map((c) => c['courier_id']).toSet();
+    final terminals = _managerCouriers.map((c) => c['terminal_name'] ?? '').toSet();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Column(
+        children: [
+          // Summary card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primary, primary.withOpacity(0.7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _managerStatItem(uniqueCourierIds.length.toString(), l10n.couriersListTabLabel, Icons.people_outline),
+                    Container(width: 1, height: 40, color: Colors.white24),
+                    _managerStatItem(terminals.length.toString(), l10n.terminal_label, Icons.store_outlined),
+                    Container(width: 1, height: 40, color: Colors.white24),
+                    _managerStatItem(_managerMonthOrders.toString(), l10n.orders, Icons.receipt_long_outlined),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _managerStatItem(_managerTodayOrders.toString(), l10n.orderStatToday, Icons.today_outlined),
+                      Container(width: 1, height: 40, color: Colors.white24),
+                      _managerStatItem(_formatManagerTime(_managerAvgDeliveryTime), l10n.avg_time_label, Icons.schedule_outlined),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatManagerTime(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+  }
+
+  Widget _managerStatItem(String value, String label, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 24),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)),
+      ],
+    );
+  }
+
   Widget _buildOrderStatCard() {
+    final primary = Theme.of(context).primaryColor;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Pill-shape tabs
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.grey.shade600,
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 13),
+              dividerHeight: 0,
+              tabs: _ordersStat
+                  .map((e) => Tab(
+                        height: 36,
+                        text: _getShortLabel(e.labelCode),
+                      ))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  AppLocalizations.of(context)!.stat_info_delivered_orders,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ),
-              child: TabBar(
-                controller: _tabController,
-                indicatorColor: Colors.white,
-                indicatorWeight: 3,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white60,
-                labelStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                unselectedLabelStyle: const TextStyle(fontSize: 16),
-                tabs: _ordersStat
-                    .map((e) => Tab(
-                          text: _getShortLabel(e.labelCode),
-                        ))
-                    .toList(),
-              ),
-            ),
-            IndexedStack(
-              index: _currentTabIndex,
-              children: _ordersStat.map((e) => _buildStatContent(e)).toList(),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          IndexedStack(
+            index: _currentTabIndex,
+            children: _ordersStat.map((e) => _buildStatContent(e)).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -443,73 +589,66 @@ class _ProfilePageViewState extends State<ProfilePageView>
   }
 
   Widget _buildStatContent(OrderMobilePeriodStat e) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildStatRow(
-            AppLocalizations.of(context)!.successOrderLabel,
-            e.successCount.toString(),
-          ),
-          const SizedBox(height: 8),
-          _buildStatRow(
-            AppLocalizations.of(context)!.failedOrderLabel,
-            e.failedCount.toString(),
-          ),
-          const SizedBox(height: 8),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildStatRow(
+          AppLocalizations.of(context)!.successOrderLabel,
+          e.successCount.toString(),
+        ),
+        _buildStatRow(
+          AppLocalizations.of(context)!.failedOrderLabel,
+          e.failedCount.toString(),
+        ),
+        if (_isCourier) ...[
           _buildStatRow(
             AppLocalizations.of(context)!.orderStatOrderPrice,
             CurrencyFormatter.format(e.orderPrice, euroSettings),
           ),
-          const SizedBox(height: 8),
           _buildStatRow(
             AppLocalizations.of(context)!.orderStatBonusPrice,
             CurrencyFormatter.format(e.bonusPrice, euroSettings),
           ),
-          if (e.dailyGarantPrice != null) ...[
-            const SizedBox(height: 8),
+          if (e.dailyGarantPrice != null)
             _buildStatRow(
               AppLocalizations.of(context)!.orderStatDailyGarantPrice,
               CurrencyFormatter.format(e.dailyGarantPrice!, euroSettings),
             ),
-          ],
-          const SizedBox(height: 8),
-          Divider(color: Colors.grey.shade300),
-          const SizedBox(height: 8),
+          Divider(color: Colors.grey.shade200, height: 16),
           _buildStatRow(
             AppLocalizations.of(context)!.orderStatTotalPrice,
             CurrencyFormatter.format(e.totalPrice, euroSettings),
             isTotal: true,
           ),
         ],
-      ),
+      ],
     );
   }
 
   Widget _buildStatRow(String label, String value, {bool isTotal = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
             label,
             style: TextStyle(
-              fontSize: 16,
-              color: isTotal ? Colors.black : Colors.grey.shade700,
+              fontSize: isTotal ? 16 : 14,
+              color: isTotal ? Colors.black : Colors.grey.shade600,
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
             ),
           ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isTotal ? 16 : 14,
+              color: Colors.black,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

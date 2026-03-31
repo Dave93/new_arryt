@@ -11,6 +11,7 @@ class NewOrderModel {
   final String order_number;
   final int order_price;
   final int? delivery_price;
+  final int? customer_delivery_price;
   final String? delivery_address;
   final String? delivery_comment;
   final DateTime created_at;
@@ -35,6 +36,7 @@ class NewOrderModel {
     required this.order_number,
     required this.order_price,
     this.delivery_price,
+    this.customer_delivery_price,
     this.delivery_address,
     this.delivery_comment,
     required this.created_at,
@@ -128,6 +130,7 @@ class NewOrderModel {
       order_number: map['order_number'] as String,
       order_price: map['order_price'] as int,
       delivery_price: map['delivery_price'] as int?,
+      customer_delivery_price: map['customer_delivery_price'] as int?,
       delivery_address: map['delivery_address'] as String?,
       delivery_comment: map['delivery_comment'] as String?,
       created_at: DateTime.parse(map['created_at'] as String),
@@ -298,14 +301,22 @@ class NewOrderStatus {
     required this.finish,
   });
 
+  static const _uzMap = {
+    'Корзина': 'Savatcha', 'Новый': 'Yangi', 'Принят': 'Qabul qilindi',
+    'В филиале': 'Filialda', 'В пути': "Yo'lda", 'Ожидает гостя': 'Mijozni kutmoqda',
+    'Доставлен': 'Yetkazildi', 'Отмена': 'Bekor qilindi',
+  };
+  static const _enMap = {
+    'Корзина': 'Cart', 'Новый': 'New', 'Принят': 'Accepted',
+    'В филиале': 'At terminal', 'В пути': 'On the way', 'Ожидает гостя': 'Waiting for guest',
+    'Доставлен': 'Delivered', 'Отмена': 'Cancelled',
+  };
+
   String localizedName(String locale) {
     switch (locale) {
-      case 'uz':
-        return nameUz ?? name;
-      case 'en':
-        return nameEn ?? name;
-      default:
-        return name;
+      case 'uz': return nameUz ?? _uzMap[name] ?? name;
+      case 'en': return nameEn ?? _enMap[name] ?? name;
+      default: return name;
     }
   }
 
@@ -380,12 +391,9 @@ class NewOrderOrderNextButton {
   bool inTerminal;
   String localizedName(String locale) {
     switch (locale) {
-      case 'uz':
-        return nameUz ?? name;
-      case 'en':
-        return nameEn ?? name;
-      default:
-        return name;
+      case 'uz': return nameUz ?? NewOrderStatus._uzMap[name] ?? name;
+      case 'en': return nameEn ?? NewOrderStatus._enMap[name] ?? name;
+      default: return name;
     }
   }
 

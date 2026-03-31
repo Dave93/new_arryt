@@ -21,6 +21,7 @@ import 'package:arryt/helpers/objectbox.dart';
 import 'package:path_provider/path_provider.dart';
 import 'app.dart';
 import 'package:arryt/helpers/hive_helper.dart';
+import 'package:arryt/provider/locale_provider.dart';
 
 final getIt = GetIt.instance;
 
@@ -91,6 +92,8 @@ Future<void> main() async {
   // Ensure ObjectBox is initialized before starting the location service
   await objectBox.initCompleter.future;
   await LocationService.initializeService();
+
+  App.savedLocale = await LocaleProvider.getSavedLocale();
 
   runApp(
     const ProviderScope(child: App()),

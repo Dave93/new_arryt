@@ -8,7 +8,8 @@ import {
     roles,
     users_terminals,
     orders,
-    terminals
+    terminals,
+    order_status
 } from "@api/drizzle/schema";
 import Redis from "ioredis";
 import _ from 'lodash';
@@ -62,10 +63,13 @@ async function getLinkedTerminalIds(terminalId: string): Promise<string[]> {
 
 async function main() {
     try {
-        // Get first day of current month at 00:00:00
+        // Get first day of current month at 00:00:00 (local timezone)
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const startOfMonth = `${year}-${month}-01 00:00:00`;
+        const endOfMonth = `${year}-${month}-${lastDay} 23:59:59`;
 
 
         // const startOfMonth = '2024-11-01T00:00:00.000Z';
@@ -92,8 +96,12 @@ async function main() {
             )
             .execute();
 
-        const orderStatuses = await cacheControl.getOrderStatuses();
-        const notCancelledOrderStatuses = orderStatuses.filter(status => !status.cancel).map(status => status.id);
+        // Read statuses directly from DB instead of cache
+        const orderStatusesFromDb = await db.select({
+            id: order_status.id,
+            cancel: order_status.cancel,
+        }).from(order_status).execute();
+        const notCancelledOrderStatuses = orderStatusesFromDb.filter(s => !s.cancel).map(s => s.id);
 
         // Group couriers by terminal for ranking
         const couriersByTerminal = _.groupBy(couriers as CourierWithTerminal[], 'terminal_id');
@@ -121,10 +129,25 @@ async function main() {
         // Group orders by courier
         const ordersByCourier = _.groupBy(allCourierOrders, 'courier_id');
 
+        // Deduplicate couriers and collect all their terminal IDs
+        const courierTerminalMap = new Map<string, string[]>();
+        for (const c of couriers) {
+            if (!courierTerminalMap.has(c.id)) {
+                courierTerminalMap.set(c.id, []);
+            }
+            courierTerminalMap.get(c.id)!.push(c.terminal_id);
+        }
+        const uniqueCouriers = [...courierTerminalMap.entries()].map(([id, tids]) => ({
+            id,
+            terminal_id: tids[0],
+            allTerminalIds: tids,
+        }));
+
         // Calculate performance for each courier
-        for (const courier of couriers) {
+        for (const courier of uniqueCouriers) {
             try {
-                const terminalIds = await getLinkedTerminalIds(courier.terminal_id);
+                // Use only directly assigned terminals
+                const terminalIds = courier.allTerminalIds;
 
                 // Delete existing record for this courier for current month
                 await db.delete(courier_performances)
@@ -138,7 +161,7 @@ async function main() {
 
                 // Run queries concurrently
                 const [completedOrdersCount, averageScore, allOrders] = await Promise.all([
-                    // Get completed orders count (excluding cancelled orders)
+                    // Get completed orders count for assigned terminals
                     db
                         .select({
                             count: sql<number>`count(*)::int`,
@@ -196,6 +219,7 @@ async function main() {
                 const deliveryCount = completedOrdersCount[0]?.count || 0;
                 const rating = averageScore[0]?.avg_score || 0;
 
+
                 // Calculate average delivery time for finished orders
                 const finishedOrders = allOrders.filter(order => order.finished_date);
                 const totalMinutes = finishedOrders.reduce((sum, order) => {
@@ -228,7 +252,8 @@ async function main() {
             } catch (error) {
                 console.error('Error processing courier:', {
                     courier_id: courier.id,
-                    error: error instanceof Error ? error.message : 'Unknown error'
+                    terminal_id: courier.terminal_id,
+                    error: error instanceof Error ? error.stack : 'Unknown error'
                 });
                 // Continue with next courier
                 continue;

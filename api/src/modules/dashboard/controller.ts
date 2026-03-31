@@ -292,4 +292,54 @@ export const dashboardController = new Elysia({
             region: t.Optional(t.String()),
             organization_id: t.Optional(t.String())
         })
+    })
+    .get('/delivery-sources', async ({ drizzle, query, cacheControl }) => {
+        const { start_date, end_date, region, organization_id } = query;
+
+        const startDate = start_date ? dayjs(start_date).startOf('day').toDate() : dayjs().startOf('week').toDate();
+        const endDate = end_date ? dayjs(end_date).endOf('day').toDate() : dayjs().endOf('day').toDate();
+
+        const orderStatuses = await cacheControl.getOrderStatuses();
+        const excludedStatusIds = orderStatuses
+            .filter((s) => s.cancel)
+            .map((s) => s.id);
+
+        // Noor and Yandex courier IDs
+        const noorCourier = await drizzle.select({ id: users.id }).from(users).where(eq(users.phone, '+998900000001')).limit(1);
+        const yandexCourier = await drizzle.select({ id: users.id }).from(users).where(eq(users.phone, '+998908251218')).limit(1);
+        const noorCourierId = noorCourier[0]?.id;
+        const yandexCourierId = yandexCourier[0]?.id;
+
+        const result = await drizzle
+            .select({
+                date: sql<string>`DATE(${orders.created_at})`.as('date'),
+                yandex_count: sql<number>`COUNT(*) FILTER (WHERE ${orders.courier_id} = ${yandexCourierId})`.as('yandex_count'),
+                noor_count: sql<number>`COUNT(*) FILTER (WHERE ${orders.courier_id} = ${noorCourierId})`.as('noor_count'),
+                own_count: sql<number>`COUNT(*) FILTER (WHERE ${orders.courier_id} != ${yandexCourierId} AND ${orders.courier_id} != ${noorCourierId})`.as('own_count'),
+                total: count(),
+            })
+            .from(orders)
+            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
+            .where(and(
+                gte(orders.created_at, startDate.toISOString()),
+                lte(orders.created_at, endDate.toISOString()),
+                excludedStatusIds.length > 0
+                    ? sql`NOT (${orders.order_status_id} IN (${sql.join(excludedStatusIds.map(id => sql`${id}`), sql`, `)}) AND ${orders.courier_id} IS NULL)`
+                    : undefined,
+                sql`${orders.courier_id} IS NOT NULL`,
+                region && region !== 'all' ? eq(terminals.region, region as 'capital' | 'region') : undefined,
+                organization_id ? eq(orders.organization_id, organization_id) : undefined
+            ))
+            .groupBy(sql`DATE(${orders.created_at})`)
+            .orderBy(sql`DATE(${orders.created_at})`);
+
+        return result;
+    }, {
+        permission: 'orders.edit',
+        query: t.Object({
+            start_date: t.Optional(t.String()),
+            end_date: t.Optional(t.String()),
+            region: t.Optional(t.String()),
+            organization_id: t.Optional(t.String())
+        })
     });

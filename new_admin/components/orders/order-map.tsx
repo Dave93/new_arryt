@@ -27,7 +27,16 @@ function ChangeView({ bounds }: { bounds: LatLngExpression[] }) {
   return null;
 }
 
-// Remove custom icon definitions as we'll use the default Leaflet markers
+const createLabelIcon = (label: string, color: string) =>
+  L.divIcon({
+    className: "",
+    html: `<div style="background:${color};color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">${label}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+
+const iconA = createLabelIcon("A", "#22c55e");
+const iconB = createLabelIcon("Б", "#ef4444");
 
 export default function OrderMap({ 
   origin,
@@ -66,21 +75,19 @@ export default function OrderMap({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       
-      {/* Origin Marker - using default Leaflet marker */}
-      <Marker position={originPosition}>
-        <Popup>Starting point</Popup>
+      <Marker position={originPosition} icon={iconA}>
+        <Popup>Филиал</Popup>
       </Marker>
 
-      {/* Destination Marker - using default Leaflet marker */}
-      <Marker position={destinationPosition}>
-        <Popup>Delivery location</Popup>
+      <Marker position={destinationPosition} icon={iconB}>
+        <Popup>Адрес доставки</Popup>
       </Marker>
 
       {/* Polyline for the path - more visible blue line */}
       {pathPositions.length > 0 && (
-        <Polyline 
-          positions={pathPositions} 
-          color="#3b82f6" // Bright blue color
+        <Polyline
+          positions={pathPositions}
+          color="#3b82f6"
           weight={4}
           opacity={0.8}
         />

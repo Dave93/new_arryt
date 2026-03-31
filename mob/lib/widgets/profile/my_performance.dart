@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 import 'dart:async';
 
 class MyPerformance extends StatefulWidget {
@@ -46,7 +47,14 @@ class _MyPerformanceState extends State<MyPerformance> {
           isLoading = false;
         });
       }
-      // Handle error appropriately
+    }
+  }
+
+  String _localize(String locale, String ru, String uz, String en) {
+    switch (locale) {
+      case 'uz': return uz;
+      case 'en': return en;
+      default: return ru;
     }
   }
 
@@ -56,218 +64,101 @@ class _MyPerformanceState extends State<MyPerformance> {
     return '${hours.toString().padLeft(2, '0')}:${remainingMinutes.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildMetricCard({
+  Widget _buildMetricTile({
+    required IconData icon,
+    required Color iconColor,
     required String title,
-    required dynamic currentValue,
-    required dynamic previousValue,
-    String? unit,
-    bool isTime = false,
+    required String value,
+    required int diff,
+    String? tooltip,
+    bool invertDiff = false,
+    bool isTimeDiff = false,
   }) {
-    final difference = currentValue - previousValue;
-    final isPositive = difference > 0;
+    final isPositive = invertDiff ? diff < 0 : diff > 0;
+    final diffText = isTimeDiff ? _formatTime(diff.abs()) : diff.abs().toString();
+    final diffColor = diff == 0 ? Colors.grey : (isPositive ? Colors.green : Colors.red);
 
-    String displayValue =
-        isTime ? _formatTime(currentValue) : currentValue.toString();
-
-    String displayDifference =
-        isTime ? _formatTime(difference.abs()) : difference.abs().toString();
-
-    return Expanded(
-      child: SizedBox(
-        height: 140,
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Container(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style:
-                            Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (isPositive ? Colors.green : Colors.red)
-                            .withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isPositive
-                                ? Icons.arrow_downward
-                                : Icons.arrow_upward,
-                            color: isPositive ? Colors.green : Colors.red,
-                            size: 12,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            displayDifference,
-                            style: TextStyle(
-                              color: isPositive ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: Text(
-                    displayValue + (unit ?? ''),
-                    style:
-                        Theme.of(context).textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildPositionCard({
-    required int position,
-    required int total,
-    required int previousPosition,
-  }) {
-    final difference = previousPosition - position;
-    final isPositive = difference > 0;
-
-    return Expanded(
-      child: SizedBox(
-        height: 140,
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.position_label,
-                        style:
-                            Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (difference != 0) ...[
-                      const SizedBox(width: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (isPositive ? Colors.green : Colors.red)
-                              .withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isPositive
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward,
-                              color: isPositive ? Colors.green : Colors.red,
-                              size: 12,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              difference.abs().toString(),
-                              style: TextStyle(
-                                color: isPositive ? Colors.green : Colors.red,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                              ),
-                            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 18),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(title,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              if (tooltip != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                          content: Text(tooltip, style: const TextStyle(fontSize: 15)),
+                          actionsPadding: const EdgeInsets.only(right: 8, bottom: 4),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
                           ],
                         ),
-                      ),
-                    ],
-                  ],
+                      );
+                    },
+                    child: Icon(Icons.help_outline, size: 16, color: Colors.grey.shade400),
+                  ),
                 ),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      position.toString(),
-                      style: Theme.of(context)
-                          .textTheme
-                          .displaySmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    Text(
-                      ' / ',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineLarge
-                          ?.copyWith(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                    Text(
-                      total.toString(),
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineLarge
-                          ?.copyWith(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 6),
+              if (diff != 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: diffColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(isPositive ? Icons.arrow_upward : Icons.arrow_downward, color: diffColor, size: 10),
+                      Text(diffText,
+                          style: TextStyle(color: diffColor, fontWeight: FontWeight.w600, fontSize: 11)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -279,45 +170,80 @@ class _MyPerformanceState extends State<MyPerformance> {
     }
 
     if (performanceData == null) {
-      return const Center(child: Text('No performance data available'));
+      return const SizedBox.shrink();
     }
 
     final current = performanceData!['currentPerformance'];
     final previous = performanceData!['previousPerformance'];
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(
         children: [
           Row(
             children: [
-              _buildMetricCard(
-                title: AppLocalizations.of(context)!.rating_label,
-                currentValue: current['rating'],
-                previousValue: previous['rating'],
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.star_outline_rounded,
+                  iconColor: Colors.amber,
+                  title: l10n.rating_label,
+                  value: current['rating'].toString(),
+                  diff: current['rating'] - previous['rating'],
+                  tooltip: _localize(locale,
+                      'Средняя оценка от клиентов за текущий месяц. Чем выше — тем лучше.',
+                      'Joriy oy uchun mijozlarning o\'rtacha bahosi. Qancha baland bo\'lsa, shuncha yaxshi.',
+                      'Average customer rating for the current month. Higher is better.'),
+                ),
               ),
-              const SizedBox(width: 12),
-              _buildMetricCard(
-                title: AppLocalizations.of(context)!.deliveries_label,
-                currentValue: current['delivery_count'],
-                previousValue: previous['delivery_count'],
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.delivery_dining_outlined,
+                  iconColor: Colors.green,
+                  title: l10n.deliveries_label,
+                  value: current['delivery_count'].toString(),
+                  diff: current['delivery_count'] - previous['delivery_count'],
+                  tooltip: _localize(locale,
+                      'Количество успешно завершённых доставок за текущий месяц.',
+                      'Joriy oyda muvaffaqiyatli yakunlangan yetkazishlar soni.',
+                      'Number of successfully completed deliveries this month.'),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
-              _buildMetricCard(
-                title: AppLocalizations.of(context)!.avg_time_label,
-                currentValue: current['delivery_average_time'],
-                previousValue: previous['delivery_average_time'],
-                isTime: true,
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.schedule_outlined,
+                  iconColor: Colors.blue,
+                  title: l10n.avg_time_label,
+                  value: _formatTime(current['delivery_average_time']),
+                  diff: current['delivery_average_time'] - previous['delivery_average_time'],
+                  invertDiff: true,
+                  isTimeDiff: true,
+                  tooltip: _localize(locale,
+                      'Среднее время от создания заказа до завершения доставки. Чем меньше — тем лучше.',
+                      'Buyurtma yaratilganidan yetkazish yakunlanguncha o\'rtacha vaqt. Qancha kam bo\'lsa, shuncha yaxshi.',
+                      'Average time from order creation to delivery completion. Lower is better.'),
+                ),
               ),
-              const SizedBox(width: 12),
-              _buildPositionCard(
-                position: current['position'],
-                total: current['total_active_couriers'],
-                previousPosition: previous['position'],
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildMetricTile(
+                  icon: Icons.leaderboard_outlined,
+                  iconColor: Theme.of(context).primaryColor,
+                  title: l10n.position_label,
+                  value: '${current['position']}/${current['total_active_couriers']}',
+                  diff: previous['position'] - current['position'],
+                  tooltip: _localize(locale,
+                      'Ваше место среди курьеров вашего филиала по количеству доставок и скорости.',
+                      'Filialingizdagi kuryerlar orasida yetkazishlar soni va tezligi bo\'yicha o\'rningiz.',
+                      'Your rank among couriers in your terminal by delivery count and speed.'),
+                ),
               ),
             ],
           ),

@@ -160,5 +160,8 @@
     "balance_info_tooltip": "You should collect this amount from the cashier at the end of your shift",
     "logout_confirm": "Are you sure you want to log out?",
     "yes_label": "Yes",
-    "no_label": "No"
+    "no_label": "No",
+    "order_check_amount": "Check amount",
+    "collect_from_customer": "Collect from customer",
+    "stat_info_delivered_orders": "These are successfully delivered orders"
 }

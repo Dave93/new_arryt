@@ -493,4 +493,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get no_label => 'Нет';
+
+  @override
+  String get order_check_amount => 'Сумма чека';
+
+  @override
+  String get collect_from_customer => 'Взять с клиента';
+
+  @override
+  String get stat_info_delivered_orders => 'Здесь показаны успешно доставленные заказы';
 }
