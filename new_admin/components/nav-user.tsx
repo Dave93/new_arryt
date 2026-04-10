@@ -73,7 +73,7 @@ export function NavUser() {
   }
   
   // Format display name from user data
-  const displayName = user.name || user.email || "Пользователь"
+  const displayName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.name || user.login || "Пользователь"
     
   // Create initials for avatar fallback
   const initials = displayName
@@ -103,7 +103,7 @@ export function NavUser() {
                   <span className="truncate font-medium">{displayName}</span>
                 </div>
                 <span className="text-muted-foreground truncate text-xs">
-                  {user.email || user.id || ""}
+                  {user.phone || user.login || user.id || ""}
                 </span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
@@ -128,7 +128,7 @@ export function NavUser() {
                     <span className="truncate font-medium">{displayName}</span>
                   </div>
                   <span className="text-muted-foreground truncate text-xs">
-                    {user.email || user.id || ""}
+                    {user.phone || user.login || user.id || ""}
                   </span>
                 </div>
               </div>

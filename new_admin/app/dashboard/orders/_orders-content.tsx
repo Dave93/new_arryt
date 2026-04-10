@@ -829,8 +829,10 @@ export function OrdersContent() {
       <OrdersSelectionToolbar onSelectAll={handleSelectAll} />
       <div className="flex flex-col gap-1">
         <div className="sticky top-0 bg-background z-20 px-4 py-2 border-b">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="mb-2">
             <DateRangeFilter />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <SearchFilter />
             <PhoneFilter />
             <OrganizationFilter />

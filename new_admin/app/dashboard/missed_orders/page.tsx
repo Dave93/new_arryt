@@ -52,6 +52,7 @@ interface Terminal {
   id: string;
   name: string;
   region?: string;
+  active?: boolean;
 }
 
 // Define columns for the table
@@ -233,13 +234,17 @@ export default function MissedOrdersPage() {
     return region ? [region] : [];
   }, [selectedRegion]);
 
-  // Terminal options
+  // Terminal options (filtered by selected region, only active)
   const terminalOptions = useMemo((): Option[] => {
-    return terminalsList.map(terminal => ({ 
-      value: terminal.id, 
-      label: terminal.name 
+    const active = terminalsList.filter(t => t.active !== false);
+    const filtered = selectedRegion && selectedRegion !== "all"
+      ? active.filter(t => t.region === selectedRegion)
+      : active;
+    return filtered.map(terminal => ({
+      value: terminal.id,
+      label: terminal.name
     }));
-  }, [terminalsList]);
+  }, [terminalsList, selectedRegion]);
 
   // Selected terminal options
   const selectedTerminalOptions = useMemo((): Option[] => {
