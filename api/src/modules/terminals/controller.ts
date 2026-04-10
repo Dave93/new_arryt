@@ -133,7 +133,7 @@ export const TerminalsController = new Elysia({
   )
   .put(
     "/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, terminals, {});
@@ -146,6 +146,8 @@ export const TerminalsController = new Elysia({
         .returning({
           id: terminals.id,
         });
+
+      await cacheControl.cacheTerminals();
 
       return {
         data: result[0],
