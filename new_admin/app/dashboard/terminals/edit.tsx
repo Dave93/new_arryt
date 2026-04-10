@@ -162,9 +162,9 @@ export default function TerminalEdit() {
     
     setIsSubmitting(true);
     try {
-      await apiClient.api.terminals({id}).put({
+      await apiClient.api.terminals({ id }).put({
         // @ts-ignore
-        body: values,
+        data: values,
       });
       
       toast.success("Филиал успешно обновлен");

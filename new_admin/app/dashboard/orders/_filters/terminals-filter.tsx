@@ -10,6 +10,8 @@ import MultipleSelector, { Option } from "@/components/ui/multiselect";
 interface Terminal {
   id: string;
   name: string;
+  region?: string;
+  active?: boolean;
 }
 
 export function TerminalsFilter() {
@@ -17,6 +19,7 @@ export function TerminalsFilter() {
     "terminals",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [region] = useQueryState("region", parseAsString.withDefault("capital"));
 
   const { data: allTerminals = [] } = useQuery<Terminal[]>({
     queryKey: ["terminals-cached"],
@@ -28,9 +31,14 @@ export function TerminalsFilter() {
   });
 
   const options = useMemo(
-    (): Option[] =>
-      allTerminals.map((t) => ({ value: t.id, label: t.name })),
-    [allTerminals],
+    (): Option[] => {
+      const active = allTerminals.filter((t) => t.active !== false);
+      const filtered = region && region !== "all"
+        ? active.filter((t) => t.region === region)
+        : active;
+      return filtered.map((t) => ({ value: t.id, label: t.name }));
+    },
+    [allTerminals, region],
   );
 
   const selected = useMemo(

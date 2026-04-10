@@ -10,6 +10,7 @@ interface OrderStatus {
   id: string;
   name: string;
   organization_id: string;
+  sort: number;
 }
 
 interface Organization {
@@ -30,9 +31,7 @@ export function StatusesFilter() {
         query: {},
       });
       const data = response.data || [];
-      return (data as OrderStatus[]).sort((a, b) =>
-        a.name.localeCompare(b.name),
-      );
+      return data as OrderStatus[];
     },
     staleTime: Infinity,
   });
@@ -47,14 +46,17 @@ export function StatusesFilter() {
   });
 
   const options = useMemo((): Option[] => {
-    return allStatuses.map((status) => {
-      const org = organizations.find((o) => o.id === status.organization_id);
-      return {
-        value: status.id,
-        label: status.name,
-        group: org?.name || "",
-      };
-    });
+    return allStatuses
+      .map((status) => {
+        const org = organizations.find((o) => o.id === status.organization_id);
+        const orgName = org?.name || "";
+        return {
+          value: status.id,
+          label: orgName ? `${status.name} (${orgName})` : status.name,
+          sort: status.sort,
+        };
+      })
+      .sort((a, b) => (a.sort as number) - (b.sort as number));
   }, [allStatuses, organizations]);
 
   const selected = useMemo((): Option[] => {
@@ -65,10 +67,10 @@ export function StatusesFilter() {
         const org = organizations.find(
           (o) => o.id === status.organization_id,
         );
+        const orgName = org?.name || "";
         return {
           value: status.id,
-          label: status.name,
-          group: org?.name || "",
+          label: orgName ? `${status.name} (${orgName})` : status.name,
         };
       });
   }, [statuses, allStatuses, organizations]);
@@ -81,7 +83,6 @@ export function StatusesFilter() {
         setStatuses(ids.length > 0 ? ids : null);
       }}
       options={options}
-      groupBy="group"
       placeholder="Выберите статусы..."
       className="w-auto"
       emptyIndicator={

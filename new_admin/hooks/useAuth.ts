@@ -9,6 +9,10 @@ interface AuthUser {
     id?: string;
     email?: string;
     name?: string | null;
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    login?: string;
 }
 
 export function useAuth() {

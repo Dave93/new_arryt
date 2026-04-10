@@ -65,7 +65,7 @@ export const TerminalsController = new Elysia({
   )
   .get("/cached", async ({ redis, cacheControl }) => {
     const res = await cacheControl.getTerminals();
-    return res;
+    return res.filter((t) => t.active);
   }, {
     permission: 'terminals.list',
   })

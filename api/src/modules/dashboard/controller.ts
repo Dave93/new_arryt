@@ -307,8 +307,8 @@ export const dashboardController = new Elysia({
         // Noor and Yandex courier IDs
         const noorCourier = await drizzle.select({ id: users.id }).from(users).where(eq(users.phone, '+998900000001')).limit(1);
         const yandexCourier = await drizzle.select({ id: users.id }).from(users).where(eq(users.phone, '+998908251218')).limit(1);
-        const noorCourierId = noorCourier[0]?.id;
-        const yandexCourierId = yandexCourier[0]?.id;
+        const noorCourierId = noorCourier[0]?.id ?? '00000000-0000-0000-0000-000000000000';
+        const yandexCourierId = yandexCourier[0]?.id ?? '00000000-0000-0000-0000-000000000000';
 
         const result = await drizzle
             .select({
