@@ -80,7 +80,7 @@ const columns: ColumnDef<User>[] = [
     header: "Онлайн",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <div 
+        <div
           className={`w-3 h-3 rounded-full ${row.getValue("is_online") ? "bg-green-500" : "bg-red-500"}`}
         />
       </div>
@@ -268,7 +268,7 @@ export default function UsersList() {
     queryKey: ["terminals_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.terminals.cached.get();
+        const { data: response } = await apiClient.api.terminals.cached.get();
         return sortTerminalsByName(response || []);
       } catch (error) {
         toast.error("Не удалось загрузить список филиалов");
@@ -281,7 +281,7 @@ export default function UsersList() {
     queryKey: ["work_schedules_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.work_schedules.cached.get();
+        const { data: response } = await apiClient.api.work_schedules.cached.get();
         return response || [];
       } catch (error) {
         toast.error("Не удалось загрузить список графиков работы");
@@ -294,7 +294,7 @@ export default function UsersList() {
     queryKey: ["roles_cached"],
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.roles.cached.get();
+        const { data: response } = await apiClient.api.roles.cached.get();
         return response || [];
       } catch (error) {
         toast.error("Не удалось загрузить список ролей");
@@ -311,11 +311,11 @@ export default function UsersList() {
   }, [
     searchQuery,
     phoneFilter,
-    selectedTerminalId, 
-    selectedWorkScheduleId, 
-    selectedStatus, 
-    selectedCourierOption, 
-    selectedOnlineStatus, 
+    selectedTerminalId,
+    selectedWorkScheduleId,
+    selectedStatus,
+    selectedCourierOption,
+    selectedOnlineStatus,
     selectedDriveTypes,
     selectedRoleId
   ]);
@@ -340,17 +340,17 @@ export default function UsersList() {
 
   const { data: usersData = { total: 0, data: [] }, isLoading } = useQuery({
     queryKey: [
-      "users", 
+      "users",
       searchQuery,
       phoneFilter,
-      selectedTerminalId, 
-      selectedWorkScheduleId, 
-      selectedStatus, 
-      selectedCourierOption?.value, 
+      selectedTerminalId,
+      selectedWorkScheduleId,
+      selectedStatus,
+      selectedCourierOption?.value,
       selectedOnlineStatus,
       selectedDriveTypes,
       selectedRoleId,
-      pagination.pageIndex, 
+      pagination.pageIndex,
       pagination.pageSize
     ],
     queryFn: async () => {
@@ -430,7 +430,7 @@ export default function UsersList() {
           });
         }
 
-        const {data: response} = await apiClient.api.users.get({
+        const { data: response } = await apiClient.api.users.get({
           query: {
             fields: [
               "id",
@@ -497,242 +497,255 @@ export default function UsersList() {
 
   return (
     <>
-    <PageTitle title="Пользователи" />
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center space-x-4 space-y-4 justify-between flex-col w-full">
-          <div className="text-left w-full flex flex-row items-center justify-end">
-          <Button asChild>
-            <Link href="/dashboard/users/create/">
-              <Plus className="h-4 w-4 mr-2" />
-              Создать
-            </Link>
-          </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 w-full mb-4">
-            <Input
-              placeholder="Поиск по имени или фамилии..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full"
-            />
-            <Input
-              placeholder="Фильтр по номеру телефона..."
-              value={phoneInput}
-              onChange={(e) => setPhoneInput(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <Form {...form}>
-            <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-8 gap-4 flex-1 w-full">
-              <FormField
-                control={form.control}
-                name="terminal_id"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col w-full">
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        onTerminalFilterChange(value);
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Фильтр по филиалу" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все филиалы</SelectItem>
-                        {terminalsData?.map((terminal: Terminal) => (
-                          <SelectItem key={terminal.id} value={terminal.id}>
-                            {terminal.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="work_schedule_id"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col w-full">
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        onWorkScheduleFilterChange(value);
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Фильтр по графику работы" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все графики работы</SelectItem>
-                        {workSchedulesData?.map((schedule: { id: string; name: string }) => (
-                          <SelectItem key={schedule.id} value={schedule.id}>
-                            {schedule.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col w-full">
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        onStatusFilterChange(value);
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Фильтр по статусу" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все статусы</SelectItem>
-                        <SelectItem value="active">Активный</SelectItem>
-                        <SelectItem value="inactive">Неактивный</SelectItem>
-                        <SelectItem value="blocked">Заблокирован</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="online_status"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col w-full">
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        onOnlineStatusFilterChange(value);
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Онлайн статус" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все</SelectItem>
-                        <SelectItem value="online">Онлайн</SelectItem>
-                        <SelectItem value="offline">Оффлайн</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="role_id"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col w-full">
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        onRoleFilterChange(value);
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Фильтр по роли" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все роли</SelectItem>
-                        {rolesData?.map((role: Role) => (
-                          <SelectItem key={role.id} value={role.id}>
-                            {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="drive_types"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col w-full">
-                    <MultipleSelector
-                      value={selectedDriveTypes.map(type => ({ value: type, label: driveTypeMap[type] || type }))}
-                      onChange={(options) => {
-                        const values = options.map(option => option.value);
-                        field.onChange(values);
-                        onDriveTypesFilterChange(values);
-                      }}
-                      className="w-full"
-                      defaultOptions={Object.keys(driveTypeMap).map(key => ({ value: key, label: driveTypeMap[key] }))}
-                      placeholder="Типы доставки..."
-                      selectFirstItem={false}
-                    />
-                  </FormItem>
-                )}
-              />
-
-              <MultipleSelector
-                value={selectedCourierOption ? [selectedCourierOption] : []}
-                onChange={(options) => setSelectedCourierOption(options[0] ?? null)}
-                onSearch={fetchCouriers}
-                placeholder="Поиск курьера..."
-                loadingIndicator={
-                  <div className="py-2 text-center text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                    Загрузка курьеров...
-                  </div>
-                }
-                emptyIndicator={
-                  <div className="py-2 text-center text-sm text-muted-foreground">
-                    Курьеры не найдены.
-                  </div>
-                }
-                maxSelected={1}
-                hidePlaceholderWhenSelected
-                triggerSearchOnFocus
-                delay={300}
-                className="w-full"
-                commandProps={{
-                  label: "Поиск курьера",
-                }}
-                selectFirstItem={false}
-              />
+      <PageTitle title="Пользователи" />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center space-x-4 space-y-4 justify-between flex-col w-full">
+            <div className="text-left w-full flex flex-row items-center justify-end">
+              <Button asChild>
+                <Link href="/dashboard/users/create/">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Создать
+                </Link>
+              </Button>
             </div>
-          </Form>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <DataTable 
-          columns={columns} 
-          // @ts-ignore
-          data={usersData.data} 
-          loading={isLoading}
-          pageCount={Math.ceil(usersData.total / pagination.pageSize)}
-          pagination={pagination}
-          onPaginationChange={setPagination}
-        />
-      </CardContent>
-    </Card>
+            <Form {...form}>
+              <div className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-4 flex-1 w-full">
+                <FormItem className="flex flex-col w-full xl:col-span-2">
+                  <Input
+                    placeholder="Поиск пользователя..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    className="w-full"
+                  />
+                </FormItem>
+                <FormItem className="flex flex-col w-full xl:col-span-2">
+                  <Input
+                    placeholder="Фильтр по номеру телефона..."
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    className="w-full"
+                  />
+                </FormItem>
+                <FormItem className="flex flex-col w-full xl:col-span-2">
+                  <MultipleSelector
+                    value={selectedCourierOption ? [selectedCourierOption] : []}
+                    onChange={(options) => setSelectedCourierOption(options[0] ?? null)}
+                    onSearch={fetchCouriers}
+                    placeholder="Поиск курьера..."
+                    loadingIndicator={
+                      <div className="py-2 text-center text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                        Загрузка курьеров...
+                      </div>
+                    }
+                    emptyIndicator={
+                      <div className="py-2 text-center text-sm text-muted-foreground">
+                        Курьеры не найдены.
+                      </div>
+                    }
+                    maxSelected={1}
+                    hidePlaceholderWhenSelected
+                    triggerSearchOnFocus
+                    delay={300}
+                    className="w-full"
+                    commandProps={{
+                      label: "Поиск курьера",
+                    }}
+                    selectFirstItem={false}
+                  />
+                </FormItem>
+                <FormField
+                  control={form.control}
+                  name="terminal_id"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col w-full xl:col-span-2">
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          onTerminalFilterChange(value);
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Фильтр по филиалу" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">Все филиалы</SelectItem>
+                          {terminalsData?.map((terminal: Terminal) => (
+                            <SelectItem key={terminal.id} value={terminal.id}>
+                              {terminal.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="work_schedule_id"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col w-full xl:col-span-2">
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          onWorkScheduleFilterChange(value);
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Фильтр по графику работы" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">Все графики работы</SelectItem>
+                          {workSchedulesData?.map((schedule: { id: string; name: string }) => (
+                            <SelectItem key={schedule.id} value={schedule.id}>
+                              {schedule.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col w-full xl:col-span-2">
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          onStatusFilterChange(value);
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Фильтр по статусу" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">Все статусы</SelectItem>
+                          <SelectItem value="active">Активный</SelectItem>
+                          <SelectItem value="inactive">Неактивный</SelectItem>
+                          <SelectItem value="blocked">Заблокирован</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="online_status"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col w-full xl:col-span-2">
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          onOnlineStatusFilterChange(value);
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Онлайн статус" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">Все</SelectItem>
+                          <SelectItem value="online">Онлайн</SelectItem>
+                          <SelectItem value="offline">Оффлайн</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="role_id"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col w-full xl:col-span-2">
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          onRoleFilterChange(value);
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Фильтр по роли" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">Все роли</SelectItem>
+                          {rolesData?.map((role: Role) => (
+                            <SelectItem key={role.id} value={role.id}>
+                              {role.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="drive_types"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col w-full xl:col-span-2">
+                      <Select
+                        onValueChange={(value) => {
+                          const values = value === "all" ? [] : [value];
+                          field.onChange(values);
+                          onDriveTypesFilterChange(values);
+                        }}
+                        defaultValue="all"
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Типы доставки" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">Все типы доставки</SelectItem>
+                          {Object.entries(driveTypeMap).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </Form>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            // @ts-ignore
+            data={usersData.data}
+            loading={isLoading}
+            pageCount={Math.ceil(usersData.total / pagination.pageSize)}
+            pagination={pagination}
+            onPaginationChange={setPagination}
+          />
+        </CardContent>
+      </Card>
     </>
   );
 } 
