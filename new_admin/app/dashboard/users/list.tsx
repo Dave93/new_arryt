@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQueryState, parseAsString } from "nuqs";
+import { useSearchParams } from "next/navigation";
 import { debounce } from "lodash";
 import { DataTable } from "../../../components/ui/data-table";
 import { Button } from "../../../components/ui/button";
@@ -11,7 +13,7 @@ import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
-import { Eye, Plus, Edit, Phone, Loader2 } from "lucide-react";
+import { Eye, Plus, Edit, Phone, Loader2, RotateCcw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "../../../components/ui/switch";
 import { format } from "date-fns";
@@ -205,17 +207,23 @@ const columns: ColumnDef<User>[] = [
 ];
 
 export default function UsersList() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [phoneFilter, setPhoneFilter] = useState("");
-  const [phoneInput, setPhoneInput] = useState("");
-  const [selectedTerminalId, setSelectedTerminalId] = useState<string>("");
-  const [selectedWorkScheduleId, setSelectedWorkScheduleId] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const searchParams = useSearchParams();
+  const initialQ = searchParams.get("q") || "";
+  const initialPhone = searchParams.get("phone") || "";
+  const initialDriveType = searchParams.get("drive_type") || "";
+
+  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""));
+  const [searchInput, setSearchInput] = useState(initialQ);
+  const [phoneFilter, setPhoneFilter] = useQueryState("phone", parseAsString.withDefault(""));
+  const [phoneInput, setPhoneInput] = useState(initialPhone);
+  const [selectedTerminalId, setSelectedTerminalId] = useQueryState("terminal", parseAsString.withDefault(""));
+  const [selectedWorkScheduleId, setSelectedWorkScheduleId] = useQueryState("schedule", parseAsString.withDefault(""));
+  const [selectedStatus, setSelectedStatus] = useQueryState("status", parseAsString.withDefault(""));
   const [selectedCourierOption, setSelectedCourierOption] = useState<Option | null>(null);
-  const [selectedOnlineStatus, setSelectedOnlineStatus] = useState<string>("all");
-  const [selectedDriveTypes, setSelectedDriveTypes] = useState<string[]>([]);
-  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [selectedOnlineStatus, setSelectedOnlineStatus] = useQueryState("online", parseAsString.withDefault("all"));
+  const [selectedDriveTypes, setSelectedDriveTypes] = useState<string[]>(initialDriveType ? [initialDriveType] : []);
+  const [driveTypeParam, setDriveTypeParam] = useQueryState("drive_type", parseAsString.withDefault(""));
+  const [selectedRoleId, setSelectedRoleId] = useQueryState("role", parseAsString.withDefault(""));
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -223,12 +231,12 @@ export default function UsersList() {
 
   const form = useForm({
     defaultValues: {
-      terminal_id: "all",
-      work_schedule_id: "all",
-      status: "all",
-      online_status: "all",
-      role_id: "all",
-      drive_types: []
+      terminal_id: searchParams.get("terminal") || "all",
+      work_schedule_id: searchParams.get("schedule") || "all",
+      status: searchParams.get("status") || "all",
+      online_status: searchParams.get("online") || "all",
+      role_id: searchParams.get("role") || "all",
+      drive_types: initialDriveType ? [initialDriveType] : [],
     }
   });
 
@@ -472,27 +480,54 @@ export default function UsersList() {
   });
 
   const onTerminalFilterChange = (value: string) => {
-    setSelectedTerminalId(value === "all" ? "" : value);
+    setSelectedTerminalId(value === "all" ? null : value);
   };
 
   const onWorkScheduleFilterChange = (value: string) => {
-    setSelectedWorkScheduleId(value === "all" ? "" : value);
+    setSelectedWorkScheduleId(value === "all" ? null : value);
   };
 
   const onStatusFilterChange = (value: string) => {
-    setSelectedStatus(value === "all" ? "" : value);
+    setSelectedStatus(value === "all" ? null : value);
   };
 
   const onOnlineStatusFilterChange = (value: string) => {
-    setSelectedOnlineStatus(value);
+    setSelectedOnlineStatus(value === "all" ? null : value);
   };
 
   const onDriveTypesFilterChange = (values: string[]) => {
     setSelectedDriveTypes(values);
+    setDriveTypeParam(values[0] || null);
   };
 
   const onRoleFilterChange = (value: string) => {
-    setSelectedRoleId(value === "all" ? "" : value);
+    setSelectedRoleId(value === "all" ? null : value);
+  };
+
+  const hasActiveFilters = searchInput || phoneInput || selectedTerminalId || selectedWorkScheduleId || selectedStatus || selectedCourierOption || selectedOnlineStatus !== "all" || selectedDriveTypes.length > 0 || selectedRoleId;
+
+  const resetAllFilters = () => {
+    setSearchInput("");
+    setSearchQuery(null);
+    setPhoneInput("");
+    setPhoneFilter(null);
+    setSelectedTerminalId(null);
+    setSelectedWorkScheduleId(null);
+    setSelectedStatus(null);
+    setSelectedCourierOption(null);
+    setSelectedOnlineStatus(null);
+    setSelectedDriveTypes([]);
+    setDriveTypeParam(null);
+    setSelectedRoleId(null);
+    form.reset({
+      terminal_id: "all",
+      work_schedule_id: "all",
+      status: "all",
+      online_status: "all",
+      role_id: "all",
+      drive_types: [],
+    });
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
   };
 
   return (
@@ -501,7 +536,13 @@ export default function UsersList() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center space-x-4 space-y-4 justify-between flex-col w-full">
-            <div className="text-left w-full flex flex-row items-center justify-end">
+            <div className="text-left w-full flex flex-row items-center justify-end gap-2">
+              {hasActiveFilters && (
+                <Button variant="outline" size="sm" onClick={resetAllFilters}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Сбросить фильтры
+                </Button>
+              )}
               <Button asChild>
                 <Link href="/dashboard/users/create/">
                   <Plus className="h-4 w-4 mr-2" />
