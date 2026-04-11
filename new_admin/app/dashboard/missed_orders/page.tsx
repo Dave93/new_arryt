@@ -168,7 +168,11 @@ const columns: ColumnDef<MissedOrder>[] = [
     id: "actions",
     cell: ({ row }) => (
       <div className="flex justify-end">
-        <OrderDetailSheet orderId={row.original.id} />
+        <Button size="icon" variant="ghost" className="h-8 w-8" asChild>
+          <Link href={`/dashboard/orders/${row.original.id}`} target="_blank">
+            <ExternalLink className="h-4 w-4" />
+          </Link>
+        </Button>
       </div>
     ),
     size: 80,
