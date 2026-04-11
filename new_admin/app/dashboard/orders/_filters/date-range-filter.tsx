@@ -83,9 +83,20 @@ export function DateRangeFilter() {
       <DateRangePicker
         value={dateRange}
         onChange={(value: DateRange | undefined) => {
-          const from = value?.from ? setHours(startOfDay(value.from), 10) : null;
-          const to = value?.to ? endOfDay(value.to) : null;
-          setDates({ dateFrom: from, dateTo: to });
+          if (!value) {
+            setDates({ dateFrom: null, dateTo: null });
+            return;
+          }
+          // If the date part changed, apply default times; otherwise keep manual time
+          const fromDateChanged = value.from && dateFrom && !isSameDay(value.from, dateFrom);
+          const toDateChanged = value.to && dateTo && !isSameDay(value.to, dateTo);
+          const newFrom = value.from
+            ? (fromDateChanged || !dateFrom ? setHours(startOfDay(value.from), 10) : value.from)
+            : null;
+          const newTo = value.to
+            ? (toDateChanged || !dateTo ? endOfDay(value.to) : value.to)
+            : null;
+          setDates({ dateFrom: newFrom, dateTo: newTo });
         }}
         timePicker={true}
       />

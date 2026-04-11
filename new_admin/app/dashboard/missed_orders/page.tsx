@@ -14,7 +14,7 @@ import { DateRange } from "react-day-picker";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { format, startOfDay, endOfDay } from "date-fns";
 import Link from "next/link";
-import { Eye, ExternalLink } from "lucide-react";
+import { Eye, ExternalLink, Copy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   IconBuildingStore
@@ -89,6 +89,17 @@ const columns: ColumnDef<MissedOrder>[] = [
           <Link href={`/dashboard/orders/${row.original.id}`} target="_blank">
             <ExternalLink className="h-4 w-4" />
           </Link>
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={() => {
+            navigator.clipboard.writeText(String(row.getValue("order_number")));
+            toast.success("Номер скопирован");
+          }}
+        >
+          <Copy className="h-4 w-4" />
         </Button>
       </div>
     ),
