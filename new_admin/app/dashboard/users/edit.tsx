@@ -684,35 +684,6 @@ export default function UserEdit() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="card_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Имя на карте</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Введите имя на карте" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="card_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Номер карты</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Введите номер карты" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               {form.watch("drive_type") === "car" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
