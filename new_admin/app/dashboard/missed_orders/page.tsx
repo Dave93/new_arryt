@@ -58,12 +58,22 @@ interface Terminal {
 // Define columns for the table
 const columns: ColumnDef<MissedOrder>[] = [
   {
+    id: "eye",
+    header: "",
+    cell: ({ row }) => (
+      <div className="flex items-center justify-center">
+        <OrderDetailSheet orderId={row.original.id} />
+      </div>
+    ),
+    size: 40,
+  },
+  {
     id: "index",
     header: "#",
     cell: ({ row, table }) => {
       const pageIndex = table.getState().pagination.pageIndex;
       const pageSize = table.getState().pagination.pageSize;
-      return <div>{pageIndex * pageSize + row.index + 1}</div>;
+      return <div className="text-center">{pageIndex * pageSize + row.index + 1}</div>;
     },
     size: 60,
   },
@@ -71,7 +81,7 @@ const columns: ColumnDef<MissedOrder>[] = [
     accessorKey: "created_at",
     header: "Дата заказа",
     cell: ({ row }) => (
-      <div>{format(new Date(row.getValue("created_at")), "dd.MM.yy HH:mm", { locale: ru })}</div>
+      <div className="flex items-center justify-center">{format(new Date(row.getValue("created_at")), "dd.MM.yy HH:mm", { locale: ru })}</div>
     ),
     size: 120,
   },
@@ -79,15 +89,10 @@ const columns: ColumnDef<MissedOrder>[] = [
     accessorKey: "order_number",
     header: "Заказ №",
     cell: ({ row }) => (
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-center space-x-2">
         <Button variant="link" className="p-0 h-auto font-medium" asChild>
           <Link href={`/dashboard/orders/${row.original.id}`}>
             {row.getValue("order_number")}
-          </Link>
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
-          <Link href={`/dashboard/orders/${row.original.id}`} target="_blank">
-            <ExternalLink className="h-4 w-4" />
           </Link>
         </Button>
         <Button
@@ -109,12 +114,14 @@ const columns: ColumnDef<MissedOrder>[] = [
     accessorKey: "terminals.name",
     header: "Терминал",
     cell: ({ row }) => (
-      <Button variant="link" className="p-0 h-auto text-left" asChild>
-        <Link href={`/dashboard/terminals/${row.original.terminals.id}`}>
-          <IconBuildingStore className="h-4 w-4 mr-1 inline-block shrink-0" />
-          {row.original.terminals.name}
-        </Link>
-      </Button>
+      <div className="flex items-center justify-center">
+        <Button variant="link" className="p-0 h-auto" asChild>
+          <Link href={`/dashboard/terminals/${row.original.terminals.id}`}>
+            <IconBuildingStore className="h-4 w-4 mr-1 inline-block shrink-0" />
+            {row.original.terminals.name}
+          </Link>
+        </Button>
+      </div>
     ),
     size: 200,
   },
@@ -122,7 +129,7 @@ const columns: ColumnDef<MissedOrder>[] = [
     id: "yandex",
     header: "Яндекс",
     cell: ({ row }) => (
-      <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-center">
         <SendOrderToYandex order={row.original} />
       </div>
     ),
@@ -132,7 +139,7 @@ const columns: ColumnDef<MissedOrder>[] = [
     id: "noor",
     header: "Noor",
     cell: ({ row }) => (
-      <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-center">
         <SendOrderToNoor order={row.original} />
       </div>
     ),
@@ -142,7 +149,7 @@ const columns: ColumnDef<MissedOrder>[] = [
     accessorKey: "pre_distance",
     header: "Дистанция",
     cell: ({ row }) => (
-      <div className="text-right">
+      <div className="flex items-center justify-center">
         {row.original.pre_distance ? `${row.original.pre_distance.toFixed(2)} км` : "Н/Д"}
       </div>
     ),
@@ -152,7 +159,7 @@ const columns: ColumnDef<MissedOrder>[] = [
     accessorKey: "order_price",
     header: "Стоимость заказа",
     cell: ({ row }) => (
-      <div className="text-right font-medium">
+      <div className="flex items-center justify-center font-medium">
         {new Intl.NumberFormat("ru").format(row.getValue("order_price"))}
       </div>
     ),
@@ -161,21 +168,8 @@ const columns: ColumnDef<MissedOrder>[] = [
   {
     accessorKey: "payment_type",
     header: "Способ оплаты",
-    cell: ({ row }) => <div>{row.getValue("payment_type")}</div>,
+    cell: ({ row }) => <div className="flex items-center justify-center">{row.getValue("payment_type")}</div>,
     size: 120,
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => (
-      <div className="flex justify-end">
-        <Button size="icon" variant="ghost" className="h-8 w-8" asChild>
-          <Link href={`/dashboard/orders/${row.original.id}`} target="_blank">
-            <ExternalLink className="h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
-    ),
-    size: 80,
   },
 ];
 
@@ -272,8 +266,49 @@ export default function MissedOrdersPage() {
       }));
   }, [selectedTerminals, terminalsList]);
 
-  // Query for missed orders
-  const { data: missedOrdersData = { total: 0, data: [] }, isLoading } = useQuery({
+  // Mock data for testing UI
+  const mockData: MissedOrder[] = [
+    {
+      id: "1",
+      created_at: new Date().toISOString(),
+      order_number: "1859015",
+      pre_distance: 2.17,
+      order_price: 78000,
+      payment_type: "Наличными",
+      courier_id: undefined,
+      order_status: { id: "s1", name: "Новый", color: "#7c3aed" },
+      terminals: { id: "t1", name: "Azia Les Ailes", region: "capital" },
+    },
+    {
+      id: "2",
+      created_at: new Date().toISOString(),
+      order_number: "831220",
+      pre_distance: 1.5,
+      order_price: 245000,
+      payment_type: "payme",
+      courier_id: undefined,
+      order_status: { id: "s1", name: "Новый", color: "#7c3aed" },
+      terminals: { id: "t2", name: "Azia Chopar", region: "capital" },
+    },
+    {
+      id: "3",
+      created_at: new Date().toISOString(),
+      order_number: "831224",
+      pre_distance: 2.07,
+      order_price: 145000,
+      payment_type: "payme",
+      courier_id: undefined,
+      order_status: { id: "s1", name: "Новый", color: "#7c3aed" },
+      terminals: { id: "t3", name: "MG Chopar", region: "capital" },
+    },
+  ];
+
+  // TODO: remove mock data after testing
+  const missedOrdersData = { total: mockData.length, data: mockData };
+  const isLoading = false;
+
+  // Query for missed orders (temporarily disabled for mock testing)
+  const { data: _missedOrdersData, isLoading: _isLoading } = useQuery({
     queryKey: [
       "missed_orders",
       dateRange,
