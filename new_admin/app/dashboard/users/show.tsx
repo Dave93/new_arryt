@@ -1166,11 +1166,9 @@ export default function UserShow({ id }: UserShowProps) {
       {/* @ts-ignore */}
       <PageTitle title={`${user.last_name} ${user.first_name}` || "Загрузка..."} />
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/users">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Назад к списку
-          </Link>
+        <Button variant="ghost" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Назад к списку
         </Button>
 
         <Button asChild>
@@ -1428,11 +1426,9 @@ function UserSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/users">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Назад к списку
-          </Link>
+        <Button variant="ghost" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Назад к списку
         </Button>
         <Skeleton className="h-9 w-32" />
       </div>
