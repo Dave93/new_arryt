@@ -266,49 +266,8 @@ export default function MissedOrdersPage() {
       }));
   }, [selectedTerminals, terminalsList]);
 
-  // Mock data for testing UI
-  const mockData: MissedOrder[] = [
-    {
-      id: "1",
-      created_at: new Date().toISOString(),
-      order_number: "1859015",
-      pre_distance: 2.17,
-      order_price: 78000,
-      payment_type: "Наличными",
-      courier_id: undefined,
-      order_status: { id: "s1", name: "Новый", color: "#7c3aed" },
-      terminals: { id: "t1", name: "Azia Les Ailes", region: "capital" },
-    },
-    {
-      id: "2",
-      created_at: new Date().toISOString(),
-      order_number: "831220",
-      pre_distance: 1.5,
-      order_price: 245000,
-      payment_type: "payme",
-      courier_id: undefined,
-      order_status: { id: "s1", name: "Новый", color: "#7c3aed" },
-      terminals: { id: "t2", name: "Azia Chopar", region: "capital" },
-    },
-    {
-      id: "3",
-      created_at: new Date().toISOString(),
-      order_number: "831224",
-      pre_distance: 2.07,
-      order_price: 145000,
-      payment_type: "payme",
-      courier_id: undefined,
-      order_status: { id: "s1", name: "Новый", color: "#7c3aed" },
-      terminals: { id: "t3", name: "MG Chopar", region: "capital" },
-    },
-  ];
-
-  // TODO: remove mock data after testing
-  const missedOrdersData = { total: mockData.length, data: mockData };
-  const isLoading = false;
-
-  // Query for missed orders (temporarily disabled for mock testing)
-  const { data: _missedOrdersData, isLoading: _isLoading } = useQuery({
+  // Query for missed orders
+  const { data: missedOrdersData = { total: 0, data: [] }, isLoading } = useQuery({
     queryKey: [
       "missed_orders",
       dateRange,
