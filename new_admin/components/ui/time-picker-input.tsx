@@ -19,9 +19,23 @@ export function TimePickerInput({
   onChange,
   className,
 }: TimePickerInputProps) {
-  // Format with leading zeros
-  const displayHours = value.hours.toString().padStart(2, "0")
-  const displayMinutes = value.minutes.toString().padStart(2, "0")
+  const [hoursInput, setHoursInput] = React.useState(value.hours.toString().padStart(2, "0"))
+  const [minutesInput, setMinutesInput] = React.useState(value.minutes.toString().padStart(2, "0"))
+  const [editingHours, setEditingHours] = React.useState(false)
+  const [editingMinutes, setEditingMinutes] = React.useState(false)
+
+  // Sync display from props when not editing
+  React.useEffect(() => {
+    if (!editingHours) {
+      setHoursInput(value.hours.toString().padStart(2, "0"))
+    }
+  }, [value.hours, editingHours])
+
+  React.useEffect(() => {
+    if (!editingMinutes) {
+      setMinutesInput(value.minutes.toString().padStart(2, "0"))
+    }
+  }, [value.minutes, editingMinutes])
 
   // Increment/decrement handlers
   const incrementHours = () => {
@@ -44,20 +58,25 @@ export function TimePickerInput({
     onChange(value.hours, newMinutes)
   }
 
-  // Direct input handlers
-  const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const hours = parseInt(e.target.value, 10)
-    if (!isNaN(hours)) {
-      const clampedHours = Math.max(0, Math.min(23, hours))
-      onChange(clampedHours, value.minutes)
+  const commitHours = () => {
+    setEditingHours(false)
+    const parsed = parseInt(hoursInput, 10)
+    if (!isNaN(parsed)) {
+      const clamped = Math.max(0, Math.min(23, parsed))
+      onChange(clamped, value.minutes)
+    } else {
+      setHoursInput(value.hours.toString().padStart(2, "0"))
     }
   }
 
-  const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const minutes = parseInt(e.target.value, 10)
-    if (!isNaN(minutes)) {
-      const clampedMinutes = Math.max(0, Math.min(59, minutes))
-      onChange(value.hours, clampedMinutes)
+  const commitMinutes = () => {
+    setEditingMinutes(false)
+    const parsed = parseInt(minutesInput, 10)
+    if (!isNaN(parsed)) {
+      const clamped = Math.max(0, Math.min(59, parsed))
+      onChange(value.hours, clamped)
+    } else {
+      setMinutesInput(value.minutes.toString().padStart(2, "0"))
     }
   }
 
@@ -77,8 +96,18 @@ export function TimePickerInput({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
-          value={displayHours}
-          onChange={handleHoursChange}
+          value={hoursInput}
+          onFocus={(e) => {
+            setEditingHours(true)
+            e.target.select()
+          }}
+          onChange={(e) => setHoursInput(e.target.value)}
+          onBlur={commitHours}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur()
+            }
+          }}
           className="w-10 border-0 bg-transparent text-center text-base tabular-nums focus:outline-none focus:ring-0"
           maxLength={2}
         />
@@ -107,8 +136,18 @@ export function TimePickerInput({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
-          value={displayMinutes}
-          onChange={handleMinutesChange}
+          value={minutesInput}
+          onFocus={(e) => {
+            setEditingMinutes(true)
+            e.target.select()
+          }}
+          onChange={(e) => setMinutesInput(e.target.value)}
+          onBlur={commitMinutes}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur()
+            }
+          }}
           className="w-10 border-0 bg-transparent text-center text-base tabular-nums focus:outline-none focus:ring-0"
           maxLength={2}
         />
@@ -124,4 +163,4 @@ export function TimePickerInput({
       </div>
     </div>
   )
-} 
+}
