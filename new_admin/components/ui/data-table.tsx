@@ -106,7 +106,7 @@ export function DataTable<TData, TValue>({
                     return (
                       <th 
                         key={header.id} 
-                        className="h-9 px-3 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 py-2 bg-muted sticky top-0 z-10"
+                        className="h-9 px-3 text-center align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 py-2 bg-muted sticky top-0 z-10"
                       >
                         {header.isPlaceholder
                           ? null
@@ -152,7 +152,7 @@ export function DataTable<TData, TValue>({
                       }}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="p-3 align-middle [&:has([role=checkbox])]:pr-0">
+                        <td key={cell.id} className="p-3 align-middle text-center [&:has([role=checkbox])]:pr-0">
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
