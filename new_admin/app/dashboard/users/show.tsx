@@ -88,6 +88,9 @@ interface User {
     id: string;
     name: string;
   };
+  is_fired?: boolean;
+  fired_reason?: string;
+  should_rehire?: boolean;
 }
 
 // Интерфейс для записи посещаемости
@@ -160,7 +163,7 @@ interface UserShowProps {
 // Компонент посещаемости пользователя
 function UserAttendance({ userId }: { userId: string }) {
   const [date, setDate] = useState<Date>(new Date());
-  
+
   const { data: rollCallData, isLoading, refetch } = useQuery({
     queryKey: ["user-rollcall", userId, date],
     queryFn: async () => {
@@ -168,8 +171,8 @@ function UserAttendance({ userId }: { userId: string }) {
         // Получаем даты начала и конца недели для выбранной даты
         const startDate = dayjs(date).startOf('week').toISOString();
         const endDate = dayjs(date).endOf('week').toISOString();
-        
-        const response = await apiClient.api.couriers.roll_call({id: userId}).get({
+
+        const response = await apiClient.api.couriers.roll_call({ id: userId }).get({
           query: {
             startDate,
             endDate,
@@ -298,16 +301,16 @@ function UserWithdrawals({ userId }: { userId: string }) {
   // Загрузка списка выплат
   const loadWithdraws = async () => {
     if (!userId) return;
-    
+
     try {
       setIsLoading(true);
-      
+
       const params = {
         fields: "id,created_at,amount,amount_before,amount_after,terminals,managers,terminals.name,managers.first_name,managers.last_name",
         limit: "100",
         offset: "0",
       };
-      
+
       const filters = [
         {
           field: "courier_id",
@@ -325,14 +328,14 @@ function UserWithdrawals({ userId }: { userId: string }) {
           value: endDate.toISOString(),
         },
       ];
-      
+
       const { data } = await apiClient.api.manager_withdraw.get({
         query: {
           ...params,
           filters: JSON.stringify(filters)
         },
       });
-      
+
       if (data && data.data) {
         // @ts-ignore
         setWithdraws(data.data as UserWithdraw[]);
@@ -347,11 +350,11 @@ function UserWithdrawals({ userId }: { userId: string }) {
   // Загрузка транзакций для выбранной выплаты
   const loadTransactions = async (withdrawId: string) => {
     if (!withdrawId) return;
-    
+
     try {
       setIsLoadingTransactions(true);
-      const { data } = await apiClient.api.manager_withdraw({id: withdrawId}).transactions.get();
-      
+      const { data } = await apiClient.api.manager_withdraw({ id: withdrawId }).transactions.get();
+
       if (data && Array.isArray(data)) {
         // @ts-ignore
         setTransactions(data as WithdrawTransaction[]);
@@ -419,7 +422,7 @@ function UserWithdrawals({ userId }: { userId: string }) {
             </PopoverContent>
           </Popover>
         </div>
-        
+
         <div className="grid w-full max-w-sm items-center gap-1.5">
           <Label htmlFor="endDate">Дата до</Label>
           <Popover>
@@ -442,7 +445,7 @@ function UserWithdrawals({ userId }: { userId: string }) {
             </PopoverContent>
           </Popover>
         </div>
-        
+
         <Button onClick={loadWithdraws} className="mt-7">
           Обновить
         </Button>
@@ -486,8 +489,8 @@ function UserWithdrawals({ userId }: { userId: string }) {
                         {new Intl.NumberFormat("ru-RU").format(Number(withdraw.amount_after))}
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleWithdrawSelect(withdraw)}
                         >
@@ -570,8 +573,8 @@ function UserWithdrawals({ userId }: { userId: string }) {
                         {format(new Date(transaction.transaction_created_at), "dd.MM.yyyy HH:mm")}
                       </TableCell>
                       <TableCell>
-                        {transaction.order_created_at ? 
-                          format(new Date(transaction.order_created_at), "dd.MM.yyyy HH:mm") : 
+                        {transaction.order_created_at ?
+                          format(new Date(transaction.order_created_at), "dd.MM.yyyy HH:mm") :
                           "-"}
                       </TableCell>
                       <TableCell>
@@ -660,7 +663,7 @@ function UserTransactions({ userId }: { userId: string }) {
         value: userId,
       },
     ];
-    
+
     if (status && status !== "all") {
       filters.push({
         field: "status",
@@ -668,7 +671,7 @@ function UserTransactions({ userId }: { userId: string }) {
         value: status,
       });
     }
-    
+
     if (debouncedOrderNumber && debouncedOrderNumber.trim()) {
       filters.push({
         field: "orders.order_number",
@@ -676,28 +679,28 @@ function UserTransactions({ userId }: { userId: string }) {
         value: debouncedOrderNumber.trim(),
       });
     }
-    
+
     return filters;
   }, [userId, startDate, endDate, status, debouncedOrderNumber]);
 
   // Запрос на получение списка транзакций
-  const { 
-    data: transactions = [], 
+  const {
+    data: transactions = [],
     isLoading,
-    refetch: refetchTransactions 
+    refetch: refetchTransactions
   } = useQuery({
     queryKey: ["user_transactions", userId, startDate.toISOString(), endDate.toISOString(), status, debouncedOrderNumber],
     queryFn: async () => {
       try {
         const filters = getTransactionsFilters();
-        
+
         // Пробуем загрузить транзакции через правильный эндпоинт
         const { data } = await apiClient.api.order_transactions.get({
           query: {
             filters: JSON.stringify(filters),
           },
         });
-        
+
         return data || [];
       } catch (error) {
         // В случае ошибки загружаем моковые данные
@@ -741,8 +744,8 @@ function UserTransactions({ userId }: { userId: string }) {
 
         // Применяем фильтры к моковым данным
         if (debouncedOrderNumber && debouncedOrderNumber.trim()) {
-          mockData = mockData.filter(transaction => 
-            transaction.order_number && 
+          mockData = mockData.filter(transaction =>
+            transaction.order_number &&
             transaction.order_number.toLowerCase().includes(debouncedOrderNumber.trim().toLowerCase())
           );
         }
@@ -834,7 +837,7 @@ function UserTransactions({ userId }: { userId: string }) {
               </PopoverContent>
             </Popover>
           </div>
-          
+
           <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="endDate">Дата до</Label>
             <Popover>
@@ -857,7 +860,7 @@ function UserTransactions({ userId }: { userId: string }) {
               </PopoverContent>
             </Popover>
           </div>
-          
+
           <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="status">Статус</Label>
             <Select value={status} onValueChange={setStatus}>
@@ -871,7 +874,7 @@ function UserTransactions({ userId }: { userId: string }) {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="orderNumber">Номер заказа</Label>
             <Input
@@ -883,13 +886,13 @@ function UserTransactions({ userId }: { userId: string }) {
             />
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm" onClick={exportData}>
             <Download className="h-4 w-4 mr-2" />
             Экспорт
           </Button>
-          
+
           <Button size="sm" onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Добавить
@@ -929,7 +932,7 @@ function UserTransactions({ userId }: { userId: string }) {
                   <TableCell>{format(new Date(transaction.created_at), "dd.MM.yyyy HH:mm")}</TableCell>
                   <TableCell>{transaction.transaction_type}</TableCell>
                   <TableCell>
-                    <Badge 
+                    <Badge
                       variant={transaction.status === "success" ? "default" : "destructive"}
                     >
                       {transaction.status === "success" ? "Оплачено" : "Не оплачено"}
@@ -939,9 +942,9 @@ function UserTransactions({ userId }: { userId: string }) {
                     {transaction.order_id ? (
                       <div className="flex items-center space-x-1">
                         <span>{transaction.order_number}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           asChild
                           className="h-6 w-6 p-0"
                         >
@@ -956,8 +959,8 @@ function UserTransactions({ userId }: { userId: string }) {
                   </TableCell>
                   <TableCell>{transaction.terminal_name || "—"}</TableCell>
                   <TableCell>
-                    {transaction.first_name ? 
-                      `${transaction.first_name} ${transaction.last_name}` : 
+                    {transaction.first_name ?
+                      `${transaction.first_name} ${transaction.last_name}` :
                       "Система"}
                   </TableCell>
                   <TableCell>{transaction.comment || "—"}</TableCell>
@@ -983,7 +986,7 @@ function UserTransactions({ userId }: { userId: string }) {
           Нет данных о транзакциях за выбранный период
         </div>
       )}
-      
+
       {/* Диалог добавления транзакции */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
@@ -999,9 +1002,9 @@ function UserTransactions({ userId }: { userId: string }) {
                   <FormItem>
                     <FormLabel>Сумма</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
-                        type="number" 
+                      <Input
+                        {...field}
+                        type="number"
                         placeholder="Введите сумму"
                       />
                     </FormControl>
@@ -1009,15 +1012,15 @@ function UserTransactions({ userId }: { userId: string }) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={transactionForm.control}
                 name="terminal_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Филиал</FormLabel>
-                    <Select 
-                      value={field.value} 
+                    <Select
+                      value={field.value}
                       onValueChange={field.onChange}
                     >
                       <FormControl>
@@ -1037,7 +1040,7 @@ function UserTransactions({ userId }: { userId: string }) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={transactionForm.control}
                 name="comment"
@@ -1045,8 +1048,8 @@ function UserTransactions({ userId }: { userId: string }) {
                   <FormItem>
                     <FormLabel>Комментарий</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         placeholder="Введите комментарий"
                       />
                     </FormControl>
@@ -1054,7 +1057,7 @@ function UserTransactions({ userId }: { userId: string }) {
                   </FormItem>
                 )}
               />
-              
+
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setIsModalOpen(false)}>
                   Отмена
@@ -1079,7 +1082,7 @@ export default function UserShow({ id }: UserShowProps) {
     // @ts-ignore
     queryFn: async () => {
       try {
-        const {data: response} = await apiClient.api.users({id}).get({
+        const { data: response } = await apiClient.api.users({ id }).get({
           query: {
             fields: [
               "id",
@@ -1104,6 +1107,9 @@ export default function UserShow({ id }: UserShowProps) {
               "work_schedules.name",
               "roles.id",
               "roles.name",
+              "is_fired",
+              "fired_reason",
+              "should_rehire",
             ].join(","),
           },
         });
@@ -1112,6 +1118,23 @@ export default function UserShow({ id }: UserShowProps) {
       } catch (error) {
         toast.error("Ошибка загрузки данных пользователя");
         throw error;
+      }
+    },
+    enabled: !!id,
+  });
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:7474";
+  const { data: userAssets = [] } = useQuery<{ id: string; file_name: string; link: string }[]>({
+    queryKey: ["userAssets", id],
+    queryFn: async () => {
+      if (!id) return [];
+      try {
+        const res = await fetch(`${API_URL}/api/user-assets/${id}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data?.assets || [];
+      } catch {
+        return [];
       }
     },
     enabled: !!id,
@@ -1169,70 +1192,130 @@ export default function UserShow({ id }: UserShowProps) {
               <TabsTrigger value="transactions">Начисления</TabsTrigger>
               <TabsTrigger value="efficiency">Эффективность</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="main" className="mt-4">
+
+            <TabsContent value="main" className="mt-4 space-y-6">
+              {/* Personal Info */}
+              <div className="rounded-lg border p-4">
+                <h3 className="text-sm font-semibold mb-4">Личные данные</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Имя</p>
+                    {/* @ts-ignore */}
+                    <p className="text-sm font-medium mt-0.5">{user.first_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Фамилия</p>
+                    {/* @ts-ignore */}
+                    <p className="text-sm font-medium mt-0.5">{user.last_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Телефон</p>
+                    {/* @ts-ignore */}
+                    <p className="text-sm font-medium mt-0.5">{user.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Дата регистрации</p>
+                    {/* @ts-ignore */}
+                    <p className="text-sm font-medium mt-0.5">{format(new Date(user.created_at), "dd.MM.yyyy HH:mm")}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status & Role */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Статус</h3>
-                    <p className="mt-1">
-                      {/* @ts-ignore */}
-                      <Badge variant={user.status === "active" ? "default" : user.status === "blocked" ? "destructive" : "secondary"}>
-                        {/* @ts-ignore */}
-                        {userStatusMap[user.status] || user.status}
-                      </Badge>
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Дата регистрации</h3>
-                    {/* @ts-ignore */}
-                    <p className="mt-1">{format(new Date(user.created_at), "dd.MM.yyyy HH:mm")}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Имя</h3>
-                    {/* @ts-ignore */}
-                    <p className="mt-1">{user.first_name}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Фамилия</h3>
-                    {/* @ts-ignore */}
-                    <p className="mt-1">{user.last_name}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Телефон</h3>
-                    {/* @ts-ignore */}
-                    <p className="mt-1">{user.phone}</p>
-                  </div>
-                  {/* @ts-ignore */}
-                  {user.drive_type && (
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-sm font-semibold mb-4">Статус и роль</h3>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Тип доставки</h3>
-                      {/* @ts-ignore */}
-                      <p className="mt-1">{driveTypeMap[user.drive_type] || user.drive_type}</p>
-                    </div>
-                  )}
-                  {/* @ts-ignore */}
-                  {user.roles && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Роль</h3>
+                      <p className="text-xs text-muted-foreground">Статус</p>
                       <p className="mt-1">
                         {/* @ts-ignore */}
-                        <Badge variant="outline">{user.roles.name}</Badge>
+                        <Badge variant={user.status === "active" ? "default" : user.status === "blocked" ? "destructive" : "secondary"}>
+                          {/* @ts-ignore */}
+                          {userStatusMap[user.status] || user.status}
+                        </Badge>
                       </p>
                     </div>
-                  )}
+                    {/* @ts-ignore */}
+                    {user.roles && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Роль</p>
+                        <p className="mt-1">
+                          {/* @ts-ignore */}
+                          <Badge variant="outline">{user.roles.name}</Badge>
+                        </p>
+                      </div>
+                    )}
+                    {/* @ts-ignore */}
+                    {user.drive_type && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Тип доставки</p>
+                        {/* @ts-ignore */}
+                        <p className="text-sm font-medium mt-0.5">{driveTypeMap[user.drive_type] || user.drive_type}</p>
+                      </div>
+                    )}
+                    {/* @ts-ignore */}
+                    {user.max_active_order_count !== undefined && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Макс. активных заказов</p>
+                        {/* @ts-ignore */}
+                        <p className="text-sm font-medium mt-0.5">{user.max_active_order_count}</p>
+                      </div>
+                    )}
+                    {/* @ts-ignore */}
+                    {user.order_start_date && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Дата начала работы</p>
+                        {/* @ts-ignore */}
+                        <p className="text-sm font-medium mt-0.5">{format(new Date(user.order_start_date), "dd.MM.yyyy HH:mm")}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
-                <div className="space-y-4">
+
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-sm font-semibold mb-4">Увольнение</h3>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Уволен</p>
+                      <p className="mt-1">
+                        {/* @ts-ignore */}
+                        {user.is_fired ? (
+                          <Badge variant="destructive">Да</Badge>
+                        ) : (
+                          <Badge variant="secondary">Нет</Badge>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Стоит ли брать обратно</p>
+                      <p className="mt-1">
+                        {/* @ts-ignore */}
+                        {user.should_rehire ? (
+                          <Badge variant="default">Да</Badge>
+                        ) : (
+                          <Badge variant="secondary">Нет</Badge>
+                        )}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Причина увольнения</p>
+                      {/* @ts-ignore */}
+                      <p className="text-sm font-medium mt-0.5">{user.fired_reason || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Work Info */}
+              <div className="rounded-lg border p-4">
+                <h3 className="text-sm font-semibold mb-4">Рабочая информация</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4">
                   {/* @ts-ignore */}
                   {user.terminals && user.terminals.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Филиалы</h3>
-                      <div className="flex flex-wrap gap-2 mt-1">
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Филиалы</p>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
                         {/* @ts-ignore */}
                         {user.terminals.map(terminal => (
                           <Badge key={terminal.id} variant="outline">{terminal.name}</Badge>
@@ -1240,12 +1323,11 @@ export default function UserShow({ id }: UserShowProps) {
                       </div>
                     </div>
                   )}
-                  
                   {/* @ts-ignore */}
                   {user.work_schedules && user.work_schedules.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Рабочие графики</h3>
-                      <div className="flex flex-wrap gap-2 mt-1">
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Рабочие графики</p>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
                         {/* @ts-ignore */}
                         {user.work_schedules.map(schedule => (
                           <Badge key={schedule.id} variant="outline">{schedule.name}</Badge>
@@ -1253,82 +1335,83 @@ export default function UserShow({ id }: UserShowProps) {
                       </div>
                     </div>
                   )}
-                  
                   {/* @ts-ignore */}
                   {user.daily_garant && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Дневной гарант</h3>
+                      <p className="text-xs text-muted-foreground">Дневной гарант</p>
                       {/* @ts-ignore */}
-                      <p className="mt-1">{user.daily_garant.name}</p>
+                      <p className="text-sm font-medium mt-0.5">{user.daily_garant.name}</p>
                     </div>
                   )}
-                  
                   {/* @ts-ignore */}
                   {user.car_model && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Модель автомобиля</h3>
+                      <p className="text-xs text-muted-foreground">Модель автомобиля</p>
                       {/* @ts-ignore */}
-                      <p className="mt-1">{user.car_model}</p>
+                      <p className="text-sm font-medium mt-0.5">{user.car_model}</p>
                     </div>
                   )}
-                  
                   {/* @ts-ignore */}
                   {user.car_number && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Номер автомобиля</h3>
+                      <p className="text-xs text-muted-foreground">Номер автомобиля</p>
                       {/* @ts-ignore */}
-                      <p className="mt-1">{user.car_number}</p>
-                    </div>
-                  )}
-                  
-                  {/* @ts-ignore */}
-                  {user.card_name && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Имя владельца карты</h3>
-                      {/* @ts-ignore */}
-                      <p className="mt-1">{user.card_name}</p>
-                    </div>
-                  )}
-                  {/* @ts-ignore */}
-                  {user.card_number && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Номер карты</h3>
-                      {/* @ts-ignore */}
-                      <p className="mt-1">{user.card_number}</p>
-                    </div>
-                  )}
-                  {/* @ts-ignore */}
-                  {user.max_active_order_count !== undefined && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Максимальное количество активных заказов</h3>
-                      {/* @ts-ignore */}
-                      <p className="mt-1">{user.max_active_order_count}</p>
-                    </div>
-                  )}
-                  {/* @ts-ignore */}
-                  {user.order_start_date && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Дата начала работы</h3>
-                      {/* @ts-ignore */}
-                      <p className="mt-1">{format(new Date(user.order_start_date), "dd.MM.yyyy HH:mm")}</p>
+                      <p className="text-sm font-medium mt-0.5">{user.car_number}</p>
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Documents */}
+              {userAssets.length > 0 && (
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-sm font-semibold mb-4">Документы пользователя</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {userAssets.map((file) => {
+                      const ext = file.file_name?.split('.').pop()?.toLowerCase();
+                      const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '');
+                      return (
+                        <a
+                          key={file.id}
+                          href={file.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow group"
+                        >
+                          {isImage ? (
+                            <img
+                              src={file.link}
+                              alt={file.file_name}
+                              className="w-full h-36 object-cover group-hover:opacity-90 transition-opacity"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-36 bg-muted/30">
+                              <Download className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="p-2 text-xs truncate text-muted-foreground">
+                            {file.file_name}
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </TabsContent>
-            
+
             <TabsContent value="attendance" className="mt-4">
               <UserAttendance userId={id} />
             </TabsContent>
-            
+
             <TabsContent value="payments" className="mt-4">
               <UserWithdrawals userId={id} />
             </TabsContent>
-            
+
             <TabsContent value="transactions" className="mt-4">
               <UserTransactions userId={id} />
             </TabsContent>
-            
+
             <TabsContent value="efficiency" className="mt-4">
               <div className="p-4 text-center text-muted-foreground">
                 Разработка компонента эффективности в процессе...
@@ -1353,14 +1436,14 @@ function UserSkeleton() {
         </Button>
         <Skeleton className="h-9 w-32" />
       </div>
-      
+
       <Card>
         <CardHeader>
           <Skeleton className="h-8 w-1/3" />
         </CardHeader>
         <CardContent>
           <Skeleton className="h-10 w-full mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-4">
               <div>
                 <Skeleton className="h-4 w-16 mb-1" />

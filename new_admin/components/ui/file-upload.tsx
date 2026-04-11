@@ -146,9 +146,13 @@ export function FileUpload({
     handleFileSelect(e.dataTransfer.files);
   }, [handleFileSelect]);
 
-  const getFileIcon = (fileName: string) => {
+  const isImage = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) {
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '');
+  };
+
+  const getFileIcon = (fileName: string) => {
+    if (isImage(fileName)) {
       return <Image className="h-4 w-4" />;
     }
     return <File className="h-4 w-4" />;
@@ -204,23 +208,38 @@ export function FileUpload({
       {files.length > 0 && (
         <div className="space-y-2">
           <div className="text-sm font-medium">Загруженные файлы:</div>
-          <div className="grid gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {files.map((file) => (
               <div
                 key={file.id}
-                className="flex items-center justify-between p-2 border rounded-lg"
+                className="relative group border rounded-lg overflow-hidden"
               >
-                <div className="flex items-center gap-2">
-                  {getFileIcon(file.file_name)}
-                  <span className="text-sm truncate max-w-[200px]">
-                    {file.file_name}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-1">
+                {isImage(file.file_name) ? (
+                  <a href={file.link} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={file.link}
+                      alt={file.file_name}
+                      className="w-full h-40 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    />
+                  </a>
+                ) : (
+                  <a
+                    href={file.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center h-40 bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <File className="h-10 w-10 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground mt-2 px-2 truncate max-w-full">
+                      {file.file_name}
+                    </span>
+                  </a>
+                )}
+                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="secondary"
+                    size="icon"
+                    className="h-7 w-7"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -228,12 +247,12 @@ export function FileUpload({
                     }}
                     title="Скачать файл"
                   >
-                    <Download className="h-4 w-4" />
+                    <Download className="h-3.5 w-3.5" />
                   </Button>
-                  
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="destructive"
+                    size="icon"
+                    className="h-7 w-7"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -242,8 +261,11 @@ export function FileUpload({
                     disabled={disabled}
                     title="Удалить файл"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3.5 w-3.5" />
                   </Button>
+                </div>
+                <div className="p-1.5 text-xs truncate text-muted-foreground">
+                  {file.file_name}
                 </div>
               </div>
             ))}
