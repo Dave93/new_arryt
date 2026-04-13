@@ -128,10 +128,11 @@ export const CouriersController = new Elysia({
         .execute();
       const userIds = couriers.map((user) => user.id);
 
-      // Fetch work schedules for all couriers
+      // Fetch work schedules for all couriers with organization_id
       const usersWorkSchedules = userIds.length > 0 ? await drizzle
         .select({
           user_id: users_work_schedules.user_id,
+          organization_id: work_schedules.organization_id,
           start_time: work_schedules.start_time,
           end_time: work_schedules.end_time,
         })
@@ -140,19 +141,33 @@ export const CouriersController = new Elysia({
         .where(inArray(users_work_schedules.user_id, userIds))
         .execute() : [];
 
-      // Build a map: user_id -> "start_time - end_time"
+      // Convert UTC time string (HH:mm:ss) to UZB time (UTC+5) as HH:mm
+      const toUzbTime = (timeStr: string): string => {
+        const [h, m] = timeStr.split(":").map(Number);
+        const uzbH = (h + 5) % 24;
+        return `${String(uzbH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      };
+
+      // Build a map: "user_id:organization_id" -> "start_time-end_time"
       const userScheduleMap = new Map<string, string>();
       usersWorkSchedules.forEach((uws) => {
-        if (uws.start_time && uws.end_time) {
-          const startStr = uws.start_time.substring(0, 5);
-          const endStr = uws.end_time.substring(0, 5);
-          const existing = userScheduleMap.get(uws.user_id);
+        if (uws.start_time && uws.end_time && uws.organization_id) {
+          const startStr = toUzbTime(uws.start_time);
+          const endStr = toUzbTime(uws.end_time);
+          const key = `${uws.user_id}:${uws.organization_id}`;
+          const existing = userScheduleMap.get(key);
           if (existing) {
-            userScheduleMap.set(uws.user_id, `${existing}, ${startStr}-${endStr}`);
+            userScheduleMap.set(key, `${existing}, ${startStr}-${endStr}`);
           } else {
-            userScheduleMap.set(uws.user_id, `${startStr}-${endStr}`);
+            userScheduleMap.set(key, `${startStr}-${endStr}`);
           }
         }
+      });
+
+      // Build terminal -> organization_id map
+      const terminalOrgMap = new Map<string, string>();
+      terminalsList.forEach((t) => {
+        terminalOrgMap.set(t.id, t.organization_id);
       });
 
       const usersTerminals = await drizzle
@@ -190,8 +205,10 @@ export const CouriersController = new Elysia({
 
       for (let i = 0; i < usersTerminals.length; i++) {
         const userTerminal = usersTerminals[i];
-        if (res[userTerminal!.terminals!.id]) {
-          res[userTerminal!.terminals!.id].couriers.push(
+        const terminalId = userTerminal!.terminals!.id;
+        if (res[terminalId]) {
+          const orgId = terminalOrgMap.get(terminalId);
+          res[terminalId].couriers.push(
             ...resCouriers
               .filter((user) => user.id === userTerminal.user_id)
               .map((courier) => ({
@@ -206,7 +223,7 @@ export const CouriersController = new Elysia({
                 daily_garant_id: courier.daily_garant_id,
                 date: courier.timesheet_users?.date,
                 app_version: courier.app_version,
-                work_schedule: userScheduleMap.get(courier.id) || null,
+                work_schedule: orgId ? userScheduleMap.get(`${courier.id}:${orgId}`) || null : null,
               }))
           );
         }
