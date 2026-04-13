@@ -166,6 +166,7 @@ function CourierRow({
             "text-sm truncate",
             courier.is_online ? "font-medium" : "text-muted-foreground"
           )}
+          title={`${courier.first_name} ${courier.last_name}`}
         >
           {courier.first_name} {courier.last_name}
         </span>
