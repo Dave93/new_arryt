@@ -22,6 +22,7 @@ import {
   IconFlame,
   IconWallet,
   IconUserCheck,
+  IconMapPinSearch,
 } from "@tabler/icons-react"
 
 import { NavMain, type NavGroup } from "@/components/nav-main"
@@ -113,6 +114,12 @@ const data = {
       icon: IconTruck,
       items: [
         {
+          title: "Где курьер",
+          url: "/dashboard/courier_locations",
+          icon: IconMapPinSearch,
+          permission: "orders.edit",
+        },
+        {
           title: "Заказы на карте",
           url: "/dashboard/orders/map",
           icon: IconMap,
@@ -137,13 +144,6 @@ const data = {
           icon: IconListDetails,
           actionLink: "/dashboard/daily_garant/create",
           permission: "daily_garant.edit",
-        },
-        {
-          title: "Бонусы за заказы",
-          url: "/dashboard/order_bonus_pricing",
-          icon: IconListDetails,
-          actionLink: "/dashboard/order_bonus_pricing/create",
-          permission: "order_bonus_pricing.edit",
         },
         {
           title: "Построенные бонусы",
