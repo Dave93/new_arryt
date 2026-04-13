@@ -206,7 +206,7 @@ export function DataTable<TData, TValue>({
         </div>
         <div className="text-sm text-muted-foreground">
           Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {Math.ceil(table.getPageCount() / paginationState.pageSize) || 1}
+          {table.getPageCount() || 1}
         </div>
         <div className="flex items-center space-x-2">
           <Button
