@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -601,6 +601,7 @@ function UserTransactions({ userId }: { userId: string }) {
   const [startDate, setStartDate] = useState<Date>(dayjs().startOf('week').toDate());
   const [endDate, setEndDate] = useState<Date>(dayjs().endOf('week').toDate());
   const [status, setStatus] = useState<string>("all");
+  const [selectedOrganization, setSelectedOrganization] = useState<string>("all");
   const [orderNumber, setOrderNumber] = useState<string>("");
   const [debouncedOrderNumber, setDebouncedOrderNumber] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -644,6 +645,19 @@ function UserTransactions({ userId }: { userId: string }) {
     },
   });
 
+  // Extract unique organizations from terminals
+  const organizations = useMemo(() => {
+    const orgMap = new Map<string, string>();
+    (terminals as any[]).forEach((t: any) => {
+      if (t.organization_id && t.organization?.name) {
+        orgMap.set(t.organization_id, t.organization.name);
+      }
+    });
+    return Array.from(orgMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [terminals]);
+
   // Формируем фильтры для запроса транзакций
   const getTransactionsFilters = useCallback(() => {
     const filters = [
@@ -672,6 +686,14 @@ function UserTransactions({ userId }: { userId: string }) {
       });
     }
 
+    if (selectedOrganization && selectedOrganization !== "all") {
+      filters.push({
+        field: "organization_id",
+        operator: "eq",
+        value: selectedOrganization,
+      });
+    }
+
     if (debouncedOrderNumber && debouncedOrderNumber.trim()) {
       filters.push({
         field: "orders.order_number",
@@ -681,7 +703,7 @@ function UserTransactions({ userId }: { userId: string }) {
     }
 
     return filters;
-  }, [userId, startDate, endDate, status, debouncedOrderNumber]);
+  }, [userId, startDate, endDate, status, selectedOrganization, debouncedOrderNumber]);
 
   // Запрос на получение списка транзакций
   const {
@@ -689,7 +711,7 @@ function UserTransactions({ userId }: { userId: string }) {
     isLoading,
     refetch: refetchTransactions
   } = useQuery({
-    queryKey: ["user_transactions", userId, startDate.toISOString(), endDate.toISOString(), status, debouncedOrderNumber],
+    queryKey: ["user_transactions", userId, startDate.toISOString(), endDate.toISOString(), status, selectedOrganization, debouncedOrderNumber],
     queryFn: async () => {
       try {
         const filters = getTransactionsFilters();
@@ -859,6 +881,23 @@ function UserTransactions({ userId }: { userId: string }) {
                 />
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="grid w-full max-w-sm items-center gap-1.5">
+            <Label htmlFor="organization">Организация</Label>
+            <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Все организации" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все организации</SelectItem>
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={org.id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid w-full max-w-sm items-center gap-1.5">

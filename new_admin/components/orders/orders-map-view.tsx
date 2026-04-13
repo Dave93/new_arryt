@@ -4,6 +4,13 @@ import * as React from "react"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import MultipleSelector, { Option } from "@/components/ui/multiselect"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { apiClient } from "@/lib/eden-client"
 import { Loader2, MapPin, X } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -25,10 +32,12 @@ const MapComponent = dynamic<MapComponentProps>(
 interface Terminal {
   id: string
   name: string
+  region: string
 }
 
 export function OrdersMapView() {
   const [terminals, setTerminals] = useState<Terminal[]>([])
+  const [selectedRegion, setSelectedRegion] = useState<string>("all")
   const [selectedTerminals, setSelectedTerminals] = useState<string[]>([])
   const [selectedCourierOptions, setSelectedCourierOptions] = useState<Option[]>([])
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
@@ -54,6 +63,11 @@ export function OrdersMapView() {
     
     fetchTerminals()
   }, [])
+
+  // Clear selected couriers when terminals change
+  useEffect(() => {
+    setSelectedCourierOptions([])
+  }, [selectedTerminals])
 
   // Fetch orders when selected terminals change
   useEffect(() => {
@@ -93,11 +107,15 @@ export function OrdersMapView() {
     fetchOrders()
   }, [selectedTerminals])
 
-  // Fetch couriers for search
+  // Fetch couriers for search (filtered by selected terminals)
   const fetchCouriers = async (query: string): Promise<Option[]> => {
     try {
+      const searchQuery: Record<string, string> = { search: query }
+      if (selectedTerminals.length > 0) {
+        searchQuery.terminal_id = selectedTerminals.join(",")
+      }
       const { data: couriers } = await apiClient.api.couriers.search.get({
-        query: { search: query },
+        query: searchQuery,
       })
 
       if (couriers && Array.isArray(couriers)) {
@@ -114,8 +132,13 @@ export function OrdersMapView() {
     }
   }
 
+  // Filter terminals by region
+  const filteredTerminals = selectedRegion === "all"
+    ? terminals
+    : terminals.filter(t => t.region === selectedRegion)
+
   // Terminal options for MultipleSelector
-  const terminalOptions: Option[] = terminals.map(t => ({ value: t.id, label: t.name }))
+  const terminalOptions: Option[] = filteredTerminals.map(t => ({ value: t.id, label: t.name }))
   const selectedTerminalOptions: Option[] = selectedTerminals
     .map(id => terminals.find(t => t.id === id))
     .filter((t): t is Terminal => !!t)
@@ -146,7 +169,7 @@ export function OrdersMapView() {
 
   return (
     <div className="relative h-[calc(100vh-4rem)]">
-      <div className="absolute top-4 left-4 z-1000 w-[320px] md:w-[280px]">
+      <div className="absolute top-4 left-4 z-[1000] w-[320px] md:w-[280px]">
         <Card className="shadow-md">
           <CardHeader className="p-4">
             <CardTitle className="text-base flex items-center justify-between">
@@ -160,6 +183,25 @@ export function OrdersMapView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Регион</label>
+              <Select
+                value={selectedRegion}
+                onValueChange={(val) => {
+                  setSelectedRegion(val)
+                  setSelectedTerminals([])
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Все регионы" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  <SelectItem value="all">Все регионы</SelectItem>
+                  <SelectItem value="capital">Столица</SelectItem>
+                  <SelectItem value="region">Регион</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Филиалы</label>
               <MultipleSelector
