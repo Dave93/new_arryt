@@ -272,26 +272,35 @@ export const CouriersController = new Elysia({
   })
   .get(
     "/api/couriers/search",
-    async ({ query: { search }, drizzle, user, set }) => {
+    async ({ query: { search, terminal_id }, drizzle, user, set }) => {
       const { password, ...fields } = getTableColumns(users);
-      const couriersList = await drizzle
+      let query = drizzle
         .select({
           ...fields,
         })
         .from(users)
         .leftJoin(users_roles, eq(users.id, users_roles.user_id))
-        .leftJoin(roles, eq(users_roles.role_id, roles.id))
-        .where(
-          and(
-            eq(users.status, "active"),
-            eq(roles.code, "courier"),
-            or(
-              ilike(users.first_name, `%${search}%`),
-              ilike(users.last_name, `%${search}%`),
-              ilike(users.phone, `%${search}%`)
-            )
-          )
-        )
+        .leftJoin(roles, eq(users_roles.role_id, roles.id));
+
+      const conditions = [
+        eq(users.status, "active"),
+        eq(roles.code, "courier"),
+        or(
+          ilike(users.first_name, `%${search}%`),
+          ilike(users.last_name, `%${search}%`),
+          ilike(users.phone, `%${search}%`)
+        ),
+      ];
+
+      if (terminal_id) {
+        const terminalIds = terminal_id.split(",");
+        // @ts-ignore
+        query = query.leftJoin(users_terminals, eq(users.id, users_terminals.user_id));
+        conditions.push(inArray(users_terminals.terminal_id, terminalIds));
+      }
+
+      const couriersList = await query
+        .where(and(...conditions))
         .execute();
       return couriersList;
     },
@@ -299,6 +308,7 @@ export const CouriersController = new Elysia({
       permission: 'orders.list',
       query: t.Object({
         search: t.String(),
+        terminal_id: t.Optional(t.String()),
       }),
     }
   )

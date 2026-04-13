@@ -37,6 +37,7 @@ interface Terminal {
   longitude?: number
   active?: boolean
   region?: string
+  organization_id?: string
   organization?: {
     icon_url?: string
     name?: string
@@ -60,6 +61,7 @@ interface DeliveryRadiusPoint {
 }
 
 export function HeatMapView() {
+  const [selectedOrganization, setSelectedOrganization] = useState<string>("all")
   const [selectedTerminals, setSelectedTerminals] = useState<string[]>([])
   const [dateRange, setDateRange] = useState<DateRange>({
     from: addDays(new Date(), -7),
@@ -115,8 +117,8 @@ export function HeatMapView() {
         }
         
         // Фильтруем невалидные записи
-        const validTerminals = data.filter(terminal => 
-          terminal && typeof terminal === 'object' && terminal.id && terminal.name && terminal.active && terminal.region == 'capital'
+        const validTerminals = data.filter(terminal =>
+          terminal && typeof terminal === 'object' && terminal.id && terminal.name && terminal.active
         );
         
         // Сортируем результат
@@ -129,7 +131,24 @@ export function HeatMapView() {
     }
   })
   
-  const terminals = terminalsData || []
+  const allTerminals = terminalsData || []
+
+  // Extract unique organizations
+  const organizations = useMemo(() => {
+    const orgMap = new Map<string, string>()
+    allTerminals.forEach(t => {
+      if (t.organization_id && t.organization?.name) {
+        orgMap.set(t.organization_id, t.organization.name)
+      }
+    })
+    return Array.from(orgMap.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [allTerminals])
+
+  // Filter terminals by organization
+  const terminals = useMemo(() => {
+    if (selectedOrganization === "all") return allTerminals
+    return allTerminals.filter(t => t.organization_id === selectedOrganization)
+  }, [allTerminals, selectedOrganization])
 
   // Fetch order locations with React Query when selected terminals or date range changes
   const { data: orderLocationsData, isLoading } = useQuery({
@@ -226,9 +245,9 @@ export function HeatMapView() {
   // Prepare terminal markers for the map
   const terminalMarkers = useMemo(() => {
     return terminals
-      .filter(terminal => terminal.latitude && terminal.longitude && 
-        terminal.active === true && 
-        terminal.region === 'capital')
+      .filter(terminal => terminal.latitude && terminal.longitude &&
+        terminal.active === true &&
+        (selectedTerminals.length === 0 || selectedTerminals.includes(terminal.id)))
       .map(terminal => ({
         id: terminal.id,
         name: terminal.name,
@@ -237,7 +256,7 @@ export function HeatMapView() {
         organizationIconUrl: terminal.organization?.icon_url?.replace('model_uploads', 'public/model_uploads'),
         organizationName: terminal.organization?.name
       }))
-  }, [terminals])
+  }, [terminals, selectedTerminals])
 
   // Prepare heat map data for the map
   const heatMapData = useMemo(() => {
@@ -388,6 +407,7 @@ export function HeatMapView() {
 
   // Функция очистки всех фильтров
   const handleClearAllFilters = useCallback(() => {
+    setSelectedOrganization("all");
     setSelectedTerminals([]);
     setDateRange({
       from: addDays(new Date(), -7),
@@ -417,16 +437,15 @@ export function HeatMapView() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="relative h-[calc(100vh-4rem)]">
-        {/* Filter toggle button */}
-        <div className="absolute top-4 left-4 z-[1001]">
+        {/* Filter button + panel container */}
+        <div className="absolute top-4 left-4 z-[1001] flex items-start gap-2">
+          {/* Filter toggle button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="default"
                 size="icon"
-                className={cn(
-                  "h-10 w-10 rounded-full shadow-md transition-colors bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
+                className="h-10 w-10 rounded-full shadow-md shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => setShowFiltersPanel(!showFiltersPanel)}
               >
                 <Filter className="h-5 w-5" />
@@ -437,178 +456,171 @@ export function HeatMapView() {
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">
+            <TooltipContent side="bottom">
               <p>{showFiltersPanel ? "Скрыть фильтры" : "Показать фильтры"}</p>
             </TooltipContent>
           </Tooltip>
-        </div>
-        
-        {/* Clear filters button */}
-        {Boolean((selectedTerminals && selectedTerminals.length > 0) || showDeliveryRadius) && (
-          <div className="absolute top-4 left-[70px] z-[1001]">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 shadow-md flex items-center space-x-1 border-destructive/30 bg-background/80 backdrop-blur-sm"
-                  onClick={handleClearAllFilters}
-                >
-                  <X className="h-4 w-4 text-destructive" />
-                  <span>Очистить все фильтры</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p>Сбросить все параметры</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        )}
 
-        {/* Filters Panel - Top left */}
-        <div className={cn(
-          "absolute top-4 left-4 z-1000 w-[320px] md:w-[280px] transition-all duration-300",
-          showFiltersPanel ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-10 pointer-events-none"
-        )}>
-          <Card className="shadow-md ml-14">
-            <CardHeader className="p-4">
-              <CardTitle className="text-base flex items-center justify-between">
-                <span className="flex items-center">
-                  <Thermometer className="h-4 w-4 mr-2 text-primary" />
-                  Тепловая карта заказов
-                </span>
-                <span className="text-xs font-normal text-muted-foreground">
-                  {orderLocations.length} локаций
-                  {selectedTerminals && selectedTerminals.length > 0 && ` • ${selectedTerminals.length} филиал${selectedTerminals.length > 1 ? 'а' : ''}`}
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Филиалы</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-between"
-                      size="sm"
-                    >
-                      {selectedTerminals.length > 0 ? (
-                        <span>Выбрано: {selectedTerminals.length}</span>
-                      ) : (
-                        <span>Выберите филиалы</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0 z-[1200]" align="start">
-                    <Command>
-                      <CommandInput placeholder="Поиск филиала..." />
-                      <CommandList>
-                        <CommandEmpty>Филиалы не найдены.</CommandEmpty>
-                        <CommandGroup className="max-h-[250px] overflow-auto">
-                          {Array.isArray(terminals) && terminals.map((terminal) => {
-                            if (!terminal || !terminal.id || !terminal.name) return null;
-                            return (
-                              <CommandItem
-                                key={terminal.id}
-                                value={terminal.name}
-                                onSelect={() => {
-                                  try {
-                                    setSelectedTerminals((current) => {
-                                      if (current.includes(terminal.id)) {
-                                        return current.filter(id => id !== terminal.id);
-                                      }
-                                      return [...current, terminal.id];
-                                    });
-                                  } catch (error) {
-                                    console.error("Error selecting terminal:", error);
-                                    toast.error("Ошибка при выборе филиала");
-                                  }
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedTerminals.includes(terminal.id) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {terminal.name && terminal.name.length > 20 
-                                  ? terminal.name.substring(0, 20) + '...' 
-                                  : terminal.name || 'Без названия'}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {selectedTerminals.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedTerminals.map(id => {
-                      const terminal = terminals.find(t => t.id === id);
-                      if (!terminal) return null;
-                      return (
-                        <Badge 
-                          key={id} 
-                          variant="secondary"
-                          className="text-xs py-0.5 px-2 font-normal flex items-center"
-                        >
-                          {terminal.name && terminal.name.length > 20 
-                            ? terminal.name.substring(0, 20) + '...' 
-                            : terminal.name || 'Без названия'}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-auto p-0 ml-1 text-muted-foreground hover:text-foreground"
-                            onClick={() => setSelectedTerminals(current => current.filter(i => i !== id))}
-                          >
-                            <X className="h-3 w-3" />
-                            <span className="sr-only">Remove</span>
-                          </Button>
-                        </Badge>
-                      );
-                    })}
-                    {selectedTerminals.length > 1 && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-5 px-2 text-xs font-normal text-muted-foreground"
-                        onClick={() => setSelectedTerminals([])}
-                      >
-                        Очистить все
-                      </Button>
+          {/* Filters Panel */}
+          <div className={cn(
+            "w-[300px] transition-all duration-300",
+            showFiltersPanel ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-10 pointer-events-none"
+          )}>
+            {/* Clear filters button */}
+            {Boolean((selectedTerminals && selectedTerminals.length > 0) || showDeliveryRadius) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 mb-2 shadow-md flex items-center gap-1 border-destructive/30 bg-background/80 backdrop-blur-sm text-xs"
+                onClick={handleClearAllFilters}
+              >
+                <X className="h-3.5 w-3.5 text-destructive" />
+                Сбросить фильтры
+              </Button>
+            )}
+            <Card className="shadow-lg backdrop-blur-sm bg-background/95">
+            <CardContent className="p-3 space-y-3">
+              {/* Header with stats */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Фильтры</span>
+                <div className="flex items-center gap-2">
+                  {orderLocations.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
+                      {orderLocations.length} локаций
+                    </Badge>
+                  )}
+                  {selectedTerminals.length > 0 && (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0 font-normal">
+                      {selectedTerminals.length} филиал{selectedTerminals.length > 1 ? 'а' : ''}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Period */}
+              <DateRangePicker
+                value={dateRange}
+                onChange={(value) => value && setDateRange(value)}
+              />
+
+              {/* Organization + Terminals in a compact layout */}
+              <Select
+                value={selectedOrganization}
+                onValueChange={(val) => {
+                  setSelectedOrganization(val)
+                  setSelectedTerminals([])
+                }}
+              >
+                <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectValue placeholder="Все организации" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  <SelectItem value="all">Все организации</SelectItem>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between h-9 text-sm"
+                  >
+                    {selectedTerminals.length > 0 ? (
+                      <span>Филиалы: {selectedTerminals.length}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Все филиалы</span>
                     )}
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Период</label>
-                <DateRangePicker
-                  value={dateRange}
-                  onChange={(value) => value && setDateRange(value)}
-                />
-              </div>
+                    <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[268px] p-0 z-[9999]" align="start">
+                  <Command>
+                    <CommandInput placeholder="Поиск..." className="h-9" />
+                    <CommandList>
+                      <CommandEmpty>Не найдено</CommandEmpty>
+                      <CommandGroup className="max-h-[200px] overflow-auto">
+                        {Array.isArray(terminals) && terminals.map((terminal) => {
+                          if (!terminal?.id || !terminal?.name) return null;
+                          return (
+                            <CommandItem
+                              key={terminal.id}
+                              value={terminal.name}
+                              onSelect={() => {
+                                setSelectedTerminals((current) => {
+                                  if (current.includes(terminal.id)) {
+                                    return current.filter(id => id !== terminal.id);
+                                  }
+                                  return [...current, terminal.id];
+                                });
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-3.5 w-3.5",
+                                  selectedTerminals.includes(terminal.id) ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="truncate">{terminal.name}</span>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
 
-              <div className="flex items-center space-x-2">
+              {/* Selected terminals tags */}
+              {selectedTerminals.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedTerminals.map(id => {
+                    const terminal = terminals.find(t => t.id === id);
+                    if (!terminal) return null;
+                    return (
+                      <Badge
+                        key={id}
+                        variant="secondary"
+                        className="text-[11px] py-0 px-1.5 font-normal flex items-center gap-1 cursor-pointer hover:bg-destructive/10"
+                        onClick={() => setSelectedTerminals(current => current.filter(i => i !== id))}
+                      >
+                        {terminal.name}
+                        <X className="h-2.5 w-2.5" />
+                      </Badge>
+                    );
+                  })}
+                  {selectedTerminals.length > 1 && (
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] py-0 px-1.5 font-normal cursor-pointer hover:bg-destructive/10 text-muted-foreground"
+                      onClick={() => setSelectedTerminals([])}
+                    >
+                      Очистить
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Show markers toggle */}
+              <label htmlFor="showClusters" className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   id="showClusters"
                   checked={showOrderClusters}
                   onChange={(e) => setShowOrderClusters(e.target.checked)}
-                  className="rounded border-gray-300 focus:ring-primary"
+                  className="rounded border-gray-300 focus:ring-primary h-3.5 w-3.5"
                 />
-                <label htmlFor="showClusters" className="text-sm font-medium flex items-center">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  Показать маркеры заказов
-                </label>
-              </div>
+                <span className="text-xs text-muted-foreground">Показать маркеры заказов</span>
+              </label>
             </CardContent>
           </Card>
+          </div>
         </div>
-        
+
         {/* Statistics Panel - Bottom Right */}
         {selectedTerminals && selectedTerminals.length > 0 && (
           <div className={cn(
