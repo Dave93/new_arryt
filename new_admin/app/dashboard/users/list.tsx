@@ -226,7 +226,7 @@ export default function UsersList() {
   const [selectedRoleId, setSelectedRoleId] = useQueryState("role", parseAsString.withDefault(""));
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 20,
+    pageSize: 100,
   });
 
   const form = useForm({

@@ -141,10 +141,10 @@ export const CouriersController = new Elysia({
         .where(inArray(users_work_schedules.user_id, userIds))
         .execute() : [];
 
-      // Convert UTC time string (HH:mm:ss) to UZB time (UTC+5) as HH:mm
+      // Convert stored time string to local UZB display time (offset +6 based on how times are persisted)
       const toUzbTime = (timeStr: string): string => {
         const [h, m] = timeStr.split(":").map(Number);
-        const uzbH = (h + 5) % 24;
+        const uzbH = (h + 6) % 24;
         return `${String(uzbH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
       };
 
