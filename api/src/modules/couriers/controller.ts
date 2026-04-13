@@ -128,6 +128,33 @@ export const CouriersController = new Elysia({
         .execute();
       const userIds = couriers.map((user) => user.id);
 
+      // Fetch work schedules for all couriers
+      const usersWorkSchedules = userIds.length > 0 ? await drizzle
+        .select({
+          user_id: users_work_schedules.user_id,
+          start_time: work_schedules.start_time,
+          end_time: work_schedules.end_time,
+        })
+        .from(users_work_schedules)
+        .leftJoin(work_schedules, eq(users_work_schedules.work_schedule_id, work_schedules.id))
+        .where(inArray(users_work_schedules.user_id, userIds))
+        .execute() : [];
+
+      // Build a map: user_id -> "start_time - end_time"
+      const userScheduleMap = new Map<string, string>();
+      usersWorkSchedules.forEach((uws) => {
+        if (uws.start_time && uws.end_time) {
+          const startStr = uws.start_time.substring(0, 5);
+          const endStr = uws.end_time.substring(0, 5);
+          const existing = userScheduleMap.get(uws.user_id);
+          if (existing) {
+            userScheduleMap.set(uws.user_id, `${existing}, ${startStr}-${endStr}`);
+          } else {
+            userScheduleMap.set(uws.user_id, `${startStr}-${endStr}`);
+          }
+        }
+      });
+
       const usersTerminals = await drizzle
         .select({
           user_id: users_terminals.user_id,
@@ -179,6 +206,7 @@ export const CouriersController = new Elysia({
                 daily_garant_id: courier.daily_garant_id,
                 date: courier.timesheet_users?.date,
                 app_version: courier.app_version,
+                work_schedule: userScheduleMap.get(courier.id) || null,
               }))
           );
         }
@@ -1515,6 +1543,12 @@ export const CouriersController = new Elysia({
           `${workSchedule!.max_start_time}`,
           "HH:mm:ss"
         ).toDate();
+        scheduleStartTime.setFullYear(new Date().getFullYear());
+        scheduleStartTime.setMonth(new Date().getMonth());
+        scheduleStartTime.setDate(new Date().getDate());
+        // Reset and recalculate based on the matched schedule only
+        isLate = false;
+        lateMinutes = 0;
         if (currentDate > scheduleStartTime) {
           isLate = true;
           lateMinutes = Math.round(
@@ -1562,6 +1596,9 @@ export const CouriersController = new Elysia({
               scheduleStartTime.setDate(startTime.getDate());
               scheduleStartTime.setMonth(startTime.getMonth());
               scheduleStartTime.setFullYear(startTime.getFullYear());
+              // Reset and recalculate based on the matched schedule only
+              isLate = false;
+              lateMinutes = 0;
               if (currentDate > scheduleStartTime) {
                 isLate = true;
                 lateMinutes = Math.round(
