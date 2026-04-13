@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "../../../components/ui/select";
 import { Badge } from "../../../components/ui/badge";
+import { Tooltip, TooltipTrigger, TooltipContent } from "../../../components/ui/tooltip";
 import { cn } from "../../../lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -161,15 +162,21 @@ function CourierRow({
 
       {/* Name + drive type + schedule */}
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <span
-          className={cn(
-            "text-sm truncate",
-            courier.is_online ? "font-medium" : "text-muted-foreground"
-          )}
-          title={`${courier.first_name} ${courier.last_name}`}
-        >
-          {courier.first_name} {courier.last_name}
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className={cn(
+                "text-sm truncate cursor-default",
+                courier.is_online ? "font-medium" : "text-muted-foreground"
+              )}
+            >
+              {courier.first_name} {courier.last_name}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {courier.first_name} {courier.last_name}
+          </TooltipContent>
+        </Tooltip>
         {courier.drive_type && (
           <span className="text-sm shrink-0" title={courier.drive_type}>
             {driveTypeIcons[courier.drive_type] || "❓"}
@@ -423,21 +430,20 @@ export default function RollCallList() {
     return result;
   }, [data, searchQuery, filterValues.region, terminalRegionMap]);
 
-  // Summary stats
+  // Summary stats (unique couriers only)
   const stats = useMemo(() => {
     const totalTerminals = filteredData.length;
-    const totalCouriers = filteredData.reduce(
-      (sum, t) => sum + t.couriers.length,
-      0
-    );
-    const onlineCouriers = filteredData.reduce(
-      (sum, t) => sum + t.couriers.filter((c) => c.is_online).length,
-      0
-    );
-    const lateCouriers = filteredData.reduce(
-      (sum, t) => sum + t.couriers.filter((c) => c.is_late).length,
-      0
-    );
+    const uniqueCouriers = new Map<string, { is_online: boolean; is_late?: boolean }>();
+    filteredData.forEach((t) => {
+      t.couriers.forEach((c) => {
+        if (!uniqueCouriers.has(c.id)) {
+          uniqueCouriers.set(c.id, { is_online: c.is_online, is_late: c.is_late });
+        }
+      });
+    });
+    const totalCouriers = uniqueCouriers.size;
+    const onlineCouriers = [...uniqueCouriers.values()].filter((c) => c.is_online).length;
+    const lateCouriers = [...uniqueCouriers.values()].filter((c) => c.is_late).length;
     return { totalTerminals, totalCouriers, onlineCouriers, lateCouriers };
   }, [filteredData]);
 
