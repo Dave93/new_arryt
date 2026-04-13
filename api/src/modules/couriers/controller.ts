@@ -193,7 +193,7 @@ export const CouriersController = new Elysia({
       for (let i = 0; i < resCouriers.length; i++) {
         let userData = await redis.hget(
           `${process.env.PROJECT_PREFIX}_user`,
-          resCouriers[0].id
+          resCouriers[i].id
         );
         if (userData) {
           try {
