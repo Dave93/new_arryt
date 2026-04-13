@@ -44,6 +44,7 @@ interface Role {
 interface WorkSchedule {
   id: string;
   name: string;
+  active?: boolean;
   organization: {
     id: string;
     name: string;
@@ -280,8 +281,8 @@ export default function UserEdit() {
     enabled: !!id,
   });
 
-  // Группировка графиков по организациям
-  const workSchedulesByOrg = workSchedules.reduce((acc: Record<string, WorkSchedule[]>, curr: WorkSchedule) => {
+  // Группировка графиков по организациям (только активные)
+  const workSchedulesByOrg = workSchedules.filter((ws: WorkSchedule) => ws.active !== false).reduce((acc: Record<string, WorkSchedule[]>, curr: WorkSchedule) => {
     const orgName = curr.organization?.name || "Без организации";
     if (!acc[orgName]) {
       acc[orgName] = [];

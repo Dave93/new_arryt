@@ -66,14 +66,23 @@ const daysOfWeek = [
 // Схема формы с валидацией Zod
 const formSchema = z.object({
   id: z.string(),
-  name: z.string().min(1, { message: "Название обязательно" }),
+  name: z.string(),
   active: z.boolean().default(true),
-  organization_id: z.string().min(1, { message: "Организация обязательна" }),
-  days: z.array(z.string()).min(1, { message: "Выберите минимум один день недели" }),
-  start_time: z.string().min(1, { message: "Время начала обязательно" }),
-  end_time: z.string().min(1, { message: "Время окончания обязательно" }),
-  max_start_time: z.string().min(1, { message: "Максимальное время начала обязательно" }),
+  organization_id: z.string(),
+  days: z.array(z.string()),
+  start_time: z.string(),
+  end_time: z.string(),
+  max_start_time: z.string(),
   bonus_price: z.coerce.number().optional(),
+}).superRefine((data, ctx) => {
+  if (data.active) {
+    if (!data.name) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Название обязательно", path: ["name"] });
+    if (!data.organization_id) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Организация обязательна", path: ["organization_id"] });
+    if (!data.days.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Выберите минимум один день недели", path: ["days"] });
+    if (!data.start_time) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Время начала обязательно", path: ["start_time"] });
+    if (!data.end_time) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Время окончания обязательно", path: ["end_time"] });
+    if (!data.max_start_time) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Максимальное время начала обязательно", path: ["max_start_time"] });
+  }
 });
 
 export default function WorkScheduleEdit() {
@@ -119,7 +128,8 @@ export default function WorkScheduleEdit() {
       try {
         // @ts-ignore
         const response = await apiClient.api.work_schedules({id}).get();
-        return response.data;
+        // API returns { data: { ... } }, Eden unwraps once to response.data = { data: { ... } }
+        return (response.data as any)?.data || response.data;
       } catch (error) {
         toast.error("Failed to load work schedule");
         throw error;
@@ -164,9 +174,10 @@ export default function WorkScheduleEdit() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
+      const { id: _id, ...data } = values;
       await apiClient.api.work_schedules({id: values.id}).put({
         // @ts-ignore
-        data: values,
+        data,
       });
       
       toast.success("Рабочий график успешно обновлен");
@@ -243,7 +254,7 @@ export default function WorkScheduleEdit() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Организация</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите организацию" />
