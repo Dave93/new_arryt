@@ -23,7 +23,7 @@ export const ordersFiltersParsers = {
   statuses: parseAsArrayOf(parseAsString).withDefault([]),
   region: parseAsString.withDefault("capital"),
   page: parseAsInteger.withDefault(0),
-  pageSize: parseAsInteger.withDefault(20),
+  pageSize: parseAsInteger.withDefault(100),
 };
 
 export const serializeOrdersFilters = createSerializer(ordersFiltersParsers);
