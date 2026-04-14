@@ -9,6 +9,10 @@ import { contextWitUser } from "../../context";
 import Elysia, { t } from "elysia";
 import { sortBy, uniq } from "lodash";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+import isoWeek from "dayjs/plugin/isoWeek";
+dayjs.extend(customParseFormat);
+dayjs.extend(isoWeek);
 import { getSetting } from "../../utils/settings";
 import { CourierEfficiencyReportItem, WalletStatus } from "../user/dto/list.dto";
 import { getDistance } from "geolib";
@@ -1516,10 +1520,12 @@ export const CouriersController = new Elysia({
       const currentDate = new Date();
       let isLate = false;
       let lateMinutes = 0;
-      if (currentDate > minStartTime!) {
+      // Add 6 hours to convert DB time to UZB local time for comparison
+      const adjustedMinStartTime = new Date(minStartTime!.getTime() + 6 * 60 * 60 * 1000);
+      if (currentDate > adjustedMinStartTime) {
         isLate = true;
         lateMinutes = Math.round(
-          (currentDate.getTime() - minStartTime!.getTime()) / 60000
+          (currentDate.getTime() - adjustedMinStartTime.getTime()) / 60000
         );
       }
       let workSchedule: (typeof workSchedules)[0] | null = null;
@@ -1619,7 +1625,8 @@ export const CouriersController = new Elysia({
               startTime.setSeconds(0);
               timesheetDate = startTime;
 
-              const scheduleStartTime = new Date(`${schedule.max_start_time}`);
+              // Parse max_start_time with dayjs and add 6h offset (DB time → UZB local time)
+              const scheduleStartTime = dayjs(`${schedule.max_start_time}`, "HH:mm:ss").add(6, 'hours').toDate();
               scheduleStartTime.setDate(startTime.getDate());
               scheduleStartTime.setMonth(startTime.getMonth());
               scheduleStartTime.setFullYear(startTime.getFullYear());
