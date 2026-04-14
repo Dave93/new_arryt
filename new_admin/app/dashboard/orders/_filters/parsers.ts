@@ -5,13 +5,13 @@ import {
   parseAsIsoDateTime,
   createSerializer,
 } from "nuqs";
-import { startOfWeek, endOfWeek } from "date-fns";
+import { startOfWeek, endOfWeek, setHours } from "date-fns";
 
 const now = new Date();
 
 export const ordersFiltersParsers = {
   dateFrom: parseAsIsoDateTime.withDefault(
-    startOfWeek(now, { weekStartsOn: 1 }),
+    setHours(startOfWeek(now, { weekStartsOn: 1 }), 10),
   ),
   dateTo: parseAsIsoDateTime.withDefault(endOfWeek(now, { weekStartsOn: 1 })),
   search: parseAsString.withDefault(""),

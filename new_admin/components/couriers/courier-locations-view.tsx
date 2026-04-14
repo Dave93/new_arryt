@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { apiClient, useGetAuthHeaders } from "@/lib/eden-client"
+import { apiClient } from "@/lib/eden-client"
 import { Loader2, MapPin, RefreshCw, User, Wifi, WifiOff } from "lucide-react"
 import dynamic from "next/dynamic"
 import type { CourierLocation, CourierLocationsMapProps } from "./courier-locations-map"
@@ -29,7 +29,6 @@ const CourierLocationsMap = dynamic<CourierLocationsMapProps>(
 )
 
 export function CourierLocationsView() {
-  const authHeaders = useGetAuthHeaders()
   const [couriers, setCouriers] = useState<CourierLocation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedCourierId, setSelectedCourierId] = useState<string | null>(null)
@@ -38,9 +37,7 @@ export function CourierLocationsView() {
 
   const fetchLocations = useCallback(async () => {
     try {
-      const { data } = await apiClient.api.couriers.locations.get({
-        $headers: authHeaders,
-      })
+      const { data } = await apiClient.api.couriers.locations.get()
 
       if (data && Array.isArray(data)) {
         setCouriers(data as CourierLocation[])
@@ -50,7 +47,7 @@ export function CourierLocationsView() {
     } finally {
       setIsLoading(false)
     }
-  }, [authHeaders])
+  }, [])
 
   // Initial fetch + polling every 3 seconds
   useEffect(() => {
@@ -134,8 +131,8 @@ export function CourierLocationsView() {
                     .sort((a, b) => {
                       if (a.is_online && !b.is_online) return -1
                       if (!a.is_online && b.is_online) return 1
-                      return `${a.last_name} ${a.first_name}`.localeCompare(
-                        `${b.last_name} ${b.first_name}`
+                      return `${a.first_name} ${a.last_name}`.localeCompare(
+                        `${b.first_name} ${b.last_name}`
                       )
                     })
                     .map((courier) => (
@@ -146,7 +143,7 @@ export function CourierLocationsView() {
                               courier.is_online ? "bg-green-500" : "bg-red-500"
                             }`}
                           />
-                          {courier.last_name} {courier.first_name}
+                          {courier.first_name} {courier.last_name}
                         </span>
                       </SelectItem>
                     ))}
