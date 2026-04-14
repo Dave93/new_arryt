@@ -1000,7 +1000,7 @@ export const CouriersController = new Elysia({
     for (let key in locations) {
       const user = JSON.parse(users[key]);
       const location = JSON.parse(locations[key]);
-      if (user) {
+      if (user && user.user.status === "active") {
         res.push({
           id: user.user.id,
           last_name: user.user.last_name,

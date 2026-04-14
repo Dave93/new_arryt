@@ -247,6 +247,8 @@ export default function UserEdit() {
               "terminals.name",
               "roles.id",
               "roles.name",
+              "work_schedules.id",
+              "work_schedules.name",
               "is_fired",
               "fired_reason",
               "should_rehire",
@@ -544,7 +546,7 @@ export default function UserEdit() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {terminals.map((terminal: Terminal) => (
+                          {terminals.filter((terminal: Terminal) => !field.value?.includes(terminal.id)).map((terminal: Terminal) => (
                             <SelectItem key={terminal.id} value={terminal.id}>
                               {terminal.name}
                             </SelectItem>
@@ -598,7 +600,7 @@ export default function UserEdit() {
                           {Object.entries(workSchedulesByOrg).map(([orgName, schedules]) => (
                             <div key={orgName}>
                               <div className="px-2 py-1.5 text-sm font-semibold">{orgName}</div>
-                              {(schedules as WorkSchedule[]).map((schedule: WorkSchedule) => (
+                              {(schedules as WorkSchedule[]).filter((schedule: WorkSchedule) => !field.value?.includes(schedule.id)).map((schedule: WorkSchedule) => (
                                 <SelectItem key={schedule.id} value={schedule.id}>
                                   {schedule.name}
                                 </SelectItem>

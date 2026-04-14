@@ -1,19 +1,16 @@
 "use client";
 
 import { useQueryStates } from "nuqs";
-import { parseAsIsoDateTime } from "nuqs";
-import { startOfWeek, endOfWeek, startOfDay, endOfDay, subDays, startOfMonth, isSameDay, setHours } from "date-fns";
+import { startOfDay, endOfDay, subDays, startOfMonth, startOfWeek, isSameDay, setHours } from "date-fns";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
+import { ordersFiltersParsers } from "./parsers";
 
-const now = new Date();
 const parsers = {
-  dateFrom: parseAsIsoDateTime.withDefault(
-    setHours(startOfWeek(now, { weekStartsOn: 1 }), 10),
-  ),
-  dateTo: parseAsIsoDateTime.withDefault(endOfWeek(now, { weekStartsOn: 1 })),
+  dateFrom: ordersFiltersParsers.dateFrom,
+  dateTo: ordersFiltersParsers.dateTo,
 };
 
 type Preset = "today" | "yesterday" | "week" | "month";
