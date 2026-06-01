@@ -9,11 +9,14 @@ import {
   getSortedRowModel,
   SortingState,
   getFilteredRowModel,
+  getExpandedRowModel,
+  ExpandedState,
   PaginationState,
   OnChangeFn,
+  Row,
 } from "@tanstack/react-table";
 import { Button } from "./button";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { 
   Select, 
   SelectContent, 
@@ -35,6 +38,8 @@ interface DataTableProps<TData, TValue> {
   onRowClick?: (row: TData) => void;
   isRowDisabled?: (row: TData) => boolean;
   footerContent?: React.ReactNode;
+  getRowCanExpand?: (row: Row<TData>) => boolean;
+  renderSubRow?: (row: Row<TData>) => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -49,9 +54,12 @@ export function DataTable<TData, TValue>({
   onRowClick,
   isRowDisabled,
   footerContent,
+  getRowCanExpand,
+  renderSubRow,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [expanded, setExpanded] = useState<ExpandedState>({});
   
   // Используем локальную пагинацию, если не передан onPaginationChange
   const [localPagination, setLocalPagination] = useState<PaginationState>({
@@ -76,6 +84,14 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
+    // Раскрываемые строки (опционально)
+    ...(renderSubRow
+      ? {
+          getRowCanExpand: getRowCanExpand || (() => true),
+          getExpandedRowModel: getExpandedRowModel(),
+          onExpandedChange: setExpanded,
+        }
+      : {}),
     // Для серверной пагинации передаем pageCount
     ...(isServerPagination && pageCount !== undefined ? { manualPagination: true, pageCount } : {}),
     onPaginationChange: setPaginationState,
@@ -83,6 +99,7 @@ export function DataTable<TData, TValue>({
       sorting,
       globalFilter,
       pagination: paginationState,
+      ...(renderSubRow ? { expanded } : {}),
     },
   });
 
@@ -136,8 +153,8 @@ export function DataTable<TData, TValue>({
                 table.getRowModel().rows.map((row) => {
                   const disabled = isRowDisabled ? isRowDisabled(row.original) : false;
                   return (
+                    <Fragment key={row.id}>
                     <tr
-                      key={row.id}
                       data-state={row.getIsSelected() && "selected"}
                       data-disabled={disabled}
                       className={`border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted *:border-border [&>:not(:last-child)]:border-r odd:bg-muted/90 odd:hover:bg-muted/90 ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
@@ -160,6 +177,14 @@ export function DataTable<TData, TValue>({
                         </td>
                       ))}
                     </tr>
+                    {renderSubRow && row.getIsExpanded() && (
+                      <tr className="bg-muted/40">
+                        <td colSpan={row.getVisibleCells().length} className="p-3 align-top">
+                          {renderSubRow(row)}
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })
               ) : (
