@@ -44,6 +44,8 @@ import { cn } from "../../../lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import { sortTerminalsByName } from "../../../lib/sort_terminals_by_name";
 
 // Define types
@@ -393,8 +395,33 @@ export default function CourierEfficiencyList() {
 
   // Handle export action
   const handleExport = async () => {
-    toast.info("Экспорт данных...");
-    // Implement export functionality here
+    if (!efficiencyData.length) {
+      toast.warning("Нет данных для экспорта");
+      return;
+    }
+    try {
+      toast.info("Экспорт данных...");
+      const rows = efficiencyData.map((c, i) => ({
+        "№": i + 1,
+        Курьер: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim(),
+        Телефон: c.phone ?? "",
+        "Кол-во обработанных заказов": Number(c.courier_count) || 0,
+        "Кол-во всех заказов": Number(c.total_count) || 0,
+        "Эффективность %": Number(Number.parseFloat(String(c.efficiency)).toFixed(0)) || 0,
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Эффективность");
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+      const { date_from, date_to } = form.getValues();
+      const fileName = `Эффективность_курьеров_${format(date_from, "yyyy-MM-dd")}_${format(date_to, "yyyy-MM-dd")}.xlsx`;
+      saveAs(blob, fileName);
+      toast.success("Экспорт выполнен");
+    } catch (e) {
+      console.error("Export error:", e);
+      toast.error("Ошибка экспорта");
+    }
   };
 
   // Handle filter submit
