@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
-import { Eye, Plus, Edit } from "lucide-react";
+import { Eye, Plus, Edit, ChevronRight, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "../../../components/ui/switch";
 import { format } from "date-fns";
@@ -41,7 +41,18 @@ interface DeliveryPricing {
   end_time: string;
   min_price: number;
   price_per_km: number;
+  customer_price_per_km?: number;
+  min_distance_km?: number;
+  rules?: PricingTier[];
+  customer_rules?: PricingTier[] | null;
   payment_type?: string;
+}
+
+// Тир тарификации по дистанции
+interface PricingTier {
+  from: number;
+  to: number;
+  price: number;
 }
 
 // Определение типа организации
@@ -50,8 +61,51 @@ interface Organization {
   name: string;
 }
 
+// Форматирование числа: 12000 -> "12 000"
+const formatSum = (value: number) =>
+  new Intl.NumberFormat("ru-RU").format(value);
+
+// Форматирование тиров: [{from,to,price}] -> "0–80 км: 12 000 сум"
+const formatTiers = (tiers?: PricingTier[] | null) => {
+  if (!tiers || tiers.length === 0) return null;
+  return tiers.map((t, i) => (
+    <div key={i} className="whitespace-nowrap">
+      {t.from}–{t.to} км: <span className="font-medium">{formatSum(t.price)} сум</span>
+    </div>
+  ));
+};
+
+// Есть ли что показывать в раскрытии
+const hasTariffInfo = (p: DeliveryPricing) =>
+  Boolean(
+    (p.rules && p.rules.length) ||
+    (p.customer_rules && p.customer_rules.length) ||
+    p.price_per_km ||
+    p.customer_price_per_km
+  );
+
 // Определение колонок для таблицы
 const columns: ColumnDef<DeliveryPricing>[] = [
+  {
+    id: "expander",
+    header: () => null,
+    cell: ({ row }) =>
+      row.getCanExpand() ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          onClick={row.getToggleExpandedHandler()}
+          aria-label={row.getIsExpanded() ? "Свернуть" : "Развернуть"}
+        >
+          {row.getIsExpanded() ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </Button>
+      ) : null,
+  },
   {
     accessorKey: "active",
     header: "Активность",
@@ -203,7 +257,7 @@ export default function DeliveryPricingList() {
 
         const {data: response} = await apiClient.api.delivery_pricing.get({
           query: {
-            fields: "id,name,active,organization_id,organization.name,default,drive_type,days,start_time,end_time,min_price,price_per_km,payment_type,created_at",
+            fields: "id,name,active,organization_id,organization.name,default,drive_type,days,start_time,end_time,min_price,price_per_km,customer_price_per_km,min_distance_km,rules,customer_rules,payment_type,created_at",
             limit: pagination.pageSize.toString(),
             offset: (pagination.pageIndex * pagination.pageSize).toString(),
             sort: JSON.stringify([
@@ -283,14 +337,47 @@ export default function DeliveryPricingList() {
         </div>
       </CardHeader>
       <CardContent>
-        <DataTable 
+        <DataTable
           columns={columns}
-          // @ts-ignore
-          data={deliveryPricingData.data} 
+          data={deliveryPricingData.data}
           loading={isLoading}
           pageCount={Math.ceil(deliveryPricingData.total / pagination.pageSize)}
           pagination={pagination}
           onPaginationChange={setPagination}
+          getRowCanExpand={(row) => hasTariffInfo(row.original)}
+          renderSubRow={(row) => {
+            const p = row.original as DeliveryPricing;
+            const courierTiers = formatTiers(p.rules);
+            const customerTiers = formatTiers(p.customer_rules);
+            return (
+              <div className="grid grid-cols-1 gap-4 px-2 text-sm md:grid-cols-3">
+                <div>
+                  <div className="mb-1 font-semibold text-muted-foreground">Курьеру (rules)</div>
+                  {courierTiers || <span className="text-muted-foreground">—</span>}
+                  {p.price_per_km ? (
+                    <div className="mt-1 whitespace-nowrap">
+                      + <span className="font-medium">{formatSum(p.price_per_km)} сум/км</span> сверх {p.min_distance_km || 0} км
+                    </div>
+                  ) : null}
+                </div>
+                <div>
+                  <div className="mb-1 font-semibold text-muted-foreground">Клиенту (customer_rules)</div>
+                  {customerTiers || <span className="text-muted-foreground">—</span>}
+                  {p.customer_price_per_km ? (
+                    <div className="mt-1 whitespace-nowrap">
+                      + <span className="font-medium">{formatSum(p.customer_price_per_km)} сум/км</span> сверх {p.min_distance_km || 0} км
+                    </div>
+                  ) : null}
+                </div>
+                <div>
+                  <div className="mb-1 font-semibold text-muted-foreground">Параметры</div>
+                  <div className="whitespace-nowrap">Мин. цена: <span className="font-medium">{p.min_price ? `${formatSum(p.min_price)} сум` : "—"}</span></div>
+                  <div className="whitespace-nowrap">Мин. дистанция: <span className="font-medium">{p.min_distance_km || 0} км</span></div>
+                  <div className="whitespace-nowrap">Время: <span className="font-medium">{p.start_time?.slice(0, 5)}–{p.end_time?.slice(0, 5)}</span></div>
+                </div>
+              </div>
+            );
+          }}
         />
       </CardContent>
     </Card>

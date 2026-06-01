@@ -164,6 +164,8 @@ export default function DeliveryPricingCreate() {
         const response = await apiClient.api.terminals.get({
           // @ts-ignore
           query: {
+            limit: "100",
+            offset: "0",
             filters: JSON.stringify([
               {
                 field: "organization_id",
@@ -173,9 +175,9 @@ export default function DeliveryPricingCreate() {
             ]),
           },
         });
-        // @ts-ignore
-        setTerminals(response?.data || []);
-        return response?.data || [];
+        const list = response?.data?.data || [];
+        setTerminals(list);
+        return list;
       } catch {
         toast.error("Failed to load terminals");
         return [];
