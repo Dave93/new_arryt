@@ -148,7 +148,7 @@ export const DeliveryPricingController = new Elysia({
           customer_price_per_km: t.Optional(t.Number()),
           min_distance_km: t.Number(),
           organization_id: t.String(),
-          terminal_id: t.String(),
+          terminal_id: t.Optional(t.String()),
           payment_type: t.Union([t.Literal("client"), t.Literal("card"), t.Literal("cash")]),
         }),
         fields: t.Optional(t.Array(t.String())),
