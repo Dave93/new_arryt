@@ -411,6 +411,7 @@ export default function CourierEfficiencyList() {
         "№": i + 1,
         Курьер: safe(`${c.first_name ?? ""} ${c.last_name ?? ""}`.trim()),
         Телефон: safe(c.phone ?? ""),
+        Статус: getStatusText(c.status ?? ""),
         "Кол-во обработанных заказов": Number(c.courier_count) || 0,
         "Кол-во всех заказов": Number(c.total_count) || 0,
         "Эффективность %": Number(Number.parseFloat(String(c.efficiency)).toFixed(0)) || 0,
