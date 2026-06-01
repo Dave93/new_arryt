@@ -164,6 +164,7 @@ export default function DeliveryPricingCreate() {
         const response = await apiClient.api.terminals.get({
           // @ts-ignore
           query: {
+            fields: "id,name,active,organization_id",
             limit: "100",
             offset: "0",
             filters: JSON.stringify([
