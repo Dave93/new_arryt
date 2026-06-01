@@ -424,14 +424,14 @@ export default function CourierEfficiencyList() {
         !tIds.length || tIds.includes("all")
           ? "Все филиалы"
           : tIds
-              .map((id) => terminals.find((t: Terminal) => t.id === id)?.name || id)
+              .map((id) => safe(terminals.find((t: Terminal) => t.id === id)?.name || id))
               .join(", ");
 
       // Шапка с периодом и филиалом, затем таблица
       const worksheet = XLSX.utils.aoa_to_sheet([
         ["Эффективность курьеров"],
-        ["Период", period],
-        ["Филиал", filial],
+        ["Период", safe(period)],
+        ["Филиал", safe(filial)],
         ["Статус", safe(getStatusText(status || ""))],
         [],
       ]);
