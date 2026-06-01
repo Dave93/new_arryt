@@ -51,9 +51,9 @@ const driveTypes = [
 
 // Типы оплаты
 const paymentTypes = [
-  { value: "cash", label: "Наличные" },
+  { value: "client", label: "Клиент" },
   { value: "card", label: "Карта" },
-  { value: "both", label: "Оба" },
+  { value: "cash", label: "Наличные" },
 ];
 
 // Дни недели
@@ -123,7 +123,7 @@ export default function DeliveryPricingCreate() {
       end_time: "21:00",
       min_price: 0,
       price_per_km: 0,
-      payment_type: "both",
+      payment_type: "client",
       rules: [{from: 0, to: 3, price: 0}],
       order_source: "",
       min_distance: 0,
@@ -215,15 +215,45 @@ export default function DeliveryPricingCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.delivery_pricing.post({
-        // @ts-ignore
-        data: values
+      // Маппинг полей формы на колонки API:
+      // days -> string[], min_distance -> min_distance_km,
+      // client_* -> customer_*, пустой terminal_id опускаем
+      const payload: Record<string, unknown> = {
+        name: values.name,
+        active: values.active,
+        default: values.default,
+        organization_id: values.organization_id,
+        drive_type: values.drive_type,
+        days: (values.days || []).map((d) => String(d)),
+        start_time: values.start_time,
+        end_time: values.end_time,
+        min_price: values.min_price,
+        price_per_km: values.price_per_km,
+        min_distance_km: values.min_distance ?? 0,
+        payment_type: values.payment_type || "client",
+        rules: values.rules ?? [],
+      };
+      if (values.terminal_id) payload.terminal_id = values.terminal_id;
+      if (values.client_rules) payload.customer_rules = values.client_rules;
+      if (values.client_price_per_km != null)
+        payload.customer_price_per_km = values.client_price_per_km;
+
+      const { error } = await apiClient.api.delivery_pricing.post({
+        // @ts-ignore payload matches API body.data shape
+        data: payload,
       });
-      
+
+      if (error) {
+        toast.error(
+          `Ошибка создания: ${typeof error.value === "string" ? error.value : JSON.stringify(error.value)}`
+        );
+        return;
+      }
+
       toast.success("Условие доставки успешно создано");
       router.push("/dashboard/delivery_pricing");
-    } catch {
-      toast.error("Ошибка создания условия доставки");
+    } catch (e) {
+      toast.error(`Ошибка создания условия доставки: ${e instanceof Error ? e.message : ""}`);
     } finally {
       setIsSubmitting(false);
     }
