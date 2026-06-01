@@ -407,17 +407,22 @@ export default function CourierEfficiencyList() {
         const s = String(v ?? "");
         return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
       };
+
+      const { date_from, date_to, terminal_id, status } = form.getValues();
+      // Эндпоинт эффективности не возвращает статус по курьеру, но выборка
+      // отфильтрована по статусу — значит у всех строк он одинаковый (= фильтр)
+      const statusText = getStatusText(status || "");
+
       const rows = efficiencyData.map((c, i) => ({
         "№": i + 1,
         Курьер: safe(`${c.first_name ?? ""} ${c.last_name ?? ""}`.trim()),
         Телефон: safe(c.phone ?? ""),
-        Статус: safe(getStatusText(c.status ?? "")),
+        Статус: safe(statusText),
         "Кол-во обработанных заказов": Number(c.courier_count) || 0,
         "Кол-во всех заказов": Number(c.total_count) || 0,
         "Эффективность %": Number(Number.parseFloat(String(c.efficiency)).toFixed(0)) || 0,
       }));
 
-      const { date_from, date_to, terminal_id, status } = form.getValues();
       const period = `${format(date_from, "dd.MM.yyyy")} – ${format(date_to, "dd.MM.yyyy")}`;
       const tIds = terminal_id || [];
       const filial =
@@ -432,7 +437,7 @@ export default function CourierEfficiencyList() {
         ["Эффективность курьеров"],
         ["Период", safe(period)],
         ["Филиал", safe(filial)],
-        ["Статус", safe(getStatusText(status || ""))],
+        ["Статус", safe(statusText)],
         [],
       ]);
       XLSX.utils.sheet_add_json(worksheet, rows, { origin: -1 });
