@@ -415,12 +415,31 @@ export default function CourierEfficiencyList() {
         "Кол-во всех заказов": Number(c.total_count) || 0,
         "Эффективность %": Number(Number.parseFloat(String(c.efficiency)).toFixed(0)) || 0,
       }));
-      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      const { date_from, date_to, terminal_id, status } = form.getValues();
+      const period = `${format(date_from, "dd.MM.yyyy")} – ${format(date_to, "dd.MM.yyyy")}`;
+      const tIds = terminal_id || [];
+      const filial =
+        !tIds.length || tIds.includes("all")
+          ? "Все филиалы"
+          : tIds
+              .map((id) => terminals.find((t: Terminal) => t.id === id)?.name || id)
+              .join(", ");
+
+      // Шапка с периодом и филиалом, затем таблица
+      const worksheet = XLSX.utils.aoa_to_sheet([
+        ["Эффективность курьеров"],
+        ["Период", period],
+        ["Филиал", filial],
+        ["Статус", getStatusText(status || "")],
+        [],
+      ]);
+      XLSX.utils.sheet_add_json(worksheet, rows, { origin: -1 });
+
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Эффективность");
       const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
       const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-      const { date_from, date_to } = form.getValues();
       const fileName = `Эффективность_курьеров_${format(date_from, "yyyy-MM-dd")}_${format(date_to, "yyyy-MM-dd")}.xlsx`;
       saveAs(blob, fileName);
       toast.success("Экспорт выполнен");
