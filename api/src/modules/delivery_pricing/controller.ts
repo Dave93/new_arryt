@@ -113,10 +113,10 @@ export const DeliveryPricingController = new Elysia({
         }
       }
 
-      const result = await drizzle
-        .insert(delivery_pricing)
-        .values(data)
-        .returning(selectFields);
+      const insertQuery = drizzle.insert(delivery_pricing).values(data);
+      const result = await (Object.keys(selectFields).length
+        ? insertQuery.returning(selectFields)
+        : insertQuery.returning());
 
       return {
         data: result[0],
