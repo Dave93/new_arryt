@@ -44,9 +44,8 @@ interface Terminal {
 // Типы видов передвижения
 const driveTypes = [
   { value: "car", label: "Автомобиль" },
-  { value: "walking", label: "Пешком" },
+  { value: "foot", label: "Пешком" },
   { value: "bike", label: "Велосипед" },
-  { value: "scooter", label: "Самокат" },
 ];
 
 // Типы оплаты
