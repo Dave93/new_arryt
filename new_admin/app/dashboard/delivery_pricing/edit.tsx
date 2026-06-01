@@ -47,16 +47,15 @@ interface Terminal {
 // Типы видов передвижения
 const driveTypes = [
   { value: "car", label: "Автомобиль" },
-  { value: "walking", label: "Пешком" },
+  { value: "foot", label: "Пешком" },
   { value: "bike", label: "Велосипед" },
-  { value: "scooter", label: "Самокат" },
 ];
 
 // Типы оплаты
 const paymentTypes = [
-  { value: "cash", label: "Наличные" },
+  { value: "client", label: "Клиент" },
   { value: "card", label: "Карта" },
-  { value: "both", label: "Оба" },
+  { value: "cash", label: "Наличные" },
 ];
 
 // Дни недели
@@ -130,7 +129,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
       end_time: "21:00",
       min_price: 0,
       price_per_km: 0,
-      payment_type: "both",
+      payment_type: "client",
       rules: [{from: 0, to: 3, price: 0}],
       order_source: "",
       min_distance: 0,
@@ -172,6 +171,8 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
   // Заполнение формы данными
   useEffect(() => {
     if (deliveryPricing) {
+      // deliveryPricing uses DB column names (snake_case)
+      const dp = deliveryPricing as Record<string, unknown>;
       form.reset({
         id: deliveryPricing.id,
         name: deliveryPricing.name,
@@ -180,25 +181,20 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
         organization_id: deliveryPricing.organization_id,
         terminal_id: deliveryPricing.terminal_id || "",
         drive_type: deliveryPricing.drive_type,
-        // @ts-ignore
-        days: deliveryPricing.days,
-        start_time: deliveryPricing.start_time,
-        end_time: deliveryPricing.end_time,
-        // @ts-ignore
-        min_price: deliveryPricing.min_price,
-        price_per_km: deliveryPricing.price_per_km,
-        // @ts-ignore
-        payment_type: deliveryPricing.payment_type,
-        // @ts-ignore
-        rules: deliveryPricing.rules || [{from: 0, to: 3, price: 0}],
-        // @ts-ignore
-        order_source: deliveryPricing.order_source || "",
-        // @ts-ignore
-        min_distance: deliveryPricing.min_distance || 0,
-        // @ts-ignore
-        client_price_per_km: deliveryPricing.client_price_per_km || 0,
-        // @ts-ignore
-        client_rules: deliveryPricing.client_rules || [{from: 0, to: 3, price: 0}],
+        // дни в БД хранятся как text[] -> приводим к числам
+        days: Array.isArray(dp.days) ? (dp.days as unknown[]).map(Number) : [1, 2, 3, 4, 5, 6, 7],
+        // time в БД "HH:mm:ss" -> input type=time ждёт "HH:mm"
+        start_time: typeof dp.start_time === "string" ? dp.start_time.slice(0, 5) : "09:00",
+        end_time: typeof dp.end_time === "string" ? dp.end_time.slice(0, 5) : "21:00",
+        min_price: (dp.min_price as number) ?? 0,
+        price_per_km: (dp.price_per_km as number) ?? 0,
+        payment_type: (dp.payment_type as string) || "client",
+        rules: (dp.rules as { from: number; to: number; price: number }[]) || [{ from: 0, to: 3, price: 0 }],
+        // маппинг DB-колонок на поля формы
+        order_source: (dp.source_type as string) || "",
+        min_distance: (dp.min_distance_km as number) ?? 0,
+        client_price_per_km: (dp.customer_price_per_km as number) ?? 0,
+        client_rules: (dp.customer_rules as { from: number; to: number; price: number }[]) || [{ from: 0, to: 3, price: 0 }],
       });
     }
   }, [deliveryPricing, form]);
@@ -246,16 +242,44 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      // @ts-ignore
-      await apiClient.api.delivery_pricing({id}).put({
-        // @ts-ignore
-        data: values,
+      // Маппинг полей формы на колонки API (см. PUT body.data)
+      const payload: Record<string, unknown> = {
+        name: values.name,
+        active: values.active,
+        default: values.default,
+        organization_id: values.organization_id,
+        drive_type: values.drive_type,
+        days: (values.days || []).map((d) => String(d)),
+        start_time: values.start_time,
+        end_time: values.end_time,
+        min_price: values.min_price,
+        price_per_km: values.price_per_km,
+        min_distance_km: values.min_distance ?? 0,
+        payment_type: values.payment_type || "client",
+        rules: values.rules ?? [],
+        // обязательные поля клиента в PUT-схеме
+        customer_rules: values.client_rules ?? [],
+        customer_price_per_km: values.client_price_per_km ?? 0,
+        terminal_id: values.terminal_id || null,
+      };
+      if (values.order_source) payload.source_type = values.order_source;
+
+      const { error } = await apiClient.api.delivery_pricing({ id }).put({
+        // @ts-expect-error payload matches API body.data shape (loose Record)
+        data: payload,
       });
-      
+
+      if (error) {
+        toast.error(
+          `Ошибка обновления: ${typeof error.value === "string" ? error.value : JSON.stringify(error.value)}`
+        );
+        return;
+      }
+
       toast.success("Условие доставки успешно обновлено");
       router.push("/dashboard/delivery_pricing");
     } catch (error) {
-      toast.error("Ошибка обновления условия доставки");
+      toast.error(`Ошибка обновления: ${error instanceof Error ? error.message : ""}`);
       console.error("Error updating delivery pricing:", error);
     } finally {
       setIsSubmitting(false);
