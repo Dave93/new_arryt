@@ -371,7 +371,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Вид передвижения</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select key={`drive-${field.value}`} onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите вид передвижения" />
@@ -398,7 +398,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Организация</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select key={`org-${field.value}-${organizations.length}`} onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите организацию" />
@@ -423,7 +423,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Филиал</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select key={`term-${field.value}-${terminalsData.length}`} onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите филиал" />
@@ -567,7 +567,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Тип оплаты</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select key={`pay-${field.value}`} onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите тип оплаты" />
