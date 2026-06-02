@@ -36,6 +36,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarWidthToggle,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 
@@ -233,18 +234,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <Link href="/dashboard">
-                <span className="text-xl font-bold uppercase">Arryt</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-between gap-1">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                className="data-[slot=sidebar-menu-button]:!p-1.5"
+              >
+                <Link href="/dashboard">
+                  <span className="text-xl font-bold uppercase">Arryt</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <SidebarWidthToggle className="mr-1 shrink-0" />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavMain groups={data.navGroups} />
