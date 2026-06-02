@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeftIcon, ChevronsLeftIcon, ChevronsRightIcon } from "lucide-react"
+import { PanelLeftIcon } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -26,10 +26,8 @@ import {
 } from "@/components/ui/tooltip"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
-const SIDEBAR_WIDE_COOKIE_NAME = "sidebar_wide"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "18rem"
-const SIDEBAR_WIDTH_WIDE = "26rem"
 const SIDEBAR_WIDTH_MOBILE = "20rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
@@ -42,8 +40,6 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
-  wide: boolean
-  toggleWide: () => void
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -97,20 +93,6 @@ function SidebarProvider({
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
-  // Wide mode: fully expand the sidebar so long labels are not truncated.
-  const [wide, _setWide] = React.useState(false)
-  React.useEffect(() => {
-    const match = document.cookie.match(/(?:^|;\s*)sidebar_wide=([^;]+)/)
-    if (match) _setWide(match[1] === "true")
-  }, [])
-  const toggleWide = React.useCallback(() => {
-    _setWide((prev) => {
-      const next = !prev
-      document.cookie = `${SIDEBAR_WIDE_COOKIE_NAME}=${next}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
-      return next
-    })
-  }, [])
-
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -140,10 +122,8 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
-      wide,
-      toggleWide,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, wide, toggleWide]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
 
   return (
@@ -153,7 +133,7 @@ function SidebarProvider({
           data-slot="sidebar-wrapper"
           style={
             {
-              "--sidebar-width": wide ? SIDEBAR_WIDTH_WIDE : SIDEBAR_WIDTH,
+              "--sidebar-width": SIDEBAR_WIDTH,
               "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
               ...style,
             } as React.CSSProperties
@@ -295,35 +275,6 @@ function SidebarTrigger({
     >
       <PanelLeftIcon />
       <span className="sr-only">Toggle Sidebar</span>
-    </Button>
-  )
-}
-
-function SidebarWidthToggle({
-  className,
-  ...props
-}: React.ComponentProps<typeof Button>) {
-  const { wide, toggleWide, isMobile } = useSidebar()
-
-  // Width toggle only makes sense when the sidebar shows labels (desktop, expanded).
-  if (isMobile) return null
-
-  return (
-    <Button
-      data-sidebar="width-toggle"
-      data-slot="sidebar-width-toggle"
-      variant="ghost"
-      size="icon"
-      className={cn("size-7 group-data-[collapsible=icon]:hidden", className)}
-      title={wide ? "Свернуть меню" : "Раскрыть меню полностью"}
-      onClick={(event) => {
-        props.onClick?.(event)
-        toggleWide()
-      }}
-      {...props}
-    >
-      {wide ? <ChevronsLeftIcon /> : <ChevronsRightIcon />}
-      <span className="sr-only">Раскрыть/свернуть меню</span>
     </Button>
   )
 }
@@ -772,6 +723,5 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  SidebarWidthToggle,
   useSidebar,
 }

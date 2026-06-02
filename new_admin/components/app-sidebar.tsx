@@ -36,7 +36,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarWidthToggle,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 
@@ -232,8 +231,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarWidthToggle className="absolute top-1/2 -right-3 z-30 size-6 -translate-y-1/2 rounded-full border bg-sidebar shadow-sm" />
+    <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
