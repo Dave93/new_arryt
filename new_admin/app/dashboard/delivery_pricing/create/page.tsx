@@ -583,6 +583,9 @@ export default function DeliveryPricingCreate() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormDescription>
+                      Влияет на начисление курьеру. «Наличные» — стоимость доставки зачисляется на баланс курьера. «Клиент» / «Карта» — на баланс НЕ зачисляется (курьер получает только бонусы и дневной гарант).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

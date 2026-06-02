@@ -371,7 +371,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Вид передвижения</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите вид передвижения" />
@@ -398,12 +398,10 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Организация</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={`Выберите организацию ${field.value}`}>
-                              {organizations.find((org: Organization) => org.id == field.value)?.name}
-                            </SelectValue>
+                            <SelectValue placeholder="Выберите организацию" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -425,7 +423,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Филиал</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите филиал" />
@@ -569,7 +567,7 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Тип оплаты</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите тип оплаты" />
@@ -583,6 +581,9 @@ export default function DeliveryPricingEdit({ id }: DeliveryPricingEditProps) {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormDescription>
+                        Влияет на начисление курьеру. «Наличные» — стоимость доставки зачисляется на баланс курьера. «Клиент» / «Карта» — на баланс НЕ зачисляется (курьер получает только бонусы и дневной гарант).
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
