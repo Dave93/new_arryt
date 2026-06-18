@@ -15,6 +15,7 @@ import {
 } from "../../../drizzle/schema";
 import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
+import { noorFetch } from "../../utils/noor";
 import dayjs from "dayjs";
 import {
   InferSelectModel,
@@ -3102,20 +3103,20 @@ export const OrdersController = new Elysia({
 
       const noorId = order[0].noor_id;
 
-      try {
-        await fetch(
-          `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept-Language": "ru",
-              "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
-            },
+      const cancelRes = await noorFetch(
+        `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": "ru",
+            "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
           },
-        );
-      } catch (e) {
-        console.log("[cancel_noor] ERROR: Noor cancel request failed", e);
+        },
+        { label: "cancel_noor", maxAttempts: 2 },
+      );
+      if (!cancelRes.ok) {
+        console.log(`[cancel_noor] ERROR: Noor cancel request failed: ${cancelRes.error}`);
       }
 
       await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", 7200);
@@ -3173,20 +3174,20 @@ export const OrdersController = new Elysia({
 
       if (order[0].noor_id) {
         const noorId = order[0].noor_id;
-        try {
-          await fetch(
-            `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                "Accept-Language": "ru",
-                "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
-              },
+        const recreateCancelRes = await noorFetch(
+          `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept-Language": "ru",
+              "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
             },
-          );
-        } catch (e) {
-          console.log("[recreate_noor] ERROR: Noor cancel request failed", e);
+          },
+          { label: "recreate_noor", maxAttempts: 2 },
+        );
+        if (!recreateCancelRes.ok) {
+          console.log(`[recreate_noor] ERROR: Noor cancel request failed: ${recreateCancelRes.error}`);
         }
 
         await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", 7200);
