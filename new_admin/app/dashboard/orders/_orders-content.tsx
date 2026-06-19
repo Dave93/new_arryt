@@ -22,6 +22,7 @@ import {
   IconBuilding,
   IconCopy,
   IconCheck,
+  IconClockHour4,
 } from "@tabler/icons-react";
 import { ru } from "date-fns/locale";
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
@@ -49,6 +50,8 @@ interface Order {
   delivery_price: number;
   payment_type: string;
   delivery_type: string;
+  delivery_schedule?: string | null;
+  later_time?: string | null;
   delivery_address: string;
   pre_distance?: number;
   from_lat?: number;
@@ -199,6 +202,12 @@ const columns: ColumnDef<Order>[] = [
         {format(new Date(row.getValue("created_at")), "dd.MM.yy HH:mm", {
           locale: ru,
         })}
+        {row.original.delivery_schedule === "later" && (
+          <Badge className="mt-1 flex w-fit items-center gap-1 bg-orange-500 hover:bg-orange-500 text-white font-bold text-xs shadow-sm animate-pulse">
+            <IconClockHour4 className="h-3.5 w-3.5" />
+            На время{row.original.later_time ? ` ${row.original.later_time}` : ""}
+          </Badge>
+        )}
       </div>
     ),
     size: 110,
@@ -434,6 +443,10 @@ const formatExcelData = (orders: Order[]) => {
       order.created_at,
       order.finished_date,
     ),
+    "Когда доставить":
+      order.delivery_schedule === "later"
+        ? order.later_time || "На время"
+        : "Сейчас",
     Цена: order.order_price,
     "Способ оплаты": order.payment_type,
     Готовка: order.cooked_time
@@ -537,6 +550,8 @@ const ORDER_FIELDS = [
   "duration",
   "delivery_price",
   "payment_type",
+  "delivery_schedule",
+  "later_time",
   "finished_date",
   "pre_distance",
   "bonus",
@@ -566,6 +581,8 @@ function mapOrderItem(item: Record<string, unknown>): Order {
     delivery_price: item.delivery_price as number,
     payment_type: item.payment_type as string,
     delivery_type: (item.delivery_type as string) || "",
+    delivery_schedule: item.delivery_schedule as string | null | undefined,
+    later_time: item.later_time as string | null | undefined,
     delivery_address: (item.delivery_address as string) || "",
     pre_distance: item.pre_distance as number | undefined,
     from_lat: item.from_lat as number | undefined,
