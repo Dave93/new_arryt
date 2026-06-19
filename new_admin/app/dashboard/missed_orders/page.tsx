@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,7 +18,8 @@ import Link from "next/link";
 import { Eye, ExternalLink, Copy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  IconBuildingStore
+  IconBuildingStore,
+  IconClockHour4
 } from "@tabler/icons-react";
 import { sortBy } from "lodash";
 import { ru } from "date-fns/locale";
@@ -34,6 +36,8 @@ interface MissedOrder {
   pre_distance?: number;
   order_price: number;
   payment_type: string;
+  delivery_schedule?: string | null;
+  later_time?: string | null;
   courier_id?: string;
   order_status: {
     id: string;
@@ -81,7 +85,15 @@ const columns: ColumnDef<MissedOrder>[] = [
     accessorKey: "created_at",
     header: "Дата заказа",
     cell: ({ row }) => (
-      <div className="flex items-center justify-center">{format(new Date(row.getValue("created_at")), "dd.MM.yy HH:mm", { locale: ru })}</div>
+      <div className="flex flex-col items-center justify-center gap-1">
+        <span>{format(new Date(row.getValue("created_at")), "dd.MM.yy HH:mm", { locale: ru })}</span>
+        {row.original.delivery_schedule === "later" && (
+          <Badge className="flex w-fit items-center gap-1 bg-orange-500 hover:bg-orange-500 text-white font-bold text-xs shadow-sm animate-pulse">
+            <IconClockHour4 className="h-3.5 w-3.5" />
+            На время{row.original.later_time ? ` ${row.original.later_time}` : ""}
+          </Badge>
+        )}
+      </div>
     ),
     size: 120,
   },
@@ -351,6 +363,8 @@ export default function MissedOrdersPage() {
               "pre_distance",
               "order_price",
               "payment_type",
+              "delivery_schedule",
+              "later_time",
               "terminals.id",
               "terminals.name",
               "terminals.region"
