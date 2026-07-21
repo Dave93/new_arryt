@@ -563,7 +563,32 @@ export const UsersController = new Elysia({
 })
   .post(
     "/api/users/send-otp",
-    async ({ body: { phone }, drizzle }) => {
+    async ({ body: { phone }, drizzle, redis, set }) => {
+      const normalizedPhone = phone.replace(/[^0-9]/g, "");
+
+      const cooldownKey = `${process.env.PROJECT_PREFIX}:otp:cooldown:${normalizedPhone}`;
+      const dailyKey = `${process.env.PROJECT_PREFIX}:otp:daily:${normalizedPhone}`;
+
+      if (await redis.get(cooldownKey)) {
+        set.status = 429;
+        return {
+          message: "OTP already sent recently. Try again in a minute.",
+        };
+      }
+
+      const dailyCount = await redis.incr(dailyKey);
+      if (dailyCount === 1) {
+        await redis.expire(dailyKey, 24 * 60 * 60);
+      }
+      if (dailyCount > 5) {
+        set.status = 429;
+        return {
+          message: "Daily OTP limit reached. Try again later.",
+        };
+      }
+
+      await redis.set(cooldownKey, "1", "EX", 60);
+
       let userEntity = (await drizzle.select().from(users).where(eq(users.phone, phone)).limit(1))[0];
       if (!userEntity) {
         [userEntity] = await drizzle
@@ -586,13 +611,6 @@ export const UsersController = new Elysia({
       });
       const now = new Date();
       const expiration_time = addMinutesToDate(now, 10);
-      if (phone == "+998977021803") {
-        otp = "555555";
-      }
-
-      if (phone == "+998950771803") {
-        otp = "888888";
-      }
 
       const [otpEntity] = await drizzle
         .insert(otpTable)
@@ -624,30 +642,59 @@ export const UsersController = new Elysia({
 
       let message = `Your OTP is ${otp}`;
 
+      // TEMP: debug logging for SMS provider delivery issues — remove after resolved.
+      // Enabled only when SMS_DEBUG=true; phone is masked to last 4 digits.
+      const smsDebug = process.env.SMS_DEBUG === "true";
+      const maskedPhone = `***${normalizedPhone.slice(-4)}`;
+      const smsMessageId = Math.floor(Math.random() * 1000001);
+      const smsUrl =
+        process.env.SMS_API_URL || "https://send.smsxabar.uz/broker-api/send";
+      if (smsDebug) {
+        console.log(
+          `[OTP SMS] sending: recipient=${maskedPhone} message-id=${smsMessageId} otp_id=${otpEntity.id} url=${smsUrl} text="${message.replace(otp, "******")}"`
+        );
+      }
+
       // Send the OTP to the user
-      const response = await fetch("https://send.smsxabar.uz/broker-api/send", {
-        method: "POST",
-        body: JSON.stringify({
-          messages: [
-            {
-              recipient: phone.replace(/[^0-9]/g, ""),
-              "message-id": Math.floor(Math.random() * 1000001),
-              sms: {
-                originator: "Chopar",
-                content: {
-                  text: message,
+      let response: Response;
+      try {
+        response = await fetch(smsUrl, {
+          method: "POST",
+          body: JSON.stringify({
+            messages: [
+              {
+                recipient: normalizedPhone,
+                "message-id": smsMessageId,
+                sms: {
+                  originator: process.env.SMS_ORIGINATOR || "Chopar",
+                  content: {
+                    text: message,
+                  },
                 },
               },
-            },
-          ],
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization:
-            "Basic " + Buffer.from("lesailes2:W84Uu8h@j").toString("base64"),
-        },
-      });
+            ],
+          }),
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization:
+              "Basic " +
+              Buffer.from(
+                `${process.env.SMS_LOGIN}:${process.env.SMS_PASSWORD}`
+              ).toString("base64"),
+          },
+        });
+        if (smsDebug) {
+          const responseBody = await response.text();
+          console.log(
+            `[OTP SMS] provider response: recipient=${maskedPhone} message-id=${smsMessageId} status=${response.status} body=${responseBody}`
+          );
+        }
+      } catch (e) {
+        console.error(
+          `[OTP SMS] send failed: recipient=${maskedPhone} message-id=${smsMessageId} error=${e instanceof Error ? e.message : String(e)}`
+        );
+      }
       //   let result = new SendOtpToken();
       //   result.details = encoded;
       return {
@@ -691,6 +738,19 @@ export const UsersController = new Elysia({
           message: "OTP was not sent to this particular phone number",
         };
       }
+
+      const attemptsKey = `${process.env.PROJECT_PREFIX}:otp:attempts:${obj.otp_id}`;
+      const attempts = await redis.incr(attemptsKey);
+      if (attempts === 1) {
+        await redis.expire(attemptsKey, 10 * 60);
+      }
+      if (attempts > 5) {
+        set.status = 429;
+        return {
+          message: "Too many attempts. Request a new OTP.",
+        };
+      }
+
       const otp_instance = (await drizzle.select().from(otpTable).where(eq(otpTable.id, obj.otp_id)).limit(1))[0];
 
       //Check if OTP is available in the DB
