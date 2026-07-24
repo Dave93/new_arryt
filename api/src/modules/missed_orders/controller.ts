@@ -144,3 +144,18 @@ export const MissedOrdersController = new Elysia({
             id: t.String(),
         }),
     })
+    .post('/send_uzum', async ({ queues: {
+        processCheckAndSendUzum
+    }, body: {
+        id
+    } }) => {
+        await processCheckAndSendUzum.add('checkAndSendUzum', {
+            id
+        }, { removeOnComplete: true });
+        return { status: 'ok' };
+    }, {
+        permission: 'orders.list',
+        body: t.Object({
+            id: t.String(),
+        }),
+    })
