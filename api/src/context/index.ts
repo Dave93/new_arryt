@@ -114,6 +114,20 @@ export const processNoorCallbackQueue = new Queue(
   }
 );
 
+export const processCheckAndSendUzum = new Queue(
+  `${process.env.TASKS_PREFIX}_check_and_send_uzum`,
+  {
+      connection: client,
+  }
+);
+
+export const processUzumCallbackQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_uzum_callback`,
+  {
+      connection: client,
+  }
+);
+
 export const processSendNotificationQueue = new Queue(
   `${process.env.TASKS_PREFIX}_send_notification`,
   {
@@ -165,6 +179,8 @@ const queues = {
   processYandexCallbackQueue,
   processCheckAndSendNoor,
   processNoorCallbackQueue,
+  processCheckAndSendUzum,
+  processUzumCallbackQueue,
   processSendNotificationQueue,
   processPushCourierToQueue,
   processSetQueueLastCourier,
