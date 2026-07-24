@@ -15,6 +15,8 @@ import {
 } from "../../../drizzle/schema";
 import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
+import { noorFetch } from "../../utils/noor";
+import { cancelUzumClaim } from "../../utils/uzum";
 import dayjs from "dayjs";
 import {
   InferSelectModel,
@@ -3078,6 +3080,133 @@ export const OrdersController = new Elysia({
     },
   )
   .post(
+    "/api/orders/:id/cancel_uzum",
+    async ({
+      params: { id },
+      drizzle,
+      redis,
+    }) => {
+      const order = await drizzle
+        .select({
+          id: orders.id,
+          uzum_id: orders.uzum_id,
+          terminal_id: orders.terminal_id,
+          created_at: orders.created_at,
+        })
+        .from(orders)
+        .where(eq(orders.id, id))
+        .execute();
+
+      if (!order[0]?.uzum_id) {
+        return { success: false, message: "Order has no active Uzum delivery" };
+      }
+
+      const claimId = order[0].uzum_id;
+
+      await cancelUzumClaim(claimId);
+
+      await redis.set(`uzum_operator_cancel:${claimId}`, "true", "EX", 7200);
+
+      await drizzle
+        .update(orders)
+        .set({
+          courier_id: null,
+          uzum_id: null,
+        })
+        .where(eq(orders.id, id));
+
+      await drizzle.insert(order_actions).values({
+        terminal_id: order[0].terminal_id,
+        order_id: order[0].id,
+        order_created_at: order[0].created_at,
+        action: "STATUS_CHANGE",
+        action_text: "Оператор отменил Uzum Tezkor доставку",
+        duration: 0,
+      });
+
+      return { success: true };
+    },
+    {
+      permission: "orders.edit",
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  )
+  .post(
+    "/api/orders/:id/recreate_uzum",
+    async ({
+      params: { id },
+      body: { taxi_class },
+      drizzle,
+      redis,
+      cacheControl,
+      queues: { processCheckAndSendUzum },
+    }) => {
+      const order = await drizzle
+        .select({
+          id: orders.id,
+          uzum_id: orders.uzum_id,
+          terminal_id: orders.terminal_id,
+          created_at: orders.created_at,
+          organization_id: orders.organization_id,
+        })
+        .from(orders)
+        .where(eq(orders.id, id))
+        .execute();
+
+      if (!order[0]) {
+        return { success: false, message: "Order not found" };
+      }
+
+      if (order[0].uzum_id) {
+        const claimId = order[0].uzum_id;
+        await cancelUzumClaim(claimId);
+        await redis.set(`uzum_operator_cancel:${claimId}`, "true", "EX", 7200);
+      }
+
+      const orderStatuses = await cacheControl.getOrderStatuses();
+      const initialStatus = orderStatuses.find(
+        (s) => s.sort == 1 && s.organization_id == order[0].organization_id,
+      );
+
+      await drizzle
+        .update(orders)
+        .set({
+          courier_id: null,
+          uzum_id: null,
+          order_status_id: initialStatus?.id ?? order[0].id,
+        })
+        .where(eq(orders.id, id));
+
+      await drizzle.insert(order_actions).values({
+        terminal_id: order[0].terminal_id,
+        order_id: order[0].id,
+        order_created_at: order[0].created_at,
+        action: "STATUS_CHANGE",
+        action_text: `Пересоздан заказ Uzum Tezkor доставки (taxi_class: ${taxi_class})`,
+        duration: 0,
+      });
+
+      await processCheckAndSendUzum.add(
+        "checkAndSendUzum",
+        { id, taxi_class },
+        { removeOnComplete: true },
+      );
+
+      return { success: true };
+    },
+    {
+      permission: "orders.edit",
+      params: t.Object({
+        id: t.String(),
+      }),
+      body: t.Object({
+        taxi_class: t.String(),
+      }),
+    },
+  )
+  .post(
     "/api/orders/:id/cancel_noor",
     async ({
       params: { id },
@@ -3102,20 +3231,20 @@ export const OrdersController = new Elysia({
 
       const noorId = order[0].noor_id;
 
-      try {
-        await fetch(
-          `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept-Language": "ru",
-              "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
-            },
+      const cancelRes = await noorFetch(
+        `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": "ru",
+            "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
           },
-        );
-      } catch (e) {
-        console.log("[cancel_noor] ERROR: Noor cancel request failed", e);
+        },
+        { label: "cancel_noor", maxAttempts: 2 },
+      );
+      if (!cancelRes.ok) {
+        console.log(`[cancel_noor] ERROR: Noor cancel request failed: ${cancelRes.error}`);
       }
 
       await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", 7200);
@@ -3173,20 +3302,20 @@ export const OrdersController = new Elysia({
 
       if (order[0].noor_id) {
         const noorId = order[0].noor_id;
-        try {
-          await fetch(
-            `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                "Accept-Language": "ru",
-                "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
-              },
+        const recreateCancelRes = await noorFetch(
+          `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept-Language": "ru",
+              "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
             },
-          );
-        } catch (e) {
-          console.log("[recreate_noor] ERROR: Noor cancel request failed", e);
+          },
+          { label: "recreate_noor", maxAttempts: 2 },
+        );
+        if (!recreateCancelRes.ok) {
+          console.log(`[recreate_noor] ERROR: Noor cancel request failed: ${recreateCancelRes.error}`);
         }
 
         await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", 7200);

@@ -2,6 +2,7 @@ import { customers, order_items, orders, terminals, users } from "@api/drizzle/s
 import { DB } from "@api/src/lib/db";
 import { CacheControlService } from "@api/src/modules/cache/service";
 import { getSetting } from "@api/src/utils/settings";
+import { noorFetch } from "@api/src/utils/noor";
 import { eq, getTableColumns } from "drizzle-orm";
 import Redis from "ioredis/built/Redis";
 
@@ -136,7 +137,7 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
 
         const noorUrl = `https://back.noor.uz/api/v1/orders`;
 
-        const noorResponse = await fetch(noorUrl, {
+        const noorResult = await noorFetch(noorUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -144,12 +145,25 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
                 'X-Auth': process.env.NOOR_DELIVERY_TOKEN!,
             },
             body: JSON.stringify(noorData),
-        });
+        }, { label: 'Noor' });
 
-        const noorResponseStatus = noorResponse.status;
-        const noorResponseText = await noorResponse.text();
+        // Network failure / timeout after retries: throw so BullMQ re-queues the
+        // job with backoff. Covers VPN/path flips that resolve within minutes.
+        if (!noorResult.ok) {
+            console.error(`[Noor] send failed (network) for order_number=${order.order_number}: ${noorResult.error}`);
+            throw new Error(`Noor send network failure for order ${order.order_number}: ${noorResult.error}`);
+        }
+
+        const noorResponseStatus = noorResult.status;
+        const noorResponseText = noorResult.text;
         console.log(`[Noor] Response status=${noorResponseStatus} for order_number=${order.order_number}`);
         console.log(`[Noor] Response body:`, noorResponseText);
+
+        // 5xx after retries: transient Noor outage — throw to retry later.
+        if (noorResponseStatus >= 500) {
+            console.error(`[Noor] server error ${noorResponseStatus} for order_number=${order.order_number}, will retry`);
+            throw new Error(`Noor server ${noorResponseStatus} for order ${order.order_number}`);
+        }
 
         let noorJson: any;
         try {
@@ -160,7 +174,8 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
         }
 
         if (!noorJson.order || !noorJson.order.id) {
-            console.error(`[Noor] Failed to create order_number=${order.order_number}:`, noorResponseText);
+            // 4xx validation (bad phone/address etc.) — permanent, do not retry.
+            console.error(`[Noor] Failed to create order_number=${order.order_number} (status ${noorResponseStatus}):`, noorResponseText);
             return;
         }
 

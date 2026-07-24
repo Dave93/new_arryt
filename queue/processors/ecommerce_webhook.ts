@@ -78,7 +78,7 @@ export default async function processEcommerceWebhook(redis: Redis, db: DB, cach
         return;
     }
 
-    if (currentOrderStatus.finish || currentOrderStatus.cancel) {
+    if (currentOrderStatus.cancel) {
         return;
     }
 

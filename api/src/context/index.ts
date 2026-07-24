@@ -95,11 +95,34 @@ export const processCheckAndSendNoor = new Queue(
   `${process.env.TASKS_PREFIX}_check_and_send_noor`,
   {
       connection: client,
+      // Noor's network path flaps (VPN/direct). The processor throws on
+      // network/5xx failures so the job is retried with exponential backoff,
+      // letting sends self-recover once the path is restored (~8 min window).
+      defaultJobOptions: {
+          attempts: 5,
+          backoff: { type: "exponential", delay: 30000 }, // 30s, 60s, 120s, 240s
+          removeOnComplete: true,
+          removeOnFail: 200,
+      },
   }
 );
 
 export const processNoorCallbackQueue = new Queue(
   `${process.env.TASKS_PREFIX}_noor_callback`,
+  {
+      connection: client,
+  }
+);
+
+export const processCheckAndSendUzum = new Queue(
+  `${process.env.TASKS_PREFIX}_check_and_send_uzum`,
+  {
+      connection: client,
+  }
+);
+
+export const processUzumCallbackQueue = new Queue(
+  `${process.env.TASKS_PREFIX}_uzum_callback`,
   {
       connection: client,
   }
@@ -156,6 +179,8 @@ const queues = {
   processYandexCallbackQueue,
   processCheckAndSendNoor,
   processNoorCallbackQueue,
+  processCheckAndSendUzum,
+  processUzumCallbackQueue,
   processSendNotificationQueue,
   processPushCourierToQueue,
   processSetQueueLastCourier,

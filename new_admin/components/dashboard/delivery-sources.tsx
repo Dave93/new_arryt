@@ -28,6 +28,7 @@ interface DeliverySourceRow {
   date: string
   yandex_count: number
   noor_count: number
+  uzum_count: number
   own_count: number
   total: number
 }
@@ -105,20 +106,22 @@ export function DeliverySources() {
     (acc, row) => ({
       yandex: acc.yandex + Number(row.yandex_count),
       noor: acc.noor + Number(row.noor_count),
+      uzum: acc.uzum + Number(row.uzum_count),
       own: acc.own + Number(row.own_count),
       total: acc.total + Number(row.total),
     }),
-    { yandex: 0, noor: 0, own: 0, total: 0 }
+    { yandex: 0, noor: 0, uzum: 0, own: 0, total: 0 }
   )
 
   const prevTotals = (prevData || []).reduce(
     (acc, row) => ({
       yandex: acc.yandex + Number(row.yandex_count),
       noor: acc.noor + Number(row.noor_count),
+      uzum: acc.uzum + Number(row.uzum_count),
       own: acc.own + Number(row.own_count),
       total: acc.total + Number(row.total),
     }),
-    { yandex: 0, noor: 0, own: 0, total: 0 }
+    { yandex: 0, noor: 0, uzum: 0, own: 0, total: 0 }
   )
 
   const pct = (value: number, total: number) =>
@@ -154,6 +157,7 @@ export function DeliverySources() {
                     <TableHead className="py-1.5 text-sm text-center">Своя</TableHead>
                     <TableHead className="py-1.5 text-sm text-center">Yandex</TableHead>
                     <TableHead className="py-1.5 text-sm text-center">Noor</TableHead>
+                    <TableHead className="py-1.5 text-sm text-center">Uzum</TableHead>
                     <TableHead className="py-1.5 text-sm text-center">Всего</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -167,6 +171,7 @@ export function DeliverySources() {
                         <TableCell className="py-1.5 text-sm text-center">{Number(row.own_count)}{prev && <Diff current={Number(row.own_count)} prev={Number(prev.own_count)} />}</TableCell>
                         <TableCell className="py-1.5 text-sm text-center">{Number(row.yandex_count)}{prev && <Diff current={Number(row.yandex_count)} prev={Number(prev.yandex_count)} />}</TableCell>
                         <TableCell className="py-1.5 text-sm text-center">{Number(row.noor_count)}{prev && <Diff current={Number(row.noor_count)} prev={Number(prev.noor_count)} />}</TableCell>
+                        <TableCell className="py-1.5 text-sm text-center">{Number(row.uzum_count)}{prev && <Diff current={Number(row.uzum_count)} prev={Number(prev.uzum_count)} />}</TableCell>
                         <TableCell className="py-1.5 text-sm text-center font-semibold">{Number(row.total)}{prev && <Diff current={Number(row.total)} prev={Number(prev.total)} />}</TableCell>
                       </TableRow>
                     )
@@ -178,6 +183,7 @@ export function DeliverySources() {
                     <TableCell className="py-1.5 text-sm text-center font-bold">{totals.own}<Diff current={totals.own} prev={prevTotals.own} /></TableCell>
                     <TableCell className="py-1.5 text-sm text-center font-bold">{totals.yandex}<Diff current={totals.yandex} prev={prevTotals.yandex} /></TableCell>
                     <TableCell className="py-1.5 text-sm text-center font-bold">{totals.noor}<Diff current={totals.noor} prev={prevTotals.noor} /></TableCell>
+                    <TableCell className="py-1.5 text-sm text-center font-bold">{totals.uzum}<Diff current={totals.uzum} prev={prevTotals.uzum} /></TableCell>
                     <TableCell className="py-1.5 text-sm text-center font-bold">{totals.total}<Diff current={totals.total} prev={prevTotals.total} /></TableCell>
                   </TableRow>
                   <TableRow>
@@ -185,6 +191,7 @@ export function DeliverySources() {
                     <TableCell className="py-1.5 text-sm text-center font-bold">{avg(totals.own)}<Diff current={avg(totals.own)} prev={prevAvg(prevTotals.own)} /></TableCell>
                     <TableCell className="py-1.5 text-sm text-center font-bold">{avg(totals.yandex)}<Diff current={avg(totals.yandex)} prev={prevAvg(prevTotals.yandex)} /></TableCell>
                     <TableCell className="py-1.5 text-sm text-center font-bold">{avg(totals.noor)}<Diff current={avg(totals.noor)} prev={prevAvg(prevTotals.noor)} /></TableCell>
+                    <TableCell className="py-1.5 text-sm text-center font-bold">{avg(totals.uzum)}<Diff current={avg(totals.uzum)} prev={prevAvg(prevTotals.uzum)} /></TableCell>
                     <TableCell className="py-1.5 text-sm text-center font-bold">{avg(totals.total)}<Diff current={avg(totals.total)} prev={prevAvg(prevTotals.total)} /></TableCell>
                   </TableRow>
                 </TableFooter>
@@ -205,6 +212,7 @@ export function DeliverySources() {
                     <TableHead className="py-1.5 text-sm text-center">Своя</TableHead>
                     <TableHead className="py-1.5 text-sm text-center">Yandex</TableHead>
                     <TableHead className="py-1.5 text-sm text-center">Noor</TableHead>
+                    <TableHead className="py-1.5 text-sm text-center">Uzum</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -216,6 +224,7 @@ export function DeliverySources() {
                         <TableCell className="py-1.5 text-sm text-center">{pct(Number(row.own_count), total)}</TableCell>
                         <TableCell className="py-1.5 text-sm text-center">{pct(Number(row.yandex_count), total)}</TableCell>
                         <TableCell className="py-1.5 text-sm text-center">{pct(Number(row.noor_count), total)}</TableCell>
+                        <TableCell className="py-1.5 text-sm text-center">{pct(Number(row.uzum_count), total)}</TableCell>
                       </TableRow>
                     )
                   })}
@@ -226,6 +235,7 @@ export function DeliverySources() {
                     <TableCell className="py-1.5 text-sm text-center font-bold">{avgPct(totals.own, totals.total)}</TableCell>
                     <TableCell className="py-1.5 text-sm text-center font-bold">{avgPct(totals.yandex, totals.total)}</TableCell>
                     <TableCell className="py-1.5 text-sm text-center font-bold">{avgPct(totals.noor, totals.total)}</TableCell>
+                    <TableCell className="py-1.5 text-sm text-center font-bold">{avgPct(totals.uzum, totals.total)}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
@@ -261,11 +271,12 @@ export function DeliverySources() {
                   <table className="w-full table-fixed caption-bottom text-sm">
                     <thead className="sticky top-0 bg-zinc-100 dark:bg-zinc-900 z-10 border-b">
                       <tr>
-                        <th className="py-1.5 px-3 text-sm text-left text-muted-foreground font-medium w-[20%]">Дата</th>
-                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[20%]">Своя</th>
-                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[20%]">Yandex</th>
-                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[20%]">Noor</th>
-                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[20%]">Всего</th>
+                        <th className="py-1.5 px-3 text-sm text-left text-muted-foreground font-medium w-[17%]">Дата</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[17%]">Своя</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[17%]">Yandex</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[17%]">Noor</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[17%]">Uzum</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[15%]">Всего</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -274,29 +285,32 @@ export function DeliverySources() {
                         const prev = prevByDay[day]
                         return (
                           <tr key={row.date} className="border-b">
-                            <td className="py-1.5 px-3 text-sm w-[20%]">{format(new Date(row.date), "dd MMM", { locale: ru })}</td>
-                            <td className="py-1.5 px-3 text-sm text-center w-[20%]">{Number(row.own_count)}{prev && <Diff current={Number(row.own_count)} prev={Number(prev.own_count)} />}</td>
-                            <td className="py-1.5 px-3 text-sm text-center w-[20%]">{Number(row.yandex_count)}{prev && <Diff current={Number(row.yandex_count)} prev={Number(prev.yandex_count)} />}</td>
-                            <td className="py-1.5 px-3 text-sm text-center w-[20%]">{Number(row.noor_count)}{prev && <Diff current={Number(row.noor_count)} prev={Number(prev.noor_count)} />}</td>
-                            <td className="py-1.5 px-3 text-sm text-center w-[20%] font-semibold">{Number(row.total)}{prev && <Diff current={Number(row.total)} prev={Number(prev.total)} />}</td>
+                            <td className="py-1.5 px-3 text-sm w-[17%]">{format(new Date(row.date), "dd MMM", { locale: ru })}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[17%]">{Number(row.own_count)}{prev && <Diff current={Number(row.own_count)} prev={Number(prev.own_count)} />}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[17%]">{Number(row.yandex_count)}{prev && <Diff current={Number(row.yandex_count)} prev={Number(prev.yandex_count)} />}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[17%]">{Number(row.noor_count)}{prev && <Diff current={Number(row.noor_count)} prev={Number(prev.noor_count)} />}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[17%]">{Number(row.uzum_count)}{prev && <Diff current={Number(row.uzum_count)} prev={Number(prev.uzum_count)} />}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[15%] font-semibold">{Number(row.total)}{prev && <Diff current={Number(row.total)} prev={Number(prev.total)} />}</td>
                           </tr>
                         )
                       })}
                     </tbody>
                     <tfoot className="sticky bottom-0 z-10 bg-zinc-100 dark:bg-zinc-900 border-t font-medium">
                       <tr className="border-b">
-                        <td className="py-1.5 px-3 text-sm font-bold w-[20%]">Итого</td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{totals.own}<Diff current={totals.own} prev={prevTotals.own} /></td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{totals.yandex}<Diff current={totals.yandex} prev={prevTotals.yandex} /></td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{totals.noor}<Diff current={totals.noor} prev={prevTotals.noor} /></td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{totals.total}<Diff current={totals.total} prev={prevTotals.total} /></td>
+                        <td className="py-1.5 px-3 text-sm font-bold w-[17%]">Итого</td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[17%]">{totals.own}<Diff current={totals.own} prev={prevTotals.own} /></td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[17%]">{totals.yandex}<Diff current={totals.yandex} prev={prevTotals.yandex} /></td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[17%]">{totals.noor}<Diff current={totals.noor} prev={prevTotals.noor} /></td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[17%]">{totals.uzum}<Diff current={totals.uzum} prev={prevTotals.uzum} /></td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[15%]">{totals.total}<Diff current={totals.total} prev={prevTotals.total} /></td>
                       </tr>
                       <tr>
-                        <td className="py-1.5 px-3 text-sm font-bold w-[20%]">Среднее</td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{avg(totals.own)}<Diff current={avg(totals.own)} prev={prevAvg(prevTotals.own)} /></td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{avg(totals.yandex)}<Diff current={avg(totals.yandex)} prev={prevAvg(prevTotals.yandex)} /></td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{avg(totals.noor)}<Diff current={avg(totals.noor)} prev={prevAvg(prevTotals.noor)} /></td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{avg(totals.total)}<Diff current={avg(totals.total)} prev={prevAvg(prevTotals.total)} /></td>
+                        <td className="py-1.5 px-3 text-sm font-bold w-[17%]">Среднее</td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[17%]">{avg(totals.own)}<Diff current={avg(totals.own)} prev={prevAvg(prevTotals.own)} /></td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[17%]">{avg(totals.yandex)}<Diff current={avg(totals.yandex)} prev={prevAvg(prevTotals.yandex)} /></td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[17%]">{avg(totals.noor)}<Diff current={avg(totals.noor)} prev={prevAvg(prevTotals.noor)} /></td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[17%]">{avg(totals.uzum)}<Diff current={avg(totals.uzum)} prev={prevAvg(prevTotals.uzum)} /></td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[15%]">{avg(totals.total)}<Diff current={avg(totals.total)} prev={prevAvg(prevTotals.total)} /></td>
                       </tr>
                     </tfoot>
                   </table>
@@ -333,10 +347,11 @@ export function DeliverySources() {
                   <table className="w-full table-fixed caption-bottom text-sm">
                     <thead className="sticky top-0 bg-zinc-100 dark:bg-zinc-900 z-10 border-b">
                       <tr>
-                        <th className="py-1.5 px-3 text-sm text-left text-muted-foreground font-medium w-[25%]">Дата</th>
-                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[25%]">Своя</th>
-                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[25%]">Yandex</th>
-                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[25%]">Noor</th>
+                        <th className="py-1.5 px-3 text-sm text-left text-muted-foreground font-medium w-[20%]">Дата</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[20%]">Своя</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[20%]">Yandex</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[20%]">Noor</th>
+                        <th className="py-1.5 px-3 text-sm text-center text-muted-foreground font-medium w-[20%]">Uzum</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -344,20 +359,22 @@ export function DeliverySources() {
                         const total = Number(row.total)
                         return (
                           <tr key={row.date} className="border-b">
-                            <td className="py-1.5 px-3 text-sm w-[25%]">{format(new Date(row.date), "dd MMM", { locale: ru })}</td>
-                            <td className="py-1.5 px-3 text-sm text-center w-[25%]">{pct(Number(row.own_count), total)}</td>
-                            <td className="py-1.5 px-3 text-sm text-center w-[25%]">{pct(Number(row.yandex_count), total)}</td>
-                            <td className="py-1.5 px-3 text-sm text-center w-[25%]">{pct(Number(row.noor_count), total)}</td>
+                            <td className="py-1.5 px-3 text-sm w-[20%]">{format(new Date(row.date), "dd MMM", { locale: ru })}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[20%]">{pct(Number(row.own_count), total)}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[20%]">{pct(Number(row.yandex_count), total)}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[20%]">{pct(Number(row.noor_count), total)}</td>
+                            <td className="py-1.5 px-3 text-sm text-center w-[20%]">{pct(Number(row.uzum_count), total)}</td>
                           </tr>
                         )
                       })}
                     </tbody>
                     <tfoot className="sticky bottom-0 z-10 bg-zinc-100 dark:bg-zinc-900 border-t font-medium">
                       <tr>
-                        <td className="py-1.5 px-3 text-sm font-bold w-[25%]">Среднее</td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[25%]">{avgPct(totals.own, totals.total)}</td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[25%]">{avgPct(totals.yandex, totals.total)}</td>
-                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[25%]">{avgPct(totals.noor, totals.total)}</td>
+                        <td className="py-1.5 px-3 text-sm font-bold w-[20%]">Среднее</td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{avgPct(totals.own, totals.total)}</td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{avgPct(totals.yandex, totals.total)}</td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{avgPct(totals.noor, totals.total)}</td>
+                        <td className="py-1.5 px-3 text-sm text-center font-bold w-[20%]">{avgPct(totals.uzum, totals.total)}</td>
                       </tr>
                     </tfoot>
                   </table>

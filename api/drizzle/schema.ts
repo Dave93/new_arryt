@@ -768,7 +768,8 @@ export const orders = pgTable("orders", {
 	created_by: uuid("created_by"),
 	updated_by: uuid("updated_by"),
 	yandex_id: text("yandex_id"),
-	noor_id: text("noor_id")
+	noor_id: text("noor_id"),
+	uzum_id: text("uzum_id")
 },
 	(table) => {
 		return {

@@ -25,6 +25,8 @@ import { CancelYandexOrder } from "@/components/orders/cancel-yandex-order";
 import { RecreateYandexOrder } from "@/components/orders/recreate-yandex-order";
 import { CancelNoorOrder } from "@/components/orders/cancel-noor-order";
 import { RecreateNoorOrder } from "@/components/orders/recreate-noor-order";
+import { CancelUzumOrder } from "@/components/orders/cancel-uzum-order";
+import { RecreateUzumOrder } from "@/components/orders/recreate-uzum-order";
 
 // Define the Order Location type
 interface OrderLocation {
@@ -72,6 +74,8 @@ interface Order {
   delivery_price: number;
   payment_type: string;
   delivery_type: string;
+  delivery_schedule?: string | null;
+  later_time?: string | null;
   delivery_address: string;
   from_lat?: number; // Origin Latitude
   from_lon?: number; // Origin Longitude
@@ -103,6 +107,7 @@ interface Order {
   finished_date?: string | null;
   yandex_id?: string | null;
   noor_id?: string | null;
+  uzum_id?: string | null;
 }
 
 // Define the Order Status type (based on reference and likely API structure)
@@ -208,7 +213,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
         query: {
           fields: [
             "id", "order_number", "created_at", "order_price", "delivery_price",
-            "payment_type", "delivery_type", "delivery_address", "from_lat", "from_lon",
+            "payment_type", "delivery_type", "delivery_schedule", "later_time", "delivery_address", "from_lat", "from_lon",
             "to_lat", "to_lon",
             "order_status.id", "order_status.name", "order_status.color",
             "customers.id", "customers.name", "customers.phone",
@@ -217,7 +222,8 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             "terminals.id", "terminals.name",
             "finished_date",
             "yandex_id",
-            "noor_id"
+            "noor_id",
+            "uzum_id"
           ].join(","),
         },
       });
@@ -597,6 +603,18 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         {orderData.delivery_type}
                       </p>
                       <p>
+                        <span className="font-medium">График доставки:</span>{" "}
+                        {orderData.delivery_schedule === "later"
+                          ? "На время"
+                          : "В ближайшее время"}
+                      </p>
+                      {orderData.delivery_schedule === "later" && (
+                        <p>
+                          <span className="font-medium">Когда доставить:</span>{" "}
+                          {orderData.later_time || "Не указано"}
+                        </p>
+                      )}
+                      <p>
                         <span className="font-medium">Адрес:</span>{" "}
                         {orderData.delivery_address}
                       </p>
@@ -661,6 +679,24 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         </>
                       ) : (
                         <RecreateNoorOrder orderId={orderId} hasNoorId={false} />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Uzum Tezkor</h3>
+                    <div className="space-y-2">
+                      {orderData.uzum_id ? (
+                        <>
+                          <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                            Активная доставка
+                          </Badge>
+                          <div className="flex items-center gap-2 mt-2">
+                            <CancelUzumOrder orderId={orderId} />
+                            <RecreateUzumOrder orderId={orderId} hasUzumId={true} />
+                          </div>
+                        </>
+                      ) : (
+                        <RecreateUzumOrder orderId={orderId} hasUzumId={false} />
                       )}
                     </div>
                   </div>

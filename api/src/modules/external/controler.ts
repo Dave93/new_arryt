@@ -1031,6 +1031,25 @@ export const externalControler = new Elysia({
             claim_id: t.Optional(t.String()),
         }),
     })
+    .post('/api/external/uzum-callback', async ({ body, queues: {
+        processUzumCallbackQueue
+    } }) => {
+        console.log('[UZUM-WEBHOOK] body:', JSON.stringify(body));
+        if (body?.claim_id) {
+            await processUzumCallbackQueue.add(`${body.claim_id}_${(new Date()).getTime()}`, body, {
+                attempts: 3, removeOnComplete: true,
+            });
+
+        }
+
+        return {
+            success: true,
+        };
+    }, {
+        body: t.Object({
+            claim_id: t.Optional(t.String()),
+        }),
+    })
     .post('/api/external/noor-callback', async ({ body, request: { headers }, status, queues: {
         processNoorCallbackQueue
     } }) => {

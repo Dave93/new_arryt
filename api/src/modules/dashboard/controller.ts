@@ -12,6 +12,7 @@ import {
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import { getUzumCourierId } from '../../utils/uzum';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -309,13 +310,15 @@ export const dashboardController = new Elysia({
         const yandexCourier = await drizzle.select({ id: users.id }).from(users).where(eq(users.phone, '+998908251218')).limit(1);
         const noorCourierId = noorCourier[0]?.id ?? '00000000-0000-0000-0000-000000000000';
         const yandexCourierId = yandexCourier[0]?.id ?? '00000000-0000-0000-0000-000000000000';
+        const uzumCourierId = (await getUzumCourierId(cacheControl)) ?? '00000000-0000-0000-0000-000000000000';
 
         const result = await drizzle
             .select({
                 date: sql<string>`DATE(${orders.created_at})`.as('date'),
                 yandex_count: sql<number>`COUNT(*) FILTER (WHERE ${orders.courier_id} = ${yandexCourierId})`.as('yandex_count'),
                 noor_count: sql<number>`COUNT(*) FILTER (WHERE ${orders.courier_id} = ${noorCourierId})`.as('noor_count'),
-                own_count: sql<number>`COUNT(*) FILTER (WHERE ${orders.courier_id} != ${yandexCourierId} AND ${orders.courier_id} != ${noorCourierId})`.as('own_count'),
+                uzum_count: sql<number>`COUNT(*) FILTER (WHERE ${orders.courier_id} = ${uzumCourierId})`.as('uzum_count'),
+                own_count: sql<number>`COUNT(*) FILTER (WHERE ${orders.courier_id} != ${yandexCourierId} AND ${orders.courier_id} != ${noorCourierId} AND ${orders.courier_id} != ${uzumCourierId})`.as('own_count'),
                 total: count(),
             })
             .from(orders)
