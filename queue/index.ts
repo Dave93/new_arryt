@@ -15,6 +15,8 @@ import processStoreLocation from "./processors/store_location";
 import processYandexCallback from "./processors/yandex_callback";
 import processCheckAndSendNoor from "./processors/check_and_send_noor";
 import processNoorCallback from "./processors/noor_callback";
+import processCheckAndSendUzum from "./processors/check_and_send_uzum";
+import processUzumCallback from "./processors/uzum_callback";
 import { processSendNotification } from "./processors/send_notification";
 import processPushCourierToQueue from "./processors/push_courier_to_queue";
 import processSetQueueLastCourier from "./processors/set_queue_last_courier";
@@ -196,6 +198,28 @@ const noorCallbackWorker = new Worker(
     async (job) => {
         await processNoorCallback(redisClient, db, cacheControl, job.data);
         return 'noor_callback';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+const checkAndSendUzumWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_check_and_send_uzum`,
+    async (job) => {
+        await processCheckAndSendUzum(db, redisClient, cacheControl, job.data.id, job.data.taxi_class);
+        return 'check_and_send_uzum';
+    },
+    {
+        connection: redisClient,
+    }
+);
+
+const uzumCallbackWorker = new Worker(
+    `${process.env.TASKS_PREFIX}_uzum_callback`,
+    async (job) => {
+        await processUzumCallback(redisClient, db, cacheControl, job.data);
+        return 'uzum_callback';
     },
     {
         connection: redisClient,
