@@ -25,6 +25,8 @@ import { CancelYandexOrder } from "@/components/orders/cancel-yandex-order";
 import { RecreateYandexOrder } from "@/components/orders/recreate-yandex-order";
 import { CancelNoorOrder } from "@/components/orders/cancel-noor-order";
 import { RecreateNoorOrder } from "@/components/orders/recreate-noor-order";
+import { CancelUzumOrder } from "@/components/orders/cancel-uzum-order";
+import { RecreateUzumOrder } from "@/components/orders/recreate-uzum-order";
 
 // Define the Order Location type
 interface OrderLocation {
@@ -105,6 +107,7 @@ interface Order {
   finished_date?: string | null;
   yandex_id?: string | null;
   noor_id?: string | null;
+  uzum_id?: string | null;
 }
 
 // Define the Order Status type (based on reference and likely API structure)
@@ -219,7 +222,8 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
             "terminals.id", "terminals.name",
             "finished_date",
             "yandex_id",
-            "noor_id"
+            "noor_id",
+            "uzum_id"
           ].join(","),
         },
       });
@@ -675,6 +679,24 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         </>
                       ) : (
                         <RecreateNoorOrder orderId={orderId} hasNoorId={false} />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Uzum Tezkor</h3>
+                    <div className="space-y-2">
+                      {orderData.uzum_id ? (
+                        <>
+                          <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                            Активная доставка
+                          </Badge>
+                          <div className="flex items-center gap-2 mt-2">
+                            <CancelUzumOrder orderId={orderId} />
+                            <RecreateUzumOrder orderId={orderId} hasUzumId={true} />
+                          </div>
+                        </>
+                      ) : (
+                        <RecreateUzumOrder orderId={orderId} hasUzumId={false} />
                       )}
                     </div>
                   </div>

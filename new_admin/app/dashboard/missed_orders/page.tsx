@@ -26,6 +26,7 @@ import { ru } from "date-fns/locale";
 import MultipleSelector, { Option } from "@/components/ui/multiselect";
 import { SendOrderToYandex } from "@/components/orders/send-to-yandex";
 import { SendOrderToNoor } from "@/components/orders/send-to-noor";
+import { SendOrderToUzum } from "@/components/orders/send-to-uzum";
 import { OrderDetailSheet } from "@/components/orders/order-detail-sheet";
 
 // Define MissedOrder interface
@@ -153,6 +154,16 @@ const columns: ColumnDef<MissedOrder>[] = [
     cell: ({ row }) => (
       <div className="flex items-center justify-center">
         <SendOrderToNoor order={row.original} />
+      </div>
+    ),
+    size: 150,
+  },
+  {
+    id: "uzum",
+    header: "Uzum",
+    cell: ({ row }) => (
+      <div className="flex items-center justify-center">
+        <SendOrderToUzum order={row.original} />
       </div>
     ),
     size: 150,
