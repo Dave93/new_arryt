@@ -72,6 +72,8 @@ interface Order {
   delivery_price: number;
   payment_type: string;
   delivery_type: string;
+  delivery_schedule?: string | null;
+  later_time?: string | null;
   delivery_address: string;
   from_lat?: number; // Origin Latitude
   from_lon?: number; // Origin Longitude
@@ -208,7 +210,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
         query: {
           fields: [
             "id", "order_number", "created_at", "order_price", "delivery_price",
-            "payment_type", "delivery_type", "delivery_address", "from_lat", "from_lon",
+            "payment_type", "delivery_type", "delivery_schedule", "later_time", "delivery_address", "from_lat", "from_lon",
             "to_lat", "to_lon",
             "order_status.id", "order_status.name", "order_status.color",
             "customers.id", "customers.name", "customers.phone",
@@ -596,6 +598,18 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         <span className="font-medium">Тип доставки:</span>{" "}
                         {orderData.delivery_type}
                       </p>
+                      <p>
+                        <span className="font-medium">График доставки:</span>{" "}
+                        {orderData.delivery_schedule === "later"
+                          ? "На время"
+                          : "В ближайшее время"}
+                      </p>
+                      {orderData.delivery_schedule === "later" && (
+                        <p>
+                          <span className="font-medium">Когда доставить:</span>{" "}
+                          {orderData.later_time || "Не указано"}
+                        </p>
+                      )}
                       <p>
                         <span className="font-medium">Адрес:</span>{" "}
                         {orderData.delivery_address}
