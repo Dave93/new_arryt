@@ -1,4 +1,4 @@
-import { delivery_pricing, manager_withdraw, order_locations, order_status, orders, users } from "../../../drizzle/schema";
+import { delivery_pricing, manager_withdraw, order_items, order_locations, order_status, orders, users } from "../../../drizzle/schema";
 import { contextWitUser } from "../../context";
 import { getMinutes, getMinutesNow } from "../../lib/dates";
 import dayjs from "dayjs";
@@ -497,6 +497,81 @@ export const externalControler = new Elysia({
         body: t.Object({
             order_id: t.Number(),
             terminal_id: t.String(),
+        })
+    })
+    .post('/api/external/update-order-items', async ({ body: { order_id, price, order_items: newItems }, set, request: {
+        headers
+    }, redis, cacheControl, drizzle }) => {
+        const token = headers.get('authorization')?.split(' ')[1] ?? null;
+
+        const apiTokenJson = await redis.get(
+            `${process.env.PROJECT_PREFIX}_api_tokens`
+        );
+
+        try {
+            const apiTokens = JSON.parse(apiTokenJson || '[]');
+            const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
+            if (!apiToken) {
+                set.status = 403;
+                return { error: `Forbidden` };
+            }
+            const organizations = await cacheControl.getOrganizations();
+            const currentOrganization = organizations.find((org: any) => org.id === apiToken.organization_id);
+            if (!currentOrganization) {
+                set.status = 403;
+                return { error: `Forbidden` };
+            }
+
+            const order = await drizzle.select({
+                id: orders.id,
+                created_at: orders.created_at,
+            }).from(orders).where(and(
+                eq(orders.order_number, order_id.toString()),
+                eq(orders.organization_id, currentOrganization.id),
+            )).orderBy(desc(orders.created_at)).limit(1).execute();
+
+            if (!order.length) {
+                set.status = 404;
+                return { error: `Order not found` };
+            }
+
+            await drizzle.update(orders)
+                .set({ order_price: +price })
+                .where(eq(orders.id, order[0].id))
+                .execute();
+
+            await drizzle.delete(order_items)
+                .where(eq(order_items.order_id, order[0].id))
+                .execute();
+
+            for (const item of newItems) {
+                await drizzle.insert(order_items).values({
+                    order_id: order[0].id,
+                    order_created_at: order[0].created_at,
+                    product_id: item.productId,
+                    quantity: item.quantity,
+                    name: item.name,
+                    price: +item.price,
+                    weight: item.weight ? item.weight / 1000 : null,
+                }).execute();
+            }
+
+            return { success: true, id: order[0].id };
+        } catch (e: any) {
+            set.status = 500;
+            return { error: e.message };
+        }
+    }, {
+        body: t.Object({
+            order_id: t.Union([t.String(), t.Number()]),
+            price: t.Number(),
+            order_items: t.Array(t.Object({
+                name: t.String(),
+                price: t.Number(),
+                quantity: t.Number(),
+                productId: t.Number(),
+                weight: t.Optional(t.Union([t.Number(), t.Null()])),
+            })),
         })
     })
     .post('/api/external/calculate-customer-price', async ({ body: { terminal_id, toLat, toLon, phone, price: priceToCalculate, source_type }, status, request: { headers }, cacheControl }) => {
