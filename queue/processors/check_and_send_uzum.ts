@@ -127,21 +127,8 @@ export default async function processCheckAndSendUzum(db: DB, redis: Redis, cach
                     type: 'destination',
                     visit_order: 2,
                 },
-                {
-                    address: {
-                        coordinates: [order!.orders_terminals!.longitude, order!.orders_terminals!.latitude],
-                        fullname: order!.orders_terminals!.address,
-                        comment: comment,
-                    },
-                    contact: {
-                        name: senderName ? senderName : order!.orders_terminals!.manager_name,
-                        phone: senderPhone ? senderPhone : order!.orders_terminals!.phone,
-                    },
-                    type: 'return',
-                    skip_confirmation: true,
-                    visit_order: 3,
-                    point_id: 3,
-                },
+                // Uzum rejects a Yandex-style 'return' third point:
+                // 400 unsupported_points_count "more than 2 points not allowed"
             ],
             skip_client_notify: false,
             skip_door_to_door: false,
