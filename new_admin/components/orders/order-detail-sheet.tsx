@@ -4,8 +4,7 @@ import { ReactNode, useState } from "react";
 import { 
   Sheet, 
   SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
+  SheetTitle,
   SheetTrigger 
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -40,10 +39,9 @@ export function OrderDetailSheet({ orderId, openInNewPage = false, children }: O
         )}
       </SheetTrigger>
       <SheetContent className="min-w-[95%] sm:min-w-[90%] md:min-w-[80%] lg:min-w-[75%] xl:min-w-[70%] overflow-y-auto z-[1100]">
-        <SheetHeader>
-          <SheetTitle>Информация о заказе</SheetTitle>
-        </SheetHeader>
-        <div className="mt-6">
+        {/* Заголовок нужен Radix для доступности, но место в панели не занимает */}
+        <SheetTitle className="sr-only">Информация о заказе</SheetTitle>
+        <div className="pt-8">
           <OrderDetailsClientPage orderId={orderId} isSheet={true} />
         </div>
       </SheetContent>
