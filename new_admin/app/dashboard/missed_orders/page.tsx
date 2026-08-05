@@ -102,17 +102,18 @@ const columns: ColumnDef<MissedOrder>[] = [
     accessorKey: "order_number",
     header: "Заказ №",
     cell: ({ row }) => (
-      <div className="flex items-center justify-center space-x-2">
-        <span className="font-medium">{row.getValue("order_number")}</span>
+      <div className="flex items-center justify-center">
         <Button
-          size="icon"
+          size="sm"
           variant="ghost"
-          className="h-7 w-7"
+          className="h-7 gap-2 px-2 font-medium"
+          title="Скопировать номер"
           onClick={() => {
             navigator.clipboard.writeText(String(row.getValue("order_number")));
             toast.success("Номер скопирован");
           }}
         >
+          {row.getValue("order_number")}
           <Copy className="h-4 w-4" />
         </Button>
       </div>
