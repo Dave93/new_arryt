@@ -72,6 +72,8 @@ interface Order {
   created_at: string;
   order_price: number;
   delivery_price: number;
+  pre_distance?: number | null;
+  distance?: number | null;
   payment_type: string;
   delivery_type: string;
   delivery_schedule?: string | null;
@@ -213,6 +215,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
         query: {
           fields: [
             "id", "order_number", "created_at", "order_price", "delivery_price",
+            "pre_distance", "distance",
             "payment_type", "delivery_type", "delivery_schedule", "later_time", "delivery_address", "from_lat", "from_lon",
             "to_lat", "to_lon",
             "order_status.id", "order_status.name", "order_status.color",
@@ -589,6 +592,13 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                       <p>
                         <span className="font-medium">Стоимость заказа:</span>{" "}
                         {new Intl.NumberFormat("ru").format(orderData.order_price)}
+                      </p>
+                      <p>
+                        <span className="font-medium">Дистанция:</span>{" "}
+                        {(() => {
+                          const distance = orderData.distance ?? orderData.pre_distance;
+                          return distance != null ? `${distance.toFixed(2)} км` : "Н/Д";
+                        })()}
                       </p>
                       <p>
                         <span className="font-medium">Стоимость доставки:</span>{" "}

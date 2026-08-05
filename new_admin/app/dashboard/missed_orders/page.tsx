@@ -15,7 +15,7 @@ import { DateRange } from "react-day-picker";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { format, startOfDay, endOfDay } from "date-fns";
 import Link from "next/link";
-import { Eye, ExternalLink, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   IconBuildingStore,
@@ -103,11 +103,7 @@ const columns: ColumnDef<MissedOrder>[] = [
     header: "Заказ №",
     cell: ({ row }) => (
       <div className="flex items-center justify-center space-x-2">
-        <Button variant="link" className="p-0 h-auto font-medium" asChild>
-          <Link href={`/dashboard/orders/${row.original.id}`}>
-            {row.getValue("order_number")}
-          </Link>
-        </Button>
+        <span className="font-medium">{row.getValue("order_number")}</span>
         <Button
           size="icon"
           variant="ghost"
