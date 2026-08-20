@@ -91,7 +91,9 @@ export default async function processCheckAndSendUzum(db: DB, redis: Redis, cach
                         comment: comment,
                     },
                     contact: {
-                        name: (senderName ? senderName : order!.orders_terminals!.manager_name),
+                        // Uzum shows this as the vendor name in the courier app, so it must
+                        // be the branch, not the call-centre operator behind yandex_sender_name.
+                        name: order!.orders_terminals!.name,
                         phone: (senderPhone ? senderPhone : order!.orders_terminals!.phone),
                     },
                     type: 'source',
