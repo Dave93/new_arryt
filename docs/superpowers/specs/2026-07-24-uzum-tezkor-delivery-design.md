@@ -18,7 +18,7 @@ Dispatch is **manual only**: operators choose "Send to Yandex" or "Send to Uzum"
 - Tariff: `client_requirements.taxi_class` — `courier` (any nearest) or `express` (car only); item prices via `items[].cost_value`
 - Buyout requires a **pair** of fields or it silently fails: `buyout: {payment_method: "cash"}` on the source point **and** `payment_on_delivery` (cash, with payer contact) on the destination point. The existing Yandex processor already builds exactly this pair when `0 < orderPrice <= 500000`, so the logic copies unchanged.
 - Cancellation must be two-step: `claims/cancel-info?claim_id=...` to get the currently available `cancel_state`, then `claims/cancel?claim_id=...` with that state. (Yandex code hardcodes `cancel_state: "free"` — the Uzum copy must not.)
-- Voice forwarding path differs from Yandex: `/b2b/cargo/integration/v2/claims/v2/driver-voiceforwarding` (Yandex: `/b2b/cargo/integration/v2/driver-voiceforwarding`).
+- Voice forwarding path is the same as Yandex: `/b2b/cargo/integration/v2/driver-voiceforwarding`. (Their Telegram list named `/claims/v2/driver-voiceforwarding`; that path returns 404 on both the test bench and production, verified 2026-08-20.)
 - Test environment has no real couriers; courier assignment is triggered manually by the Uzum team on request.
 
 ## Decisions
@@ -75,7 +75,7 @@ Two new BullMQ queues (registered in `api/src/context/index.ts` and the queue wo
 
 - Order lookup by `orders.uzum_id`
 - Courier guard against `uzum_courier_id` setting
-- `claims/info` and voice forwarding hit the Uzum base URL; voice forwarding uses `/claims/v2/driver-voiceforwarding`
+- `claims/info` and voice forwarding hit the Uzum base URL; voice forwarding uses the Yandex-style `/v2/driver-voiceforwarding` path
 - Operator-cancel guard key: `uzum_operator_cancel:{claimId}`
 - Courier-info dedup key stays `courier_info_sent:{orderId}_{phone}` (order-scoped, no collision)
 - Status mapping via `order_status.yandex_delivery_statuses` (shared mapping, per decision)

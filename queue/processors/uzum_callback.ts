@@ -119,7 +119,7 @@ export default async function processUzumCallback(redis: Redis, db: DB, cacheCon
                 .limit(1);
 
             try {
-                const voiceForwardUrl = `${UZUM_BASE_URL}/b2b/cargo/integration/v2/claims/v2/driver-voiceforwarding`;
+                const voiceForwardUrl = `${UZUM_BASE_URL}/b2b/cargo/integration/v2/driver-voiceforwarding`;
                 const voiceForwardFetch = await fetch(voiceForwardUrl, {
                     method: 'POST',
                     headers: uzumHeaders(),
