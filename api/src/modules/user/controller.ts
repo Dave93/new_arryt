@@ -36,6 +36,10 @@ import { JwtPayload } from "../../utils/jwt-payload.dto";
 dayjs.extend(customParseFormat);
 dayjs.extend(isoWeek);
 
+/// Сколько кодов номер может получить за сутки. Считаются только те,
+/// что SMS-провайдер принял, — см. /api/users/send-otp.
+const DAILY_OTP_LIMIT = 5;
+
 
 type RollCallCourier = {
   id: string;
@@ -606,17 +610,18 @@ export const UsersController = new Elysia({
         };
       }
 
-      const dailyCount = await redis.incr(dailyKey);
-      if (dailyCount === 1) {
-        await redis.expire(dailyKey, 24 * 60 * 60);
-      }
-      if (dailyCount > 5) {
+      // Читаем счётчик, а не инкрементим: отказ не должен расходовать квоту,
+      // иначе отклонённые запросы накручивают её сами по себе.
+      const dailyCount = Number((await redis.get(dailyKey)) || 0);
+      if (dailyCount >= DAILY_OTP_LIMIT) {
         set.status = 429;
         return {
           message: "Daily OTP limit reached. Try again later.",
         };
       }
 
+      // Cooldown ставим до отправки — он защищает от долбёжки по эндпоинту
+      // независимо от того, дошла ли SMS.
       await redis.set(cooldownKey, "1", "EX", 60);
 
       let userEntity = (await drizzle.select().from(users).where(eq(users.phone, phone)).limit(1))[0];
@@ -686,7 +691,7 @@ export const UsersController = new Elysia({
       }
 
       // Send the OTP to the user
-      let response: Response;
+      let response: Response | undefined;
       try {
         response = await fetch(smsUrl, {
           method: "POST",
@@ -725,6 +730,21 @@ export const UsersController = new Elysia({
           `[OTP SMS] send failed: recipient=${maskedPhone} message-id=${smsMessageId} error=${e instanceof Error ? e.message : String(e)}`
         );
       }
+
+      // Квоту тратит только принятая провайдером отправка. Иначе при лежащем
+      // SMS-шлюзе пользователь выжигал пять попыток и получал блокировку на
+      // сутки, не увидев ни одного кода.
+      if (response && response.ok) {
+        const dailySent = await redis.incr(dailyKey);
+        if (dailySent === 1) {
+          await redis.expire(dailyKey, 24 * 60 * 60);
+        }
+      } else {
+        console.error(
+          `[OTP SMS] not counted against daily quota: recipient=${maskedPhone} message-id=${smsMessageId} status=${response ? response.status : "no response"}`
+        );
+      }
+
       //   let result = new SendOtpToken();
       //   result.details = encoded;
       return {
