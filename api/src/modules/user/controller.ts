@@ -677,18 +677,11 @@ export const UsersController = new Elysia({
 
       let message = `Your OTP is ${otp}`;
 
-      // TEMP: debug logging for SMS provider delivery issues — remove after resolved.
-      // Enabled only when SMS_DEBUG=true; phone is masked to last 4 digits.
-      const smsDebug = process.env.SMS_DEBUG === "true";
+      // Телефон в логах маскируется до последних четырёх цифр.
       const maskedPhone = `***${normalizedPhone.slice(-4)}`;
       const smsMessageId = Math.floor(Math.random() * 1000001);
       const smsUrl =
         process.env.SMS_API_URL || "https://send.smsxabar.uz/broker-api/send";
-      if (smsDebug) {
-        console.log(
-          `[OTP SMS] sending: recipient=${maskedPhone} message-id=${smsMessageId} otp_id=${otpEntity.id} url=${smsUrl} text="${message.replace(otp, "******")}"`
-        );
-      }
 
       // Send the OTP to the user
       let response: Response | undefined;
@@ -719,12 +712,6 @@ export const UsersController = new Elysia({
               ).toString("base64"),
           },
         });
-        if (smsDebug) {
-          const responseBody = await response.text();
-          console.log(
-            `[OTP SMS] provider response: recipient=${maskedPhone} message-id=${smsMessageId} status=${response.status} body=${responseBody}`
-          );
-        }
       } catch (e) {
         console.error(
           `[OTP SMS] send failed: recipient=${maskedPhone} message-id=${smsMessageId} error=${e instanceof Error ? e.message : String(e)}`
