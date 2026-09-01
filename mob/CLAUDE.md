@@ -48,9 +48,14 @@ dart run build_runner watch              # Watch and regenerate on changes
 - Pages use `@RoutePage()` annotation
 
 ### API Communication
-- **GraphQL**: Primary API via `graphql_flutter` - see `lib/helpers/api_graphql_provider.dart` for client setup with auto token refresh
-- **REST/Dio**: Secondary API in `lib/helpers/api_server.dart` with HTTP2 adapter and auto token refresh interceptor
+- **REST/Dio is the only working API**: `lib/helpers/api_server.dart` — HTTP2 adapter, `Authorization: Bearer`, refresh-token interceptor, and a forced return to the login screen when the session is dead
 - Base URL: `https://api.arryt.uz` (configurable per brand)
+
+> **The GraphQL backend is gone.** `https://api.arryt.uz/graphql` answers **404** — the API has moved to REST (Elysia). `lib/helpers/api_graphql_provider.dart` and every `gql(...)` call built on it are dead code paths: the request fails and the screen silently shows nothing, because most call sites either swallow the exception or dereference `result.data!` and throw.
+>
+> As of 2026-09-01 this still affects **18 files / 21 queries** — order history, notifications and their counter, orders management, waiting orders, cancel-order, route building, customer comments, QR scan, call-centre organizations, garant withdrawals, and the profile logout button. Screens backed by ObjectBox still render cached data, which masks the breakage.
+>
+> When touching any of those screens, port the call to REST rather than repairing the GraphQL query. `lib/widgets/no_role_set.dart` is the worked example, together with the endpoints added for it: `GET /api/users/reload` (same payload shape as `verify-otp`, parsed by `UserData.fromMap`) and `GET /api/system_configs/public/:name` (whitelisted keys, no permission required).
 
 ### Background Services
 - **Location Tracking**: `lib/location_service.dart` uses `flutter_background_service` to continuously track and send courier location to server
@@ -113,7 +118,7 @@ After modifying models, routes, or Riverpod providers, run `dart run build_runne
 1. `LoginTypePhonePage` → Enter phone number
 2. `LoginTypeOtpPage` → Enter OTP code
 3. JWT tokens stored in Hive via `HiveHelper.setUserData()`
-4. Tokens auto-refresh when expired (handled in `ApiGraphqlProvider` and `ApiServer`)
+4. Tokens auto-refresh when expired (`ApiServer` interceptor); if the refresh fails or the API answers 401, the session is cleared and the user is sent back to `LoginTypePhoneRoute`
 
 ### Role-Based UI
 `HomePage` renders different screens based on `userRole.code`:
@@ -129,7 +134,7 @@ After modifying models, routes, or Riverpod providers, run `dart run build_runne
 ### API Client Configuration
 - Supports multiple API endpoints (brands) via `ApiClient` model
 - Default client set via `HiveHelper.setDefaultApiClient()`
-- GraphQL endpoint: `https://{apiClient.apiUrl}/graphql`
+- GraphQL endpoint: `https://{apiClient.apiUrl}/graphql` — **dead, returns 404** (see the API Communication note)
 - REST endpoint: `https://{apiClient.apiUrl}/api/...`
 
 ### Localization
