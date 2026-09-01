@@ -51,6 +51,30 @@ export const systemConfigsController = new Elysia({
             })
         }
     )
+    // Курьеру без назначенной роли нужен телефон поддержки, но прав на
+    // system_configs.list у него нет. Отдаём строго ключи из белого списка —
+    // остальное по-прежнему только под правами.
+    .get("/public/:name", async ({ params: { name }, redis, status }) => {
+        const publicKeys = ["admin_phone"];
+
+        if (!publicKeys.includes(name)) {
+            return status(404, { message: "Config not found" });
+        }
+
+        const cached = await redis.get(
+            `${process.env.PROJECT_PREFIX}_system_configs`
+        );
+        const configs = JSON.parse(cached || "{}") as Record<string, string>;
+
+        return {
+            name,
+            value: configs[name] ?? null,
+        };
+    }, {
+        params: t.Object({
+            name: t.String(),
+        }),
+    })
     .get("/cached", async ({ redis }) => {
         const res = await redis.get(
             `${process.env.PROJECT_PREFIX}_system_configs`
