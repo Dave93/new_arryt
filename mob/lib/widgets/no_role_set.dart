@@ -1,22 +1,20 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
-import 'package:arryt/helpers/api_graphql_provider.dart';
+import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/models/user_data.dart';
+import 'package:arryt/router.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:arryt/l10n/app_localizations.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import '../bloc/block_imports.dart';
 
 class NoRoleSet extends StatelessWidget {
   const NoRoleSet({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ApiGraphqlProvider(child: const NoRoleSetView());
+    return const NoRoleSetView();
   }
 }
 
@@ -29,117 +27,65 @@ class NoRoleSetView extends StatefulWidget {
 
 class _NoRoleSetViewState extends State<NoRoleSetView> {
   String adminPhone = '';
+  bool _isReloading = false;
 
   Future<void> _loadAdminPhone() async {
-    var query = gql('''
-      query {
-        systemConfigByKey(key: "admin_phone") {
-          value
-        }
-      }
-    ''');
-    var client = GraphQLProvider.of(context).value;
-    QueryResult result = await client.query(QueryOptions(document: query));
-    // if (result.hasException) {
-    //   AnimatedSnackBar.material(
-    //     result.exception?.graphqlErrors[0].message ?? "Error",
-    //     type: AnimatedSnackBarType.error,
-    //   ).show(context);
-
-    //   return;
-    // }
-    setState(() {
-      adminPhone = result.data?['systemConfigByKey']['value'];
-    });
-  }
-
-  Future<void> _logout(BuildContext context) async {
     try {
-      var client = GraphQLProvider.of(context).value;
-      var query = gql('''
-      mutation {
-        logout()
+      final response =
+          await ApiServer().get('/api/system_configs/public/admin_phone', null);
+      final value = response.data['value'];
+      if (mounted && value is String && value.isNotEmpty) {
+        setState(() {
+          adminPhone = value;
+        });
       }
-    ''');
-      QueryResult result =
-          await client.mutate(MutationOptions(document: query));
-      if (result.hasException) {
-        AnimatedSnackBar.material(
-          result.exception?.graphqlErrors[0].message ?? "Error",
-          type: AnimatedSnackBarType.error,
-        ).show(context);
-
-        return;
-      }
-      context.read<UserDataBloc>().add(UserDataEventLogout());
-    } on PlatformException catch (e) {
-      AnimatedSnackBar.material(
-        e.message ?? "Error",
-        type: AnimatedSnackBarType.error,
-      ).show(context);
-
-      return;
+    } catch (e) {
+      // Телефон поддержки не критичен для экрана: без него просто прячем
+      // кнопку звонка, а не встречаем пользователя ошибкой.
+      debugPrint('admin_phone load failed: $e');
     }
   }
 
-  Future<void> _reloadUserData(BuildContext context) async {
-    var query = gql('''
-      mutation {
-        reloadUserData {
-          access {
-            additionalPermissions
-            roles {
-                name
-                code
-                active
-            }
-          }
-          token {
-            accessToken
-            accessTokenExpires
-            refreshToken
-            tokenType
-          }
-          user {
-            first_name
-            id
-            is_super_user
-            last_name
-            is_online
-            permissions {
-              active
-              slug
-              id
-            }
-            phone
-          }
-        }
-      }
-    ''');
-    var client = GraphQLProvider.of(context).value;
-    QueryResult result = await client.mutate(MutationOptions(document: query));
-    UserDataBloc userDataBloc = BlocProvider.of<UserDataBloc>(context);
-    userDataBloc.add(UserDataEventChange(
-      accessToken: result.data!['reloadUserData']['token']['accessToken'],
-      refreshToken: result.data!['reloadUserData']['token']['refreshToken'],
-      accessTokenExpires: result.data!['reloadUserData']['token']
-          ['accessTokenExpires'],
-      userProfile:
-          UserProfileModel.fromMap(result.data!['reloadUserData']['user']),
-      permissions: List.from(
-          result.data!['reloadUserData']['access']['additionalPermissions']),
-      roles: List<Role>.from(result.data!['reloadUserData']['access']['roles']
-          .map((x) => Role.fromMap(x))
-          .toList()),
-      is_online: result.data!['reloadUserData']['user']['is_online'],
-      // parse 1h to duration
-      tokenExpires: DateTime.now().add(Duration(
-          hours: int.parse(result.data!['reloadUserData']['token']
-                  ['accessTokenExpires']
-              .split('h')[0]))),
-    ));
+  Future<void> _logout(BuildContext context) async {
+    // Кнопка по смыслу — сменить номер: чистим сессию и возвращаем на ввод.
+    HiveHelper.clearUserData();
+    await AutoRouter.of(context).replaceAll([LoginTypePhoneRoute()]);
+  }
 
-    AutoRouter.of(context).pushNamed('/home');
+  Future<void> _reloadUserData(BuildContext context) async {
+    if (_isReloading) return;
+
+    setState(() {
+      _isReloading = true;
+    });
+
+    try {
+      final response = await ApiServer().get('/api/users/reload', null);
+      final user = UserData.fromMap(response.data);
+      HiveHelper.setUserData(user);
+
+      // Домашний экран слушает Hive-бокс: как только появится роль,
+      // он перестроится сам, поэтому навигация здесь не нужна.
+      if (mounted && user.roles.isEmpty) {
+        AnimatedSnackBar.material(
+          AppLocalizations.of(context)!.noRoleSet,
+          type: AnimatedSnackBarType.info,
+        ).show(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        AnimatedSnackBar.material(
+          AppLocalizations.of(context)!.error_label,
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isReloading = false;
+        });
+      }
+    }
   }
 
   void _makePhoneCall(String phoneNumber) async {
@@ -183,7 +129,10 @@ class _NoRoleSetViewState extends State<NoRoleSetView> {
               const SizedBox(
                 height: 10,
               ),
-              ElevatedButton(
+              // Без номера поддержки кнопка звонка бесполезна: `tel:` с пустым
+              // путём просто ничего не открывает.
+              if (adminPhone.isNotEmpty)
+                ElevatedButton(
                   onPressed: () async {
                     _makePhoneCall(adminPhone);
                   },
@@ -209,9 +158,11 @@ class _NoRoleSetViewState extends State<NoRoleSetView> {
                   )),
               Spacer(),
               ElevatedButton(
-                  onPressed: () {
-                    _reloadUserData(context);
-                  },
+                  onPressed: _isReloading
+                      ? null
+                      : () {
+                          _reloadUserData(context);
+                        },
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Theme.of(context).primaryColor,

@@ -18,8 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get app_clients_intro_title => 'Connect to the service';
 
   @override
-  String get app_clients_intro_description =>
-      'Scan the brand code to connect to the service. If you don\'t have a code, ask the delivery manager.';
+  String get app_clients_intro_description => 'Scan the brand code to connect to the service. If you don\'t have a code, ask the delivery manager.';
 
   @override
   String get error_label => 'Error';
@@ -73,12 +72,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get you_are_not_courier => 'You are not courier';
 
   @override
-  String get error_work_schedule_offline_title =>
-      'You did not turn on the work mode';
+  String get error_work_schedule_offline_title => 'You did not turn on the work mode';
 
   @override
-  String get notice_torn_on_work_schedule_subtitle =>
-      'Turn on the work mode in the upper right corner to accept orders';
+  String get notice_torn_on_work_schedule_subtitle => 'Turn on the work mode in the upper right corner to accept orders';
 
   @override
   String get logout_btn => 'Log out of account';
@@ -207,8 +204,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get imageAttachmentCancelText => 'Cancel';
 
   @override
-  String get setCancelReasonLabel =>
-      'Specify the reason for the cancellation of the order';
+  String get setCancelReasonLabel => 'Specify the reason for the cancellation of the order';
 
   @override
   String get settingsCallCenterChatLabel => 'Write to the call center';
@@ -262,8 +258,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationDialogLabel => 'Location permissions';
 
   @override
-  String get locationDialogText =>
-      'To track your physical activity as part of your orders, the Arryt app collects location data even when the app is closed or not in use';
+  String get locationDialogText => 'To track your physical activity as part of your orders, the Arryt app collects location data even when the app is closed or not in use';
 
   @override
   String get locationDialogApprove => 'Allow';
@@ -335,8 +330,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get requiredSettings => 'Required settings';
 
   @override
-  String get requiredSettingsInstruction =>
-      'For the application to work correctly, you must turn off activity control and allow geolocation to track always';
+  String get requiredSettingsInstruction => 'For the application to work correctly, you must turn off activity control and allow geolocation to track always';
 
   @override
   String get disableBatteryOptimization => 'Disable battery optimization';
@@ -348,8 +342,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get continueText => 'Continue';
 
   @override
-  String get enablLocationPermissionAlways =>
-      'Enable location permission always';
+  String get enablLocationPermissionAlways => 'Enable location permission always';
 
   @override
   String get allow => 'Allow';
@@ -503,4 +496,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stat_info_delivered_orders => 'These are successfully delivered orders';
+
+  @override
+  String get otp_resend_button => 'Resend code';
+
+  @override
+  String get otp_resend_in => 'You can resend in';
+
+  @override
+  String get otp_resend_sent => 'Code sent again';
 }

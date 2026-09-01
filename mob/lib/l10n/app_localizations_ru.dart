@@ -18,8 +18,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get app_clients_intro_title => 'Подключитесь к сервису';
 
   @override
-  String get app_clients_intro_description =>
-      'Отсканируйте QR-код бренда, чтобы подключиться к сервису. Если у вас нет QR-кода, запросите у менеджера по доставке.';
+  String get app_clients_intro_description => 'Отсканируйте QR-код бренда, чтобы подключиться к сервису. Если у вас нет QR-кода, запросите у менеджера по доставке.';
 
   @override
   String get error_label => 'Ошибка';
@@ -76,8 +75,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get error_work_schedule_offline_title => 'Вы не включили режим работы';
 
   @override
-  String get notice_torn_on_work_schedule_subtitle =>
-      'Включите режим работы сверху в углу, чтобы принимать заказы';
+  String get notice_torn_on_work_schedule_subtitle => 'Включите режим работы сверху в углу, чтобы принимать заказы';
 
   @override
   String get logout_btn => 'Выйти из аккаунта';
@@ -125,8 +123,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get must_turn_on_location => 'Включите геолокацию';
 
   @override
-  String get permission_for_location_denied =>
-      'Разрешение на геолокацию отклонено';
+  String get permission_for_location_denied => 'Разрешение на геолокацию отклонено';
 
   @override
   String get error_getting_location => 'Ошибка получения геолокации';
@@ -261,8 +258,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get locationDialogLabel => 'Разрешение на геолокацию';
 
   @override
-  String get locationDialogText =>
-      'Чтобы отслеживать вашу физическую активность в рамках заказов, приложение Arryt собирает данные о местоположении, даже когда приложение закрыто или не используется';
+  String get locationDialogText => 'Чтобы отслеживать вашу физическую активность в рамках заказов, приложение Arryt собирает данные о местоположении, даже когда приложение закрыто или не используется';
 
   @override
   String get locationDialogApprove => 'Разрешить';
@@ -334,8 +330,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get requiredSettings => 'Обязательные настройки';
 
   @override
-  String get requiredSettingsInstruction =>
-      'Для корректной работы приложения необходимо выключить контроль активности и разрешить гелокацию отслеживать всегда';
+  String get requiredSettingsInstruction => 'Для корректной работы приложения необходимо выключить контроль активности и разрешить гелокацию отслеживать всегда';
 
   @override
   String get disableBatteryOptimization => 'Отключить контроль активности';
@@ -347,8 +342,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get continueText => 'Продолжить';
 
   @override
-  String get enablLocationPermissionAlways =>
-      'Разрешить геолокацию отслеживать всегда';
+  String get enablLocationPermissionAlways => 'Разрешить геолокацию отслеживать всегда';
 
   @override
   String get allow => 'Разрешить';
@@ -502,4 +496,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get stat_info_delivered_orders => 'Здесь показаны успешно доставленные заказы';
+
+  @override
+  String get otp_resend_button => 'Отправить код повторно';
+
+  @override
+  String get otp_resend_in => 'Отправить повторно можно через';
+
+  @override
+  String get otp_resend_sent => 'Код отправлен повторно';
 }

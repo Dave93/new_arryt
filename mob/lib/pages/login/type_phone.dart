@@ -167,6 +167,10 @@ class _LoginTypePhonePageState extends ConsumerState<LoginTypePhonePage> {
                     initialValue: number,
                     textFieldController: controller,
                     formatInput: true,
+                    // 9 цифр номера (93 530 09 98) плюс 3 пробела от
+                    // AsYouTypeFormatter: лимит длины считает уже
+                    // отформатированный текст, поэтому 12, а не 9.
+                    maxLength: 12,
                     keyboardType: const TextInputType.numberWithOptions(
                         signed: true, decimal: true),
                     inputBorder: OutlineInputBorder(

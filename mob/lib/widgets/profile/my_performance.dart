@@ -175,6 +175,13 @@ class _MyPerformanceState extends State<MyPerformance> {
 
     final current = performanceData!['currentPerformance'];
     final previous = performanceData!['previousPerformance'];
+
+    // Сервер может ответить телом другой формы (например, при протухшей сессии),
+    // тогда метрик просто нет и рисовать нечего.
+    if (current is! Map || previous is! Map) {
+      return const SizedBox.shrink();
+    }
+
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
 
