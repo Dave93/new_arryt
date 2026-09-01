@@ -37,6 +37,104 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
 
   bool isLoading = false;
 
+  /// Сервер держит cooldown на отправку OTP ровно минуту
+  /// (`otp:cooldown`, EX 60), поэтому и таймер здесь минутный —
+  /// раньше повторный запрос всё равно вернёт 429.
+  static const int _resendCooldownSeconds = 60;
+
+  Timer? _resendTimer;
+  int _secondsLeft = _resendCooldownSeconds;
+  bool _isResending = false;
+
+  /// Код одноразовый: сервер гасит его первым же успешным запросом.
+  /// onCompleted у поля ввода и кнопка KIRISH дёргают проверку независимо,
+  /// поэтому без этого флага второй запрос получал отказ по уже
+  /// погашенному коду и показывал «неверный код» поверх удачного входа.
+  bool _isVerified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    errorController = StreamController<ErrorAnimationType>();
+    _startResendTimer();
+  }
+
+  @override
+  void dispose() {
+    _resendTimer?.cancel();
+    errorController?.close();
+    super.dispose();
+  }
+
+  void _startResendTimer() {
+    _resendTimer?.cancel();
+    setState(() {
+      _secondsLeft = _resendCooldownSeconds;
+    });
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _secondsLeft--;
+      });
+      if (_secondsLeft <= 0) {
+        timer.cancel();
+      }
+    });
+  }
+
+  String _formatCountdown(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _resendCode() async {
+    if (_isResending || _secondsLeft > 0) return;
+
+    setState(() {
+      _isResending = true;
+    });
+
+    final phone = ref.read(otpPhoneProviderProvider);
+
+    try {
+      final response = await ApiServer().post('/api/users/send-otp', {
+        'phone': phone,
+      });
+      // Новый код живёт в новом otp_id, старый verificationKey больше не подходит.
+      ref
+          .read(otpTokenProviderProvider.notifier)
+          .setToken(response.data['details']);
+      _startResendTimer();
+      if (mounted) {
+        AnimatedSnackBar.material(
+          AppLocalizations.of(context)!.otp_resend_sent,
+          type: AnimatedSnackBarType.success,
+        ).show(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        // Сервер объясняет отказ сам: cooldown или дневной лимит в 5 отправок.
+        final message = e is DioException && e.error is String
+            ? e.error as String
+            : AppLocalizations.of(context)!.error_label;
+        AnimatedSnackBar.material(
+          message,
+          type: AnimatedSnackBarType.error,
+        ).show(context);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResending = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final messaging = FirebaseMessaging.instance;
@@ -50,7 +148,7 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
     Future<void> _verifyOtpCode() async {
       var code = textEditingController.text;
 
-      if (isLoading) {
+      if (isLoading || _isVerified) {
         return;
       }
       _btnController.start();
@@ -129,8 +227,10 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
             return;
           }
 
+          _resendTimer?.cancel();
           setState(() {
             isLoading = false;
+            _isVerified = true;
           });
           _btnController.success();
 
@@ -245,18 +345,6 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
       // }
     }
 
-    @override
-    void initState() {
-      errorController = StreamController<ErrorAnimationType>();
-      super.initState();
-    }
-
-    @override
-    void dispose() {
-      errorController!.close();
-      super.dispose();
-    }
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -346,7 +434,30 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
                           .textTheme
                           .titleMedium!
                           .copyWith(color: Colors.white)),
-                )
+                ),
+                const SizedBox(
+                  height: 12,
+                ),
+                _secondsLeft > 0
+                    ? Text(
+                        '${AppLocalizations.of(context)!.otp_resend_in} ${_formatCountdown(_secondsLeft)}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium!
+                            .copyWith(color: Colors.grey),
+                      )
+                    : TextButton(
+                        onPressed: _isResending ? null : _resendCode,
+                        child: Text(
+                          AppLocalizations.of(context)!.otp_resend_button,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium!
+                              .copyWith(
+                                  color: Theme.of(context).primaryColor,
+                                  fontWeight: FontWeight.w600),
+                        ),
+                      ),
               ],
             ),
           )

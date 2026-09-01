@@ -18,8 +18,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get app_clients_intro_title => 'Xizmatga ulaning';
 
   @override
-  String get app_clients_intro_description =>
-      'Brand QR-kodini skanerlang, xizmatga ulaning. Agar sizda QR-kod yo\'q bo\'lsa, yetkazib beruvchining menejeriga so\'rang.';
+  String get app_clients_intro_description => 'Brand QR-kodini skanerlang, xizmatga ulaning. Agar sizda QR-kod yo\'q bo\'lsa, yetkazib beruvchining menejeriga so\'rang.';
 
   @override
   String get error_label => 'Xato';
@@ -73,12 +72,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get you_are_not_courier => 'Siz kuryer emassiz';
 
   @override
-  String get error_work_schedule_offline_title =>
-      'Ish rejimini yoqishni bosishingiz kerak';
+  String get error_work_schedule_offline_title => 'Ish rejimini yoqishni bosishingiz kerak';
 
   @override
-  String get notice_torn_on_work_schedule_subtitle =>
-      'Buyurtmalarni qabul qilish uchun yuqoridagi ish rejimini yoqishni bosing';
+  String get notice_torn_on_work_schedule_subtitle => 'Buyurtmalarni qabul qilish uchun yuqoridagi ish rejimini yoqishni bosing';
 
   @override
   String get logout_btn => 'Akkauntdan chiqish';
@@ -126,8 +123,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get must_turn_on_location => 'Siz joylashuvni yoqishingiz kerak';
 
   @override
-  String get permission_for_location_denied =>
-      'Sizning joylashuvga ruxsat bermagansiz';
+  String get permission_for_location_denied => 'Sizning joylashuvga ruxsat bermagansiz';
 
   @override
   String get error_getting_location => 'Ошибка получения геолокации';
@@ -208,8 +204,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get imageAttachmentCancelText => 'Bekor qilish';
 
   @override
-  String get setCancelReasonLabel =>
-      'Buyurtmani bekor qilish sababini ko\'rsating';
+  String get setCancelReasonLabel => 'Buyurtmani bekor qilish sababini ko\'rsating';
 
   @override
   String get settingsCallCenterChatLabel => 'Qo\'ng\'iroq markaziga yozing';
@@ -224,8 +219,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get couriersListTabLabel => 'Kuryerlar';
 
   @override
-  String get chooseCourierForWithdraw =>
-      'Pulini bermoqchi bo\'lgan kuryeringizni tanlang';
+  String get chooseCourierForWithdraw => 'Pulini bermoqchi bo\'lgan kuryeringizni tanlang';
 
   @override
   String get currentBalanceLabel => 'Joriy balans';
@@ -264,8 +258,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get locationDialogLabel => 'Geolokasiyaga ruxsat bering';
 
   @override
-  String get locationDialogText =>
-      'Buyurtmalar bo\'yicha jismoniy faolligingizni kuzatish uchun Arret ilovasi ilova yopiq yoki ishlatilmaganda ham joylashuv ma\'lumotlarini to\'playdi';
+  String get locationDialogText => 'Buyurtmalar bo\'yicha jismoniy faolligingizni kuzatish uchun Arret ilovasi ilova yopiq yoki ishlatilmaganda ham joylashuv ma\'lumotlarini to\'playdi';
 
   @override
   String get locationDialogApprove => 'Ruxsat berish';
@@ -337,12 +330,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get requiredSettings => 'Sozlamalar';
 
   @override
-  String get requiredSettingsInstruction =>
-      'Ilovaning to\'g\'ri ishlashi uchun siz faoliyatni boshqarishni o\'chirib qo\'yishingiz va geolokatsiyani har doim kuzatib borishingizga ruxsat berishingiz kerak';
+  String get requiredSettingsInstruction => 'Ilovaning to\'g\'ri ishlashi uchun siz faoliyatni boshqarishni o\'chirib qo\'yishingiz va geolokatsiyani har doim kuzatib borishingizga ruxsat berishingiz kerak';
 
   @override
-  String get disableBatteryOptimization =>
-      'Batareya optimizatsiyasini o\'chirib qo\'yish';
+  String get disableBatteryOptimization => 'Batareya optimizatsiyasini o\'chirib qo\'yish';
 
   @override
   String get turnOff => 'O\'chirib qo\'yish';
@@ -505,4 +496,13 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get stat_info_delivered_orders => 'Bu yerda muvaffaqiyatli yetkazilgan buyurtmalar ko\'rsatilgan';
+
+  @override
+  String get otp_resend_button => 'Kodni qayta yuborish';
+
+  @override
+  String get otp_resend_in => 'Qayta yuborish mumkin:';
+
+  @override
+  String get otp_resend_sent => 'Kod qayta yuborildi';
 }

@@ -6,6 +6,23 @@ import 'package:dio/dio.dart';
 import 'package:dio_http2_adapter/dio_http2_adapter.dart';
 import 'package:http/http.dart' as http;
 import 'package:arryt/helpers/hive_helper.dart';
+import 'package:arryt/main.dart';
+import 'package:arryt/router.dart';
+
+/// Сессия мертва: чистим сохранённого пользователя и уводим на ввод телефона.
+/// Флаг не даёт нескольким параллельным запросам дёрнуть переход несколько раз.
+bool _isForcingReLogin = false;
+
+Future<void> _forceReLogin() async {
+  if (_isForcingReLogin) return;
+  _isForcingReLogin = true;
+  try {
+    HiveHelper.clearUserData();
+    await getIt<AppRouter>().replace(LoginTypePhoneRoute());
+  } finally {
+    _isForcingReLogin = false;
+  }
+}
 
 class ApiServer {
   static String url = 'https://api.arryt.uz';
@@ -38,6 +55,7 @@ class ApiServer {
           if (options.headers.containsKey('Authorization')) {
             UserData? user = HiveHelper.getUserData();
             if (user!.tokenExpires.isBefore(DateTime.now())) {
+              var refreshed = false;
               try {
                 var response = await http.post(
                   Uri.parse("${options.baseUrl}/api/users/refresh_token"),
@@ -57,10 +75,23 @@ class ApiServer {
                                 data['accessTokenExpires'].split('h')[0]))));
                     options.headers['Authorization'] =
                         'Bearer ${data['accessToken']}';
+                    refreshed = true;
                   }
                 }
               } catch (e) {
                 print(e);
+              }
+
+              // Обновить токен не вышло — дальше идти некуда, просим войти заново.
+              if (!refreshed) {
+                await _forceReLogin();
+                return handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    type: DioExceptionType.cancel,
+                    error: 'Session expired',
+                  ),
+                );
               }
             }
           }
@@ -79,9 +110,11 @@ class ApiServer {
           return handler.next(response);
         },
         onError: (DioException e, ErrorInterceptorHandler handler) {
-          // Do something with response error.
-          // If you want to resolve the request with some custom data,
-          // you can resolve a `Response` object using `handler.resolve(response)`.
+          // Сервер отверг токен — молча показывать пустые экраны нельзя,
+          // отправляем пользователя авторизоваться заново.
+          if (e.response?.statusCode == 401) {
+            _forceReLogin();
+          }
           return handler.next(e);
         },
       ),

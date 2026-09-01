@@ -63,8 +63,7 @@ import 'app_localizations_uz.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -72,8 +71,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -85,8 +83,7 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
     delegate,
     GlobalMaterialLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,
@@ -241,7 +238,7 @@ abstract class AppLocalizations {
   /// No description provided for @logout_btn.
   ///
   /// In en, this message translates to:
-  /// **'Logout'**
+  /// **'Log out of account'**
   String get logout_btn;
 
   /// No description provided for @order_card_comments.
@@ -385,13 +382,13 @@ abstract class AppLocalizations {
   /// No description provided for @successOrderLabel.
   ///
   /// In en, this message translates to:
-  /// **'Success'**
+  /// **'Delivered'**
   String get successOrderLabel;
 
   /// No description provided for @failedOrderLabel.
   ///
   /// In en, this message translates to:
-  /// **'Failed'**
+  /// **'Cancelled'**
   String get failedOrderLabel;
 
   /// No description provided for @orderStatTotalPrice.
@@ -439,7 +436,7 @@ abstract class AppLocalizations {
   /// No description provided for @orderStatOrderPrice.
   ///
   /// In en, this message translates to:
-  /// **'Order price'**
+  /// **'Delivery price'**
   String get orderStatOrderPrice;
 
   /// No description provided for @orderStatFuelPrice.
@@ -856,83 +853,248 @@ abstract class AppLocalizations {
   /// **'Total active couriers'**
   String get total_active_couriers_label;
 
+  /// No description provided for @terminal_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminal'**
   String get terminal_label;
 
+  /// No description provided for @balance_remaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining balance'**
   String get balance_remaining;
 
+  /// No description provided for @product_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Product'**
   String get product_label;
 
+  /// No description provided for @price_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
   String get price_label;
 
+  /// No description provided for @quantity_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
   String get quantity_label;
 
+  /// No description provided for @total_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
   String get total_label;
 
+  /// No description provided for @no_orders_label.
+  ///
+  /// In en, this message translates to:
+  /// **'No orders'**
   String get no_orders_label;
 
+  /// No description provided for @cancel_reason_customer_changed_mind.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer changed mind'**
   String get cancel_reason_customer_changed_mind;
 
+  /// No description provided for @cancel_reason_no_answer.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer to call'**
   String get cancel_reason_no_answer;
 
+  /// No description provided for @cancel_reason_late.
+  ///
+  /// In en, this message translates to:
+  /// **'Late with order'**
   String get cancel_reason_late;
 
+  /// No description provided for @close_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
   String get close_label;
 
+  /// No description provided for @cancel_order_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel order'**
   String get cancel_order_label;
 
+  /// No description provided for @accept_order_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept order'**
   String get accept_order_label;
 
+  /// No description provided for @choose_terminal_for_route.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose terminal to build route from'**
   String get choose_terminal_for_route;
 
+  /// No description provided for @km_label.
+  ///
+  /// In en, this message translates to:
+  /// **'km'**
   String get km_label;
 
+  /// No description provided for @choose_organization.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose organization'**
   String get choose_organization;
 
+  /// No description provided for @withdraws_list.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawals list'**
   String get withdraws_list;
 
+  /// No description provided for @date_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
   String get date_label;
 
+  /// No description provided for @manager_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager'**
   String get manager_label;
 
+  /// No description provided for @unpaid_amounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpaid amounts'**
   String get unpaid_amounts;
 
+  /// No description provided for @type_daily_garant.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily guarantee'**
   String get type_daily_garant;
 
+  /// No description provided for @type_bonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus'**
   String get type_bonus;
 
+  /// No description provided for @type_delivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery'**
   String get type_delivery;
 
+  /// No description provided for @order_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Order'**
   String get order_label;
 
+  /// No description provided for @type_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
   String get type_label;
 
+  /// No description provided for @balances_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Balances are empty'**
   String get balances_empty;
 
+  /// No description provided for @from_label.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
   String get from_label;
 
+  /// No description provided for @to_label.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
   String get to_label;
 
+  /// No description provided for @tracking_location_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Location tracking'**
   String get tracking_location_title;
 
+  /// No description provided for @last_update_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update'**
   String get last_update_label;
 
+  /// No description provided for @balance_info_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'You should collect this amount from the cashier at the end of your shift'**
   String get balance_info_tooltip;
 
+  /// No description provided for @logout_confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out?'**
   String get logout_confirm;
 
+  /// No description provided for @yes_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
   String get yes_label;
 
+  /// No description provided for @no_label.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
   String get no_label;
 
+  /// No description provided for @order_check_amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Check amount'**
   String get order_check_amount;
 
+  /// No description provided for @collect_from_customer.
+  ///
+  /// In en, this message translates to:
+  /// **'Collect from customer'**
   String get collect_from_customer;
 
+  /// No description provided for @stat_info_delivered_orders.
+  ///
+  /// In en, this message translates to:
+  /// **'These are successfully delivered orders'**
   String get stat_info_delivered_orders;
+
+  /// No description provided for @otp_resend_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code'**
+  String get otp_resend_button;
+
+  /// No description provided for @otp_resend_in.
+  ///
+  /// In en, this message translates to:
+  /// **'You can resend in'**
+  String get otp_resend_in;
+
+  /// No description provided for @otp_resend_sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent again'**
+  String get otp_resend_sent;
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -941,27 +1103,26 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'ru', 'uz'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['en', 'ru', 'uz'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
-    case 'ru':
-      return AppLocalizationsRu();
-    case 'uz':
-      return AppLocalizationsUz();
+    case 'en': return AppLocalizationsEn();
+    case 'ru': return AppLocalizationsRu();
+    case 'uz': return AppLocalizationsUz();
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.'
+  );
 }

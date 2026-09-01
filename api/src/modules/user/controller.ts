@@ -137,11 +137,41 @@ export const UsersController = new Elysia({
   }, {
     userAuth: true
   })
-  .get('/api/users/my_performance', async ({ user, drizzle }) => {
+  // Замена GraphQL-мутации reloadUserData: приложение показывает экран
+  // "роль не назначена" и должно уметь перечитать доступы, когда роль выдали.
+  // Форма ответа совпадает с verify-otp — её разбирает UserData.fromMap.
+  .get('/api/users/reload', async ({ user, redis, status }) => {
     if (!user) {
-      return {
-        message: "User not found",
-      };
+      return status(401, "Unauthorized");
+    }
+
+    const cached = await redis.hget(
+      `${process.env.PROJECT_PREFIX}_user`,
+      user.user.id
+    );
+
+    if (!cached) {
+      return status(404, { message: "User not found" });
+    }
+
+    const parsed = JSON.parse(cached);
+
+    const token = await generateAuthToken({
+      id: parsed.user.id,
+      phone: parsed.user.phone,
+    });
+
+    return {
+      token,
+      user: parsed.user,
+      access: parsed.access,
+    };
+  }, {
+    userAuth: true
+  })
+  .get('/api/users/my_performance', async ({ user, drizzle, status }) => {
+    if (!user) {
+      return status(401, "Unauthorized");
     }
 
     let currentPerformance = {
