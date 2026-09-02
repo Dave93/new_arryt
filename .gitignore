@@ -18,4 +18,4 @@ crons/send_courier_withdraws_report
 crons/sent_reports.json
 uploads/
 
-loga
+logacrons/*.backup
