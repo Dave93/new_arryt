@@ -4169,11 +4169,20 @@ export const OrdersController = new Elysia({
   )
   .get(
     "/api/orders/terminal-delivery-stats",
-    async ({ query, drizzle }) => {
+    async ({ query, drizzle, set }) => {
       const { terminal_id, from_date, to_date } = query;
 
       // Split terminal_id by comma if multiple terminals are provided
       const terminalIds = terminal_id ? terminal_id.split(",") : [];
+
+      const uuidRe =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (terminalIds.some((id) => !uuidRe.test(id.trim()))) {
+        set.status = 400;
+        return {
+          error: "terminal_id must be a comma separated list of uuids",
+        };
+      }
 
       if (terminalIds.length === 0) {
         return {
@@ -4184,7 +4193,10 @@ export const OrdersController = new Elysia({
       // Prepare SQL condition for multiple terminals
       const terminalCondition =
         terminalIds.length > 0
-          ? sql`o.terminal_id IN (${sql.raw(terminalIds.map((id) => `'${id}'`).join(","))})`
+          ? sql`o.terminal_id IN (${sql.join(
+              terminalIds.map((id) => sql`${id.trim()}::uuid`),
+              sql`, `,
+            )})`
           : sql`FALSE`;
 
       // Get the statistics for each terminal
@@ -4239,6 +4251,7 @@ export const OrdersController = new Elysia({
       return formattedStats;
     },
     {
+      permission: "orders.list",
       query: t.Object({
         terminal_id: t.String(),
         from_date: t.String(),
