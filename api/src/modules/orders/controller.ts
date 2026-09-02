@@ -1850,8 +1850,20 @@ export const OrdersController = new Elysia({
         typeof terminals
       >[];
 
+      const courierUuidRe =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (courierId && courierId.some((id) => !courierUuidRe.test(id.trim()))) {
+        set.status = 400;
+        return {
+          error: "courierId must be a list of uuids",
+        };
+      }
+
       const courierIdCondition = courierId
-        ? sql`and o.courier_id in (${sql.raw(courierId.map((id) => `'${id}'`).join(","))})`
+        ? sql`and o.courier_id in (${sql.join(
+            courierId.map((id) => sql`${id.trim()}::uuid`),
+            sql`, `,
+          )})`
         : sql``;
       const sqlPrevStartDateTime = sql.raw(`${sqlPrevStartDate} 00:00:00`);
       const sqlPrevEndDateTime = sql.raw(`${sqlPrevEndDate} 04:00:00`);
