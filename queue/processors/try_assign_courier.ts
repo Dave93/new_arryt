@@ -17,6 +17,11 @@ type TryAssignCourierData = {
 export default async function processTryAssignCourier(redis: Redis, db: DB, cacheControl: CacheControlService, data: TryAssignCourierData, tryAssignCourierQueue: Queue) {
     const { order_id, created_at } = data;
 
+    if (!order_id || !created_at) {
+        console.log(`[TAC] skip: malformed job data ${JSON.stringify(data)}`);
+        return;
+    }
+
     const terminals = await cacheControl.getTerminals();
 
     const order = await db
@@ -36,9 +41,19 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
         )
         .execute();
 
+    if (!order.length) {
+        console.log(`[TAC] skip: order not found ${order_id} / ${created_at}`);
+        return;
+    }
+
     const organizationStatuses = await cacheControl.getOrderStatuses();
 
     const orderStatus = organizationStatuses.find(status => status.id === order[0].order_status_id);
+
+    if (!orderStatus) {
+        console.log(`[TAC] skip: unknown order status ${order[0].order_status_id} on order ${order_id}`);
+        return;
+    }
 
     const deliveryPricing = await cacheControl.getDeliveryPricingById(order[0].delivery_pricing_id!);
 
@@ -58,7 +73,12 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
         }
         else {
 
-            const nextCourier = await cacheControl.getNextQueueCourier(order[0].terminal_id, deliveryPricing!.drive_type, data.courier_id);
+            if (!deliveryPricing) {
+                console.log(`[TAC] skip: no delivery pricing ${order[0].delivery_pricing_id} on order ${order_id}`);
+                return;
+            }
+
+            const nextCourier = await cacheControl.getNextQueueCourier(order[0].terminal_id, deliveryPricing.drive_type, data.courier_id);
 
             if (nextCourier) {
                 await db.update(orders).set({

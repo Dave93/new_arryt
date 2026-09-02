@@ -1614,7 +1614,7 @@ export const OrdersController = new Elysia({
               await processTryAssignCourier.add(
                 currentOrder.id,
                 {
-                  id: currentOrder.id,
+                  order_id: currentOrder.id,
                   created_at: currentOrder.created_at,
                   queue: 1,
                 },
