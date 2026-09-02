@@ -12,7 +12,6 @@ Arryt is a multi-service food delivery platform. All backend services use **Bun*
 | **new_admin** | Next.js 15 | 8889 | Admin dashboard (React 19 + Tailwind CSS) |
 | **queue** | BullMQ | — | 21 async job workers (notifications, courier assignment, aggregator dispatch) |
 | **crons** | Croner | — | Scheduled tasks (reports, cleanup) |
-| **duck_api** | Hono | — | DuckDB analytics API with PostgreSQL logical replication |
 | **mcp_server** | MCP | 3001 | Terminal operations tool for Claude |
 | **mob** | Flutter | — | Courier mobile app — see `mob/CLAUDE.md` |
 
@@ -37,9 +36,6 @@ cd queue && bun run index.ts
 
 # Crons
 cd crons && bun run index.ts
-
-# Duck API
-cd duck_api && bun run dev
 
 # MCP Server
 cd mcp_server && bun run dev
