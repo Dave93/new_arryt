@@ -67,9 +67,18 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
     if (orderStatus!.sort <= 1 && !order[0].courier_id) {
 
         if (data.queue > 2) {
-            // if (order[0].terminal_id == '621c0913-93d0-4eeb-bf00-f0c6f578bcd1') {
+            // Only terminals someone deliberately configured for Yandex hand-off take part
+            // in the automatic escalation: allow_yandex on, and a time_to_yandex above zero.
+            // Every other terminal - all of the regions among them - is still sent to Yandex
+            // by an operator from the missed orders screen, never on its own.
+            if (!terminal.allow_yandex || !terminal.time_to_yandex || terminal.time_to_yandex <= 0) {
+                console.log(
+                    `[TAC] skip yandex escalation: ${terminal.name} allow_yandex=${terminal.allow_yandex} time_to_yandex=${terminal.time_to_yandex} order=${order_id}`,
+                );
+                return;
+            }
+
             await processCheckAndSendYandex(db, redis, cacheControl, order_id);
-            // }
         }
         else {
 
