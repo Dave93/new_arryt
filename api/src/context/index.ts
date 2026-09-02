@@ -11,12 +11,20 @@ import { Queue } from "bullmq";
 export const cacheControlService = new CacheControlService(db, client);
 const searchService = new SearchService(cacheControlService, db, client);
 
+// BullMQ keeps every job forever unless told otherwise. Without this the queues grew to
+// ~720k keys in Redis (470k of them failed try_assign_courier jobs going back to 2024).
+const queueRetention = {
+  removeOnComplete: { count: 1000, age: 24 * 3600 },
+  removeOnFail: { count: 5000, age: 7 * 24 * 3600 },
+};
+
 
 
 export const newOrderNotify = new Queue(
   `${process.env.TASKS_PREFIX}_new_order_notify`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -25,6 +33,7 @@ export const processFromBasketToCouriers = new Queue(
   `${process.env.TASKS_PREFIX}_from_basket_to_couriers`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -32,6 +41,7 @@ export const processCheckAndSendYandex = new Queue(
   `${process.env.TASKS_PREFIX}_check_and_send_yandex`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -39,6 +49,7 @@ export const processUpdateUserCache = new Queue(
   `${process.env.TASKS_PREFIX}_update_user_cache`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -46,6 +57,7 @@ export const processOrderCompleteQueue = new Queue(
   `${process.env.TASKS_PREFIX}_order_complete`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -53,6 +65,7 @@ export const processOrderEcommerceWebhookQueue = new Queue(
   `${process.env.TASKS_PREFIX}_order_ecommerce_webhook`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -60,6 +73,7 @@ export const processOrderChangeStatusQueue = new Queue(
   `${process.env.TASKS_PREFIX}_order_change_status`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -67,6 +81,7 @@ export const processClearCourierQueue = new Queue(
   `${process.env.TASKS_PREFIX}_order_clear_courier`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -74,6 +89,7 @@ export const processOrderChangeCourierQueue = new Queue(
   `${process.env.TASKS_PREFIX}_order_change_courier`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -81,6 +97,7 @@ export const processStoreLocationQueue = new Queue(
   `${process.env.TASKS_PREFIX}_courier_store_location`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -88,6 +105,7 @@ export const processYandexCallbackQueue = new Queue(
   `${process.env.TASKS_PREFIX}_yandex_callback`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -111,6 +129,7 @@ export const processNoorCallbackQueue = new Queue(
   `${process.env.TASKS_PREFIX}_noor_callback`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -118,6 +137,7 @@ export const processCheckAndSendUzum = new Queue(
   `${process.env.TASKS_PREFIX}_check_and_send_uzum`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -125,6 +145,7 @@ export const processUzumCallbackQueue = new Queue(
   `${process.env.TASKS_PREFIX}_uzum_callback`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -132,6 +153,7 @@ export const processSendNotificationQueue = new Queue(
   `${process.env.TASKS_PREFIX}_send_notification`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -139,6 +161,7 @@ export const processPushCourierToQueue = new Queue(
   `${process.env.TASKS_PREFIX}_push_courier_to_queue`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -146,6 +169,7 @@ export const processSetQueueLastCourier = new Queue(
   `${process.env.TASKS_PREFIX}_set_queue_last_courier`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -153,6 +177,7 @@ export const processTryAssignCourier = new Queue(
   `${process.env.TASKS_PREFIX}_try_assign_courier`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
@@ -160,6 +185,7 @@ export const processTrySetDailyGarant = new Queue(
   `${process.env.TASKS_PREFIX}_try_set_daily_garant`,
   {
       connection: client,
+      defaultJobOptions: queueRetention,
   }
 );
 
