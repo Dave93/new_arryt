@@ -4,7 +4,6 @@ import { CacheControlService } from "@api/src/modules/cache/service";
 import getFirebaseAccessToken from "@queue/lib";
 import { and, eq } from "drizzle-orm";
 import Redis from "ioredis";
-import processCheckAndSendYandex from "./check_and_send_yandex";
 import { Queue } from "bullmq";
 
 type TryAssignCourierData = {
@@ -67,18 +66,11 @@ export default async function processTryAssignCourier(redis: Redis, db: DB, cach
     if (orderStatus!.sort <= 1 && !order[0].courier_id) {
 
         if (data.queue > 2) {
-            // Only terminals someone deliberately configured for Yandex hand-off take part
-            // in the automatic escalation: allow_yandex on, and a time_to_yandex above zero.
-            // Every other terminal - all of the regions among them - is still sent to Yandex
-            // by an operator from the missed orders screen, never on its own.
-            if (!terminal.allow_yandex || !terminal.time_to_yandex || terminal.time_to_yandex <= 0) {
-                console.log(
-                    `[TAC] skip yandex escalation: ${terminal.name} allow_yandex=${terminal.allow_yandex} time_to_yandex=${terminal.time_to_yandex} order=${order_id}`,
-                );
-                return;
-            }
-
-            await processCheckAndSendYandex(db, redis, cacheControl, order_id);
+            // No automatic hand-off to Yandex or any other external delivery. An order still
+            // without a courier stays with the operators, who send it to Yandex, Noor or Uzum
+            // from the missed orders screen themselves.
+            console.log(`[TAC] stop: no courier by queue ${data.queue - 1}, left for operator. ${terminal.name} order=${order_id}`);
+            return;
         }
         else {
 
