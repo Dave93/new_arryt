@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:arryt/l10n/app_localizations.dart';
+import 'package:arryt/helpers/location_disclosure.dart';
 
 class AcceptOrder extends StatefulWidget {
   final String orderId;
@@ -123,14 +124,14 @@ class _AcceptOrderState extends State<AcceptOrder> {
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission = await requestLocationWithDisclosure(context);
       if (permission == LocationPermission.denied) {
         // Permissions are denied, next time you could try
         // requesting permissions again (this is also where
         // Android's shouldShowRequestPermissionRationale
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
-        await Geolocator.requestPermission();
+        await requestLocationWithDisclosure(context);
 
         _actionSliderController.reset();
         return AnimatedSnackBar.material(

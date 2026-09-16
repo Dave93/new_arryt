@@ -505,4 +505,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get otp_resend_sent => 'Код отправлен повторно';
+
+  @override
+  String get location_disclosure_title => 'Доступ к геолокации';
+
+  @override
+  String get location_disclosure_text => 'Arryt собирает данные о вашем местоположении, чтобы назначать вам заказы, строить маршрут доставки и показывать его менеджеру и клиенту. Сбор продолжается, даже когда приложение закрыто или не используется.';
+
+  @override
+  String get location_disclosure_accept => 'Принять';
+
+  @override
+  String get location_disclosure_decline => 'Отказаться';
 }

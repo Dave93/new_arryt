@@ -1092,6 +1092,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Code sent again'**
   String get otp_resend_sent;
+
+  /// No description provided for @location_disclosure_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Location access'**
+  String get location_disclosure_title;
+
+  /// No description provided for @location_disclosure_text.
+  ///
+  /// In en, this message translates to:
+  /// **'Arryt collects location data to assign you orders, build the delivery route and show it to your manager and the customer. Collection continues even when the app is closed or not in use.'**
+  String get location_disclosure_text;
+
+  /// No description provided for @location_disclosure_accept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get location_disclosure_accept;
+
+  /// No description provided for @location_disclosure_decline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get location_disclosure_decline;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

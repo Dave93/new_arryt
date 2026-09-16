@@ -505,4 +505,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get otp_resend_sent => 'Code sent again';
+
+  @override
+  String get location_disclosure_title => 'Location access';
+
+  @override
+  String get location_disclosure_text => 'Arryt collects location data to assign you orders, build the delivery route and show it to your manager and the customer. Collection continues even when the app is closed or not in use.';
+
+  @override
+  String get location_disclosure_accept => 'Accept';
+
+  @override
+  String get location_disclosure_decline => 'Decline';
 }

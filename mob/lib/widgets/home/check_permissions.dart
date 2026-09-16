@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:arryt/helpers/location_disclosure.dart';
 
 class HomeCheckPermissions extends StatefulWidget {
   const HomeCheckPermissions({super.key});
@@ -64,7 +65,7 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
   /// Requests location permission, then opens location settings page directly
   Future<void> _openAppPermissions() async {
     // First, request permission via system dialog
-    LocationPermission permission = await Geolocator.requestPermission();
+    LocationPermission permission = await requestLocationWithDisclosure(context);
 
     // If we got whileInUse or denied, open the app's location permission page
     // so user can select "Allow all the time"

@@ -156,10 +156,14 @@ class LocationService {
   static Future<bool> initializeService() async {
     final service = FlutterBackgroundService();
 
-    // Запрашиваем разрешения перед настройкой сервиса
-    bool hasPermission = await _requestPermissions();
+    // Разрешение здесь только проверяется. Запрашивать его на старте нельзя:
+    // main() выполняется до runApp(), показать пользователю объяснение
+    // невозможно, а Google Play требует Prominent Disclosure до запроса.
+    // Просит разрешение UI через requestLocationWithDisclosure(), после чего
+    // снова вызывает этот метод.
+    bool hasPermission = await _hasPermissions();
     if (!hasPermission) {
-      print('Не удалось получить разрешение на использование геолокации');
+      print('Нет разрешения на геолокацию — фоновый сервис не запускаем');
       return false;
     }
 
@@ -180,7 +184,7 @@ class LocationService {
     return true;
   }
 
-  static Future<bool> _requestPermissions() async {
+  static Future<bool> _hasPermissions() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -193,11 +197,7 @@ class LocationService {
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        // Разрешения отклонены, попросите снва или покажите объяснение
-        return false;
-      }
+      return false;
     }
 
     if (permission == LocationPermission.deniedForever) {

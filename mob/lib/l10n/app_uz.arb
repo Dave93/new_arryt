@@ -164,5 +164,9 @@
     "stat_info_delivered_orders": "Bu yerda muvaffaqiyatli yetkazilgan buyurtmalar ko'rsatilgan",
     "otp_resend_button": "Kodni qayta yuborish",
     "otp_resend_in": "Qayta yuborish mumkin:",
-    "otp_resend_sent": "Kod qayta yuborildi"
+    "otp_resend_sent": "Kod qayta yuborildi",
+    "location_disclosure_title": "Joylashuvga ruxsat",
+    "location_disclosure_text": "Arryt sizga buyurtma tayinlash, yetkazib berish marshrutini tuzish va uni menejer hamda mijozga ko'rsatish uchun joylashuv ma'lumotlarini to'playdi. Ma'lumot ilova yopiq yoki ishlatilmayotgan paytda ham to'planadi.",
+    "location_disclosure_accept": "Qabul qilish",
+    "location_disclosure_decline": "Rad etish"
 }

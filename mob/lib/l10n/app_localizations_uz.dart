@@ -505,4 +505,16 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get otp_resend_sent => 'Kod qayta yuborildi';
+
+  @override
+  String get location_disclosure_title => 'Joylashuvga ruxsat';
+
+  @override
+  String get location_disclosure_text => 'Arryt sizga buyurtma tayinlash, yetkazib berish marshrutini tuzish va uni menejer hamda mijozga ko\'rsatish uchun joylashuv ma\'lumotlarini to\'playdi. Ma\'lumot ilova yopiq yoki ishlatilmayotgan paytda ham to\'planadi.';
+
+  @override
+  String get location_disclosure_accept => 'Qabul qilish';
+
+  @override
+  String get location_disclosure_decline => 'Rad etish';
 }

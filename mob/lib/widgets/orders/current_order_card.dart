@@ -23,6 +23,7 @@ import '../../models/organizations.dart';
 import '../../models/terminals.dart';
 import '../location_dialog.dart';
 import 'cancel_order_modal.dart';
+import 'package:arryt/helpers/location_disclosure.dart';
 
 class CurrentOrderCard extends StatefulWidget {
   final OrderModel order;
@@ -142,14 +143,14 @@ class _CurrentOrderCardState extends State<CurrentOrderCard> {
 
       permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+        permission = await requestLocationWithDisclosure(context);
         if (permission == LocationPermission.denied) {
           // Permissions are denied, next time you could try
           // requesting permissions again (this is also where
           // Android's shouldShowRequestPermissionRationale
           // returned true. According to Android guidelines
           // your App should show an explanatory UI now.
-          await Geolocator.requestPermission();
+          await requestLocationWithDisclosure(context);
 
           setState(() {
             loading = false;
