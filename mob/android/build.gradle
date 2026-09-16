@@ -13,6 +13,18 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Форк libphonenumber_plugin прибивает libphonenumber 8.13.4 (январь 2023),
+// а её метаданные не знают код оператора +998 87 — валидатор на экране входа
+// объявляет такие номера неверными и запрос кода вообще не уходит.
+// Форсим свежие метаданные, не трогая сам форк.
+subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force "com.googlecode.libphonenumber:libphonenumber:9.0.39"
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
