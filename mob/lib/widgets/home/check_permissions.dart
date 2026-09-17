@@ -97,17 +97,20 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
         title:
             Text(AppLocalizations.of(context)!.requiredSettings.toUpperCase()),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: Column(
+      // Текст раскрытия длинный: без прокрутки нижняя кнопка обрезается
+      // на невысоких экранах (Flutter рисовал BOTTOM OVERFLOWED).
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(15.0),
+          child: Column(
           children: [
-            Spacer(),
+            const SizedBox(height: 24),
             Text(
               AppLocalizations.of(context)!.requiredSettingsInstruction,
               style: TextStyle(fontSize: 18),
               textAlign: TextAlign.center,
             ),
-            Spacer(),
+            const SizedBox(height: 24),
             _disabledBatteryOptimization
                 ? SizedBox()
                 : SizedBox(
@@ -184,7 +187,7 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
                       ],
                     ),
                   ),
-            Spacer(),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
                 if (_isAllPermissionsGranted) Navigator.pop(context);
@@ -197,7 +200,8 @@ class _HomeCheckPermissionsState extends State<HomeCheckPermissions> {
               child: Text(
                   AppLocalizations.of(context)!.continueText.toUpperCase()),
             )
-          ],
+            ],
+          ),
         ),
       ),
     );
