@@ -35,10 +35,12 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
     // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      await showLocationDialog(context);
-      // Location services are not enabled don't continue
-      // accessing the position and request users of the
-      // App to enable the location services.
+      final accepted = await showLocationDialog(context);
+      // Отказ уважаем: без согласия не уводим в системные настройки
+      // и оставляем смену в прежнем состоянии.
+      if (!accepted) {
+        return user!.is_online;
+      }
       await Geolocator.openLocationSettings();
     }
 

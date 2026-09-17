@@ -115,10 +115,11 @@ class _AcceptOrderState extends State<AcceptOrder> {
     // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      await showLocationDialog(context);
-      // Location services are not enabled don't continue
-      // accessing the position and request users of the
-      // App to enable the location services.
+      final accepted = await showLocationDialog(context);
+      // Отказ уважаем: без согласия не уводим в системные настройки.
+      if (!accepted) {
+        return;
+      }
       await Geolocator.openLocationSettings();
     }
 
