@@ -742,7 +742,7 @@ abstract class AppLocalizations {
   /// No description provided for @requiredSettingsInstruction.
   ///
   /// In en, this message translates to:
-  /// **'For the application to work correctly, you must turn off activity control and allow geolocation to track always'**
+  /// **'Arryt collects location data to assign you orders, build the delivery route and show it to your manager and the customer. Collection continues even when the app is closed or not in use. To make this work, turn off activity control and allow location access all the time.'**
   String get requiredSettingsInstruction;
 
   /// No description provided for @disableBatteryOptimization.

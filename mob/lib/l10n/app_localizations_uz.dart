@@ -330,7 +330,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get requiredSettings => 'Sozlamalar';
 
   @override
-  String get requiredSettingsInstruction => 'Ilovaning to\'g\'ri ishlashi uchun siz faoliyatni boshqarishni o\'chirib qo\'yishingiz va geolokatsiyani har doim kuzatib borishingizga ruxsat berishingiz kerak';
+  String get requiredSettingsInstruction => 'Arryt sizga buyurtma tayinlash, yetkazib berish marshrutini tuzish va uni menejer hamda mijozga ko\'rsatish uchun joylashuv ma\'lumotlarini to\'playdi. Ma\'lumot ilova yopiq yoki ishlatilmayotgan paytda ham to\'planadi. Buning uchun faoliyat nazoratini o\'chiring va joylashuvga doimiy ruxsat bering.';
 
   @override
   String get disableBatteryOptimization => 'Batareya optimizatsiyasini o\'chirib qo\'yish';

@@ -330,7 +330,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get requiredSettings => 'Обязательные настройки';
 
   @override
-  String get requiredSettingsInstruction => 'Для корректной работы приложения необходимо выключить контроль активности и разрешить гелокацию отслеживать всегда';
+  String get requiredSettingsInstruction => 'Arryt собирает данные о местоположении, чтобы назначать вам заказы, строить маршрут доставки и показывать его менеджеру и клиенту. Сбор продолжается, даже когда приложение закрыто или не используется. Для этого отключите контроль активности и разрешите доступ к геолокации всегда.';
 
   @override
   String get disableBatteryOptimization => 'Отключить контроль активности';
