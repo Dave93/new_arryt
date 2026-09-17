@@ -18,6 +18,7 @@ interface SendOrderToNoorProps {
 
 export function SendOrderToNoor({ order }: SendOrderToNoorProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSent, setIsSent] = useState(false);
 
   const handleSendToNoor = async () => {
     setIsLoading(true);
@@ -26,6 +27,7 @@ export function SendOrderToNoor({ order }: SendOrderToNoorProps) {
         id: order.id,
       });
 
+      setIsSent(true);
       toast.success("Заказ отправлен в Noor");
     } catch (error) {
       console.error("Error sending order to Noor:", error);
@@ -40,14 +42,14 @@ export function SendOrderToNoor({ order }: SendOrderToNoorProps) {
       variant="default"
       size="sm"
       onClick={handleSendToNoor}
-      disabled={isLoading}
+      disabled={isLoading || isSent}
     >
       {isLoading ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
       ) : (
         <IconSend className="h-4 w-4 mr-2" />
       )}
-      Отправить в Noor
+      {isSent ? "Отправлено в Noor" : "Отправить в Noor"}
     </Button>
   );
 }

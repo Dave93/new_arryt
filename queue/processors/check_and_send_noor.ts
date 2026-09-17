@@ -3,10 +3,33 @@ import { DB } from "@api/src/lib/db";
 import { CacheControlService } from "@api/src/modules/cache/service";
 import { getSetting } from "@api/src/utils/settings";
 import { noorFetch } from "@api/src/utils/noor";
-import { eq, getTableColumns } from "drizzle-orm";
+import { and, eq, getTableColumns, isNull } from "drizzle-orm";
 import Redis from "ioredis/built/Redis";
 
+// Guards against two jobs for the same order sending concurrently (double click
+// in admin, stalled job re-run on another cluster instance). Must outlive the
+// longest send: 3 fetch attempts x 15s + backoff sleeps.
+const SEND_LOCK_TTL_SECONDS = 120;
+
+const RELEASE_LOCK_SCRIPT = `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`;
+
 export default async function processCheckAndSendNoor(db: DB, redis: Redis, cacheControl: CacheControlService, orderId: string) {
+    const lockKey = `noor_send_lock:${orderId}`;
+    const lockToken = crypto.randomUUID();
+    const locked = await redis.set(lockKey, lockToken, 'EX', SEND_LOCK_TTL_SECONDS, 'NX');
+    if (!locked) {
+        console.log(`[Noor] SKIP: send already in progress for order ${orderId}`);
+        return;
+    }
+
+    try {
+        await sendOrderToNoor(db, cacheControl, orderId);
+    } finally {
+        await redis.eval(RELEASE_LOCK_SCRIPT, 1, lockKey, lockToken);
+    }
+}
+
+async function sendOrderToNoor(db: DB, cacheControl: CacheControlService, orderId: string) {
     const orderStatuses = await cacheControl.getOrderStatuses();
 
     const newOrders = await db.select({
@@ -191,11 +214,34 @@ export default async function processCheckAndSendNoor(db: DB, redis: Redis, cach
             return;
         }
 
-        await db.update(orders).set({
+        // Claim the order only if nobody else did meanwhile. If the lock expired or
+        // was bypassed and another send won, cancel the Noor order we just created
+        // so no second courier is dispatched.
+        const claimed = await db.update(orders).set({
             courier_id: noorCourier[0].id,
             order_status_id: nextStatus!.id,
             noor_id: noorJson.order.id.toString(),
-        }).where(eq(orders.id, order.id));
+        }).where(and(
+            eq(orders.id, order.id),
+            isNull(orders.courier_id),
+        )).returning({ id: orders.id });
+
+        if (!claimed.length) {
+            const duplicateNoorId = noorJson.order.id.toString();
+            console.error(`[Noor] DUPLICATE: order_number=${order.order_number} already claimed, cancelling noor_id=${duplicateNoorId}`);
+            const cancelRes = await noorFetch(`https://back.noor.uz/api/v1/orders/${duplicateNoorId}/cancel`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept-Language': 'ru',
+                    'X-Auth': process.env.NOOR_DELIVERY_TOKEN!,
+                },
+            }, { label: 'Noor duplicate cancel', maxAttempts: 2 });
+            if (!cancelRes.ok || cancelRes.status >= 400) {
+                console.error(`[Noor] DUPLICATE cancel FAILED for noor_id=${duplicateNoorId}: ${cancelRes.error ?? `HTTP ${cancelRes.status} ${cancelRes.text}`}`);
+            }
+            return;
+        }
 
         console.log(`[Noor] Order order_number=${order.order_number} (${order.id}) updated with noor_id=${noorJson.order.id}`);
     }
