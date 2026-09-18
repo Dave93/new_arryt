@@ -112,6 +112,13 @@ class _AcceptOrderState extends State<AcceptOrder> {
     bool serviceEnabled;
     LocationPermission permission;
 
+    // Раскрытие информации до первого обращения к координатам —
+    // требование Prominent Disclosure, из-за него отклоняли 77 и 79.
+    if (!await ensureLocationConsent(context)) {
+      _actionSliderController.reset();
+      return;
+    }
+
     // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {

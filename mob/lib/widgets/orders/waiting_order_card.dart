@@ -48,6 +48,15 @@ class _WaitingOrderCardState extends State<WaitingOrderCard> {
     bool serviceEnabled;
     LocationPermission permission;
 
+    // Раскрытие информации до первого обращения к координатам —
+    // требование Prominent Disclosure, из-за него отклоняли 77 и 79.
+    if (!await ensureLocationConsent(context)) {
+      setState(() {
+        loading = false;
+      });
+      return;
+    }
+
     // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {

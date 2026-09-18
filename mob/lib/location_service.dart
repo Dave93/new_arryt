@@ -161,6 +161,14 @@ class LocationService {
     // невозможно, а Google Play требует Prominent Disclosure до запроса.
     // Просит разрешение UI через requestLocationWithDisclosure(), после чего
     // снова вызывает этот метод.
+    // Сбор не начинается без согласия — флаг ставится только из UI, где
+    // показывается раскрытие. Это и есть «до начала сбора» из политики.
+    await HiveHelper.initHive();
+    if (!HiveHelper.isLocationDisclosureAccepted()) {
+      print('Нет согласия на сбор геолокации — фоновый сервис не запускаем');
+      return false;
+    }
+
     bool hasPermission = await _hasPermissions();
     if (!hasPermission) {
       print('Нет разрешения на геолокацию — фоновый сервис не запускаем');

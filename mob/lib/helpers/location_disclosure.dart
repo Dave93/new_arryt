@@ -1,26 +1,43 @@
+import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/l10n/app_localizations.dart';
 import 'package:arryt/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
-/// Google Play требует Prominent Disclosure: прежде чем приложение попросит
-/// доступ к геолокации, оно обязано само объяснить, какие данные собирает,
-/// что сбор продолжается в фоне, и получить явное согласие. Без этого сборка
-/// отклоняется — так и случилось с версией 76.
+/// Google Play требует Prominent Disclosure перед тем, как приложение впервые
+/// доберётся до координат, — а не перед запросом разрешения.
 ///
-/// Показывать окно нужно на каждом пути, который действительно вызывает
-/// системный запрос. Единственный законный пропуск — разрешение `always`
-/// уже выдано, спрашивать больше нечего.
-Future<LocationPermission> requestLocationWithDisclosure(
-    BuildContext context) async {
-  var permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.always) {
-    return permission;
+/// Сборки 77 и 79 отклонили именно из-за этой разницы. Раньше окно
+/// пропускалось, если разрешение уже выдано как `always`; у ревьюера оно было
+/// выдано, поэтому единственным, что он видел про геолокацию, оказывалось
+/// системное окно Google Play Services («включите геолокацию Google»),
+/// которое ничего не говорит ни о сборе, ни о цели.
+///
+/// Теперь решает сохранённый флаг согласия, а не состояние разрешения.
+Future<bool> ensureLocationConsent(BuildContext context) async {
+  if (HiveHelper.isLocationDisclosureAccepted()) {
+    return true;
   }
 
   final accepted = await _showDisclosure(context);
   if (!accepted) {
-    // Без согласия системный диалог не поднимаем вовсе.
+    return false;
+  }
+
+  await HiveHelper.setLocationDisclosureAccepted();
+  return true;
+}
+
+/// Согласие плюс само разрешение. Возвращает текущее состояние разрешения;
+/// без согласия системный запрос не поднимается вовсе.
+Future<LocationPermission> requestLocationWithDisclosure(
+    BuildContext context) async {
+  if (!await ensureLocationConsent(context)) {
+    return Geolocator.checkPermission();
+  }
+
+  var permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.always) {
     return permission;
   }
 
@@ -29,7 +46,7 @@ Future<LocationPermission> requestLocationWithDisclosure(
   if (permission == LocationPermission.always ||
       permission == LocationPermission.whileInUse) {
     // Фоновый сервис поднимается автозапуском внутри configure(), а на старте
-    // приложения он пропускается, пока разрешения нет.
+    // приложения он пропускается, пока нет согласия и разрешения.
     await LocationService.initializeService();
   }
 
