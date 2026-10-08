@@ -96,7 +96,9 @@ const checkAndSendYandexWorker = new Worker(
 const updateUserCacheWorker = new Worker(
     `${process.env.TASKS_PREFIX}_update_user_cache`,
     async (job) => {
-        cacheControl.cacheUser(job.data.id);
+        // Без await задача сразу считалась выполненной: если запись в кэш
+        // падала, ошибка терялась, а повторы (attempts) не срабатывали.
+        await cacheControl.cacheUser(job.data.id);
         return 'update_user_cache';
     },
     {

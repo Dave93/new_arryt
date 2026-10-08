@@ -8,6 +8,7 @@ import 'package:arryt/helpers/api_server.dart';
 import 'package:arryt/helpers/error_translator.dart';
 import 'package:arryt/helpers/hive_helper.dart';
 import 'package:arryt/models/user_data.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -27,7 +28,21 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
   bool value = false;
   bool isCheckingFromServer = false;
 
+  /// Пока идёт запрос открытия/закрытия смены, повторные срабатывания
+  /// тумблера игнорируются — иначе уходят два запроса и два тоста.
+  bool _isToggling = false;
+
   Future<bool> _toggleWork(BuildContext context) async {
+    if (_isToggling) return value;
+    _isToggling = true;
+    try {
+      return await _doToggleWork(context);
+    } finally {
+      _isToggling = false;
+    }
+  }
+
+  Future<bool> _doToggleWork(BuildContext context) async {
     UserData? user = HiveHelper.getUserData();
     bool serviceEnabled;
     LocationPermission permission;
@@ -154,6 +169,19 @@ class _HomeViewWorkSwitchState extends State<HomeViewWorkSwitch> {
         }
       } catch (e) {
         print('Error turning on: $e');
+        // Сервер уже держит открытую смену (например, кэш отдал устаревший
+        // is_online и тумблер показал Off). Курьер на смене — синхронизируем
+        // тумблер вместо ошибки, иначе он застревает в Off.
+        // Вариант «...by another courier» сюда не попадает: там смену с этого
+        // IP открыл другой курьер, и это настоящая ошибка.
+        if (e is DioException && e.error == 'Time entry already opened') {
+          user.is_online = true;
+          HiveHelper.setUserData(user);
+          setState(() {
+            value = true;
+          });
+          return true;
+        }
         AnimatedSnackBar.material(
           translateServerError(context, e.toString()),
           type: AnimatedSnackBarType.error,
