@@ -1,4 +1,4 @@
-import { customers, order_items, orders, terminals, users } from "@api/drizzle/schema";
+import { customers, order_actions, order_items, orders, terminals, users } from "@api/drizzle/schema";
 import { DB } from "@api/src/lib/db";
 import { CacheControlService } from "@api/src/modules/cache/service";
 import { SearchService } from "@api/src/services/search/service";
@@ -231,7 +231,21 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             },
             body: JSON.stringify(yandexData),
         });
-        const yandexJson = await yandexReponse.json();
+        const yandexJson: any = await yandexReponse.json().catch(() => null);
+        console.log(`[YS] create order=${order.order_number} http=${yandexReponse.status} body=${JSON.stringify(yandexJson)?.slice(0, 1500)}`);
+        if (!yandexReponse.ok || !yandexJson?.id) {
+            // Яндекс не создал claim: не ставим курьера «Яндекс» и не двигаем статус, заказ остаётся в пропущенных.
+            const reason = String(yandexJson?.message || yandexJson?.code || `HTTP ${yandexReponse.status}`).slice(0, 200);
+            await db.insert(order_actions).values({
+                terminal_id: order.terminal_id,
+                order_id: order.id,
+                order_created_at: order.created_at,
+                action: 'STATUS_CHANGE',
+                action_text: `Яндекс Доставка: заказ не создан (${reason})`,
+                duration: 0,
+            });
+            return;
+        }
         const yandexCourier = await db.select({
             id: users.id,
         }).from(users).where(eq(users.phone, '+998908251218'));
@@ -259,7 +273,19 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
                 },
             });
 
-            const approveJson = await approveResponse.json();
+            const approveJson: any = await approveResponse.json().catch(() => null);
+            console.log(`[YS] accept order=${order.order_number} claim=${yandexJson.id} http=${approveResponse.status} status=${approveJson?.status}${approveResponse.ok ? '' : ` body=${JSON.stringify(approveJson)?.slice(0, 500)}`}`);
+            if (!approveResponse.ok) {
+                const reason = String(approveJson?.message || approveJson?.code || `HTTP ${approveResponse.status}`).slice(0, 200);
+                await db.insert(order_actions).values({
+                    terminal_id: order.terminal_id,
+                    order_id: order.id,
+                    order_created_at: order.created_at,
+                    action: 'STATUS_CHANGE',
+                    action_text: `Яндекс Доставка: claim создан, но не подтверждён (${reason})`,
+                    duration: 0,
+                });
+            }
             // await searchService.indexYandexDeliveryOrder(order.id, {
             //     // @ts-ignore
             //     ...yandexJson,
