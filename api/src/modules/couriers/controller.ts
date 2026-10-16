@@ -16,7 +16,7 @@ dayjs.extend(isoWeek);
 import { getSetting } from "../../utils/settings";
 import { CourierEfficiencyReportItem, WalletStatus } from "../user/dto/list.dto";
 import { getDistance } from "geolib";
-import { getHours } from "../../lib/dates";
+import { getHours, getMinutes } from "../../lib/dates";
 
 type RollCallCourier = {
     id: string;
@@ -1572,13 +1572,17 @@ export const CouriersController = new Elysia({
       });
 
       if (timesheetDate) {
-        const scheduleStartTime = dayjs(
-          `${workSchedule!.max_start_time}`,
-          "HH:mm:ss"
-        ).toDate();
-        scheduleStartTime.setFullYear(new Date().getFullYear());
-        scheduleStartTime.setMonth(new Date().getMonth());
-        scheduleStartTime.setDate(new Date().getDate());
+        // Время в расписании хранится на 6 ч раньше местного (смена
+        // "10:00 - 22:00" лежит в базе как 04:00-16:00). Без смещения каждого
+        // курьера отмечало опоздавшим на ~6 ч, и это уходило в штраф
+        // дневного гаранта. Отсчёт — от рабочего дня смены (timesheetDate),
+        // а не от календарного "сегодня": после полуночи это разные даты.
+        // Минуты прибавляются к началу дня, поэтому переход через полночь
+        // после смещения не теряется.
+        const scheduleStartTime = dayjs(timesheetDate as Date)
+          .startOf("day")
+          .add(getMinutes(`${workSchedule!.max_start_time}`) + 6 * 60, "minute")
+          .toDate();
         // Reset and recalculate based on the matched schedule only
         isLate = false;
         lateMinutes = 0;
