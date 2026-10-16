@@ -17,6 +17,8 @@ import { getSetting } from "../../utils/settings";
 import { CourierEfficiencyReportItem, WalletStatus } from "../user/dto/list.dto";
 import { getDistance } from "geolib";
 import { getHours, getMinutes } from "../../lib/dates";
+import { settingHour, settleDailyGarant } from "../../services/daily_garant/service";
+import { businessDayOf } from "../../services/daily_garant/calculate";
 
 type RollCallCourier = {
     id: string;
@@ -1213,7 +1215,8 @@ export const CouriersController = new Elysia({
       user,
       set,
       queues: {
-        processUpdateUserCache
+        processUpdateUserCache,
+        processTrySetDailyGarant
       },
       drizzle,
       request,
@@ -1293,16 +1296,21 @@ export const CouriersController = new Elysia({
 
       // @ts-ignore
       redis.hdel(`${process.env.PROJECT_PREFIX}_user_location`, user.user.id);
-      // @ts-ignore
-      // await processTrySetDailyGarant.add(user.user.id, {
-      //   // @ts-ignore
-      //   courier_id: user.user.id,
-      //   // @ts-ignore
-      //   terminal_id: user.user.terminal_id,
-      // }, {
-      //   attempts: 3,
-      //   removeOnComplete: true,
-      // });
+      // Дневной гарант считается по закрытой смене. Включается настройкой
+      // daily_garant_auto_enabled = "true" в системных настройках — без деплоя.
+      if ((await getSetting(redis, "daily_garant_auto_enabled")) === "true") {
+        const workEndHour = settingHour(await getSetting(redis, "work_end_time"), 4);
+        await processTrySetDailyGarant.add(
+          // @ts-ignore
+          user.user.id,
+          {
+            // @ts-ignore
+            courier_id: user.user.id,
+            day: businessDayOf(openedTimeEntry.date_start, workEndHour),
+          },
+          { attempts: 3, backoff: { type: "exponential", delay: 30_000 }, removeOnComplete: true }
+        );
+      }
 
       return openedTimeEntry;
     },
@@ -1741,247 +1749,24 @@ export const CouriersController = new Elysia({
       }),
     }
   )
-  .post('/api/couriers/try_set_daily_garant', async ({ body, redis, drizzle, cacheControl, user, set, status }) => {
-    const courierList = await drizzle.select({
-      id: users.id,
-      daily_garant_id: users.daily_garant_id
-    })
-      .from(users)
-      .where(eq(users.id, body.courier_id))
-      .execute();
-
-    const courier = courierList[0];
-
-    if (!courier) {
-      return status(400, {
-        message: "Courier not found",
-      });
-    }
-
-    if (!courier.daily_garant_id) {
-      return status(400, {
-        message: "Courier daily garant not found",
-      });
-    }
-
-    if (!courier.daily_garant_id) {
-      return status(400, {
-        message: "Courier daily garant not found",
-      });
-    }
-
-    const dailyGarant = (await cacheControl.getDailyGarant()).find(d => d.id === courier.daily_garant_id);
-
-    if (!dailyGarant) {
-      return status(400, {
-        message: "Daily garant not found",
-      });
-    }
-
-    let dailyGarantMaxDifference = await getSetting(redis, 'daily_garant_max_difference');
-
-    if (!dailyGarantMaxDifference) {
-      return status(400, {
-        message: "Daily garant max difference not found",
-      });
-    }
-
-    dailyGarantMaxDifference = parseInt(dailyGarantMaxDifference);
-
-    const lastWorkScheduleEntry = (await drizzle.select({
-      id: work_schedule_entries.id,
-      current_status: work_schedule_entries.current_status,
-      created_at: work_schedule_entries.created_at,
-      date_finish: work_schedule_entries.date_finish
-    })
-      .from(work_schedule_entries)
-      .where(eq(work_schedule_entries.user_id, body.courier_id))
-      .orderBy(desc(work_schedule_entries.created_at))
-      .limit(1)
-      .execute())[0];
-
-    if (!lastWorkScheduleEntry) {
-      return status(400, {
-        message: "Last work schedule entry not found",
-      });
-    }
-
-    // if (lastWorkScheduleEntry.current_status === 'closed') {
-    // dayjs difference in minutes should not be more than dailyGarantMaxDifference
-    // if (dayjs().diff(lastWorkScheduleEntry.date_finish, 'minutes') < dailyGarantMaxDifference) {
-    const settingsWorkStartTime = getHours(
-      await getSetting(redis, "work_start_time")
-    );
-    const settingsWorkEndTime = getHours(
-      await getSetting(redis, "work_end_time")
-    );
-
-    let startDate = dayjs();
-    let endDate = dayjs();
-    const hour = startDate.hour();
-    if (hour <= settingsWorkStartTime) {
-      startDate = startDate.subtract(1, 'day').hour(settingsWorkStartTime);
-      endDate = endDate.hour(settingsWorkEndTime);
-    } else {
-      startDate = startDate.hour(settingsWorkStartTime);
-      endDate = endDate.add(1, 'day').hour(settingsWorkEndTime);
-    }
-
-    const orderStatuses = await cacheControl.getOrderStatuses();
-    // get only order status where finish is false or cancel is false
-    const filteredOrderStatuses = orderStatuses.filter((orderStatus) => !orderStatus.finish && !orderStatus.cancel);
-
-    const notFinishedOrders = await drizzle.select({
-      id: orders.id,
-    }).from(orders).where(and(
-      eq(orders.courier_id, body.courier_id),
-      inArray(orders.order_status_id, filteredOrderStatuses.map(orderStatus => orderStatus.id)),
-      gte(orders.created_at, startDate.toISOString()),
-      lte(orders.created_at, endDate.toISOString()),
-    )).execute();
-    if (!notFinishedOrders.length) {
-      const finishedOrderStatuses = orderStatuses.filter((orderStatus) => orderStatus.finish);
-      let totalEarned = 0;
-      // @ts-ignore
-      const finishedOrders = await drizzle.select<{ delivery_price: number }>({
-        delivery_price: sql<number>`sum(${orders.delivery_price})`
-      })
-        .from(orders)
-        .where(and(
-          eq(orders.courier_id, body.courier_id),
-          inArray(orders.order_status_id, finishedOrderStatuses.map(orderStatus => orderStatus.id)),
-          gte(orders.created_at, startDate.toISOString()),
-          lte(orders.created_at, endDate.toISOString()),
-        ))
-        .groupBy(orders.courier_id)
-        .execute();
-      totalEarned += +finishedOrders[0].delivery_price || 0;
-
-      // @ts-ignore
-      const orderTransactionsSum = await drizzle.select<{ sum: number }>({
-        sum: sql<number>`sum(${order_transactions.amount})`
-      })
-        .from(order_transactions)
-        .where(and(
-          eq(order_transactions.courier_id, body.courier_id),
-          gte(order_transactions.created_at, startDate.toISOString()),
-          lte(order_transactions.created_at, endDate.toISOString()),
-          not(eq(order_transactions.transaction_type, 'order'))
-        ))
-        .execute();
-
-      totalEarned += orderTransactionsSum[0]?.sum || 0;
-      const timesheetList = await drizzle.select({
-        id: timesheet.id,
-        late_minutes: timesheet.late_minutes
-      })
-        .from(timesheet)
-        .where(eq(timesheet.user_id, body.courier_id))
-        .orderBy(desc(timesheet.created_at))
-        .limit(1)
-        .execute();
-
-      const lastTimesheet = timesheetList[0];
-
-      const lateMinutes = lastTimesheet?.late_minutes || 0;
-      const lateMinutesBy30 = lateMinutes / 30;
-      const minusAmount = lateMinutesBy30 * dailyGarant.late_minus_sum;
-
-      if (totalEarned < dailyGarant.amount) {
-        dailyGarant.amount -= Math.round(totalEarned + minusAmount);
-
-        if (dailyGarant.amount > 0) {
-          const firstOrder = await drizzle.select({
-            id: orders.id,
-            terminal_id: orders.terminal_id,
-            organization_id: orders.organization_id
-          })
-            .from(orders)
-            .leftJoin(terminals, eq(orders.terminal_id, terminals.id))
-            .where(and(
-              eq(orders.courier_id, body.courier_id),
-              inArray(orders.order_status_id, finishedOrderStatuses.map(orderStatus => orderStatus.id)),
-              gte(orders.created_at, startDate.toISOString()),
-              lte(orders.created_at, endDate.toISOString()),
-              eq(terminals.fuel_bonus, true)
-            ))
-            .limit(1)
-            .execute();
-          const order = firstOrder[0];
-          const terminal = order?.terminal_id;
-          const organization = order?.organization_id;
-
-          if (terminal && organization) {
-            let courierTerminalBalance = await drizzle.select()
-              .from(courier_terminal_balance)
-              .where(
-                and(
-                  eq(courier_terminal_balance.courier_id, body.courier_id),
-                  eq(courier_terminal_balance.terminal_id, terminal),
-                )
-              )
-              .limit(1)
-              .execute();
-
-
-            let startBalance = 0;
-            if (courierTerminalBalance.length) {
-              startBalance = courierTerminalBalance[0].balance;
-            }
-
-            const orderTransaction = await drizzle.select({
-              id: order_transactions.id,
-            })
-              .from(order_transactions)
-              .where(and(
-                eq(order_transactions.transaction_type, 'daily_garant'),
-                eq(order_transactions.transaction_payment_type, 'cash'),
-                eq(order_transactions.courier_id, body.courier_id),
-                gte(order_transactions.created_at, startDate.toISOString()),
-                lte(order_transactions.created_at, endDate.toISOString()),
-              ))
-              .limit(1);
-
-            if (!orderTransaction.length) {
-              await drizzle.insert(order_transactions).values({
-                transaction_type: 'daily_garant',
-                transaction_payment_type: "cash",
-                amount: dailyGarant.amount,
-                courier_id: body.courier_id,
-                terminal_id: terminal,
-                organization_id: organization,
-                balance_before: startBalance,
-                balance_after: startBalance + dailyGarant.amount,
-                not_paid_amount: dailyGarant.amount,
-              }).execute();
-
-              if (courierTerminalBalance.length) {
-                await drizzle.update(courier_terminal_balance).set({
-                  balance: startBalance + dailyGarant.amount,
-                }).where(and(
-                  eq(courier_terminal_balance.courier_id, body.courier_id),
-                  eq(courier_terminal_balance.terminal_id, terminal),
-                )).execute();
-              } else {
-                await drizzle.insert(courier_terminal_balance).values({
-                  courier_id: body.courier_id,
-                  terminal_id: terminal,
-                  balance: startBalance + dailyGarant.amount,
-                  organization_id: organization,
-                }).execute();
-              }
-            }
-          }
-        }
+  .post('/api/couriers/try_set_daily_garant', async ({ body, redis, drizzle, cacheControl, user }) => {
+    // Вся логика — в settleDailyGarant; её же вызывает очередь при закрытии смены.
+    return settleDailyGarant(
+      { db: drizzle, redis, cacheControl },
+      {
+        courierId: body.courier_id,
+        day: body.day,
+        dryRun: body.dry_run,
+        // @ts-ignore
+        createdBy: user?.user?.id,
       }
-    }
-    // }
-    // }
+    );
   }, {
     permission: 'terminals.list',
     body: t.Object({
       day: t.String(),
       courier_id: t.String(),
+      dry_run: t.Optional(t.Boolean()),
     }),
   })
   .post('/api/couriers/efficiency', async ({ body: { startDate, endDate, courier_id, terminal_id, status }, drizzle, user, set, cacheControl }) => {

@@ -86,6 +86,33 @@ const driveTypeIcons: Record<string, string> = {
   foot: "🚶",
 };
 
+/** Понятная оператору причина, почему гарант за день не начислен. */
+function dailyGarantReasonText(
+  reason: string | undefined,
+  data: { garantAmount?: number; earned?: number; penalty?: number },
+): string {
+  const sum = (n?: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n ?? 0));
+  switch (reason) {
+    case "no_garant":
+      return "Курьеру не назначен дневной гарант";
+    case "no_shift":
+      return "В этот день у курьера не было смены";
+    case "shift_still_open":
+      return "Смена ещё открыта — гарант считается после закрытия";
+    case "unfinished_orders":
+      return "У курьера есть незавершённые заказы за этот день";
+    case "earned_enough":
+      return `Заработал ${sum(data.earned)} — не меньше гаранта ${sum(data.garantAmount)}` +
+        (data.penalty ? ` с учётом штрафа ${sum(data.penalty)}` : "");
+    case "no_terminal":
+      return "Не удалось определить филиал для начисления";
+    case "already_paid":
+      return "Гарант за этот день уже начислен";
+    default:
+      return "Причина неизвестна";
+  }
+}
+
 function DailyGarantButton({
   day,
   user_id,
@@ -100,14 +127,27 @@ function DailyGarantButton({
   const setDailyGarant = async () => {
     setIsLoading(true);
     try {
-      await apiClient.api.couriers.try_set_daily_garant.post({
+      const { data, error } = await apiClient.api.couriers.try_set_daily_garant.post({
         day: day.toISOString(),
         courier_id: user_id,
       });
-      toast.success("Дневная гарантия установлена");
-      if (onSuccess) onSuccess();
+      if (error || !data) {
+        toast.error("Ошибка при начислении дневной гарантии");
+        return;
+      }
+      const sum = (n?: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n ?? 0));
+      if (data.status === "paid") {
+        toast.success(`Дневной гарант начислен: ${sum(data.payout)} сум`, {
+          description: `Гарант ${sum(data.garantAmount)}, заработано ${sum(data.earned)}, штраф ${sum(data.penalty)}`,
+        });
+        if (onSuccess) onSuccess();
+      } else {
+        toast.info("Дневной гарант не начислен", {
+          description: dailyGarantReasonText(data.reason, data),
+        });
+      }
     } catch (error) {
-      toast.error("Ошибка при установке дневной гарантии");
+      toast.error("Ошибка при начислении дневной гарантии");
     } finally {
       setIsLoading(false);
     }
