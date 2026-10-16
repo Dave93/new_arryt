@@ -129,10 +129,15 @@ export default function DailyGarantEdit() {
         ...values,
       };
 
-      await apiClient.api.daily_garant({ id }).put({
+      const { error } = await apiClient.api.daily_garant({ id }).put({
         data: formattedValues,
       });
       
+      if (error) {
+        const message = (error.value as { message?: string } | undefined)?.message;
+        toast.error(message || "Не удалось сохранить тариф");
+        return;
+      }
       toast.success("Тариф дневного гаранта успешно обновлен");
       router.push("/dashboard/daily_garant");
     } catch (error) {

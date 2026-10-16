@@ -124,7 +124,9 @@ export const DailyGarantController = new Elysia({
       const result = await drizzle
         .insert(daily_garant)
         .values({ ...data, date: data.date || "00:00:00" })
-        .returning(selectFields);
+        // Пустой selectFields даёт "RETURNING" без колонок — ошибка Postgres
+        // "syntax error at end of input"; без fields возвращаем всю строку.
+        .returning(Object.keys(selectFields).length ? (selectFields as typeof daily_garant._.columns) : daily_garant._.columns);
       // Форма курьера берёт тарифы из кэша — без этого новый тариф там не виден.
       await cacheControl.cacheDailyGarant();
 
@@ -170,7 +172,9 @@ export const DailyGarantController = new Elysia({
         .update(daily_garant)
         .set({ ...data, updated_at: new Date().toISOString() })
         .where(eq(daily_garant.id, id))
-        .returning(selectFields);
+        // Пустой selectFields даёт "RETURNING" без колонок — ошибка Postgres
+        // "syntax error at end of input"; без fields возвращаем всю строку.
+        .returning(Object.keys(selectFields).length ? (selectFields as typeof daily_garant._.columns) : daily_garant._.columns);
       await cacheControl.cacheDailyGarant();
 
       return {
