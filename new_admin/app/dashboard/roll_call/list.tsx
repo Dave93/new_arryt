@@ -387,7 +387,17 @@ export default function RollCallList() {
       result = result.filter((item) => item.name === searchQuery);
     }
 
-    return result;
+    // Активные филиалы — наверх: больше курьеров онлайн, затем больше
+    // отметившихся за день. Название в конце — чтобы при равенстве порядок
+    // не прыгал между обновлениями.
+    const online = (t: (typeof result)[number]) => t.couriers.filter((c) => c.is_online).length;
+    const checkedIn = (t: (typeof result)[number]) => t.couriers.filter((c) => c.created_at).length;
+    return [...result].sort(
+      (a, b) =>
+        online(b) - online(a) ||
+        checkedIn(b) - checkedIn(a) ||
+        a.name.localeCompare(b.name, "ru"),
+    );
   }, [data, searchQuery, filterValues.region, terminalRegionMap]);
 
   // Summary stats (unique couriers only)
