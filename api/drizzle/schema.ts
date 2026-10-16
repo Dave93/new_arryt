@@ -123,8 +123,11 @@ export const daily_garant = pgTable("daily_garant", {
 	amount: doublePrecision("amount").notNull(),
 	// Больше не используется: штраф за опоздание считается часами гаранта (work_hours).
 	late_minus_sum: doublePrecision("late_minus_sum").default(0).notNull(),
-	// Фиксированных часов в смене по тарифу: час гаранта = amount ÷ work_hours.
-	work_hours: integer("work_hours").default(12).notNull(),
+	// График тарифа по Ташкенту, без сдвига work_schedules ("10:00:00" — это 10:00).
+	start_time: time("start_time"),
+	end_time: time("end_time"),
+	// Часов в смене: считается из start_time/end_time. Час гаранта = amount ÷ work_hours.
+	work_hours: doublePrecision("work_hours").default(12).notNull(),
 	created_at: timestamp("created_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	// Удаление тарифа — архивное: на него ссылаются курьеры и история daily_garant_tasks.

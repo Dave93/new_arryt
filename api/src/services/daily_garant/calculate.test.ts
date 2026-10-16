@@ -6,8 +6,11 @@ import {
   isValidAdjustment,
   MAX_GARANT_ADJUSTMENT,
   distanceMeters,
+  isValidTime,
   lateMinutes,
+  lateMinutesFromTariff,
   pickPayingTerminal,
+  shiftHours,
 } from "./calculate";
 
 // Расчёт явно работает по Ташкенту, поэтому тесты проходят в любом поясе
@@ -208,5 +211,31 @@ describe("pickPayingTerminal", () => {
     const a = { id: "a", organization_id: CHOPAR, latitude: 41.0, longitude: 69.0, linked_terminal_id: "b" };
     const b = { id: "b", organization_id: CHOPAR, latitude: 41.0, longitude: 69.0 };
     expect(pickPayingTerminal(a, [a, b], LES_AILES).id).toBe("a");
+  });
+});
+
+describe("график тарифа", () => {
+  test("часы смены считаются из начала и конца", () => {
+    expect(shiftHours("10:00", "22:00")).toBe(12);
+    expect(shiftHours("11:00:00", "22:00:00")).toBe(11);
+    expect(shiftHours("15:00", "03:00")).toBe(12);
+    expect(shiftHours("10:00", "21:30")).toBe(11.5);
+    expect(shiftHours("10:00", "10:00")).toBe(24);
+  });
+
+  test("опоздание к началу смены тарифа — по местному времени", () => {
+    expect(lateMinutesFromTariff("2026-10-16T10:47:00+05:00", "10:00:00", "2026-10-16", WORK_END_HOUR)).toBe(47);
+    expect(lateMinutesFromTariff("2026-10-16T09:55:00+05:00", "10:00:00", "2026-10-16", WORK_END_HOUR)).toBe(0);
+  });
+
+  test("смена после полуночи относится к следующим суткам рабочего дня", () => {
+    expect(lateMinutesFromTariff("2026-10-17T02:40:00+05:00", "02:00:00", "2026-10-16", WORK_END_HOUR)).toBe(40);
+  });
+
+  test("время проверяется", () => {
+    expect(isValidTime("10:00")).toBe(true);
+    expect(isValidTime("23:30:00")).toBe(true);
+    expect(isValidTime("24:00")).toBe(false);
+    expect(isValidTime("10")).toBe(false);
   });
 });

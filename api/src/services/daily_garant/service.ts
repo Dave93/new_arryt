@@ -24,6 +24,7 @@ import {
   isValidAdjustment,
   distanceMeters,
   lateMinutes,
+  lateMinutesFromTariff,
   pickPayingTerminal,
   TerminalPoint,
 } from "./calculate";
@@ -251,8 +252,13 @@ export async function settleDailyGarant(
     );
   const earned = Number(deliveries) + Number(extras);
 
-  // Опоздание — от начала смены по графику, не от max_start_time.
-  const late = firstShift.start_time ? lateMinutes(firstShift.date_start, firstShift.start_time, day) : 0;
+  // Опоздание — от начала смены тарифа; у тарифа без графика — от начала
+  // смены по графику курьера (не от max_start_time).
+  const late = garant.start_time
+    ? lateMinutesFromTariff(firstShift.date_start, garant.start_time, day, workEndHour)
+    : firstShift.start_time
+      ? lateMinutes(firstShift.date_start, firstShift.start_time, day)
+      : 0;
   const { hourCost, penaltyHours, penalty, payout, adjustment: adj, total } = calculatePayout({
     garantAmount: garant.amount,
     workHours: garant.work_hours,

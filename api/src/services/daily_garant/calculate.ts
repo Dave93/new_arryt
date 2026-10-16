@@ -70,6 +70,35 @@ export function lateMinutes(shiftStart: Date | string, scheduleStartTime: string
   return diff > 0 ? diff : 0;
 }
 
+/** Время "HH:mm" или "HH:mm:ss" как есть. */
+const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
+
+export function isValidTime(value: unknown): value is string {
+  return typeof value === "string" && TIME_RE.test(value);
+}
+
+/**
+ * Длина смены в часах по началу и концу; через полночь — тоже
+ * ("15:00"–"03:00" = 12). Одинаковые начало и конец — сутки.
+ */
+export function shiftHours(startTime: string, endTime: string): number {
+  const diff = (getMinutes(endTime) - getMinutes(startTime) + 24 * 60) % (24 * 60);
+  return (diff || 24 * 60) / 60;
+}
+
+/**
+ * Опоздание к началу смены тарифа (местное время, без сдвига), в минутах.
+ * Начало раньше конца рабочего дня (например 02:00 при work_end_time 04:00)
+ * относится уже к следующим календарным суткам рабочего дня.
+ */
+export function lateMinutesFromTariff(shiftStart: Date | string, tariffStartTime: string, day: string, workEndHour: number): number {
+  const startMinutes = getMinutes(tariffStartTime);
+  let deadline = dayjs.tz(day, BUSINESS_TIMEZONE).startOf("day").add(startMinutes, "minute");
+  if (startMinutes < workEndHour * 60) deadline = deadline.add(1, "day");
+  const diff = dayjs(shiftStart).diff(deadline, "minute");
+  return diff > 0 ? diff : 0;
+}
+
 /**
  * Сколько часов гаранта снять за опоздание. До 30 минут — ничего; больше —
  * за каждый начатый час опоздания: 31–60 мин → 1 ч, 61–120 → 2 ч.

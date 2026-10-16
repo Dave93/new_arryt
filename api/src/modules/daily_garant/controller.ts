@@ -8,12 +8,29 @@ import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import dayjs from "dayjs";
 import {
+  isValidTime,
   MAX_WORK_HOURS,
   MIN_WORK_HOURS,
+  shiftHours,
 } from "../../services/daily_garant/calculate";
 import { SQLWrapper, and, eq, isNull, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
+
+/**
+ * График тарифа: начало и конец смены задаются вместе, часы в смене
+ * считаются из них — клиенту не доверяем.
+ */
+function tariffSchedule(data: { start_time?: string; end_time?: string; work_hours?: number }):
+  | { start_time?: string; end_time?: string; work_hours?: number }
+  | { error: string } {
+  const { start_time, end_time } = data;
+  if (!start_time && !end_time) return {};
+  if (!isValidTime(start_time) || !isValidTime(end_time)) {
+    return { error: "Укажите начало и конец смены в формате ЧЧ:ММ" };
+  }
+  return { start_time, end_time, work_hours: shiftHours(start_time, end_time) };
+}
 
 export const DailyGarantController = new Elysia({
   name: "@app/daily_garant",
@@ -88,7 +105,10 @@ export const DailyGarantController = new Elysia({
   )
   .post(
     "/",
-    async ({ body: { data, fields }, drizzle, cacheControl }) => {
+    async ({ body: { data, fields }, drizzle, cacheControl, status }) => {
+      const schedule = tariffSchedule(data);
+      if ("error" in schedule) return status(400, { message: schedule.error });
+      Object.assign(data, schedule);
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, daily_garant, {});
@@ -120,7 +140,9 @@ export const DailyGarantController = new Elysia({
           date: t.Optional(t.String()),
           amount: t.Number(),
           late_minus_sum: t.Optional(t.Number()),
-          work_hours: t.Integer({ minimum: MIN_WORK_HOURS, maximum: MAX_WORK_HOURS }),
+          start_time: t.Optional(t.String()),
+          end_time: t.Optional(t.String()),
+          work_hours: t.Optional(t.Number({ minimum: MIN_WORK_HOURS, maximum: MAX_WORK_HOURS })),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),
@@ -128,7 +150,10 @@ export const DailyGarantController = new Elysia({
   )
   .put(
     "/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, cacheControl, status }) => {
+      const schedule = tariffSchedule(data);
+      if ("error" in schedule) return status(400, { message: schedule.error });
+      Object.assign(data, schedule);
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, daily_garant, {});
@@ -163,7 +188,9 @@ export const DailyGarantController = new Elysia({
           date: t.Optional(t.String()),
           amount: t.Number(),
           late_minus_sum: t.Optional(t.Number()),
-          work_hours: t.Integer({ minimum: MIN_WORK_HOURS, maximum: MAX_WORK_HOURS }),
+          start_time: t.Optional(t.String()),
+          end_time: t.Optional(t.String()),
+          work_hours: t.Optional(t.Number({ minimum: MIN_WORK_HOURS, maximum: MAX_WORK_HOURS })),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),

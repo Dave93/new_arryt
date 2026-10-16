@@ -13,7 +13,6 @@ import {
   Form,
   FormControl,
   FormField,
-  FormDescription,
   FormItem,
   FormLabel,
   FormMessage,
@@ -25,12 +24,13 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { PageTitle } from "@/components/page-title";
+import { ShiftFields, shiftSchema } from "./shift-fields";
 
 // Схема формы с валидацией Zod
 const formSchema = z.object({
   name: z.string().min(1, { message: "Название обязательно" }),
   amount: z.coerce.number().min(0, { message: "Сумма должна быть не меньше 0" }),
-  work_hours: z.coerce.number().int({ message: "Целое число часов" }).min(1, { message: "Не меньше 1 часа" }).max(24, { message: "Не больше 24 часов" }),
+  ...shiftSchema,
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -81,7 +81,8 @@ export default function DailyGarantEdit() {
     defaultValues: {
       name: "",
       amount: 0,
-      work_hours: 12,
+      start_time: "",
+      end_time: "",
     },
   });
 
@@ -111,7 +112,8 @@ export default function DailyGarantEdit() {
       form.reset({
         name: dailyGarant.name || "",
         amount: dailyGarant.amount || 0,
-        work_hours: dailyGarant.work_hours || 12,
+        start_time: dailyGarant.start_time?.slice(0, 5) ?? "",
+        end_time: dailyGarant.end_time?.slice(0, 5) ?? "",
       });
     }
   }, [dailyGarant, form]);
@@ -202,23 +204,10 @@ export default function DailyGarantEdit() {
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="work_hours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Часов в смене</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} min={1} max={24} step={1} />
-                      </FormControl>
-                      <FormDescription>
-                        Опоздание больше 30 минут — минус час гаранта за каждый начатый час (сумма ÷ часы)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
+              
+              <ShiftFields form={form} />
+
               
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Сохранение..." : "Сохранить"}
