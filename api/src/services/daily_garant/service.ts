@@ -48,6 +48,11 @@ export type SettleResult = {
   garantAmount?: number;
   earned?: number;
   lateMinutes?: number;
+  /** Часов в смене по тарифу и стоимость часа гаранта. */
+  workHours?: number;
+  hourCost?: number;
+  /** Сколько часов гаранта снято за опоздание. */
+  penaltyHours?: number;
   penalty?: number;
   /** Доплата до гаранта по расчёту, без корректировки. */
   payout?: number;
@@ -183,7 +188,7 @@ export async function settleDailyGarant(
       current_status: work_schedule_entries.current_status,
       lat_open: work_schedule_entries.lat_open,
       lon_open: work_schedule_entries.lon_open,
-      max_start_time: work_schedules.max_start_time,
+      start_time: work_schedules.start_time,
     })
     .from(work_schedule_entries)
     .leftJoin(work_schedules, eq(work_schedules.id, work_schedule_entries.work_schedule_id))
@@ -246,15 +251,29 @@ export async function settleDailyGarant(
     );
   const earned = Number(deliveries) + Number(extras);
 
-  const late = firstShift.max_start_time ? lateMinutes(firstShift.date_start, firstShift.max_start_time, day) : 0;
-  const { penalty, payout, adjustment: adj, total } = calculatePayout({
+  // Опоздание — от начала смены по графику, не от max_start_time.
+  const late = firstShift.start_time ? lateMinutes(firstShift.date_start, firstShift.start_time, day) : 0;
+  const { hourCost, penaltyHours, penalty, payout, adjustment: adj, total } = calculatePayout({
     garantAmount: garant.amount,
-    lateMinusSum: garant.late_minus_sum,
+    workHours: garant.work_hours,
     earned,
     lateMinutes: late,
     adjustment,
   });
-  const calc = { ...base, ...garantInfo, earned, lateMinutes: late, penalty, payout, adjustment: adj, total, unfinishedOrders };
+  const calc = {
+    ...base,
+    ...garantInfo,
+    earned,
+    lateMinutes: late,
+    workHours: garant.work_hours,
+    hourCost,
+    penaltyHours,
+    penalty,
+    payout,
+    adjustment: adj,
+    total,
+    unfinishedOrders,
+  };
   // Пробный расчёт показывается и при нулевом итоге: в модалке администратор
   // как раз решает, добавить ли доп. часы.
   if (adj !== 0 && !adjustmentComment?.trim() && !dryRun) {
@@ -326,7 +345,7 @@ export async function settleDailyGarant(
         balance_after: balanceAfter,
         created_by: createdBy,
         comment:
-          `${commentPrefix(day)}: гарант ${garant.amount}, заработано ${Math.round(earned)}, штраф ${penalty} (опоздание ${late} мин), доплата ${payout}` +
+          `${commentPrefix(day)}: гарант ${garant.amount}, заработано ${Math.round(earned)}, штраф ${penalty} (опоздание ${late} мин = ${penaltyHours} ч × ${hourCost}), доплата ${payout}` +
           (adj !== 0 ? `, корректировка ${adj > 0 ? "+" : ""}${adj}: ${adjustmentComment!.trim()}` : "") +
           (unfinishedOrders > 0 ? `, незавершённых заказов: ${unfinishedOrders}` : ""),
       })

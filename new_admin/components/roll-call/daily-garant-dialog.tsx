@@ -28,6 +28,8 @@ type Settlement = {
   garantAmount?: number;
   earned?: number;
   lateMinutes?: number;
+  hourCost?: number;
+  penaltyHours?: number;
   penalty?: number;
   payout?: number;
   adjustment?: number;
@@ -181,7 +183,11 @@ export function DailyGarantDialog({
                 <Row label="Гарант" value={sum(preview.garantAmount)} />
                 <Row label="Заработано за день" value={`− ${sum(preview.earned)}`} />
                 <Row
-                  label={`Штраф за опоздание${preview.lateMinutes ? ` (${preview.lateMinutes} мин)` : ""}`}
+                  label={
+                    preview.penaltyHours
+                      ? `Опоздание ${preview.lateMinutes} мин: ${preview.penaltyHours} ч × ${sum(preview.hourCost)}`
+                      : `Штраф за опоздание${preview.lateMinutes ? ` (${preview.lateMinutes} мин — до 30 не штрафуется)` : ""}`
+                  }
                   value={preview.penalty ? `− ${sum(preview.penalty)}` : "0"}
                 />
                 <div className="border-t pt-2">

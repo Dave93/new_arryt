@@ -13,6 +13,7 @@ import {
   Form,
   FormControl,
   FormField,
+  FormDescription,
   FormItem,
   FormLabel,
   FormMessage,
@@ -29,7 +30,7 @@ import { PageTitle } from "@/components/page-title";
 const formSchema = z.object({
   name: z.string().min(1, { message: "Название обязательно" }),
   amount: z.coerce.number().min(0, { message: "Сумма должна быть не меньше 0" }),
-  late_minus_sum: z.coerce.number().min(0, { message: "Сумма штрафа должна быть не меньше 0" }),
+  work_hours: z.coerce.number().int({ message: "Целое число часов" }).min(1, { message: "Не меньше 1 часа" }).max(24, { message: "Не больше 24 часов" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -80,7 +81,7 @@ export default function DailyGarantEdit() {
     defaultValues: {
       name: "",
       amount: 0,
-      late_minus_sum: 0,
+      work_hours: 12,
     },
   });
 
@@ -110,7 +111,7 @@ export default function DailyGarantEdit() {
       form.reset({
         name: dailyGarant.name || "",
         amount: dailyGarant.amount || 0,
-        late_minus_sum: dailyGarant.late_minus_sum || 0,
+        work_hours: dailyGarant.work_hours || 12,
       });
     }
   }, [dailyGarant, form]);
@@ -203,13 +204,16 @@ export default function DailyGarantEdit() {
                 
                 <FormField
                   control={form.control}
-                  name="late_minus_sum"
+                  name="work_hours"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Сумма штрафа за опоздание</FormLabel>
+                      <FormLabel>Часов в смене</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} min={0} />
+                        <Input type="number" {...field} min={1} max={24} step={1} />
                       </FormControl>
+                      <FormDescription>
+                        Опоздание больше 30 минут — минус час гаранта за каждый начатый час (сумма ÷ часы)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

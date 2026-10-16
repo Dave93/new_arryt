@@ -7,6 +7,10 @@ import { contextWitUser } from "../../context";
 import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import dayjs from "dayjs";
+import {
+  MAX_WORK_HOURS,
+  MIN_WORK_HOURS,
+} from "../../services/daily_garant/calculate";
 import { SQLWrapper, and, eq, isNull, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
@@ -115,7 +119,8 @@ export const DailyGarantController = new Elysia({
           name: t.String(),
           date: t.Optional(t.String()),
           amount: t.Number(),
-          late_minus_sum: t.Number(),
+          late_minus_sum: t.Optional(t.Number()),
+          work_hours: t.Integer({ minimum: MIN_WORK_HOURS, maximum: MAX_WORK_HOURS }),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),
@@ -157,7 +162,8 @@ export const DailyGarantController = new Elysia({
           name: t.String(),
           date: t.Optional(t.String()),
           amount: t.Number(),
-          late_minus_sum: t.Number(),
+          late_minus_sum: t.Optional(t.Number()),
+          work_hours: t.Integer({ minimum: MIN_WORK_HOURS, maximum: MAX_WORK_HOURS }),
         }),
         fields: t.Optional(t.Array(t.String())),
       }),

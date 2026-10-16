@@ -21,8 +21,12 @@ export const BUSINESS_TIMEZONE = "Asia/Tashkent";
 /** Расписание хранится на 6 ч раньше местного времени ("10:00 - 22:00" лежит как 04:00-16:00). */
 export const SCHEDULE_OFFSET_MINUTES = 6 * 60;
 
-/** Минут опоздания, за которые снимается один штраф. */
-export const LATE_PENALTY_STEP_MINUTES = 30;
+/** Опоздание до 30 минут включительно не штрафуется. */
+export const LATE_GRACE_MINUTES = 30;
+
+/** Часов в смене по тарифу: допустимый диапазон. */
+export const MIN_WORK_HOURS = 1;
+export const MAX_WORK_HOURS = 24;
 
 /**
  * Предел ручной корректировки, сумы. Больше гаранта (сейчас максимум
@@ -53,21 +57,32 @@ export function businessDayWindow(day: string, workEndHour: number): { start: Da
   return { start: start.toDate(), end: start.add(1, "day").toDate() };
 }
 
-/** Опоздание к началу смены, в минутах; 0 — если пришёл вовремя. */
-export function lateMinutes(shiftStart: Date | string, maxStartTime: string, day: string): number {
+/**
+ * Опоздание к началу смены по графику (start_time, хранится со сдвигом
+ * SCHEDULE_OFFSET_MINUTES), в минутах; 0 — если пришёл вовремя.
+ */
+export function lateMinutes(shiftStart: Date | string, scheduleStartTime: string, day: string): number {
   const deadline = dayjs
     .tz(day, BUSINESS_TIMEZONE)
     .startOf("day")
-    .add(getMinutes(maxStartTime) + SCHEDULE_OFFSET_MINUTES, "minute");
+    .add(getMinutes(scheduleStartTime) + SCHEDULE_OFFSET_MINUTES, "minute");
   const diff = dayjs(shiftStart).diff(deadline, "minute");
   return diff > 0 ? diff : 0;
+}
+
+/**
+ * Сколько часов гаранта снять за опоздание. До 30 минут — ничего; больше —
+ * за каждый начатый час опоздания: 31–60 мин → 1 ч, 61–120 → 2 ч.
+ */
+export function latePenaltyHours(lateMinutes: number): number {
+  return lateMinutes > LATE_GRACE_MINUTES ? Math.ceil(lateMinutes / 60) : 0;
 }
 
 export type PayoutInput = {
   /** Сумма гаранта за день. */
   garantAmount: number;
-  /** Штраф за каждые полные 30 минут опоздания. */
-  lateMinusSum: number;
+  /** Фиксированных часов в смене по тарифу (12, 11…): час гаранта = сумма ÷ часы. */
+  workHours: number;
   /** Сколько курьер заработал за рабочий день. */
   earned: number;
   lateMinutes: number;
@@ -79,6 +94,10 @@ export type PayoutInput = {
 };
 
 export type PayoutResult = {
+  /** Стоимость часа гаранта. */
+  hourCost: number;
+  /** Сколько часов снято за опоздание. */
+  penaltyHours: number;
   penalty: number;
   /** Гарант после штрафа — столько курьер должен получить за день в сумме. */
   guaranteed: number;
@@ -92,18 +111,22 @@ export type PayoutResult = {
 
 /**
  * Доплата = (гарант − штраф) − заработок, но не меньше нуля.
- * Штраф берётся только за полные 30-минутные отрезки опоздания.
+ * Штраф — часы гаранта за опоздание (latePenaltyHours) × стоимость часа,
+ * а час = гарант ÷ фиксированные часы смены по тарифу.
  * Итог = доплата + ручная корректировка, тоже не меньше нуля: удержание
  * не может увести начисление в минус, а доплата за доп. часы начисляется,
  * даже если курьер заработал больше гаранта.
  */
-export function calculatePayout({ garantAmount, lateMinusSum, earned, lateMinutes, adjustment = 0 }: PayoutInput): PayoutResult {
-  const penalty = Math.floor(Math.max(0, lateMinutes) / LATE_PENALTY_STEP_MINUTES) * lateMinusSum;
+export function calculatePayout({ garantAmount, workHours, earned, lateMinutes, adjustment = 0 }: PayoutInput): PayoutResult {
+  const hours = Math.min(MAX_WORK_HOURS, Math.max(MIN_WORK_HOURS, workHours || MIN_WORK_HOURS));
+  const hourCost = Math.round(garantAmount / hours);
+  const penaltyHours = latePenaltyHours(lateMinutes);
+  const penalty = penaltyHours * hourCost;
   const guaranteed = Math.max(0, garantAmount - penalty);
   const payout = Math.max(0, Math.round(guaranteed - earned));
   const roundedAdjustment = Math.round(adjustment);
   const total = Math.max(0, payout + roundedAdjustment);
-  return { penalty, guaranteed, payout, adjustment: roundedAdjustment, total };
+  return { hourCost, penaltyHours, penalty, guaranteed, payout, adjustment: roundedAdjustment, total };
 }
 
 export type TerminalPoint = {

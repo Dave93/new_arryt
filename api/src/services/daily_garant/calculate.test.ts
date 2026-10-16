@@ -15,53 +15,69 @@ import {
 const WORK_END_HOUR = 4;
 
 describe("calculatePayout", () => {
+  // 270 000 за 12 часов → час гаранта 22 500
+  const garant = { garantAmount: 270_000, workHours: 12 };
+
   test("доплачивает разницу до гаранта", () => {
-    expect(calculatePayout({ garantAmount: 270_000, lateMinusSum: 11_250, earned: 180_000, lateMinutes: 0 }))
-      .toEqual({ penalty: 0, guaranteed: 270_000, payout: 90_000, adjustment: 0, total: 90_000 });
+    expect(calculatePayout({ ...garant, earned: 180_000, lateMinutes: 0 }))
+      .toEqual({ hourCost: 22_500, penaltyHours: 0, penalty: 0, guaranteed: 270_000, payout: 90_000, adjustment: 0, total: 90_000 });
   });
 
   test("ничего не доплачивает, если заработал больше гаранта", () => {
-    expect(calculatePayout({ garantAmount: 270_000, lateMinusSum: 11_250, earned: 300_000, lateMinutes: 0 }).payout)
-      .toBe(0);
+    expect(calculatePayout({ ...garant, earned: 300_000, lateMinutes: 0 }).payout).toBe(0);
   });
 
   test("ничего не доплачивает, если заработал ровно гарант", () => {
-    expect(calculatePayout({ garantAmount: 250_000, lateMinusSum: 10_000, earned: 250_000, lateMinutes: 0 }).payout)
-      .toBe(0);
+    expect(calculatePayout({ ...garant, earned: 270_000, lateMinutes: 0 }).payout).toBe(0);
   });
 
-  test("штраф только за полные 30 минут", () => {
-    const base = { garantAmount: 250_000, lateMinusSum: 10_000, earned: 0 };
-    expect(calculatePayout({ ...base, lateMinutes: 29 }).penalty).toBe(0);
-    expect(calculatePayout({ ...base, lateMinutes: 30 }).penalty).toBe(10_000);
-    expect(calculatePayout({ ...base, lateMinutes: 59 }).penalty).toBe(10_000);
-    expect(calculatePayout({ ...base, lateMinutes: 60 }).penalty).toBe(20_000);
+  test("опоздание до 30 минут включительно не штрафуется", () => {
+    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 30 }).penalty).toBe(0);
+  });
+
+  test("больше 30 минут — минус час гаранта", () => {
+    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 31 }).penalty).toBe(22_500);
+    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 60 }).penalty).toBe(22_500);
+  });
+
+  test("каждый начатый час опоздания — ещё час", () => {
+    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 61 }).penaltyHours).toBe(2);
+    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 120 }).penaltyHours).toBe(2);
+    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 121 }).penalty).toBe(67_500);
+  });
+
+  test("час гаранта зависит от часов смены по тарифу", () => {
+    // 220 000 за 11 часов → 20 000 в час
+    expect(calculatePayout({ garantAmount: 220_000, workHours: 11, earned: 0, lateMinutes: 45 }))
+      .toMatchObject({ hourCost: 20_000, penalty: 20_000, guaranteed: 200_000 });
   });
 
   test("штраф уменьшает гарант, а не добавляется к заработку", () => {
-    // 250 000 − 2×10 000 = 230 000; заработал 200 000 → доплата 30 000
-    expect(calculatePayout({ garantAmount: 250_000, lateMinusSum: 10_000, earned: 200_000, lateMinutes: 65 }))
-      .toEqual({ penalty: 20_000, guaranteed: 230_000, payout: 30_000, adjustment: 0, total: 30_000 });
+    // 270 000 − 22 500 = 247 500; заработал 200 000 → доплата 47 500
+    expect(calculatePayout({ ...garant, earned: 200_000, lateMinutes: 40 }).payout).toBe(47_500);
   });
 
   test("штраф больше гаранта не уводит доплату в минус", () => {
-    expect(calculatePayout({ garantAmount: 100_000, lateMinusSum: 10_000, earned: 0, lateMinutes: 600 }))
-      .toEqual({ penalty: 200_000, guaranteed: 0, payout: 0, adjustment: 0, total: 0 });
+    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 20 * 60 }))
+      .toMatchObject({ guaranteed: 0, payout: 0, total: 0 });
   });
 
   test("ни одного заказа за день — доплачивается весь гарант", () => {
-    expect(calculatePayout({ garantAmount: 270_000, lateMinusSum: 11_250, earned: 0, lateMinutes: 0 }).payout)
-      .toBe(270_000);
+    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 0 }).payout).toBe(270_000);
   });
 
   test("доплата округляется до целых сумов", () => {
-    expect(calculatePayout({ garantAmount: 100_000, lateMinusSum: 0, earned: 33_333.6, lateMinutes: 0 }).payout)
+    expect(calculatePayout({ garantAmount: 100_000, workHours: 12, earned: 33_333.6, lateMinutes: 0 }).payout)
       .toBe(66_666);
+  });
+
+  test("часы смены вне диапазона не ломают расчёт", () => {
+    expect(calculatePayout({ garantAmount: 120_000, workHours: 0, earned: 0, lateMinutes: 45 }).hourCost).toBe(120_000);
   });
 });
 
 describe("ручная корректировка", () => {
-  const base = { garantAmount: 270_000, lateMinusSum: 11_250, lateMinutes: 0 };
+  const base = { garantAmount: 270_000, workHours: 12, lateMinutes: 0 };
 
   test("плюс доплачивает сверх гаранта за доп. часы", () => {
     const r = calculatePayout({ ...base, earned: 180_000, adjustment: 40_000 });
@@ -84,7 +100,7 @@ describe("ручная корректировка", () => {
   });
 
   test("корректировка не трогает гарант и штраф", () => {
-    const r = calculatePayout({ ...base, earned: 0, lateMinutes: 60, adjustment: 10_000 });
+    const r = calculatePayout({ ...base, earned: 0, lateMinutes: 45, adjustment: 10_000 });
     expect(r.penalty).toBe(22_500);
     expect(r.guaranteed).toBe(247_500);
     expect(r.total).toBe(257_500);
@@ -129,18 +145,18 @@ describe("рабочий день", () => {
 });
 
 describe("lateMinutes", () => {
-  // Смена "10:00 - 22:00": крайний срок отметки в базе 04:30 → 10:30 по Ташкенту
-  test("пришёл до крайнего срока — не опоздал", () => {
-    expect(lateMinutes("2026-10-16T10:26:00+05:00", "04:30:00", "2026-10-16")).toBe(0);
+  // Смена "10:00 - 22:00": начало в базе 04:00 → 10:00 по Ташкенту
+  test("пришёл к началу смены — не опоздал", () => {
+    expect(lateMinutes("2026-10-16T09:58:00+05:00", "04:00:00", "2026-10-16")).toBe(0);
   });
 
-  test("пришёл после крайнего срока — минуты опоздания", () => {
-    expect(lateMinutes("2026-10-16T10:47:00+05:00", "04:30:00", "2026-10-16")).toBe(17);
+  test("пришёл позже — минуты от начала смены", () => {
+    expect(lateMinutes("2026-10-16T10:47:00+05:00", "04:00:00", "2026-10-16")).toBe(47);
   });
 
   test("ночная смена считается от своего рабочего дня", () => {
-    // "15:00-03:00": срок 09:30 в базе → 15:30; открыл в 00:20 следующих суток
-    expect(lateMinutes("2026-10-17T00:20:00+05:00", "09:30:00", "2026-10-16")).toBe(530);
+    // "15:00-03:00": начало 09:00 в базе → 15:00; открыл в 00:20 следующих суток
+    expect(lateMinutes("2026-10-17T00:20:00+05:00", "09:00:00", "2026-10-16")).toBe(560);
   });
 });
 

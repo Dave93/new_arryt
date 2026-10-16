@@ -121,7 +121,10 @@ export const daily_garant = pgTable("daily_garant", {
 	name: text("name").notNull(),
 	date: time("date").notNull(),
 	amount: doublePrecision("amount").notNull(),
-	late_minus_sum: doublePrecision("late_minus_sum").notNull(),
+	// Больше не используется: штраф за опоздание считается часами гаранта (work_hours).
+	late_minus_sum: doublePrecision("late_minus_sum").default(0).notNull(),
+	// Фиксированных часов в смене по тарифу: час гаранта = amount ÷ work_hours.
+	work_hours: integer("work_hours").default(12).notNull(),
 	created_at: timestamp("created_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	// Удаление тарифа — архивное: на него ссылаются курьеры и история daily_garant_tasks.

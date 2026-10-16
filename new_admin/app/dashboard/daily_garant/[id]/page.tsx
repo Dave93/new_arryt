@@ -123,8 +123,11 @@ export default function DailyGarantShow() {
                 <p className="mt-1">{new Intl.NumberFormat("ru-RU").format(dailyGarant.amount || 0)}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Сумма штрафа</h3>
-                <p className="mt-1">{new Intl.NumberFormat("ru-RU").format(dailyGarant.late_minus_sum || 0)}</p>
+                <h3 className="text-sm font-medium text-muted-foreground">Часов в смене</h3>
+                <p className="mt-1">
+                  {dailyGarant.work_hours} ч · час гаранта{" "}
+                  {new Intl.NumberFormat("ru-RU").format(Math.round((dailyGarant.amount || 0) / (dailyGarant.work_hours || 12)))}
+                </p>
               </div>
             </div>
           </div>

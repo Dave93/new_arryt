@@ -30,7 +30,7 @@ interface DailyGarant {
   id: string;
   name: string;
   amount: number;
-  late_minus_sum: number;
+  work_hours: number;
   created_at: string;
 }
 
@@ -52,11 +52,19 @@ const columns: ColumnDef<DailyGarant>[] = [
     },
   },
   {
-    accessorKey: "late_minus_sum",
-    header: "Сумма штрафа",
+    accessorKey: "work_hours",
+    header: "Часов в смене",
     cell: ({ row }) => {
-      const penalty = row.getValue("late_minus_sum");
-      return <div>{new Intl.NumberFormat("ru-RU").format(Number(penalty))}</div>;
+      const hours = Number(row.getValue("work_hours")) || 12;
+      const hourCost = Math.round(Number(row.original.amount) / hours);
+      return (
+        <div>
+          {hours} ч{" "}
+          <span className="text-muted-foreground">
+            · {new Intl.NumberFormat("ru-RU").format(hourCost)}/ч
+          </span>
+        </div>
+      );
     },
   },
   {
@@ -172,7 +180,7 @@ export default function DailyGarantList() {
 
         const {data: response} = await apiClient.api.daily_garant.get({
           query: {
-            fields: "id,name,amount,late_minus_sum,created_at",
+            fields: "id,name,amount,work_hours,created_at",
             limit: pagination.pageSize.toString(),
             offset: (pagination.pageIndex * pagination.pageSize).toString(),
             sort: JSON.stringify([
