@@ -35,6 +35,9 @@ type Settlement = {
   unfinishedOrders?: number;
 };
 
+/** Предел корректировки — совпадает с MAX_GARANT_ADJUSTMENT на сервере. */
+const MAX_ADJUSTMENT = 1_000_000;
+
 const sum = (n?: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n ?? 0));
 
 /** Причины, при которых начислить нельзя совсем — даже с корректировкой. */
@@ -91,11 +94,13 @@ export function DailyGarantDialog({
 
   const blockedText = preview?.reason ? BLOCKING_REASONS[preview.reason] : undefined;
   const payout = preview?.payout ?? 0;
-  const amountNumber = Number(amount.replace(/\s/g, "")) || 0;
-  const adjustment = sign * amountNumber;
+  const amountNumber = Number(amount) || 0;
+  const amountTooLarge = amountNumber > MAX_ADJUSTMENT;
+  const adjustment = amountTooLarge ? 0 : sign * amountNumber;
   const total = Math.max(0, payout + adjustment);
   const needsComment = adjustment !== 0 && !comment.trim();
-  const canSubmit = !!preview && !blockedText && total > 0 && !needsComment && !isSubmitting;
+  const canSubmit =
+    !!preview && !blockedText && total > 0 && !amountTooLarge && !needsComment && !isSubmitting;
 
   const submit = async () => {
     setIsSubmitting(true);
@@ -145,6 +150,7 @@ export function DailyGarantDialog({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
+          {/* min-w-0 по всей цепочке: иначе длинное число распирает сетку окна */}
           <DialogHeader>
             <DialogTitle>Дневной гарант</DialogTitle>
             <DialogDescription>
@@ -162,7 +168,7 @@ export function DailyGarantDialog({
               {blockedText}
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="min-w-0 space-y-5">
               {!!preview.unfinishedOrders && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                   У курьера {preview.unfinishedOrders} незавершённ
@@ -208,9 +214,10 @@ export function DailyGarantDialog({
                   <Input
                     inputMode="numeric"
                     placeholder="0"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value.replace(/[^\d\s]/g, ""))}
-                    className="flex-1"
+                    value={amount ? sum(Number(amount)) : ""}
+                    onChange={(e) => setAmount(e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 7))}
+                    aria-invalid={amountTooLarge}
+                    className={cn("min-w-0 flex-1 tabular-nums", amountTooLarge && "border-destructive")}
                   />
                 </div>
                 <Textarea
@@ -221,14 +228,17 @@ export function DailyGarantDialog({
                   rows={2}
                   className={cn(needsComment && amount && "border-amber-400")}
                 />
-                {needsComment && amount && (
+                {amountTooLarge && (
+                  <p className="text-xs text-destructive">Не больше {sum(MAX_ADJUSTMENT)} сум</p>
+                )}
+                {needsComment && amount && !amountTooLarge && (
                   <p className="text-xs text-amber-700">Укажите причину корректировки</p>
                 )}
               </div>
 
-              <div className="flex items-baseline justify-between rounded-lg bg-muted px-4 py-3">
-                <span className="text-sm text-muted-foreground">Итог к начислению</span>
-                <span className="text-xl font-semibold tabular-nums">{sum(total)} сум</span>
+              <div className="flex items-baseline justify-between gap-4 rounded-lg bg-muted px-4 py-3">
+                <span className="shrink-0 text-sm text-muted-foreground">Итог к начислению</span>
+                <span className="min-w-0 truncate text-xl font-semibold tabular-nums">{sum(total)} сум</span>
               </div>
             </div>
           )}
@@ -250,9 +260,9 @@ export function DailyGarantDialog({
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className={cn("tabular-nums", strong && "font-semibold text-foreground")}>{value}</dd>
+    <div className="flex min-w-0 items-baseline justify-between gap-4">
+      <dt className="min-w-0 text-muted-foreground">{label}</dt>
+      <dd className={cn("shrink-0 tabular-nums", strong && "font-semibold text-foreground")}>{value}</dd>
     </div>
   );
 }
