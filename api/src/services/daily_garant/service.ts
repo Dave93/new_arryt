@@ -58,6 +58,8 @@ export type SettleResult = {
   /** Незавершённых заказов за день — не входят в заработок. */
   unfinishedOrders?: number;
   terminalId?: string;
+  /** Филиал, на баланс курьера в котором уходит начисление. */
+  terminalName?: string;
   transactionId?: string;
 };
 
@@ -270,14 +272,14 @@ export async function settleDailyGarant(
     if (total <= 0) {
       const existingZero = await findExistingPayment(db, courierId, day, startIso, endIso);
       return existingZero
-        ? { ...calc, status: "skipped", reason: "already_paid", terminalId: terminal.id, transactionId: existingZero.id }
-        : { ...calc, status: "skipped", reason: "earned_enough", terminalId: terminal.id };
+        ? { ...calc, status: "skipped", reason: "already_paid", terminalId: terminal.id, terminalName: terminal.name, transactionId: existingZero.id }
+        : { ...calc, status: "skipped", reason: "earned_enough", terminalId: terminal.id, terminalName: terminal.name };
     }
     const existing = await findExistingPayment(db, courierId, day, startIso, endIso);
     if (existing) {
-      return { ...calc, status: "skipped", reason: "already_paid", terminalId: terminal.id, transactionId: existing.id };
+      return { ...calc, status: "skipped", reason: "already_paid", terminalId: terminal.id, terminalName: terminal.name, transactionId: existing.id };
     }
-    return { ...calc, status: "dry_run", terminalId: terminal.id };
+    return { ...calc, status: "dry_run", terminalId: terminal.id, terminalName: terminal.name };
   }
 
   return db.transaction(async (tx) => {
@@ -286,7 +288,7 @@ export async function settleDailyGarant(
 
     const existing = await findExistingPayment(tx, courierId, day, startIso, endIso);
     if (existing) {
-      return { ...calc, status: "skipped", reason: "already_paid", terminalId: terminal.id, transactionId: existing.id } as SettleResult;
+      return { ...calc, status: "skipped", reason: "already_paid", terminalId: terminal.id, terminalName: terminal.name, transactionId: existing.id } as SettleResult;
     }
 
     // Баланс увеличиваем в самом UPDATE: order_complete пишет его без транзакции,
@@ -330,7 +332,7 @@ export async function settleDailyGarant(
       })
       .returning({ id: order_transactions.id });
 
-    return { ...calc, status: "paid", terminalId: terminal.id, transactionId: transaction.id } as SettleResult;
+    return { ...calc, status: "paid", terminalId: terminal.id, terminalName: terminal.name, transactionId: transaction.id } as SettleResult;
   });
 }
 
@@ -345,10 +347,11 @@ async function resolvePayingTerminal(
   courierOrdersInDay: ReturnType<typeof and>,
   finishedIds: string[],
   firstShift: { lat_open: number; lon_open: number }
-): Promise<TerminalPoint | null> {
+): Promise<(TerminalPoint & { name: string }) | null> {
   const all = await db
     .select({
       id: terminals.id,
+      name: terminals.name,
       organization_id: terminals.organization_id,
       latitude: terminals.latitude,
       longitude: terminals.longitude,
@@ -357,7 +360,7 @@ async function resolvePayingTerminal(
     .from(terminals)
     .where(eq(terminals.active, true));
 
-  let worked: TerminalPoint | undefined;
+  let worked: (typeof all)[number] | undefined;
   if (finishedIds.length) {
     const [lastOrder] = await db
       .select({ terminal_id: orders.terminal_id })

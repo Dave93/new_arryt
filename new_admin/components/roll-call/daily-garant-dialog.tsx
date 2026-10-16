@@ -33,6 +33,7 @@ type Settlement = {
   adjustment?: number;
   total?: number;
   unfinishedOrders?: number;
+  terminalName?: string;
 };
 
 /** Предел корректировки — совпадает с MAX_GARANT_ADJUSTMENT на сервере. */
@@ -236,9 +237,16 @@ export function DailyGarantDialog({
                 )}
               </div>
 
-              <div className="flex items-baseline justify-between gap-4 rounded-lg bg-muted px-4 py-3">
-                <span className="shrink-0 text-sm text-muted-foreground">Итог к начислению</span>
-                <span className="min-w-0 truncate text-xl font-semibold tabular-nums">{sum(total)} сум</span>
+              <div className="rounded-lg bg-muted px-4 py-3">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="shrink-0 text-sm text-muted-foreground">Итог к начислению</span>
+                  <span className="min-w-0 truncate text-xl font-semibold tabular-nums">{sum(total)} сум</span>
+                </div>
+                {preview.terminalName && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    На баланс курьера в филиале <span className="font-medium text-foreground">{preview.terminalName}</span> — выдаёт менеджер этого филиала
+                  </p>
+                )}
               </div>
             </div>
           )}
