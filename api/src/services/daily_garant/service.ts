@@ -32,7 +32,6 @@ import {
 export type SettleReason =
   | "no_garant"
   | "no_shift"
-  | "unfinished_orders"
   | "earned_enough"
   | "adjustment_comment_required"
   | "invalid_adjustment"
@@ -56,6 +55,8 @@ export type SettleResult = {
   adjustment?: number;
   /** Итог к начислению: payout + adjustment, не меньше нуля. */
   total?: number;
+  /** Незавершённых заказов за день — не входят в заработок. */
+  unfinishedOrders?: number;
   terminalId?: string;
   transactionId?: string;
 };
@@ -131,8 +132,8 @@ function normalizeDay(day: string): string {
  * Начисляет дневной гарант курьеру за рабочий день — одна функция и для
  * автоматического запуска при закрытии смены, и для кнопки в «Перекличке».
  *
- * Условия: курьеру назначен гарант, за день есть смена (может быть ещё
- * открыта), нет незавершённых заказов. Доплата = (гарант − штраф за опоздание) − заработок.
+ * Условия: курьеру назначен гарант и за день есть смена. Открытая смена и
+ * незавершённые заказы не мешают — заработок берётся на момент начисления. Доплата = (гарант − штраф за опоздание) − заработок.
  * Платит Les Ailes той же точки, см. pickPayingTerminal.
  *
  * Повторный вызов за тот же день безопасен: начисление и проверка «уже
@@ -209,14 +210,16 @@ export async function settleDailyGarant(
     lt(orders.created_at, endIso)
   );
 
+  // Незавершённые заказы не мешают начислению — их только считаем, чтобы
+  // предупредить: в заработок они не входят, поэтому доплата выйдет больше,
+  // чем станет, когда их закроют.
+  let unfinishedOrders = 0;
   if (unfinishedIds.length) {
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(orders)
       .where(and(courierOrdersInDay, inArray(orders.order_status_id, unfinishedIds)));
-    if (count > 0) {
-      return { ...base, ...garantInfo, status: "skipped", reason: "unfinished_orders" };
-    }
+    unfinishedOrders = count;
   }
 
   // Заработок: доставки по завершённым заказам + бонусы и ручные доплаты.
@@ -249,7 +252,7 @@ export async function settleDailyGarant(
     lateMinutes: late,
     adjustment,
   });
-  const calc = { ...base, ...garantInfo, earned, lateMinutes: late, penalty, payout, adjustment: adj, total };
+  const calc = { ...base, ...garantInfo, earned, lateMinutes: late, penalty, payout, adjustment: adj, total, unfinishedOrders };
   // Пробный расчёт показывается и при нулевом итоге: в модалке администратор
   // как раз решает, добавить ли доп. часы.
   if (adj !== 0 && !adjustmentComment?.trim() && !dryRun) {
@@ -322,7 +325,8 @@ export async function settleDailyGarant(
         created_by: createdBy,
         comment:
           `${commentPrefix(day)}: гарант ${garant.amount}, заработано ${Math.round(earned)}, штраф ${penalty} (опоздание ${late} мин), доплата ${payout}` +
-          (adj !== 0 ? `, корректировка ${adj > 0 ? "+" : ""}${adj}: ${adjustmentComment!.trim()}` : ""),
+          (adj !== 0 ? `, корректировка ${adj > 0 ? "+" : ""}${adj}: ${adjustmentComment!.trim()}` : "") +
+          (unfinishedOrders > 0 ? `, незавершённых заказов: ${unfinishedOrders}` : ""),
       })
       .returning({ id: order_transactions.id });
 

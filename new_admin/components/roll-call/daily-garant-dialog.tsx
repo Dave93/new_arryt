@@ -32,6 +32,7 @@ type Settlement = {
   payout?: number;
   adjustment?: number;
   total?: number;
+  unfinishedOrders?: number;
 };
 
 const sum = (n?: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n ?? 0));
@@ -40,7 +41,6 @@ const sum = (n?: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n ?
 const BLOCKING_REASONS: Record<string, string> = {
   no_garant: "Курьеру не назначен дневной гарант",
   no_shift: "В этот день у курьера не было смены",
-  unfinished_orders: "У курьера есть незавершённые заказы за этот день",
   no_terminal: "Не удалось определить филиал для начисления",
   already_paid: "Гарант за этот день уже начислен",
 };
@@ -163,6 +163,13 @@ export function DailyGarantDialog({
             </div>
           ) : (
             <div className="space-y-5">
+              {!!preview.unfinishedOrders && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  У курьера {preview.unfinishedOrders} незавершённ
+                  {preview.unfinishedOrders === 1 ? "ый заказ" : preview.unfinishedOrders < 5 ? "ых заказа" : "ых заказов"} за этот день.
+                  Они не учтены в заработке — доплата сейчас больше, чем будет после их закрытия.
+                </div>
+              )}
               <dl className="space-y-2 text-sm">
                 <Row label="Гарант" value={sum(preview.garantAmount)} />
                 <Row label="Заработано за день" value={`− ${sum(preview.earned)}`} />
