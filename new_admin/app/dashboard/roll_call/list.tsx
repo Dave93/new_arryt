@@ -8,7 +8,6 @@ import {
   CalendarIcon,
   RefreshCw,
   PhoneIcon,
-  Calculator,
   Users,
   Wifi,
   WifiOff,
@@ -18,6 +17,7 @@ import {
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { PageTitle } from "@/components/page-title";
+import { DailyGarantDialog } from "@/components/roll-call/daily-garant-dialog";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { apiClient } from "../../../lib/eden-client";
 import {
@@ -85,87 +85,6 @@ const driveTypeIcons: Record<string, string> = {
   bycicle: "🚲",
   foot: "🚶",
 };
-
-/** Понятная оператору причина, почему гарант за день не начислен. */
-function dailyGarantReasonText(
-  reason: string | undefined,
-  data: { garantAmount?: number; earned?: number; penalty?: number },
-): string {
-  const sum = (n?: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n ?? 0));
-  switch (reason) {
-    case "no_garant":
-      return "Курьеру не назначен дневной гарант";
-    case "no_shift":
-      return "В этот день у курьера не было смены";
-    case "shift_still_open":
-      return "Смена ещё открыта — гарант считается после закрытия";
-    case "unfinished_orders":
-      return "У курьера есть незавершённые заказы за этот день";
-    case "earned_enough":
-      return `Заработал ${sum(data.earned)} — не меньше гаранта ${sum(data.garantAmount)}` +
-        (data.penalty ? ` с учётом штрафа ${sum(data.penalty)}` : "");
-    case "no_terminal":
-      return "Не удалось определить филиал для начисления";
-    case "already_paid":
-      return "Гарант за этот день уже начислен";
-    default:
-      return "Причина неизвестна";
-  }
-}
-
-function DailyGarantButton({
-  day,
-  user_id,
-  onSuccess,
-}: {
-  day: Date;
-  user_id: string;
-  onSuccess?: () => void;
-}) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const setDailyGarant = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await apiClient.api.couriers.try_set_daily_garant.post({
-        day: day.toISOString(),
-        courier_id: user_id,
-      });
-      if (error || !data) {
-        toast.error("Ошибка при начислении дневной гарантии");
-        return;
-      }
-      const sum = (n?: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n ?? 0));
-      if (data.status === "paid") {
-        toast.success(`Дневной гарант начислен: ${sum(data.payout)} сум`, {
-          description: `Гарант ${sum(data.garantAmount)}, заработано ${sum(data.earned)}, штраф ${sum(data.penalty)}`,
-        });
-        if (onSuccess) onSuccess();
-      } else {
-        toast.info("Дневной гарант не начислен", {
-          description: dailyGarantReasonText(data.reason, data),
-        });
-      }
-    } catch (error) {
-      toast.error("Ошибка при начислении дневной гарантии");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-7 w-7 text-muted-foreground hover:text-primary"
-      disabled={isLoading}
-      onClick={setDailyGarant}
-      title="Установить дневную гарантию"
-    >
-      <Calculator className="h-3.5 w-3.5" />
-    </Button>
-  );
-}
 
 function CourierRow({
   courier,
@@ -263,9 +182,10 @@ function CourierRow({
           </Button>
         )}
         {courier.daily_garant_id && (
-          <DailyGarantButton
+          <DailyGarantDialog
             day={date}
-            user_id={courier.id}
+            courierId={courier.id}
+            courierName={[courier.first_name, courier.last_name].filter(Boolean).join(" ")}
             onSuccess={onRefetch}
           />
         )}

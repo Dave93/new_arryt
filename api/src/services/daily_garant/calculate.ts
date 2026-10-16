@@ -60,25 +60,39 @@ export type PayoutInput = {
   /** Сколько курьер заработал за рабочий день. */
   earned: number;
   lateMinutes: number;
+  /**
+   * Ручная корректировка администратора, сумы: плюс — доплата за часы вне
+   * гаранта, минус — удержание. Применяется к доплате, а не к гаранту.
+   */
+  adjustment?: number;
 };
 
 export type PayoutResult = {
   penalty: number;
   /** Гарант после штрафа — столько курьер должен получить за день в сумме. */
   guaranteed: number;
-  /** Доплата до гаранта; 0 — если заработал не меньше. */
+  /** Доплата до гаранта по расчёту, без корректировки; 0 — если заработал не меньше. */
   payout: number;
+  /** Корректировка, как её задал администратор (0, если не задана). */
+  adjustment: number;
+  /** Итог к начислению: доплата + корректировка, не меньше нуля. */
+  total: number;
 };
 
 /**
  * Доплата = (гарант − штраф) − заработок, но не меньше нуля.
  * Штраф берётся только за полные 30-минутные отрезки опоздания.
+ * Итог = доплата + ручная корректировка, тоже не меньше нуля: удержание
+ * не может увести начисление в минус, а доплата за доп. часы начисляется,
+ * даже если курьер заработал больше гаранта.
  */
-export function calculatePayout({ garantAmount, lateMinusSum, earned, lateMinutes }: PayoutInput): PayoutResult {
+export function calculatePayout({ garantAmount, lateMinusSum, earned, lateMinutes, adjustment = 0 }: PayoutInput): PayoutResult {
   const penalty = Math.floor(Math.max(0, lateMinutes) / LATE_PENALTY_STEP_MINUTES) * lateMinusSum;
   const guaranteed = Math.max(0, garantAmount - penalty);
   const payout = Math.max(0, Math.round(guaranteed - earned));
-  return { penalty, guaranteed, payout };
+  const roundedAdjustment = Math.round(adjustment);
+  const total = Math.max(0, payout + roundedAdjustment);
+  return { penalty, guaranteed, payout, adjustment: roundedAdjustment, total };
 }
 
 export type TerminalPoint = {

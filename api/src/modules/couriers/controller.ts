@@ -1757,6 +1757,8 @@ export const CouriersController = new Elysia({
         courierId: body.courier_id,
         day: body.day,
         dryRun: body.dry_run,
+        adjustment: body.adjustment,
+        adjustmentComment: body.adjustment_comment,
         // @ts-ignore
         createdBy: user?.user?.id,
       }
@@ -1767,6 +1769,8 @@ export const CouriersController = new Elysia({
       day: t.String(),
       courier_id: t.String(),
       dry_run: t.Optional(t.Boolean()),
+      adjustment: t.Optional(t.Number()),
+      adjustment_comment: t.Optional(t.String({ maxLength: 300 })),
     }),
   })
   .post('/api/couriers/efficiency', async ({ body: { startDate, endDate, courier_id, terminal_id, status }, drizzle, user, set, cacheControl }) => {

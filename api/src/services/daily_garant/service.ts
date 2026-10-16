@@ -31,9 +31,9 @@ import {
 export type SettleReason =
   | "no_garant"
   | "no_shift"
-  | "shift_still_open"
   | "unfinished_orders"
   | "earned_enough"
+  | "adjustment_comment_required"
   | "no_terminal"
   | "already_paid";
 
@@ -48,7 +48,12 @@ export type SettleResult = {
   earned?: number;
   lateMinutes?: number;
   penalty?: number;
+  /** Доплата до гаранта по расчёту, без корректировки. */
   payout?: number;
+  /** Ручная корректировка администратора. */
+  adjustment?: number;
+  /** Итог к начислению: payout + adjustment, не меньше нуля. */
+  total?: number;
   terminalId?: string;
   transactionId?: string;
 };
@@ -61,6 +66,10 @@ export type SettleParams = {
   dryRun?: boolean;
   /** Кто начислил (оператор при ручном запуске). */
   createdBy?: string;
+  /** Ручная корректировка, сумы: плюс — доп. часы вне гаранта, минус — удержание. */
+  adjustment?: number;
+  /** Причина корректировки; обязательна, если корректировка не нулевая. */
+  adjustmentComment?: string;
 };
 
 export type SettleDeps = {
@@ -120,8 +129,8 @@ function normalizeDay(day: string): string {
  * Начисляет дневной гарант курьеру за рабочий день — одна функция и для
  * автоматического запуска при закрытии смены, и для кнопки в «Перекличке».
  *
- * Условия: курьеру назначен гарант, за день есть смена и она закрыта, нет
- * незавершённых заказов. Доплата = (гарант − штраф за опоздание) − заработок.
+ * Условия: курьеру назначен гарант, за день есть смена (может быть ещё
+ * открыта), нет незавершённых заказов. Доплата = (гарант − штраф за опоздание) − заработок.
  * Платит Les Ailes той же точки, см. pickPayingTerminal.
  *
  * Повторный вызов за тот же день безопасен: начисление и проверка «уже
@@ -129,7 +138,7 @@ function normalizeDay(day: string): string {
  */
 export async function settleDailyGarant(
   { db, redis, cacheControl }: SettleDeps,
-  { courierId, day: dayParam, dryRun = false, createdBy }: SettleParams
+  { courierId, day: dayParam, dryRun = false, createdBy, adjustment = 0, adjustmentComment }: SettleParams
 ): Promise<SettleResult> {
   const workEndHour = settingHour(await getSetting(redis, "work_end_time"), 4);
   const day = dayParam ? normalizeDay(dayParam) : businessDayOf(new Date(), workEndHour);
@@ -179,9 +188,9 @@ export async function settleDailyGarant(
   if (shifts.length === 0) {
     return { ...base, ...garantInfo, status: "skipped", reason: "no_shift" };
   }
-  if (shifts.some((s) => s.current_status === "open")) {
-    return { ...base, ...garantInfo, status: "skipped", reason: "shift_still_open" };
-  }
+  // Открытая смена не мешает: администратор может начислить гарант, не
+  // дожидаясь закрытия. Заработок берётся на момент начисления — если курьер
+  // потом ещё заработает, автозапуск увидит «уже начислено» и не пересчитает.
   const firstShift = shifts[0];
 
   const statuses = await cacheControl.getOrderStatuses();
@@ -226,14 +235,20 @@ export async function settleDailyGarant(
   const earned = Number(deliveries) + Number(extras);
 
   const late = firstShift.max_start_time ? lateMinutes(firstShift.date_start, firstShift.max_start_time, day) : 0;
-  const { penalty, payout } = calculatePayout({
+  const { penalty, payout, adjustment: adj, total } = calculatePayout({
     garantAmount: garant.amount,
     lateMinusSum: garant.late_minus_sum,
     earned,
     lateMinutes: late,
+    adjustment,
   });
-  const calc = { ...base, ...garantInfo, earned, lateMinutes: late, penalty, payout };
-  if (payout <= 0) {
+  const calc = { ...base, ...garantInfo, earned, lateMinutes: late, penalty, payout, adjustment: adj, total };
+  // Пробный расчёт показывается и при нулевом итоге: в модалке администратор
+  // как раз решает, добавить ли доп. часы.
+  if (adj !== 0 && !adjustmentComment?.trim() && !dryRun) {
+    return { ...calc, status: "skipped", reason: "adjustment_comment_required" };
+  }
+  if (total <= 0 && !dryRun) {
     return { ...calc, status: "skipped", reason: "earned_enough" };
   }
 
@@ -242,6 +257,12 @@ export async function settleDailyGarant(
     return { ...calc, status: "skipped", reason: "no_terminal" };
   }
   if (dryRun) {
+    if (total <= 0) {
+      const existingZero = await findExistingPayment(db, courierId, day, startIso, endIso);
+      return existingZero
+        ? { ...calc, status: "skipped", reason: "already_paid", terminalId: terminal.id, transactionId: existingZero.id }
+        : { ...calc, status: "skipped", reason: "earned_enough", terminalId: terminal.id };
+    }
     const existing = await findExistingPayment(db, courierId, day, startIso, endIso);
     if (existing) {
       return { ...calc, status: "skipped", reason: "already_paid", terminalId: terminal.id, transactionId: existing.id };
@@ -262,7 +283,7 @@ export async function settleDailyGarant(
     // и «прочитать → прибавить → записать» здесь могло бы затереть его начисление.
     const [updated] = await tx
       .update(courier_terminal_balance)
-      .set({ balance: sql`${courier_terminal_balance.balance} + ${payout}` })
+      .set({ balance: sql`${courier_terminal_balance.balance} + ${total}` })
       .where(and(eq(courier_terminal_balance.courier_id, courierId), eq(courier_terminal_balance.terminal_id, terminal.id)))
       .returning({ balance: courier_terminal_balance.balance });
     let balanceAfter: number;
@@ -273,10 +294,10 @@ export async function settleDailyGarant(
         courier_id: courierId,
         terminal_id: terminal.id,
         organization_id: terminal.organization_id,
-        balance: payout,
+        balance: total,
         created_by: createdBy,
       });
-      balanceAfter = payout;
+      balanceAfter = total;
     }
 
     const [transaction] = await tx
@@ -284,15 +305,17 @@ export async function settleDailyGarant(
       .values({
         transaction_type: "daily_garant",
         transaction_payment_type: "cash",
-        amount: payout,
-        not_paid_amount: payout,
+        amount: total,
+        not_paid_amount: total,
         courier_id: courierId,
         terminal_id: terminal.id,
         organization_id: terminal.organization_id,
-        balance_before: balanceAfter - payout,
+        balance_before: balanceAfter - total,
         balance_after: balanceAfter,
         created_by: createdBy,
-        comment: `${commentPrefix(day)}: гарант ${garant.amount}, заработано ${Math.round(earned)}, штраф ${penalty} (опоздание ${late} мин)`,
+        comment:
+          `${commentPrefix(day)}: гарант ${garant.amount}, заработано ${Math.round(earned)}, штраф ${penalty} (опоздание ${late} мин), доплата ${payout}` +
+          (adj !== 0 ? `, корректировка ${adj > 0 ? "+" : ""}${adj}: ${adjustmentComment!.trim()}` : ""),
       })
       .returning({ id: order_transactions.id });
 

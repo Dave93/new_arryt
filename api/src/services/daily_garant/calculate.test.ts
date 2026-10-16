@@ -15,7 +15,7 @@ const WORK_END_HOUR = 4;
 describe("calculatePayout", () => {
   test("доплачивает разницу до гаранта", () => {
     expect(calculatePayout({ garantAmount: 270_000, lateMinusSum: 11_250, earned: 180_000, lateMinutes: 0 }))
-      .toEqual({ penalty: 0, guaranteed: 270_000, payout: 90_000 });
+      .toEqual({ penalty: 0, guaranteed: 270_000, payout: 90_000, adjustment: 0, total: 90_000 });
   });
 
   test("ничего не доплачивает, если заработал больше гаранта", () => {
@@ -39,12 +39,12 @@ describe("calculatePayout", () => {
   test("штраф уменьшает гарант, а не добавляется к заработку", () => {
     // 250 000 − 2×10 000 = 230 000; заработал 200 000 → доплата 30 000
     expect(calculatePayout({ garantAmount: 250_000, lateMinusSum: 10_000, earned: 200_000, lateMinutes: 65 }))
-      .toEqual({ penalty: 20_000, guaranteed: 230_000, payout: 30_000 });
+      .toEqual({ penalty: 20_000, guaranteed: 230_000, payout: 30_000, adjustment: 0, total: 30_000 });
   });
 
   test("штраф больше гаранта не уводит доплату в минус", () => {
     expect(calculatePayout({ garantAmount: 100_000, lateMinusSum: 10_000, earned: 0, lateMinutes: 600 }))
-      .toEqual({ penalty: 200_000, guaranteed: 0, payout: 0 });
+      .toEqual({ penalty: 200_000, guaranteed: 0, payout: 0, adjustment: 0, total: 0 });
   });
 
   test("ни одного заказа за день — доплачивается весь гарант", () => {
@@ -55,6 +55,37 @@ describe("calculatePayout", () => {
   test("доплата округляется до целых сумов", () => {
     expect(calculatePayout({ garantAmount: 100_000, lateMinusSum: 0, earned: 33_333.6, lateMinutes: 0 }).payout)
       .toBe(66_666);
+  });
+});
+
+describe("ручная корректировка", () => {
+  const base = { garantAmount: 270_000, lateMinusSum: 11_250, lateMinutes: 0 };
+
+  test("плюс доплачивает сверх гаранта за доп. часы", () => {
+    const r = calculatePayout({ ...base, earned: 180_000, adjustment: 40_000 });
+    expect(r.payout).toBe(90_000);
+    expect(r.total).toBe(130_000);
+  });
+
+  test("минус удерживает из доплаты", () => {
+    expect(calculatePayout({ ...base, earned: 180_000, adjustment: -30_000 }).total).toBe(60_000);
+  });
+
+  test("удержание больше доплаты не уводит итог в минус", () => {
+    expect(calculatePayout({ ...base, earned: 180_000, adjustment: -500_000 }).total).toBe(0);
+  });
+
+  test("доп. часы начисляются, даже если гарант уже заработан", () => {
+    const r = calculatePayout({ ...base, earned: 300_000, adjustment: 25_000 });
+    expect(r.payout).toBe(0);
+    expect(r.total).toBe(25_000);
+  });
+
+  test("корректировка не трогает гарант и штраф", () => {
+    const r = calculatePayout({ ...base, earned: 0, lateMinutes: 60, adjustment: 10_000 });
+    expect(r.penalty).toBe(22_500);
+    expect(r.guaranteed).toBe(247_500);
+    expect(r.total).toBe(257_500);
   });
 });
 
