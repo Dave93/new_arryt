@@ -121,12 +121,14 @@ export const DailyGarantController = new Elysia({
       }
       // "Время начисления" больше не используется (гарант считается по смене),
       // но колонка в базе NOT NULL — ставим заглушку.
-      const result = await drizzle
+      const query = drizzle
         .insert(daily_garant)
-        .values({ ...data, date: data.date || "00:00:00" })
-        // Пустой selectFields даёт "RETURNING" без колонок — ошибка Postgres
-        // "syntax error at end of input"; без fields возвращаем всю строку.
-        .returning(Object.keys(selectFields).length ? (selectFields as typeof daily_garant._.columns) : daily_garant._.columns);
+        .values({ ...data, date: data.date || "00:00:00" });
+      // returning({}) даёт "RETURNING" без колонок — ошибка Postgres
+      // "syntax error at end of input"; без fields возвращаем всю строку.
+      const result = Object.keys(selectFields).length
+        ? await query.returning(selectFields)
+        : await query.returning();
       // Форма курьера берёт тарифы из кэша — без этого новый тариф там не виден.
       await cacheControl.cacheDailyGarant();
 
@@ -168,13 +170,14 @@ export const DailyGarantController = new Elysia({
         }
       }
 
-      const result = await drizzle
+      const query = drizzle
         .update(daily_garant)
         .set({ ...data, updated_at: new Date().toISOString() })
-        .where(eq(daily_garant.id, id))
-        // Пустой selectFields даёт "RETURNING" без колонок — ошибка Postgres
-        // "syntax error at end of input"; без fields возвращаем всю строку.
-        .returning(Object.keys(selectFields).length ? (selectFields as typeof daily_garant._.columns) : daily_garant._.columns);
+        .where(eq(daily_garant.id, id));
+      // См. create: returning({}) ломает запрос.
+      const result = Object.keys(selectFields).length
+        ? await query.returning(selectFields)
+        : await query.returning();
       await cacheControl.cacheDailyGarant();
 
       return {
