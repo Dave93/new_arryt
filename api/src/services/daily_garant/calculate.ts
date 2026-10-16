@@ -24,6 +24,17 @@ export const SCHEDULE_OFFSET_MINUTES = 6 * 60;
 /** Минут опоздания, за которые снимается один штраф. */
 export const LATE_PENALTY_STEP_MINUTES = 30;
 
+/**
+ * Предел ручной корректировки, сумы. Больше гаранта (сейчас максимум
+ * 270 000) корректировка не бывает по смыслу; запас — на доп. часы.
+ */
+export const MAX_GARANT_ADJUSTMENT = 1_000_000;
+
+/** Корректировка должна быть конечным числом в пределах ±MAX_GARANT_ADJUSTMENT. */
+export function isValidAdjustment(adjustment: unknown): adjustment is number {
+  return typeof adjustment === "number" && Number.isFinite(adjustment) && Math.abs(adjustment) <= MAX_GARANT_ADJUSTMENT;
+}
+
 /** Терминалы двух брендов ближе этого расстояния считаются одной точкой. */
 export const SAME_POINT_RADIUS_METERS = 100;
 

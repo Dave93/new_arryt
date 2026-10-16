@@ -21,6 +21,7 @@ import {
   businessDayOf,
   businessDayWindow,
   calculatePayout,
+  isValidAdjustment,
   distanceMeters,
   lateMinutes,
   pickPayingTerminal,
@@ -34,6 +35,7 @@ export type SettleReason =
   | "unfinished_orders"
   | "earned_enough"
   | "adjustment_comment_required"
+  | "invalid_adjustment"
   | "no_terminal"
   | "already_paid";
 
@@ -146,6 +148,11 @@ export async function settleDailyGarant(
   const startIso = start.toISOString();
   const endIso = end.toISOString();
   const base = { courierId, day };
+  // Схема эндпоинта уже ограничивает корректировку; сервис зовут и другие
+  // места, поэтому проверяем здесь ещё раз — это деньги.
+  if (!isValidAdjustment(adjustment)) {
+    return { ...base, status: "skipped", reason: "invalid_adjustment" };
+  }
 
   // Гарант курьера — из базы, а не из кэша: кэш мог устареть после правки в админке.
   const [courier] = await db

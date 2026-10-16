@@ -18,6 +18,7 @@ import { CourierEfficiencyReportItem, WalletStatus } from "../user/dto/list.dto"
 import { getDistance } from "geolib";
 import { getHours, getMinutes } from "../../lib/dates";
 import { settingHour, settleDailyGarant } from "../../services/daily_garant/service";
+import { MAX_GARANT_ADJUSTMENT } from "../../services/daily_garant/calculate";
 import { businessDayOf } from "../../services/daily_garant/calculate";
 
 type RollCallCourier = {
@@ -1749,7 +1750,15 @@ export const CouriersController = new Elysia({
       }),
     }
   )
-  .post('/api/couriers/try_set_daily_garant', async ({ body, redis, drizzle, cacheControl, user }) => {
+  .post('/api/couriers/try_set_daily_garant', async ({ body, redis, drizzle, cacheControl, user, status }) => {
+    // Посмотреть расчёт может любой, кто видит филиалы (в т.ч. менеджер).
+    // Начислить деньги — и тем более с ручной корректировкой — только
+    // администратор: право daily_garant.edit есть у admin и super_admin.
+    // @ts-ignore
+    const permissions: string[] = user?.access?.additionalPermissions ?? [];
+    if (!body.dry_run && !permissions.includes("daily_garant.edit")) {
+      return status(403, { message: "Начислять дневной гарант может только администратор" });
+    }
     // Вся логика — в settleDailyGarant; её же вызывает очередь при закрытии смены.
     return settleDailyGarant(
       { db: drizzle, redis, cacheControl },
@@ -1769,7 +1778,8 @@ export const CouriersController = new Elysia({
       day: t.String(),
       courier_id: t.String(),
       dry_run: t.Optional(t.Boolean()),
-      adjustment: t.Optional(t.Number()),
+      // Корректировка — целые сумы в разумных пределах; сервис проверяет это ещё раз.
+      adjustment: t.Optional(t.Integer({ minimum: -MAX_GARANT_ADJUSTMENT, maximum: MAX_GARANT_ADJUSTMENT })),
       adjustment_comment: t.Optional(t.String({ maxLength: 300 })),
     }),
   })

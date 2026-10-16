@@ -106,6 +106,10 @@ export function DailyGarantDialog({
         adjustment: adjustment || undefined,
         adjustment_comment: adjustment ? comment.trim() : undefined,
       });
+      if (error?.status === 403) {
+        toast.error("Начислять дневной гарант может только администратор");
+        return;
+      }
       if (error || !data) {
         toast.error("Ошибка при начислении дневного гаранта");
         return;

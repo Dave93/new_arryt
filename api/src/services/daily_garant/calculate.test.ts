@@ -3,6 +3,8 @@ import {
   businessDayOf,
   businessDayWindow,
   calculatePayout,
+  isValidAdjustment,
+  MAX_GARANT_ADJUSTMENT,
   distanceMeters,
   lateMinutes,
   pickPayingTerminal,
@@ -86,6 +88,23 @@ describe("ручная корректировка", () => {
     expect(r.penalty).toBe(22_500);
     expect(r.guaranteed).toBe(247_500);
     expect(r.total).toBe(257_500);
+  });
+});
+
+describe("isValidAdjustment", () => {
+  test("обычные суммы проходят", () => {
+    expect(isValidAdjustment(0)).toBe(true);
+    expect(isValidAdjustment(40_000)).toBe(true);
+    expect(isValidAdjustment(-30_000)).toBe(true);
+    expect(isValidAdjustment(MAX_GARANT_ADJUSTMENT)).toBe(true);
+  });
+
+  test("за пределом, бесконечность и не-числа отклоняются", () => {
+    expect(isValidAdjustment(MAX_GARANT_ADJUSTMENT + 1)).toBe(false);
+    expect(isValidAdjustment(-MAX_GARANT_ADJUSTMENT - 1)).toBe(false);
+    expect(isValidAdjustment(Infinity)).toBe(false);
+    expect(isValidAdjustment(NaN)).toBe(false);
+    expect(isValidAdjustment("40000")).toBe(false);
   });
 });
 
