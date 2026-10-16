@@ -124,6 +124,8 @@ export const daily_garant = pgTable("daily_garant", {
 	late_minus_sum: doublePrecision("late_minus_sum").notNull(),
 	created_at: timestamp("created_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated_at: timestamp("updated_at", { precision: 5, withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	// Удаление тарифа — архивное: на него ссылаются курьеры и история daily_garant_tasks.
+	deleted_at: timestamp("deleted_at", { precision: 5, withTimezone: true, mode: 'string' }),
 });
 
 export const daily_garant_tasks = pgTable("daily_garant_tasks", {

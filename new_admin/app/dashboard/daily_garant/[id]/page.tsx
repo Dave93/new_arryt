@@ -86,7 +86,6 @@ export default function DailyGarantShow() {
   }
 
   // Форматирование времени
-  const timeDisplay = dailyGarant.date ? dailyGarant.date.substring(0, 5) : "-";
 
   return (
     <div className="space-y-6">
@@ -112,10 +111,6 @@ export default function DailyGarantShow() {
         <CardContent>
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Время начисления</h3>
-                <p className="mt-1">{timeDisplay}</p>
-              </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Дата создания</h3>
                 <p className="mt-1">{format(new Date(dailyGarant.created_at), "dd.MM.yyyy HH:mm")}</p>

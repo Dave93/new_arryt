@@ -321,7 +321,9 @@ export class CacheControlService {
   }
 
   async cacheDailyGarant() {
-    const dailyGarant = await this.db.query.daily_garant.findMany();
+    const dailyGarant = await this.db.query.daily_garant.findMany({
+      where: (dg, { isNull }) => isNull(dg.deleted_at),
+    });
     await this.redis.set(
       `${process.env.PROJECT_PREFIX}_daily_garant`,
       JSON.stringify(dailyGarant)

@@ -1,12 +1,13 @@
 import {
   api_tokens,
   daily_garant,
+  users,
 } from "../../../drizzle/schema";
 import { contextWitUser } from "../../context";
 import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import dayjs from "dayjs";
-import { SQLWrapper, and, eq, sql } from "drizzle-orm";
+import { SQLWrapper, and, eq, isNull, sql } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 
@@ -26,6 +27,8 @@ export const DailyGarantController = new Elysia({
       if (filters) {
         whereClause = parseFilterFields(filters, daily_garant, {});
       }
+      // Тарифы в архиве не показываем
+      whereClause.push(isNull(daily_garant.deleted_at));
       const rolesCount = await drizzle
         .select({ count: sql<number>`count(*)` })
         .from(daily_garant)
@@ -81,7 +84,7 @@ export const DailyGarantController = new Elysia({
   )
   .post(
     "/",
-    async ({ body: { data, fields }, drizzle }) => {
+    async ({ body: { data, fields }, drizzle, cacheControl }) => {
       let selectFields = {};
       if (fields) {
         selectFields = parseSelectFields(fields, daily_garant, {});
@@ -92,10 +95,14 @@ export const DailyGarantController = new Elysia({
         } catch (e) {
         }
       }
+      // "Время начисления" больше не используется (гарант считается по смене),
+      // но колонка в базе NOT NULL — ставим заглушку.
       const result = await drizzle
         .insert(daily_garant)
-        .values(data)
+        .values({ ...data, date: data.date || "00:00:00" })
         .returning(selectFields);
+      // Форма курьера берёт тарифы из кэша — без этого новый тариф там не виден.
+      await cacheControl.cacheDailyGarant();
 
       return {
         data: result[0],
@@ -106,7 +113,7 @@ export const DailyGarantController = new Elysia({
       body: t.Object({
         data: t.Object({
           name: t.String(),
-          date: t.String(),
+          date: t.Optional(t.String()),
           amount: t.Number(),
           late_minus_sum: t.Number(),
         }),
@@ -116,10 +123,10 @@ export const DailyGarantController = new Elysia({
   )
   .put(
     "/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
       let selectFields = {};
       if (fields) {
-        selectFields = parseSelectFields(fields, api_tokens, {});
+        selectFields = parseSelectFields(fields, daily_garant, {});
       }
 
       if (data.date && data.date.length > 8) {
@@ -131,9 +138,10 @@ export const DailyGarantController = new Elysia({
 
       const result = await drizzle
         .update(daily_garant)
-        .set(data)
+        .set({ ...data, updated_at: new Date().toISOString() })
         .where(eq(daily_garant.id, id))
         .returning(selectFields);
+      await cacheControl.cacheDailyGarant();
 
       return {
         data: result[0],
@@ -147,11 +155,50 @@ export const DailyGarantController = new Elysia({
       body: t.Object({
         data: t.Object({
           name: t.String(),
-          date: t.String(),
+          date: t.Optional(t.String()),
           amount: t.Number(),
           late_minus_sum: t.Number(),
         }),
         fields: t.Optional(t.Array(t.String())),
+      }),
+    }
+  )
+  .delete(
+    "/:id",
+    async ({ params: { id }, drizzle, cacheControl, status }) => {
+      // Физически удалить нельзя: на тариф ссылаются курьеры и история
+      // начислений daily_garant_tasks. Удаляем в архив.
+      const assigned = await drizzle
+        .select({ first_name: users.first_name, last_name: users.last_name })
+        .from(users)
+        .where(and(eq(users.daily_garant_id, id), eq(users.status, "active")));
+      if (assigned.length > 0) {
+        const names = assigned
+          .map((u) => [u.first_name, u.last_name].filter(Boolean).join(" ").trim())
+          .slice(0, 5)
+          .join(", ");
+        return status(400, {
+          message:
+            `Тариф назначен активным курьерам (${assigned.length}): ${names}` +
+            (assigned.length > 5 ? " и др." : "") +
+            ". Сначала смените им тариф.",
+        });
+      }
+      const [result] = await drizzle
+        .update(daily_garant)
+        .set({ deleted_at: new Date().toISOString() })
+        .where(and(eq(daily_garant.id, id), isNull(daily_garant.deleted_at)))
+        .returning({ id: daily_garant.id });
+      if (!result) {
+        return status(404, { message: "Тариф не найден" });
+      }
+      await cacheControl.cacheDailyGarant();
+      return { data: result };
+    },
+    {
+      permission: "daily_garant.edit",
+      params: t.Object({
+        id: t.String(),
       }),
     }
   )

@@ -171,7 +171,7 @@ export async function settleDailyGarant(
     .from(daily_garant)
     .where(eq(daily_garant.id, courier.daily_garant_id))
     .limit(1);
-  if (!garant) {
+  if (!garant || garant.deleted_at) {
     return { ...base, status: "skipped", reason: "no_garant" };
   }
   const garantInfo = { garantName: garant.name.trim(), garantAmount: garant.amount };

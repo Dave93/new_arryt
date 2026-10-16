@@ -22,14 +22,12 @@ import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { TimeField } from "../../../components/ui/time-field";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { PageTitle } from "@/components/page-title";
 
 // Схема формы с валидацией Zod
 const formSchema = z.object({
   name: z.string().min(1, { message: "Название обязательно" }),
-  date: z.string().min(1, { message: "Время начисления обязательно" }),
   amount: z.coerce.number().min(0, { message: "Сумма должна быть не меньше 0" }),
   late_minus_sum: z.coerce.number().min(0, { message: "Сумма штрафа должна быть не меньше 0" }),
 });
@@ -81,7 +79,6 @@ export default function DailyGarantEdit() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      date: "",
       amount: 0,
       late_minus_sum: 0,
     },
@@ -109,11 +106,9 @@ export default function DailyGarantEdit() {
   useEffect(() => {
     if (dailyGarant) {
       // Форматируем время из HH:MM:SS в HH:MM
-      const timeOnly = dailyGarant.date ? dailyGarant.date.substring(0, 5) : "";
       
       form.reset({
         name: dailyGarant.name || "",
-        date: timeOnly,
         amount: dailyGarant.amount || 0,
         late_minus_sum: dailyGarant.late_minus_sum || 0,
       });
@@ -129,7 +124,6 @@ export default function DailyGarantEdit() {
       // Форматирование времени в формат HH:MM:SS
       const formattedValues = {
         ...values,
-        date: values.date + ":00", // Добавляем секунды, если их нет
       };
 
       await apiClient.api.daily_garant({ id }).put({
@@ -186,23 +180,6 @@ export default function DailyGarantEdit() {
                     <FormLabel>Название</FormLabel>
                     <FormControl>
                       <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Время начисления</FormLabel>
-                    <FormControl>
-                      <TimeField 
-                        {...field}
-                        onChange={(time: string) => field.onChange(time)}
-                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

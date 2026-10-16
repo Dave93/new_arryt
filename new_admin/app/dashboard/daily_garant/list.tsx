@@ -10,15 +10,25 @@ import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
-import { Eye, Plus, Edit } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Eye, Plus, Edit, Trash2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../../../components/ui/alert-dialog";
 import { format } from "date-fns";
 
 // Определение типа для дневного гаранта
 interface DailyGarant {
   id: string;
   name: string;
-  date: string;
   amount: number;
   late_minus_sum: number;
   created_at: string;
@@ -32,15 +42,6 @@ const columns: ColumnDef<DailyGarant>[] = [
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue("name")}</div>
     ),
-  },
-  {
-    accessorKey: "date",
-    header: "Время",
-    cell: ({ row }) => {
-      const timeValue = row.getValue("date") as string;
-      // Форматирование времени в HH:MM
-      return <div>{timeValue.substring(0, 5)}</div>;
-    },
   },
   {
     accessorKey: "amount",
@@ -83,10 +84,62 @@ const columns: ColumnDef<DailyGarant>[] = [
             Edit
           </Link>
         </Button>
+        <DeleteDailyGarantButton id={row.original.id} name={row.original.name} />
       </div>
     ),
   },
 ];
+
+function DeleteDailyGarantButton({ id, name }: { id: string; name: string }) {
+  const queryClient = useQueryClient();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await apiClient.api.daily_garant({ id }).delete();
+      if (error) {
+        const message = (error.value as { message?: string } | undefined)?.message;
+        toast.error(message || "Не удалось удалить тариф");
+        return;
+      }
+      toast.success(`Тариф «${name}» удалён`);
+      queryClient.invalidateQueries({ queryKey: ["dailyGarant"] });
+    } catch {
+      toast.error("Не удалось удалить тариф");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={isDeleting}>
+          <Trash2 className="h-4 w-4 mr-2" />
+          Удалить
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Удалить тариф «{name}»?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Тариф пропадёт из списка и из выбора у курьеров. История начислений сохранится.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Отмена</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            className="bg-destructive text-white hover:bg-destructive/90"
+          >
+            Удалить
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 export default function DailyGarantList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,7 +172,7 @@ export default function DailyGarantList() {
 
         const {data: response} = await apiClient.api.daily_garant.get({
           query: {
-            fields: "id,name,date,amount,late_minus_sum,created_at",
+            fields: "id,name,amount,late_minus_sum,created_at",
             limit: pagination.pageSize.toString(),
             offset: (pagination.pageIndex * pagination.pageSize).toString(),
             sort: JSON.stringify([
