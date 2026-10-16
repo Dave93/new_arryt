@@ -29,7 +29,11 @@ function tariffSchedule(data: { start_time?: string; end_time?: string; work_hou
   if (!isValidTime(start_time) || !isValidTime(end_time)) {
     return { error: "Укажите начало и конец смены в формате ЧЧ:ММ" };
   }
-  return { start_time, end_time, work_hours: shiftHours(start_time, end_time) };
+  const work_hours = shiftHours(start_time, end_time);
+  if (work_hours < MIN_WORK_HOURS) {
+    return { error: `Смена должна быть не короче ${MIN_WORK_HOURS} ч` };
+  }
+  return { start_time, end_time, work_hours };
 }
 
 export const DailyGarantController = new Elysia({

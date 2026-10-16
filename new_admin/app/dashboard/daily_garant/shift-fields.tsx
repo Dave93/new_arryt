@@ -41,6 +41,13 @@ export const shiftSchema = {
   end_time: z.string().regex(/^\d{2}:\d{2}$/, { message: "Выберите конец смены" }),
 };
 
+/** Смена короче часа — ошибка ввода: час гаранта стал бы больше всего гаранта. */
+export const refineShift = <T extends { start_time: string; end_time: string }>(schema: z.ZodType<T>) =>
+  schema.refine((v) => (shiftHours(v.start_time, v.end_time) ?? 1) >= 1, {
+    message: "Смена должна быть не короче 1 ч",
+    path: ["end_time"],
+  });
+
 type ShiftForm = { name: string; amount: number; start_time: string; end_time: string };
 
 export function ShiftFields({ form }: { form: UseFormReturn<ShiftForm> }) {

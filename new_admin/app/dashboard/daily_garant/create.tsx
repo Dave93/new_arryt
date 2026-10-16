@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "../../../components/ui/button";
 import {
@@ -22,20 +23,21 @@ import { apiClient } from "../../../lib/eden-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
-import { ShiftFields, shiftSchema } from "./shift-fields";
+import { refineShift, ShiftFields, shiftSchema } from "./shift-fields";
 
 // Схема формы с валидацией Zod
-const formSchema = z.object({
+const formSchema = refineShift(z.object({
   name: z.string().min(1, { message: "Название обязательно" }),
   amount: z.coerce.number().min(0, { message: "Сумма должна быть не меньше 0" }),
   ...shiftSchema,
-});
+}));
 
 type FormValues = z.infer<typeof formSchema>;
 
 export default function DailyGarantCreate() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
   // Инициализация формы
   const form = useForm<FormValues>({
@@ -66,6 +68,9 @@ export default function DailyGarantCreate() {
         toast.error(message || "Не удалось сохранить тариф");
         return;
       }
+      // staleTime в QueryProvider — минута: без сброса форма и список
+      // ещё минуту показывают тариф до сохранения.
+      await queryClient.invalidateQueries({ queryKey: ["dailyGarant"] });
       toast.success("Тариф дневного гаранта успешно создан");
       router.push("/dashboard/daily_garant");
     } catch (error) {
