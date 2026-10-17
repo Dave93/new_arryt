@@ -1119,6 +1119,16 @@ function UserTransactions({ userId }: { userId: string }) {
   );
 }
 
+/**
+ * «Назад к списку»: карточку часто открывают в новой вкладке (из переклички),
+ * там истории нет (или в ней чужая страница) — тогда ведём на список.
+ */
+function goBack(router: ReturnType<typeof useRouter>) {
+  const cameFromAdmin = !!document.referrer && new URL(document.referrer).origin === window.location.origin;
+  if (cameFromAdmin && window.history.length > 1) router.back();
+  else router.push("/dashboard/users");
+}
+
 /** Время графика курьера хранится на 6 ч раньше местного — как в перекличке. */
 const scheduleLocal = (time?: string | null) => {
   if (!time) return null;
@@ -1258,7 +1268,7 @@ export default function UserShow({ id }: UserShowProps) {
       {/* @ts-ignore */}
       <PageTitle title={`${user.last_name} ${user.first_name}` || "Загрузка..."} />
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => router.back()}>
+        <Button variant="ghost" size="sm" onClick={() => goBack(router)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Назад к списку
         </Button>
@@ -1521,7 +1531,7 @@ function UserSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => router.back()}>
+        <Button variant="ghost" size="sm" onClick={() => goBack(router)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Назад к списку
         </Button>
