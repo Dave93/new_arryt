@@ -13,6 +13,31 @@ import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 import { WorkScheduleWithRelations } from "./dto/list.dto";
 
+/**
+ * Время графика из формы: "09:00", "09:00:00" или полная дата. dayjs("09:00")
+ * без даты — Invalid Date, и база падала с "invalid input syntax for type time".
+ */
+function normalizeTime(value: string): string | null {
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (m) {
+    const [h, min, sec = "00"] = [Number(m[1]), m[2], m[3]];
+    return h < 24 && Number(min) < 60 ? `${String(h).padStart(2, "0")}:${min}:${sec}` : null;
+  }
+  const d = dayjs(value);
+  return d.isValid() ? d.format("HH:mm:ss") : null;
+}
+
+/** Приводит три времени графика к HH:mm:ss; ошибка — какое поле неверное. */
+function normalizeScheduleTimes(data: { start_time: string; end_time: string; max_start_time: string }) {
+  const labels = { start_time: "начала", end_time: "окончания", max_start_time: "макс. начала" } as const;
+  for (const key of Object.keys(labels) as (keyof typeof labels)[]) {
+    const t = normalizeTime(data[key]);
+    if (!t) return `Неверное время ${labels[key]}: «${data[key]}»`;
+    data[key] = t;
+  }
+  return null;
+}
+
 export const WorkSchedulesController = new Elysia({
   name: "@app/work_schedules",
   prefix: "/api/work_schedules",
@@ -94,7 +119,7 @@ export const WorkSchedulesController = new Elysia({
   )
   .post(
     "/",
-    async ({ body: { data, fields }, drizzle, cacheControl }) => {
+    async ({ body: { data, fields }, drizzle, cacheControl, status }) => {
       // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
       // ошибка Postgres "syntax error at end of input".
       let selectFields: {} = getTableColumns(work_schedules);
@@ -102,17 +127,8 @@ export const WorkSchedulesController = new Elysia({
         selectFields = parseSelectFields(fields, work_schedules, {});
       }
 
-      if (data.start_time) {
-        data.start_time = dayjs(data.start_time).format("HH:mm:ss");
-      }
-
-      if (data.end_time) {
-        data.end_time = dayjs(data.end_time).format("HH:mm:ss");
-      }
-
-      if (data.max_start_time) {
-        data.max_start_time = dayjs(data.max_start_time).format("HH:mm:ss");
-      }
+      const timeError = normalizeScheduleTimes(data);
+      if (timeError) return status(400, { message: timeError });
       const result = await drizzle
         .insert(work_schedules)
         .values(data)
@@ -141,7 +157,7 @@ export const WorkSchedulesController = new Elysia({
   )
   .put(
     "/:id",
-    async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
+    async ({ params: { id }, body: { data, fields }, drizzle, cacheControl, status }) => {
       // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
       // ошибка Postgres "syntax error at end of input".
       let selectFields: {} = getTableColumns(work_schedules);
@@ -149,17 +165,8 @@ export const WorkSchedulesController = new Elysia({
         selectFields = parseSelectFields(fields, work_schedules, {});
       }
 
-      if (data.start_time) {
-        data.start_time = dayjs(data.start_time, "HH:mm:ss").format("HH:mm:ss");
-      }
-
-      if (data.end_time) {
-        data.end_time = dayjs(data.end_time, "HH:mm:ss").format("HH:mm:ss");
-      }
-
-      if (data.max_start_time) {
-        data.max_start_time = dayjs(data.max_start_time, "HH:mm:ss").format("HH:mm:ss");
-      }
+      const timeError = normalizeScheduleTimes(data);
+      if (timeError) return status(400, { message: timeError });
       const result = await drizzle
         .update(work_schedules)
         .set(data)
