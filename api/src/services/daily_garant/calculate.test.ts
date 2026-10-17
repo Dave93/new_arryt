@@ -11,6 +11,8 @@ import {
   lateMinutesFromTariff,
   pickPayingTerminal,
   shiftHours,
+  tariffWindow,
+  workedMinutes,
 } from "./calculate";
 
 // Расчёт явно работает по Ташкенту, поэтому тесты проходят в любом поясе
@@ -18,82 +20,68 @@ import {
 const WORK_END_HOUR = 4;
 
 describe("calculatePayout", () => {
-  // 270 000 за 12 часов → час гаранта 22 500
-  const garant = { garantAmount: 270_000, workHours: 12 };
+  // 290 000 за 12 часов → час гаранта 24 167
+  const garant = { garantAmount: 290_000, workHours: 12 };
 
-  test("доплачивает разницу до гаранта", () => {
-    expect(calculatePayout({ ...garant, earned: 180_000, lateMinutes: 0 }))
-      .toEqual({ hourCost: 22_500, penaltyHours: 0, penalty: 0, guaranteed: 270_000, payout: 90_000, adjustment: 0, total: 90_000 });
+  test("полная смена — весь гарант минус заработок", () => {
+    expect(calculatePayout({ ...garant, workedMinutes: 12 * 60, earned: 180_000 }))
+      .toEqual({ hourCost: 24_167, workedMinutes: 720, guaranteed: 290_000, payout: 110_000, adjustment: 0, total: 110_000 });
   });
 
-  test("ничего не доплачивает, если заработал больше гаранта", () => {
-    expect(calculatePayout({ ...garant, earned: 300_000, lateMinutes: 0 }).payout).toBe(0);
+  test("гарант за отработанное время, по минутам", () => {
+    // 7 ч 40 мин = 460 мин → 290 000 × 460 / 720 = 185 278 → 185 000
+    expect(calculatePayout({ ...garant, workedMinutes: 460, earned: 0 }).guaranteed).toBe(185_000);
   });
 
-  test("ничего не доплачивает, если заработал ровно гарант", () => {
-    expect(calculatePayout({ ...garant, earned: 270_000, lateMinutes: 0 }).payout).toBe(0);
+  test("сумма округляется до тысячи по обычному правилу", () => {
+    // 8 ч → 193 333 → 193 000; 8 ч 1 мин → 193 736 → 194 000
+    expect(calculatePayout({ ...garant, workedMinutes: 480, earned: 0 }).guaranteed).toBe(193_000);
+    expect(calculatePayout({ ...garant, workedMinutes: 481, earned: 0 }).guaranteed).toBe(194_000);
   });
 
-  test("опоздание до 30 минут включительно не штрафуется", () => {
-    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 30 }).penalty).toBe(0);
+  test("больше смены не платится — максимум полный гарант", () => {
+    expect(calculatePayout({ ...garant, workedMinutes: 15 * 60, earned: 0 }))
+      .toMatchObject({ workedMinutes: 720, guaranteed: 290_000 });
   });
 
-  test("больше 30 минут — минус час гаранта", () => {
-    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 31 }).penalty).toBe(22_500);
-    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 60 }).penalty).toBe(22_500);
+  test("опоздание отдельно не штрафуется: пришёл на 2 ч позже — платится 10 ч", () => {
+    expect(calculatePayout({ ...garant, workedMinutes: 10 * 60, earned: 0 }).guaranteed).toBe(242_000);
   });
 
-  test("каждый начатый час опоздания — ещё час", () => {
-    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 61 }).penaltyHours).toBe(2);
-    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 120 }).penaltyHours).toBe(2);
-    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 121 }).penalty).toBe(67_500);
+  test("ничего не отработал — ничего не доплачивается", () => {
+    expect(calculatePayout({ ...garant, workedMinutes: 0, earned: 0 }).total).toBe(0);
+  });
+
+  test("заработал больше гаранта за время — доплаты нет", () => {
+    expect(calculatePayout({ ...garant, workedMinutes: 6 * 60, earned: 200_000 }).payout).toBe(0);
   });
 
   test("час гаранта зависит от часов смены по тарифу", () => {
     // 220 000 за 11 часов → 20 000 в час
-    expect(calculatePayout({ garantAmount: 220_000, workHours: 11, earned: 0, lateMinutes: 45 }))
-      .toMatchObject({ hourCost: 20_000, penalty: 20_000, guaranteed: 200_000 });
-  });
-
-  test("штраф уменьшает гарант, а не добавляется к заработку", () => {
-    // 270 000 − 22 500 = 247 500; заработал 200 000 → доплата 47 500
-    expect(calculatePayout({ ...garant, earned: 200_000, lateMinutes: 40 }).payout).toBe(47_500);
-  });
-
-  test("штраф больше гаранта не уводит доплату в минус", () => {
-    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 20 * 60 }))
-      .toMatchObject({ guaranteed: 0, payout: 0, total: 0 });
-  });
-
-  test("ни одного заказа за день — доплачивается весь гарант", () => {
-    expect(calculatePayout({ ...garant, earned: 0, lateMinutes: 0 }).payout).toBe(270_000);
-  });
-
-  test("доплата округляется до целых сумов", () => {
-    expect(calculatePayout({ garantAmount: 100_000, workHours: 12, earned: 33_333.6, lateMinutes: 0 }).payout)
-      .toBe(66_666);
+    expect(calculatePayout({ garantAmount: 220_000, workHours: 11, workedMinutes: 120, earned: 0 }))
+      .toMatchObject({ hourCost: 20_000, guaranteed: 40_000 });
   });
 
   test("часы смены вне диапазона не ломают расчёт", () => {
-    expect(calculatePayout({ garantAmount: 120_000, workHours: 0, earned: 0, lateMinutes: 45 }).hourCost).toBe(120_000);
+    expect(calculatePayout({ garantAmount: 120_000, workHours: 0, workedMinutes: 30, earned: 0 }).guaranteed).toBe(60_000);
   });
 });
 
 describe("ручная корректировка", () => {
-  const base = { garantAmount: 270_000, workHours: 12, lateMinutes: 0 };
+  const base = { garantAmount: 290_000, workHours: 12, workedMinutes: 12 * 60 };
 
   test("плюс доплачивает сверх гаранта за доп. часы", () => {
-    const r = calculatePayout({ ...base, earned: 180_000, adjustment: 40_000 });
+    const r = calculatePayout({ ...base, earned: 200_000, adjustment: 40_000 });
     expect(r.payout).toBe(90_000);
     expect(r.total).toBe(130_000);
   });
 
   test("минус удерживает из доплаты", () => {
-    expect(calculatePayout({ ...base, earned: 180_000, adjustment: -30_000 }).total).toBe(60_000);
+    expect(calculatePayout({ ...base, earned: 200_000, adjustment: -30_000 }).total).toBe(60_000);
   });
 
   test("удержание больше доплаты не уводит итог в минус", () => {
-    expect(calculatePayout({ ...base, earned: 180_000, adjustment: -500_000 }).total).toBe(0);
+    expect(calculatePayout({ ...base, earned: 200_000, adjustment: -500_000 }).total).toBe(0);
   });
 
   test("доп. часы начисляются, даже если гарант уже заработан", () => {
@@ -101,12 +89,43 @@ describe("ручная корректировка", () => {
     expect(r.payout).toBe(0);
     expect(r.total).toBe(25_000);
   });
+});
 
-  test("корректировка не трогает гарант и штраф", () => {
-    const r = calculatePayout({ ...base, earned: 0, lateMinutes: 45, adjustment: 10_000 });
-    expect(r.penalty).toBe(22_500);
-    expect(r.guaranteed).toBe(247_500);
-    expect(r.total).toBe(257_500);
+describe("отработанное время в смене тарифа", () => {
+  const at = (iso: string) => new Date(iso);
+
+  test("окно смены: 15:00–03:00 — до 03:00 следующих суток", () => {
+    const w = tariffWindow("2026-10-16", "15:00:00", "03:00:00", WORK_END_HOUR);
+    expect(w.start.toISOString()).toBe(at("2026-10-16T15:00:00+05:00").toISOString());
+    expect(w.end.toISOString()).toBe(at("2026-10-17T03:00:00+05:00").toISOString());
+  });
+
+  test("пришёл раньше и ушёл позже — считается только смена тарифа", () => {
+    const w = tariffWindow("2026-10-16", "10:00:00", "22:00:00", WORK_END_HOUR);
+    expect(workedMinutes([{ start: at("2026-10-16T09:00:00+05:00"), end: at("2026-10-16T23:30:00+05:00") }], w)).toBe(720);
+  });
+
+  test("опоздал — оплачивается с момента открытия смены", () => {
+    const w = tariffWindow("2026-10-16", "10:00:00", "22:00:00", WORK_END_HOUR);
+    expect(workedMinutes([{ start: at("2026-10-16T12:20:00+05:00"), end: at("2026-10-16T22:00:00+05:00") }], w)).toBe(580);
+  });
+
+  test("две смены за день складываются, пересечения не удваиваются", () => {
+    const w = tariffWindow("2026-10-16", "10:00:00", "22:00:00", WORK_END_HOUR);
+    expect(workedMinutes([
+      { start: at("2026-10-16T10:00:00+05:00"), end: at("2026-10-16T14:00:00+05:00") },
+      { start: at("2026-10-16T13:00:00+05:00"), end: at("2026-10-16T15:00:00+05:00") },
+      { start: at("2026-10-16T18:00:00+05:00"), end: at("2026-10-16T19:30:00+05:00") },
+    ], w)).toBe(390);
+  });
+
+  test("смена целиком вне окна — ноль", () => {
+    const w = tariffWindow("2026-10-16", "15:00:00", "03:00:00", WORK_END_HOUR);
+    expect(workedMinutes([{ start: at("2026-10-16T08:00:00+05:00"), end: at("2026-10-16T12:00:00+05:00") }], w)).toBe(0);
+  });
+
+  test("без окна — всё время смены", () => {
+    expect(workedMinutes([{ start: at("2026-10-16T08:00:00+05:00"), end: at("2026-10-16T12:30:00+05:00") }], null)).toBe(270);
   });
 });
 

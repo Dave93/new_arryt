@@ -73,7 +73,7 @@ async function main() {
                 console.log(
                     `[daily_garant] courier=${r.courierId} day=${r.day} status=${r.status}` +
                         (r.reason ? ` reason=${r.reason}` : "") +
-                        (r.payout !== undefined ? ` payout=${r.payout} earned=${r.earned} penalty=${r.penalty}` : "")
+                        (r.payout !== undefined ? ` payout=${r.payout} earned=${r.earned} worked=${r.workedMinutes}m guaranteed=${r.guaranteed}` : "")
                 );
             } catch (e) {
                 console.error(`[daily_garant] courier=${job.courierId} day=${job.day} failed:`, e);

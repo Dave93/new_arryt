@@ -21,8 +21,8 @@ export const BUSINESS_TIMEZONE = "Asia/Tashkent";
 /** Расписание хранится на 6 ч раньше местного времени ("10:00 - 22:00" лежит как 04:00-16:00). */
 export const SCHEDULE_OFFSET_MINUTES = 6 * 60;
 
-/** Опоздание до 30 минут включительно не штрафуется. */
-export const LATE_GRACE_MINUTES = 30;
+/** Шаг округления гаранта за отработанное время, сумы. */
+export const GARANT_ROUNDING = 1000;
 
 /** Часов в смене по тарифу: допустимый диапазон. */
 export const MIN_WORK_HOURS = 1;
@@ -99,22 +99,53 @@ export function lateMinutesFromTariff(shiftStart: Date | string, tariffStartTime
   return diff > 0 ? diff : 0;
 }
 
+/** Отрезок времени [start, end). */
+export type Interval = { start: Date; end: Date };
+
 /**
- * Сколько часов гаранта снять за опоздание. До 30 минут — ничего; больше —
- * за каждый начатый час опоздания: 31–60 мин → 1 ч, 61–120 → 2 ч.
+ * Окно смены тарифа в рабочем дне, по Ташкенту: "15:00"–"03:00" 16 октября —
+ * с 15:00 16-го до 03:00 17-го. Начало раньше конца рабочего дня (например
+ * 02:00 при work_end_time 04:00) — уже следующие календарные сутки.
  */
-export function latePenaltyHours(lateMinutes: number): number {
-  return lateMinutes > LATE_GRACE_MINUTES ? Math.ceil(lateMinutes / 60) : 0;
+export function tariffWindow(day: string, startTime: string, endTime: string, workEndHour: number): Interval {
+  const startMinutes = getMinutes(startTime);
+  let start = dayjs.tz(day, BUSINESS_TIMEZONE).startOf("day").add(startMinutes, "minute");
+  if (startMinutes < workEndHour * 60) start = start.add(1, "day");
+  const end = start.add(shiftHours(startTime, endTime) * 60, "minute");
+  return { start: start.toDate(), end: end.toDate() };
+}
+
+/**
+ * Минуты смен курьера внутри окна. Пересекающиеся смены (бывают дубли
+ * открытия) не считаются дважды; без окна — всё время смен.
+ */
+export function workedMinutes(shifts: Interval[], window?: Interval | null): number {
+  const clipped = shifts
+    .map(({ start, end }) => ({
+      start: window && start < window.start ? window.start : start,
+      end: window && end > window.end ? window.end : end,
+    }))
+    .filter(({ start, end }) => end > start)
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  let total = 0;
+  let cursor = 0;
+  for (const { start, end } of clipped) {
+    const from = Math.max(start.getTime(), cursor);
+    if (end.getTime() > from) total += end.getTime() - from;
+    cursor = Math.max(cursor, end.getTime());
+  }
+  return Math.floor(total / 60000);
 }
 
 export type PayoutInput = {
   /** Сумма гаранта за день. */
   garantAmount: number;
-  /** Фиксированных часов в смене по тарифу (12, 11…): час гаранта = сумма ÷ часы. */
+  /** Часов в смене по тарифу: час гаранта = сумма ÷ часы. */
   workHours: number;
+  /** Сколько минут курьер отработал внутри смены тарифа. */
+  workedMinutes: number;
   /** Сколько курьер заработал за рабочий день. */
   earned: number;
-  lateMinutes: number;
   /**
    * Ручная корректировка администратора, сумы: плюс — доплата за часы вне
    * гаранта, минус — удержание. Применяется к доплате, а не к гаранту.
@@ -125,10 +156,9 @@ export type PayoutInput = {
 export type PayoutResult = {
   /** Стоимость часа гаранта. */
   hourCost: number;
-  /** Сколько часов снято за опоздание. */
-  penaltyHours: number;
-  penalty: number;
-  /** Гарант после штрафа — столько курьер должен получить за день в сумме. */
+  /** Отработано минут, но не больше смены тарифа. */
+  workedMinutes: number;
+  /** Гарант за отработанное время — столько курьер должен получить за день в сумме. */
   guaranteed: number;
   /** Доплата до гаранта по расчёту, без корректировки; 0 — если заработал не меньше. */
   payout: number;
@@ -139,23 +169,24 @@ export type PayoutResult = {
 };
 
 /**
- * Доплата = (гарант − штраф) − заработок, но не меньше нуля.
- * Штраф — часы гаранта за опоздание (latePenaltyHours) × стоимость часа,
- * а час = гарант ÷ фиксированные часы смены по тарифу.
- * Итог = доплата + ручная корректировка, тоже не меньше нуля: удержание
- * не может увести начисление в минус, а доплата за доп. часы начисляется,
- * даже если курьер заработал больше гаранта.
+ * Гарант платится за фактически отработанное время внутри смены тарифа,
+ * по минутам: гарант × отработано ÷ часы смены, округлённо до тысячи и не
+ * больше полного гаранта.
+ * Опоздание отдельно не штрафуется — пропущенные часы и так не оплачены.
+ * Доплата = гарант за время − заработок, не меньше нуля. Итог = доплата +
+ * ручная корректировка, тоже не меньше нуля: удержание не уводит начисление
+ * в минус, а доплата за доп. часы начисляется, даже если гарант заработан.
  */
-export function calculatePayout({ garantAmount, workHours, earned, lateMinutes, adjustment = 0 }: PayoutInput): PayoutResult {
+export function calculatePayout({ garantAmount, workHours, workedMinutes, earned, adjustment = 0 }: PayoutInput): PayoutResult {
   const hours = Math.min(MAX_WORK_HOURS, Math.max(MIN_WORK_HOURS, workHours || MIN_WORK_HOURS));
   const hourCost = Math.round(garantAmount / hours);
-  const penaltyHours = latePenaltyHours(lateMinutes);
-  const penalty = penaltyHours * hourCost;
-  const guaranteed = Math.max(0, garantAmount - penalty);
+  const worked = Math.min(Math.max(0, Math.floor(workedMinutes)), Math.round(hours * 60));
+  // Гарант за время округляется до тысячи: 193 333 → 193 000, 193 510 → 194 000.
+  const guaranteed = Math.min(garantAmount, Math.round((garantAmount * worked) / (hours * 60) / GARANT_ROUNDING) * GARANT_ROUNDING);
   const payout = Math.max(0, Math.round(guaranteed - earned));
   const roundedAdjustment = Math.round(adjustment);
   const total = Math.max(0, payout + roundedAdjustment);
-  return { hourCost, penaltyHours, penalty, guaranteed, payout, adjustment: roundedAdjustment, total };
+  return { hourCost, workedMinutes: worked, guaranteed, payout, adjustment: roundedAdjustment, total };
 }
 
 export type TerminalPoint = {

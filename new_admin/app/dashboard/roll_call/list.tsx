@@ -107,7 +107,7 @@ const driveTypeLabels: Record<string, string> = {
 
 /** Терминалы двух брендов ближе этого — одна точка (как в расчёте гаранта). */
 const SAME_POINT_METERS = 100;
-/** Опоздание до 30 минут не штрафуется — как в дневном гаранте. */
+/** Опоздание до 30 минут — не красным: это скорее «немного задержался». */
 const LATE_GRACE_MINUTES = 30;
 
 const sum = (n: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n));
@@ -284,7 +284,7 @@ function CourierRow({
     statusHint = `опоздание от начала смены ${row.scheduleStart}`;
   } else if (row.status === "onshift") {
     statusText = row.lateMinutes > 0 ? `${row.checkIn} · ${lateLabel(row.lateMinutes)}` : `${row.checkIn} · вовремя`;
-    statusHint = row.lateMinutes > 0 ? "до 30 минут не штрафуется" : "отметился";
+    statusHint = row.lateMinutes > 0 ? "опоздание от начала смены" : "отметился";
   } else if (row.status === "missing") {
     statusText = "Не отметился";
   }

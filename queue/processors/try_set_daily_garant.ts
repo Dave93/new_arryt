@@ -28,7 +28,7 @@ export const processTrySetDailyGarant = async (
     console.log(
         `[daily_garant] courier=${result.courierId} day=${result.day} status=${result.status}` +
             (result.reason ? ` reason=${result.reason}` : "") +
-            (result.payout !== undefined ? ` payout=${result.payout} earned=${result.earned} penalty=${result.penalty}` : "")
+            (result.payout !== undefined ? ` payout=${result.payout} earned=${result.earned} worked=${result.workedMinutes}m guaranteed=${result.guaranteed}` : "")
     );
     return result;
 };

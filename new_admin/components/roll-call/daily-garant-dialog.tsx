@@ -29,8 +29,9 @@ type Settlement = {
   earned?: number;
   lateMinutes?: number;
   hourCost?: number;
-  penaltyHours?: number;
-  penalty?: number;
+  workHours?: number;
+  workedMinutes?: number;
+  guaranteed?: number;
   payout?: number;
   adjustment?: number;
   total?: number;
@@ -42,6 +43,12 @@ type Settlement = {
 const MAX_ADJUSTMENT = 1_000_000;
 
 const sum = (n?: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n ?? 0));
+
+/** 460 → «7 ч 40 мин». */
+const duration = (minutes?: number) => {
+  const m = Math.max(0, Math.round(minutes ?? 0));
+  return `${Math.floor(m / 60)} ч${m % 60 ? ` ${m % 60} мин` : ""}`;
+};
 
 /** Причины, при которых начислить нельзя совсем — даже с корректировкой. */
 const BLOCKING_REASONS: Record<string, string> = {
@@ -194,16 +201,12 @@ export function DailyGarantDialog({
                 </div>
               )}
               <dl className="space-y-2 text-sm">
-                <Row label="Гарант" value={sum(preview.garantAmount)} />
-                <Row label="Заработано за день" value={`− ${sum(preview.earned)}`} />
+                <Row label={`Гарант по тарифу · ${preview.workHours ?? 12} ч`} value={sum(preview.garantAmount)} />
                 <Row
-                  label={
-                    preview.penaltyHours
-                      ? `Опоздание ${preview.lateMinutes} мин: ${preview.penaltyHours} ч × ${sum(preview.hourCost)}`
-                      : `Штраф за опоздание${preview.lateMinutes ? ` (${preview.lateMinutes} мин — до 30 не штрафуется)` : ""}`
-                  }
-                  value={preview.penalty ? `− ${sum(preview.penalty)}` : "0"}
+                  label={`Отработано в смене тарифа: ${duration(preview.workedMinutes)}${preview.lateMinutes ? ` (опоздание ${preview.lateMinutes} мин)` : ""}`}
+                  value={`= ${sum(preview.guaranteed)}`}
                 />
+                <Row label="Заработано за день" value={`− ${sum(preview.earned)}`} />
                 <div className="border-t pt-2">
                   <Row label="Доплата по расчёту" value={sum(payout)} strong />
                 </div>

@@ -26,7 +26,10 @@ import {
   lateMinutes,
   lateMinutesFromTariff,
   pickPayingTerminal,
+  SCHEDULE_OFFSET_MINUTES,
+  tariffWindow,
   TerminalPoint,
+  workedMinutes,
 } from "./calculate";
 
 /** Почему гарант за день не начислен. */
@@ -52,9 +55,10 @@ export type SettleResult = {
   /** Часов в смене по тарифу и стоимость часа гаранта. */
   workHours?: number;
   hourCost?: number;
-  /** Сколько часов гаранта снято за опоздание. */
-  penaltyHours?: number;
-  penalty?: number;
+  /** Отработано минут внутри смены тарифа — за них и платится гарант. */
+  workedMinutes?: number;
+  /** Гарант за отработанное время. */
+  guaranteed?: number;
   /** Доплата до гаранта по расчёту, без корректировки. */
   payout?: number;
   /** Ручная корректировка администратора. */
@@ -189,7 +193,9 @@ export async function settleDailyGarant(
       current_status: work_schedule_entries.current_status,
       lat_open: work_schedule_entries.lat_open,
       lon_open: work_schedule_entries.lon_open,
+      date_finish: work_schedule_entries.date_finish,
       start_time: work_schedules.start_time,
+      end_time: work_schedules.end_time,
     })
     .from(work_schedule_entries)
     .leftJoin(work_schedules, eq(work_schedules.id, work_schedule_entries.work_schedule_id))
@@ -259,11 +265,25 @@ export async function settleDailyGarant(
     : firstShift.start_time
       ? lateMinutes(firstShift.date_start, firstShift.start_time, day)
       : 0;
-  const { hourCost, penaltyHours, penalty, payout, adjustment: adj, total } = calculatePayout({
+  // Гарант — за время внутри смены тарифа; у тарифа без графика — внутри
+  // графика курьера (в базе он на 6 ч раньше местного), иначе всё время смен.
+  const toLocal = (t: string) => dayjs.tz("2000-01-01 " + t, BUSINESS_TIMEZONE).add(SCHEDULE_OFFSET_MINUTES, "minute").format("HH:mm");
+  const window = garant.start_time && garant.end_time
+    ? tariffWindow(day, garant.start_time, garant.end_time, workEndHour)
+    : firstShift.start_time && firstShift.end_time
+      ? tariffWindow(day, toLocal(firstShift.start_time), toLocal(firstShift.end_time), workEndHour)
+      : null;
+  // Открытая смена считается до текущего момента.
+  const now = new Date();
+  const worked = workedMinutes(
+    shifts.map((sh) => ({ start: new Date(sh.date_start), end: sh.date_finish ? new Date(sh.date_finish) : now })),
+    window
+  );
+  const { hourCost, workedMinutes: workedCapped, guaranteed, payout, adjustment: adj, total } = calculatePayout({
     garantAmount: garant.amount,
     workHours: garant.work_hours,
+    workedMinutes: worked,
     earned,
-    lateMinutes: late,
     adjustment,
   });
   const calc = {
@@ -273,8 +293,8 @@ export async function settleDailyGarant(
     lateMinutes: late,
     workHours: garant.work_hours,
     hourCost,
-    penaltyHours,
-    penalty,
+    workedMinutes: workedCapped,
+    guaranteed,
     payout,
     adjustment: adj,
     total,
@@ -351,7 +371,7 @@ export async function settleDailyGarant(
         balance_after: balanceAfter,
         created_by: createdBy,
         comment:
-          `${commentPrefix(day)}: гарант ${garant.amount}, заработано ${Math.round(earned)}, штраф ${penalty} (опоздание ${late} мин = ${penaltyHours} ч × ${hourCost}), доплата ${payout}` +
+          `${commentPrefix(day)}: гарант ${garant.amount}, заработано ${Math.round(earned)}, отработано ${workedCapped} мин из ${Math.round(garant.work_hours * 60)} → гарант ${guaranteed} (опоздание ${late} мин), доплата ${payout}` +
           (adj !== 0 ? `, корректировка ${adj > 0 ? "+" : ""}${adj}: ${adjustmentComment!.trim()}` : "") +
           (unfinishedOrders > 0 ? `, незавершённых заказов: ${unfinishedOrders}` : ""),
       })
