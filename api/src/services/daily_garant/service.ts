@@ -494,6 +494,10 @@ export async function garantDayStatuses(deps: SettleDeps, dayParam: string): Pro
       if (r.status === "dry_run") {
         return { courierId: id, status: (r.total ?? 0) > 0 ? "due" : "zero", amount: r.total ?? 0 };
       }
+      // Заработал не меньше гаранта — начислять нечего, но это не ошибка.
+      if (r.reason === "earned_enough") {
+        return { courierId: id, status: "zero", amount: 0 };
+      }
       return { courierId: id, status: "blocked", amount: 0, reason: r.reason };
     })
   );
