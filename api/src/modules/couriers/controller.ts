@@ -181,6 +181,18 @@ export const CouriersController = new Elysia({
         }
       });
 
+      // Главный — график тарифа гаранта. Назначенный курьеру отдаём рядом,
+      // чтобы админка подсветила расхождение (например, ночной график у дневного тарифа).
+      const courierSchedule = (courierId: string, garantId: string | null, orgId: string | undefined) => {
+        const assigned = orgId ? userScheduleMap.get(`${courierId}:${orgId}`) || null : null;
+        const tariff = garantId ? garantScheduleMap.get(garantId) || null : null;
+        return {
+          work_schedule: tariff || assigned,
+          assigned_schedule: assigned,
+          schedule_mismatch: !!tariff && !!assigned && !assigned.split(", ").includes(tariff),
+        };
+      };
+
       // Build terminal -> organization_id map
       const terminalOrgMap = new Map<string, string>();
       terminalsList.forEach((t) => {
@@ -240,9 +252,7 @@ export const CouriersController = new Elysia({
                 daily_garant_id: courier.daily_garant_id,
                 date: courier.timesheet_users?.date,
                 app_version: courier.app_version,
-                work_schedule:
-                  (courier.daily_garant_id && garantScheduleMap.get(courier.daily_garant_id)) ||
-                  (orgId ? userScheduleMap.get(`${courier.id}:${orgId}`) || null : null),
+                ...courierSchedule(courier.id, courier.daily_garant_id, orgId),
               }))
           );
         }

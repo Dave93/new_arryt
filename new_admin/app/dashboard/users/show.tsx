@@ -1119,6 +1119,45 @@ function UserTransactions({ userId }: { userId: string }) {
   );
 }
 
+/** Время графика курьера хранится на 6 ч раньше местного — как в перекличке. */
+const scheduleLocal = (time?: string | null) => {
+  if (!time) return null;
+  const [h, m] = time.split(":").map(Number);
+  return `${String((h + 6) % 24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+function GarantInfo({
+  garant,
+  schedules,
+}: {
+  garant?: { name: string; start_time?: string | null; end_time?: string | null };
+  schedules: { start_time?: string | null; end_time?: string | null }[];
+}) {
+  if (!garant) return <p className="text-sm font-medium mt-0.5">тариф удалён</p>;
+  const tariff =
+    garant.start_time && garant.end_time
+      ? `${garant.start_time.slice(0, 5)}-${garant.end_time.slice(0, 5)}`
+      : null;
+  const assigned = schedules
+    .map((s) => (s.start_time && s.end_time ? `${scheduleLocal(s.start_time)}-${scheduleLocal(s.end_time)}` : null))
+    .filter((s): s is string => !!s);
+  const mismatch = !!tariff && assigned.length > 0 && !assigned.includes(tariff);
+  return (
+    <>
+      <p className="text-sm font-medium mt-0.5">
+        {garant.name}
+        {tariff && <span className="text-muted-foreground font-normal"> · {tariff}</span>}
+      </p>
+      {mismatch && (
+        <p className="text-xs text-amber-600 mt-1">
+          ⚠ График курьера ({[...new Set(assigned)].join(", ")}) не совпадает с графиком тарифа ({tariff}).
+          Опоздание считается от тарифа.
+        </p>
+      )}
+    </>
+  );
+}
+
 export default function UserShow({ id }: UserShowProps) {
   const router = useRouter();
 
@@ -1156,6 +1195,8 @@ export default function UserShow({ id }: UserShowProps) {
               "terminals.name",
               "work_schedules.id",
               "work_schedules.name",
+              "work_schedules.start_time",
+              "work_schedules.end_time",
               "roles.id",
               "roles.name",
               "is_fired",
@@ -1387,9 +1428,11 @@ export default function UserShow({ id }: UserShowProps) {
                   {user.daily_garant_id && (
                     <div>
                       <p className="text-xs text-muted-foreground">Дневной гарант</p>
-                      <p className="text-sm font-medium mt-0.5">
-                        {dailyGarants.find((g: { id: string }) => g.id === user.daily_garant_id)?.name ?? "тариф удалён"}
-                      </p>
+                      <GarantInfo
+                        garant={dailyGarants.find((g: { id: string }) => g.id === user.daily_garant_id)}
+                        // @ts-ignore
+                        schedules={user.work_schedules ?? []}
+                      />
                     </div>
                   )}
                   {/* @ts-ignore */}

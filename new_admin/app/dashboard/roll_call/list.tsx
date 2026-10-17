@@ -65,6 +65,8 @@ interface Courier {
   drive_type?: string;
   daily_garant_id?: string;
   work_schedule?: string | null;
+  assigned_schedule?: string | null;
+  schedule_mismatch?: boolean;
 }
 
 interface Terminal {
@@ -150,6 +152,16 @@ function CourierRow({
           <span className="text-[11px] text-muted-foreground/70 shrink-0">
             ({courier.work_schedule})
           </span>
+        )}
+        {courier.schedule_mismatch && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-[11px] text-amber-600 shrink-0 cursor-help">⚠</span>
+            </TooltipTrigger>
+            <TooltipContent>
+              У курьера назначен график {courier.assigned_schedule} — не совпадает с тарифом гаранта ({courier.work_schedule})
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 
