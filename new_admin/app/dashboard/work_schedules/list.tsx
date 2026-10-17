@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { PageTitle } from "@/components/page-title";
 import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
+import { scheduleTimeToLocal } from "@/lib/work-schedule-time";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
 import { Eye, Plus, Edit, Trash2, Loader2, Copy } from "lucide-react";
@@ -118,7 +119,7 @@ const columns: ColumnDef<WorkSchedule>[] = [
     header: "Начало",
     cell: ({ row }) => {
       const value = row.getValue("start_time") as string;
-      return <div>{value ? dayjs(value, "HH:mm:ss").add(5, "hours").format("HH:mm") : "-"}</div>;
+      return <div>{value ? scheduleTimeToLocal(value) : "-"}</div>;
     },
   },
   {
@@ -126,7 +127,7 @@ const columns: ColumnDef<WorkSchedule>[] = [
     header: "Конец",
     cell: ({ row }) => {
       const value = row.getValue("end_time") as string;
-      return <div>{value ? dayjs(value, "HH:mm:ss").add(5, "hours").format("HH:mm") : "-"}</div>;
+      return <div>{value ? scheduleTimeToLocal(value) : "-"}</div>;
     },
   },
   {
@@ -134,7 +135,7 @@ const columns: ColumnDef<WorkSchedule>[] = [
     header: "Макс. время начала",
     cell: ({ row }) => {
       const value = row.getValue("max_start_time") as string;
-      return <div>{value ? dayjs(value, "HH:mm:ss").add(5, "hours").format("HH:mm") : "-"}</div>;
+      return <div>{value ? scheduleTimeToLocal(value) : "-"}</div>;
     },
   },
   {

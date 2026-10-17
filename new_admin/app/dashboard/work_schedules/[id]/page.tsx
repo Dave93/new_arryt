@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { apiClient } from "../../../../lib/eden-client";
+import { scheduleTimeToLocal } from "@/lib/work-schedule-time";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { Skeleton } from "../../../../components/ui/skeleton";
@@ -129,15 +130,15 @@ export default function WorkScheduleView() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Время начала</h3>
-                <p className="mt-1">{workSchedule.start_time ? dayjs(workSchedule.start_time, "HH:mm:ss").add(5, "hours").format("HH:mm") : "-"}</p>
+                <p className="mt-1">{workSchedule.start_time ? scheduleTimeToLocal(workSchedule.start_time) : "-"}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Время окончания</h3>
-                <p className="mt-1">{workSchedule.end_time ? dayjs(workSchedule.end_time, "HH:mm:ss").add(5, "hours").format("HH:mm") : "-"}</p>
+                <p className="mt-1">{workSchedule.end_time ? scheduleTimeToLocal(workSchedule.end_time) : "-"}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Макс. время начала</h3>
-                <p className="mt-1">{workSchedule.max_start_time ? dayjs(workSchedule.max_start_time, "HH:mm:ss").add(5, "hours").format("HH:mm") : "-"}</p>
+                <p className="mt-1">{workSchedule.max_start_time ? scheduleTimeToLocal(workSchedule.max_start_time) : "-"}</p>
               </div>
             </div>
             

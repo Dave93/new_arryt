@@ -24,6 +24,7 @@ import { Card, CardContent } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { apiClient } from "../../../lib/eden-client";
+import { scheduleTimeToLocal, scheduleTimesToStored } from "@/lib/work-schedule-time";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Checkbox } from "../../../components/ui/checkbox";
@@ -125,9 +126,9 @@ export default function WorkScheduleCreate() {
       active: source.active,
       organization_id: source.organization_id,
       days: (source.days ?? []).map(String),
-      start_time: source.start_time?.slice(0, 5) ?? "",
-      end_time: source.end_time?.slice(0, 5) ?? "",
-      max_start_time: source.max_start_time?.slice(0, 5) ?? "",
+      start_time: scheduleTimeToLocal(source.start_time),
+      end_time: scheduleTimeToLocal(source.end_time),
+      max_start_time: scheduleTimeToLocal(source.max_start_time),
       bonus_price: source.bonus_price || undefined,
     });
   }, [source, form]);
@@ -137,8 +138,8 @@ export default function WorkScheduleCreate() {
     setIsSubmitting(true);
     try {
       const { error } = await apiClient.api.work_schedules.post({
-        // @ts-ignore
-        data: values,
+        // @ts-ignore — в форме местное время, в базу — со сдвигом
+        data: scheduleTimesToStored(values),
       });
       if (error) {
         toast.error(apiErrorMessage(error, "Ошибка создания рабочего графика"));

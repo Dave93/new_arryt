@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Switch } from "../../../components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { apiClient } from "../../../lib/eden-client";
+import { scheduleTimeToLocal, scheduleTimesToStored } from "@/lib/work-schedule-time";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Checkbox } from "../../../components/ui/checkbox";
@@ -160,11 +161,11 @@ export default function WorkScheduleEdit() {
         // @ts-ignore
         days: formattedDays,
         // @ts-ignore
-        start_time: workSchedule.start_time ? workSchedule.start_time.slice(0, 5) : "",
+        start_time: scheduleTimeToLocal(workSchedule.start_time),
         // @ts-ignore
-        end_time: workSchedule.end_time ? workSchedule.end_time.slice(0, 5) : "",
+        end_time: scheduleTimeToLocal(workSchedule.end_time),
         // @ts-ignore
-        max_start_time: workSchedule.max_start_time ? workSchedule.max_start_time.slice(0, 5) : "",
+        max_start_time: scheduleTimeToLocal(workSchedule.max_start_time),
         // @ts-ignore
         bonus_price: workSchedule.bonus_price,
       });
@@ -177,8 +178,8 @@ export default function WorkScheduleEdit() {
     try {
       const { id: _id, ...data } = values;
       const { error } = await apiClient.api.work_schedules({id: values.id}).put({
-        // @ts-ignore
-        data,
+        // @ts-ignore — в форме местное время, в базу — со сдвигом
+        data: scheduleTimesToStored(data),
       });
       if (error) {
         toast.error(apiErrorMessage(error, "Ошибка обновления рабочего графика"));
