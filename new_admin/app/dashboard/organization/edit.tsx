@@ -338,9 +338,10 @@ export default function OrganizationEdit() {
                     return (
                     <FormItem>
                       <FormLabel>Тип системы</FormLabel>
-                      <Select 
+                      <Select
+                        key={`system_type-${field.value}`}
                         onValueChange={field.onChange}
-                        value={field.value || ""}
+                        defaultValue={field.value || ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -384,10 +385,11 @@ export default function OrganizationEdit() {
                   return (
                   <FormItem>
                     <FormLabel>Тип оплаты</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                    >
+                    <Select
+                        key={`payment_type-${field.value}`}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value || ""}
+                      >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Выберите тип оплаты">

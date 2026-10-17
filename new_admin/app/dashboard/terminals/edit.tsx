@@ -285,8 +285,9 @@ console.log('organizations', organizations)
                     <FormItem>
                       <FormLabel>Организация</FormLabel>
                       <Select
+                        key={`organization_id-${field.value}-${organizations.length}`}
                         onValueChange={field.onChange}
-                        value={field.value}
+                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -391,8 +392,9 @@ console.log('organizations', organizations)
                     <FormItem>
                       <FormLabel>Региональность</FormLabel>
                       <Select
+                        key={`region-${field.value}`}
                         onValueChange={field.onChange}
-                        value={field.value || "capital"}
+                        defaultValue={field.value || "capital"}
                       >
                         <FormControl>
                           <SelectTrigger>

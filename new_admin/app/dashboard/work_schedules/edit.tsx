@@ -259,7 +259,11 @@ export default function WorkScheduleEdit() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Организация</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        key={`organization_id-${field.value}-${organizations.length}`}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите организацию" />
