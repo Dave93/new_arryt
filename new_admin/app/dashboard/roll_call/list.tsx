@@ -272,9 +272,9 @@ function CourierRow({
   const initials = [row.first_name, row.last_name].map((w) => w?.trim()?.[0] ?? "").join("").toUpperCase();
   const tone = {
     late: { badge: "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300", avatar: "bg-red-100 text-red-800", row: "bg-red-50/40 dark:bg-red-950/10" },
-    onshift: { badge: "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300", avatar: "bg-green-100 text-green-800", row: "" },
-    missing: { badge: "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300", avatar: "bg-amber-100 text-amber-900", row: "" },
-    off: { badge: "bg-muted text-muted-foreground", avatar: "bg-muted text-muted-foreground", row: "" },
+    onshift: { badge: "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300", avatar: "bg-green-100 text-green-800", row: "bg-white dark:bg-card" },
+    missing: { badge: "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300", avatar: "bg-amber-100 text-amber-900", row: "bg-white dark:bg-card" },
+    off: { badge: "bg-muted text-muted-foreground", avatar: "bg-muted text-muted-foreground", row: "bg-white dark:bg-card" },
   }[row.status];
 
   let statusText = "Не в сети";
@@ -367,7 +367,7 @@ export default function RollCallList() {
   const [date, setDate] = useState<Date>(new Date());
   const [region, setRegion] = useState("capital");
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("onshift");
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
 
@@ -536,7 +536,7 @@ export default function RollCallList() {
                 "flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors",
                 filter === f.id
                   ? "border-foreground bg-foreground text-background"
-                  : "bg-background hover:border-primary",
+                  : "bg-white hover:border-primary dark:bg-card",
               )}
             >
               <span className={cn("h-2 w-2 rounded-full", f.dot)} aria-hidden="true" />
@@ -546,7 +546,7 @@ export default function RollCallList() {
           ))}
         </div>
 
-        {!isLoading && filter === "all" && attention > 0 && (
+        {!isLoading && (filter === "all" || filter === "onshift") && attention > 0 && (
           <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>
@@ -568,7 +568,7 @@ export default function RollCallList() {
           {isLoading ? (
             [1, 2, 3].map((i) => <Skeleton key={i} className="h-44 w-full rounded-2xl" />)
           ) : visible.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-background py-12 text-center text-muted-foreground">
+            <div className="rounded-2xl border border-dashed bg-white py-12 text-center text-muted-foreground dark:bg-card">
               По этому фильтру курьеров нет
             </div>
           ) : (
@@ -578,12 +578,12 @@ export default function RollCallList() {
               const missing = p.rows.filter((r) => r.status === "missing").length;
               const onShift = p.rows.filter((r) => r.status === "late" || r.status === "onshift").length;
               return (
-                <section key={p.id} className="overflow-hidden rounded-2xl border bg-background">
+                <section key={p.id} className="overflow-hidden rounded-2xl border bg-white shadow-sm dark:bg-card">
                   <button
                     type="button"
                     onClick={() => setClosed((s) => ({ ...s, [p.id]: open }))}
                     aria-expanded={open}
-                    className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-4 text-left hover:bg-muted/40 sm:px-5"
+                    className="flex w-full flex-wrap items-center justify-between gap-3 bg-white px-4 py-4 text-left hover:bg-slate-50 sm:px-5 dark:bg-card dark:hover:bg-muted/40"
                   >
                     <span className="flex items-center gap-3">
                       <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
