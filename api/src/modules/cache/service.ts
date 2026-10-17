@@ -16,7 +16,7 @@ import {
   daily_garant,
 } from "../../../drizzle/schema";
 import { DB } from "../../lib/db";
-import { eq, getTableColumns, InferSelectModel, sql } from "drizzle-orm";
+import { eq, getTableColumns, InferSelectModel, isNull, sql } from "drizzle-orm";
 import { Redis } from "ioredis";
 import { UserContext, UserResponseDto } from "../user/users.dto";
 import { WorkScheduleWithRelations } from "../work_schedules/dto/list.dto";
@@ -297,6 +297,8 @@ export class CacheControlService {
         organization,
         eq(work_schedules.organization_id, organization.id)
       )
+      // Кэш читает только выбор графика в админке — удалённые там не нужны.
+      .where(isNull(work_schedules.deleted_at))
       .execute()
     await this.redis.set(
       `${process.env.PROJECT_PREFIX}_work_schedules`,

@@ -1,12 +1,14 @@
 import {
   organization,
+  users,
+  users_work_schedules,
   work_schedules,
 } from "../../../drizzle/schema";
 import { contextWitUser } from "../../context";
 import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import dayjs from "dayjs";
-import { SQLWrapper, and, eq, sql, getTableColumns } from "drizzle-orm";
+import { SQLWrapper, and, eq, sql, getTableColumns, inArray, isNull, ne } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 import { WorkScheduleWithRelations } from "./dto/list.dto";
@@ -31,6 +33,8 @@ export const WorkSchedulesController = new Elysia({
           organization,
         });
       }
+      // Удалённые (в архиве) графики не показываем
+      whereClause.push(isNull(work_schedules.deleted_at));
       const rolesCount = await drizzle
         .select({ count: sql<number>`count(*)` })
         .from(work_schedules)
@@ -185,5 +189,71 @@ export const WorkSchedulesController = new Elysia({
         }),
         fields: t.Optional(t.Array(t.String())),
       }),
+    }
+  )
+  .get(
+    "/:id/usage",
+    async ({ params: { id }, drizzle }) => {
+      // Для подтверждения удаления: кому из активных курьеров назначен график
+      // и у кого он единственный — после удаления у них не останется графика.
+      const assigned = await drizzle
+        .select({ id: users.id, first_name: users.first_name, last_name: users.last_name })
+        .from(users_work_schedules)
+        .innerJoin(users, eq(users.id, users_work_schedules.user_id))
+        .where(and(eq(users_work_schedules.work_schedule_id, id), eq(users.status, "active")));
+      const ids = assigned.map((u) => u.id);
+      const withOther = ids.length
+        ? await drizzle
+            .selectDistinct({ user_id: users_work_schedules.user_id })
+            .from(users_work_schedules)
+            .innerJoin(work_schedules, eq(work_schedules.id, users_work_schedules.work_schedule_id))
+            .where(
+              and(
+                inArray(users_work_schedules.user_id, ids),
+                ne(users_work_schedules.work_schedule_id, id),
+                isNull(work_schedules.deleted_at)
+              )
+            )
+        : [];
+      const hasOther = new Set(withOther.map((r) => r.user_id));
+      return {
+        active_couriers: assigned.length,
+        only_schedule: assigned
+          .filter((u) => !hasOther.has(u.id))
+          .map((u) => [u.first_name, u.last_name].filter(Boolean).join(" ").trim()),
+      };
+    },
+    {
+      permission: "work_schedules.edit",
+      params: t.Object({ id: t.String() }),
+    }
+  )
+  .delete(
+    "/:id",
+    async ({ params: { id }, drizzle, cacheControl, status }) => {
+      // Физически удалить нельзя: на график ссылается история смен. Удаляем в
+      // архив и снимаем его с курьеров — их остальные графики остаются.
+      const result = await drizzle.transaction(async (tx) => {
+        const [archived] = await tx
+          .update(work_schedules)
+          .set({ deleted_at: new Date().toISOString(), active: false })
+          .where(and(eq(work_schedules.id, id), isNull(work_schedules.deleted_at)))
+          .returning({ id: work_schedules.id });
+        if (!archived) return null;
+        const unassigned = await tx
+          .delete(users_work_schedules)
+          .where(eq(users_work_schedules.work_schedule_id, id))
+          .returning({ user_id: users_work_schedules.user_id });
+        return { id: archived.id, unassigned: unassigned.length };
+      });
+      if (!result) {
+        return status(404, { message: "График не найден" });
+      }
+      await cacheControl.cacheWorkSchedules();
+      return { data: result };
+    },
+    {
+      permission: "work_schedules.edit",
+      params: t.Object({ id: t.String() }),
     }
   )

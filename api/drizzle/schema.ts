@@ -516,6 +516,8 @@ export const work_schedules = pgTable("work_schedules", {
 	created_by: uuid("created_by").references(() => users.id, { onUpdate: "cascade" }),
 	updated_by: uuid("updated_by").references(() => users.id, { onUpdate: "cascade" }),
 	bonus_price: integer("bonus_price").default(0).notNull(),
+	// Удаление графика — архивное: на него ссылается история смен work_schedule_entries.
+	deleted_at: timestamp("deleted_at", { precision: 5, withTimezone: true, mode: 'string' }),
 });
 
 export const users_terminals = pgTable("users_terminals", {

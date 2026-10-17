@@ -10,8 +10,19 @@ import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
-import { Eye, Plus, Edit } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Eye, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiErrorMessage } from "@/lib/api-error";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../../components/ui/alert-dialog";
 import { Switch } from "../../../components/ui/switch";
 import { format } from "date-fns";
 import { Badge } from "../../../components/ui/badge";
@@ -158,10 +169,113 @@ const columns: ColumnDef<WorkSchedule>[] = [
             Edit
           </Link>
         </Button>
+        <DeleteWorkScheduleButton id={row.original.id} name={row.original.name} />
       </div>
     ),
   },
 ];
+
+type Usage = { active_couriers: number; only_schedule: string[] };
+
+/**
+ * Удаление графика — в архив: история смен остаётся. Перед подтверждением
+ * показываем, со скольких активных курьеров график снимется и у кого он
+ * единственный.
+ */
+function DeleteWorkScheduleButton({ id, name }: { id: string; name: string }) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [usage, setUsage] = useState<Usage | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const openDialog = async () => {
+    setUsage(null);
+    setOpen(true);
+    const { data, error } = await apiClient.api.work_schedules({ id }).usage.get();
+    if (error) {
+      toast.error(apiErrorMessage(error, "Не удалось проверить, кому назначен график"));
+      setOpen(false);
+      return;
+    }
+    setUsage(data as Usage);
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await apiClient.api.work_schedules({ id }).delete();
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось удалить график"));
+        return;
+      }
+      // Снимается и с неактивных курьеров, но важно число активных — его и показываем.
+      const active = usage?.active_couriers ?? 0;
+      toast.success(`График «${name}» удалён`, {
+        description: active ? `Снят с активных курьеров: ${active}` : undefined,
+      });
+      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["workSchedules"] });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={openDialog}>
+        <Trash2 className="h-4 w-4 mr-2" />
+        Удалить
+      </Button>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить график «{name}»?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>График пропадёт из списка и из выбора у курьеров. История смен сохранится.</p>
+                {!usage ? (
+                  <p className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Проверяю, кому он назначен…
+                  </p>
+                ) : usage.active_couriers === 0 ? (
+                  <p>Активным курьерам не назначен.</p>
+                ) : (
+                  <>
+                    <p>
+                      Будет снят с активных курьеров: <b className="text-foreground">{usage.active_couriers}</b>. Их
+                      остальные графики останутся.
+                    </p>
+                    {usage.only_schedule.length > 0 && (
+                      <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-900">
+                        Останутся без графика ({usage.only_schedule.length}):{" "}
+                        {usage.only_schedule.slice(0, 10).join(", ")}
+                        {usage.only_schedule.length > 10 ? " и др." : ""}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!usage || isDeleting}
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
 
 export default function WorkScheduleList() {
   const [searchQuery, setSearchQuery] = useState("");
