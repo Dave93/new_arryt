@@ -3,7 +3,7 @@ import { desc, getTableColumns, ilike, lte, or, gte, inArray, isNotNull, sql, ne
 import { InferSelectModel } from "drizzle-orm";
 import { and } from "drizzle-orm";
 import { roles } from "../../../drizzle/schema";
-import { users } from "../../../drizzle/schema";
+import { daily_garant, users } from "../../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { contextWitUser } from "../../context";
 import Elysia, { t } from "elysia";
@@ -171,6 +171,16 @@ export const CouriersController = new Elysia({
         }
       });
 
+      // Опоздание для дневного гаранта считается от графика тарифа, поэтому у
+      // курьера с таким тарифом показываем его, а не назначенный график.
+      const garantsRes = await redis.get(`${process.env.PROJECT_PREFIX}_daily_garant`);
+      const garantScheduleMap = new Map<string, string>();
+      (JSON.parse(garantsRes || "[]") as InferSelectModel<typeof daily_garant>[]).forEach((g) => {
+        if (g.start_time && g.end_time) {
+          garantScheduleMap.set(g.id, `${g.start_time.slice(0, 5)}-${g.end_time.slice(0, 5)}`);
+        }
+      });
+
       // Build terminal -> organization_id map
       const terminalOrgMap = new Map<string, string>();
       terminalsList.forEach((t) => {
@@ -230,7 +240,9 @@ export const CouriersController = new Elysia({
                 daily_garant_id: courier.daily_garant_id,
                 date: courier.timesheet_users?.date,
                 app_version: courier.app_version,
-                work_schedule: orgId ? userScheduleMap.get(`${courier.id}:${orgId}`) || null : null,
+                work_schedule:
+                  (courier.daily_garant_id && garantScheduleMap.get(courier.daily_garant_id)) ||
+                  (orgId ? userScheduleMap.get(`${courier.id}:${orgId}`) || null : null),
               }))
           );
         }

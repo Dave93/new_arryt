@@ -61,8 +61,24 @@ for h in "${HYPERTABLES[@]}"; do
   read -r table column days <<<"$h"
   psql_local -d arryt -q -c "SELECT create_hypertable('public.$table', by_range('$column', INTERVAL '$days days'), if_not_exists => true)" >/dev/null
 done
+# Смены и табель за последние SHIFT_DAYS дней — чтобы перекличка и дневной
+# гарант показывали живые цифры. Персональных данных клиентов в них нет.
+SHIFT_DAYS="${SHIFT_DAYS:-7}"
+if [ "$SHIFT_DAYS" -gt 0 ]; then
+  echo "→ Смены и табель за $SHIFT_DAYS дн…"
+  copy_recent() { # таблица, колонка даты
+    ssh -i "$SSH_KEY" -o BatchMode=yes "$SERVER"       "cd $REMOTE_API && export \$(grep -E '^DATABASE_URL=' .env | xargs) && psql \"\$DATABASE_URL\" -c \"\copy (select * from $1 where $2 >= now() - interval '$SHIFT_DAYS days') to stdout\""       | psql_local -d arryt -q -c "\copy $1 from stdin"
+  }
+  copy_recent work_schedule_entries date_start
+  copy_recent timesheet date
+  psql_local -d arryt -At -c "SELECT '  смен: ' || count(*) FROM work_schedule_entries" -c "SELECT '  табель: ' || count(*) FROM timesheet"
+fi
+
 # Токены прода локально не нужны: пуши и интеграции не должны уходить с ноутбука.
 psql_local -d arryt -q -c "UPDATE users SET fcm_token = NULL, api_token = NULL"
 
 psql_local -d arryt -At -c "SELECT 'users: ' || count(*) FROM users" -c "SELECT 'terminals: ' || count(*) FROM terminals" -c "SELECT 'daily_garant: ' || count(*) FROM daily_garant"
+# Локальный админ и кэш API: база пересоздана, Redis держит старые данные.
+echo "→ Локальный админ и кэш…"
+(cd "$DIR/../api" && bun ../dev/create-local-admin.ts && bun ../dev/warm-cache.ts)
 echo "✓ Готово"
