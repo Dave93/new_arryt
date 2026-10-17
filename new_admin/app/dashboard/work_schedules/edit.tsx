@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "../../../components/ui/button";
@@ -175,10 +176,14 @@ export default function WorkScheduleEdit() {
     setIsSubmitting(true);
     try {
       const { id: _id, ...data } = values;
-      await apiClient.api.work_schedules({id: values.id}).put({
+      const { error } = await apiClient.api.work_schedules({id: values.id}).put({
         // @ts-ignore
         data,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка обновления рабочего графика"));
+        return;
+      }
       
       toast.success("Рабочий график успешно обновлен");
       router.push("/dashboard/work_schedules");

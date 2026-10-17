@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 
 import { Button } from "../../../components/ui/button";
 import {
@@ -185,10 +186,14 @@ export default function OrderBonusPricingEdit({ id }: OrderBonusPricingEditProps
     
     setIsSubmitting(true);
     try {
-      await apiClient.api.order_bonus_pricing({id}).put({
+      const { error } = await apiClient.api.order_bonus_pricing({id}).put({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка обновления условия бонуса"));
+        return;
+      }
       
       toast.success("Условие бонуса успешно обновлено");
       router.push("/dashboard/order_bonus_pricing");

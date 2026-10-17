@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "../../../components/ui/button";
@@ -162,10 +163,14 @@ export default function TerminalEdit() {
     
     setIsSubmitting(true);
     try {
-      await apiClient.api.terminals({ id }).put({
+      const { error } = await apiClient.api.terminals({ id }).put({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка обновления филиала"));
+        return;
+      }
       
       toast.success("Филиал успешно обновлен");
       router.push("/dashboard/terminals");

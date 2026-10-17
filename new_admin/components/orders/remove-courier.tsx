@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/eden-client";
+import { apiErrorMessage } from "@/lib/api-error";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +33,11 @@ export function RemoveOrderCourier({ orderId }: RemoveOrderCourierProps) {
     try {
       // Use type assertion for dynamic property access
       const orderEndpoint = apiClient.api.orders as any;
-      await orderEndpoint({id: orderId}).revoke.post();
+      const { error } = await orderEndpoint({id: orderId}).revoke.post();
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось снять курьера с заказа"));
+        return;
+      }
       
       toast.success("Курьер успешно снят с заказа");
       setIsOpen(false);

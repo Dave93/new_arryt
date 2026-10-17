@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/eden-client";
+import { apiErrorMessage } from "@/lib/api-error";
 
 import {
   Dialog,
@@ -73,9 +74,13 @@ export function ChangeOrderCourier({ orderId, terminalId }: ChangeOrderCourierPr
     try {
       // Use type assertion for dynamic property access
       const orderEndpoint = apiClient.api.orders as any;
-      await orderEndpoint[orderId].assign.post({
+      const { error } = await orderEndpoint[orderId].assign.post({
         courier_id: selectedCourier,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось выполнить действие"));
+        return;
+      }
       
       toast.success("Courier changed successfully");
       setIsOpen(false);

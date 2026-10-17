@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import {
   Card,
   CardContent,
@@ -178,10 +179,14 @@ export default function OrganizationEdit() {
     setIsSubmitting(true);
     try {
       // @ts-ignore
-      await apiClient.api.organization({id}).put({
+      const { error } = await apiClient.api.organization({id}).put({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось сохранить"));
+        return;
+      }
       
       toast.success("Organization updated successfully");
       router.push("/dashboard/organization");

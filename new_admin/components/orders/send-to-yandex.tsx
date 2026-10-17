@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/eden-client";
+import { apiErrorMessage } from "@/lib/api-error";
 import { IconSend } from "@tabler/icons-react";
 import { Loader2 } from "lucide-react";
 
@@ -22,10 +23,14 @@ export function SendOrderToYandex({ order }: SendOrderToYandexProps) {
   const handleSendToYandex = async () => {
     setIsLoading(true);
     try {
-      await apiClient.api.missed_orders.send_yandex.post({
+      const { error } = await apiClient.api.missed_orders.send_yandex.post({
         id: order.id,
       });
-      
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось отправить заказ в Яндекс"));
+        return;
+      }
+
       toast.success("Заказ отправлен в Яндекс");
     } catch (error) {
       console.error("Error sending order to Yandex:", error);

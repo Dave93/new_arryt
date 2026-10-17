@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { format } from "date-fns";
 import { FilterIcon, Download, Wallet } from "lucide-react";
 
@@ -88,11 +89,15 @@ function CourierWithdrawModal({ courier, onWithdraw }: { courier: CourierBalance
     try {
       setIsSubmitting(true);
       
-      await apiClient.api.couriers.withdraw.post({
+      const { error } = await apiClient.api.couriers.withdraw.post({
           courier_id: courier.users.id,
           terminal_id: courier.terminals.id,
           amount: +amount,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка при проведении выплаты"));
+        return;
+      }
       
       toast.success("Выплата успешно проведена");
       setAmount("");

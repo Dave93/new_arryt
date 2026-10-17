@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "../../../components/ui/button";
@@ -184,10 +185,14 @@ export default function DeliveryPricingCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.delivery_pricing.post({
+      const { error } = await apiClient.api.delivery_pricing.post({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка создания условия доставки"));
+        return;
+      }
       
       toast.success("Условие доставки успешно создано");
       router.push("/dashboard/delivery_pricing");

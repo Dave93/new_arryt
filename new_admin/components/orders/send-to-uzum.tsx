@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/eden-client";
+import { apiErrorMessage } from "@/lib/api-error";
 import { IconSend } from "@tabler/icons-react";
 import { Loader2 } from "lucide-react";
 
@@ -22,9 +23,13 @@ export function SendOrderToUzum({ order }: SendOrderToUzumProps) {
   const handleSendToUzum = async () => {
     setIsLoading(true);
     try {
-      await apiClient.api.missed_orders.send_uzum.post({
+      const { error } = await apiClient.api.missed_orders.send_uzum.post({
         id: order.id,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось отправить заказ в Uzum Tezkor"));
+        return;
+      }
 
       toast.success("Заказ отправлен в Uzum Tezkor");
     } catch (error) {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/eden-client";
+import { apiErrorMessage } from "@/lib/api-error";
 import { IconSend } from "@tabler/icons-react";
 import { Loader2 } from "lucide-react";
 
@@ -23,9 +24,13 @@ export function SendOrderToNoor({ order }: SendOrderToNoorProps) {
   const handleSendToNoor = async () => {
     setIsLoading(true);
     try {
-      await apiClient.api.missed_orders.send_noor.post({
+      const { error } = await apiClient.api.missed_orders.send_noor.post({
         id: order.id,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось отправить заказ в Noor"));
+        return;
+      }
 
       setIsSent(true);
       toast.success("Заказ отправлен в Noor");

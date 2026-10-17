@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import {
   Card,
   CardContent,
@@ -176,10 +177,14 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.order_status({id: params.id}).put({
+      const { error } = await apiClient.api.order_status({id: params.id}).put({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось сохранить"));
+        return;
+      }
       
       toast.success("Order status updated successfully");
       router.push(`/dashboard/order_status/${params.id}`);

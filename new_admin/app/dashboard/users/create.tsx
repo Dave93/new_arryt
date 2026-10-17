@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "../../../components/ui/button";
@@ -200,7 +201,7 @@ export default function UserCreate() {
   const onSubmit = async (values: z.infer<typeof baseFormSchema>) => {
     setIsSubmitting(true);
     try {
-      const {data} = await apiClient.api.users.post({
+      const {data, error} = await apiClient.api.users.post({
         data: {
           ...values,
           daily_garant_id: values.daily_garant_id === "none" ? undefined : values.daily_garant_id,
@@ -211,7 +212,11 @@ export default function UserCreate() {
           should_rehire: values.should_rehire || false,
         },
       });
-      
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка создания пользователя"));
+        return;
+      }
+
       if (data?.data?.id) {
         setCreatedUserId(data.data.id);
       }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import {
   Card,
   CardContent,
@@ -98,10 +99,14 @@ export default function OrganizationCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.organization.post({
+      const { error } = await apiClient.api.organization.post({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось сохранить"));
+        return;
+      }
       
       toast.success("Organization created successfully");
       router.push("/dashboard/organization");

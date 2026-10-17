@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "../../../components/ui/button";
@@ -336,7 +337,7 @@ export default function UserEdit() {
         daily_garant_id: values.daily_garant_id === "none" ? "" : values.daily_garant_id
       };
       
-      await apiClient.api.users({id: values.id}).put({
+      const { error } = await apiClient.api.users({id: values.id}).put({
         data: {
           ...formData,
           users_terminals: undefined,
@@ -352,6 +353,10 @@ export default function UserEdit() {
           should_rehire: formData.should_rehire || false,
         },
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка обновления пользователя"));
+        return;
+      }
       
       toast.success("Пользователь успешно обновлен");
       router.push("/dashboard/users");

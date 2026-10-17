@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 
 import { Button } from "../../../../components/ui/button";
 import {
@@ -105,10 +106,14 @@ export default function OrderBonusPricingCreate() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.order_bonus_pricing.post({
+      const { error } = await apiClient.api.order_bonus_pricing.post({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка создания условия бонуса"));
+        return;
+      }
       
       toast.success("Условие бонуса успешно создано");
       router.push("/dashboard/order_bonus_pricing");

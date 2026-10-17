@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 
 import { Button } from "../../../components/ui/button";
 import {
@@ -159,9 +160,13 @@ export default function ConstructedBonusPricingCreate() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.constructed_bonus_pricing.post({
+      const { error } = await apiClient.api.constructed_bonus_pricing.post({
         data: values
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка создания условия бонуса к заказу"));
+        return;
+      }
       
       toast.success("Условие бонуса к заказу успешно создано");
       router.push("/dashboard/constructed_bonus_pricing");

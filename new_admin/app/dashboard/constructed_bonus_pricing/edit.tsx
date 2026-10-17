@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "../../../components/ui/button";
@@ -293,9 +294,13 @@ export default function ConstructedBonusPricingEdit({ id: propId }: ConstructedB
     
     setIsSubmitting(true);
     try {
-      await apiClient.api.constructed_bonus_pricing({ id }).put({
+      const { error } = await apiClient.api.constructed_bonus_pricing({ id }).put({
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Ошибка обновления условия бонуса к заказу"));
+        return;
+      }
       
       toast.success("Условие бонуса к заказу успешно обновлено");
       router.push("/dashboard/constructed_bonus_pricing");

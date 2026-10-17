@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import {
   Card,
   CardContent,
@@ -54,10 +55,14 @@ export default function RoleCreate() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      await apiClient.api.roles.post({
+      const { error } = await apiClient.api.roles.post({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Failed to create role"));
+        return;
+      }
       
       toast.success("Role created successfully");
       router.push("/dashboard/roles");

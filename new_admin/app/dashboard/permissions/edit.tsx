@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import {
   Card,
   CardContent,
@@ -89,10 +90,14 @@ export default function PermissionEdit({ params }: { params: { id: string } }) {
     
     setIsSubmitting(true);
     try {
-      await apiClient.api.permissions({id}).put({
+      const { error } = await apiClient.api.permissions({id}).put({
         // @ts-ignore
         data: values,
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Failed to update permission"));
+        return;
+      }
       
       toast.success("Permission updated successfully");
       router.push("/dashboard/permissions");

@@ -16,6 +16,9 @@ export function QueryProvider({ children }: QueryProviderProps) {
           queries: {
             staleTime: 60 * 1000, // 1 minute
             refetchOnWindowFocus: false,
+            // Страница при открытии всегда перезапрашивает данные: иначе форма
+            // редактирования минуту показывает запись в виде до сохранения.
+            refetchOnMount: "always",
           },
         },
       })

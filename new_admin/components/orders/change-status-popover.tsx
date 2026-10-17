@@ -17,6 +17,7 @@ import {
 import { RefreshCw, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/eden-client";
+import { apiErrorMessage } from "@/lib/api-error";
 import { toast } from "sonner";
 import { useSelectedOrdersStore } from "@/lib/selected-orders-store";
 
@@ -58,6 +59,9 @@ export function ChangeStatusPopover({ organizationId }: ChangeStatusPopoverProps
         order_ids: orderIds,
         status_id: statusId,
       });
+      if (response.error) {
+        throw new Error(apiErrorMessage(response.error, "Не удалось выполнить действие"));
+      }
       return response.data;
     },
     onSuccess: (data) => {

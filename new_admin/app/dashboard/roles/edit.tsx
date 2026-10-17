@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "../../../lib/eden-client";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import {
   Card,
   CardContent,
@@ -218,7 +219,7 @@ export default function RoleEdit() {
     setIsSubmitting(true);
     try {
       // Update role details
-      await apiClient.api.roles({id}).put({
+      const { error } = await apiClient.api.roles({id}).put({
         // @ts-ignore
         data: {
           name: values.name,
@@ -227,6 +228,10 @@ export default function RoleEdit() {
           code: values.code,
         },
       });
+      if (error) {
+        toast.error(apiErrorMessage(error, "Failed to update role"));
+        return;
+      }
       
       // Update role permissions if permissions field exists
       // if (values.permissions) {

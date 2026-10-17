@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { format } from "date-fns";
 import dayjs from "dayjs";
 import { PageTitle } from "@/components/page-title";
@@ -786,7 +787,7 @@ function UserTransactions({ userId }: { userId: string }) {
   const addTransactionMutation = useMutation({
     mutationFn: async (values: any) => {
       try {
-        return await apiClient.api.order_transactions.post({
+        const res = await apiClient.api.order_transactions.post({
           data: {
             amount: Number(values.amount),
             courier_id: userId,
@@ -794,6 +795,10 @@ function UserTransactions({ userId }: { userId: string }) {
             comment: values.comment,
           },
         });
+        if (res.error) {
+          throw res.error;
+        }
+        return res;
       } catch (error) {
         throw error;
       }
@@ -804,8 +809,8 @@ function UserTransactions({ userId }: { userId: string }) {
       transactionForm.reset();
       refetchTransactions();
     },
-    onError: () => {
-      toast.error("Ошибка добавления транзакции");
+    onError: (error) => {
+      toast.error(apiErrorMessage(error, "Ошибка добавления транзакции"));
     }
   });
 
@@ -1462,6 +1467,7 @@ export default function UserShow({ id }: UserShowProps) {
 }
 
 function UserSkeleton() {
+  const router = useRouter();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
