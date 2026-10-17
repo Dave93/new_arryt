@@ -264,10 +264,10 @@ export default function OrderStatusEdit({ params }: { params: { id: string } }) 
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Organization</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
+                      <Select
+                        key={`org-${field.value}-${organizations.length}`}
+                        onValueChange={field.onChange}
                         defaultValue={field.value}
-                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>

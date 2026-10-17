@@ -85,6 +85,7 @@ interface User {
     id: string;
     name: string;
   }[];
+  daily_garant_id?: string | null;
   daily_garant?: {
     id: string;
     name: string;
@@ -1121,6 +1122,11 @@ function UserTransactions({ userId }: { userId: string }) {
 export default function UserShow({ id }: UserShowProps) {
   const router = useRouter();
 
+  // Имя тарифа: API отдаёт только daily_garant_id.
+  const { data: dailyGarants = [] } = useQuery({
+    queryKey: ["dailyGarants"],
+    queryFn: async () => (await apiClient.api.daily_garant.cached.get()).data || [],
+  });
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["user", id],
     // @ts-ignore
@@ -1143,6 +1149,7 @@ export default function UserShow({ id }: UserShowProps) {
               "longitude",
               "status",
               "max_active_order_count",
+              "daily_garant_id",
               "doc_files",
               "order_start_date",
               "terminals.id",
@@ -1377,12 +1384,12 @@ export default function UserShow({ id }: UserShowProps) {
                       </div>
                     </div>
                   )}
-                  {/* @ts-ignore */}
-                  {user.daily_garant && (
+                  {user.daily_garant_id && (
                     <div>
                       <p className="text-xs text-muted-foreground">Дневной гарант</p>
-                      {/* @ts-ignore */}
-                      <p className="text-sm font-medium mt-0.5">{user.daily_garant.name}</p>
+                      <p className="text-sm font-medium mt-0.5">
+                        {dailyGarants.find((g: { id: string }) => g.id === user.daily_garant_id)?.name ?? "тариф удалён"}
+                      </p>
                     </div>
                   )}
                   {/* @ts-ignore */}

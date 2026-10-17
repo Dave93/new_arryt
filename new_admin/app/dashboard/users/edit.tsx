@@ -399,7 +399,6 @@ export default function UserEdit() {
                       <Select 
                         key={`status-${field.value}`}
                         onValueChange={field.onChange} 
-                        value={field.value}
                         defaultValue={field.value}
                       >
                         <FormControl>
@@ -429,9 +428,8 @@ export default function UserEdit() {
                     <FormItem>
                       <FormLabel>Роль</FormLabel>
                       <Select 
-                        key={`roles-${field.value}`}
+                        key={`roles-${field.value}-${roles.length}`}
                         onValueChange={field.onChange} 
-                        value={field.value}
                         defaultValue={field.value}
                       >
                         <FormControl>
@@ -509,7 +507,6 @@ export default function UserEdit() {
                       <Select 
                         key={`drive-type-${field.value}`}
                         onValueChange={field.onChange} 
-                        value={field.value}
                         defaultValue={field.value}
                       >
                         <FormControl>
