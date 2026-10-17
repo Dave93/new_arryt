@@ -2,7 +2,7 @@ import { brands } from "../../../drizzle/schema";
 import { contextWitUser } from "../../context";
 import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
-import { InferSelectModel, SQLWrapper, and, eq, sql } from "drizzle-orm";
+import { InferSelectModel, SQLWrapper, and, eq, sql, getTableColumns } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 
@@ -75,7 +75,9 @@ export const BrandsController = new Elysia({
   .post(
     "/",
     async ({ body: { data, fields }, drizzle }) => {
-      let selectFields = {};
+      // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
+      // ошибка Postgres "syntax error at end of input".
+      let selectFields: {} = getTableColumns(brands);
       if (fields) {
         selectFields = parseSelectFields(fields, brands, {});
       }
@@ -103,7 +105,9 @@ export const BrandsController = new Elysia({
   .put(
     "/:id",
     async ({ params: { id }, body: { data, fields }, drizzle }) => {
-      let selectFields = {};
+      // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
+      // ошибка Postgres "syntax error at end of input".
+      let selectFields: {} = getTableColumns(brands);
       if (fields) {
         selectFields = parseSelectFields(fields, brands, {});
       }

@@ -1,5 +1,5 @@
 import { order_status, organization } from "../../../drizzle/schema";
-import { eq, sql, InferSelectModel, SQLWrapper } from "drizzle-orm";
+import { eq, sql, InferSelectModel, SQLWrapper, getTableColumns } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import { SelectedFields } from "drizzle-orm/pg-core";
@@ -102,7 +102,9 @@ export const OrderStatusController = new Elysia({
   .post(
     "/",
     async ({ body: { data, fields }, drizzle }) => {
-      let selectFields = {};
+      // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
+      // ошибка Postgres "syntax error at end of input".
+      let selectFields: {} = getTableColumns(order_status);
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {
           organization,
@@ -141,7 +143,9 @@ export const OrderStatusController = new Elysia({
   .put(
     "/:id",
     async ({ params: { id }, body: { data, fields }, drizzle }) => {
-      let selectFields = {};
+      // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
+      // ошибка Postgres "syntax error at end of input".
+      let selectFields: {} = getTableColumns(order_status);
       if (fields) {
         selectFields = parseSelectFields(fields, order_status, {
           organization,

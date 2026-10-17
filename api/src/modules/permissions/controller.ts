@@ -1,5 +1,5 @@
 import { permissions } from "../../../drizzle/schema";
-import { InferSelectModel, SQLWrapper, eq, sql } from "drizzle-orm";
+import { InferSelectModel, SQLWrapper, eq, sql, getTableColumns } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import { SelectedFields } from "drizzle-orm/pg-core";
@@ -76,7 +76,9 @@ export const PermissionsController = new Elysia({
   .post(
     "/",
     async ({ body: { data, fields }, drizzle }) => {
-      let selectFields = {};
+      // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
+      // ошибка Postgres "syntax error at end of input".
+      let selectFields: {} = getTableColumns(permissions);
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});
       }
@@ -104,7 +106,9 @@ export const PermissionsController = new Elysia({
   .put(
     "/:id",
     async ({ params: { id }, body: { data, fields }, drizzle }) => {
-      let selectFields = {};
+      // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
+      // ошибка Postgres "syntax error at end of input".
+      let selectFields: {} = getTableColumns(permissions);
       if (fields) {
         selectFields = parseSelectFields(fields, permissions, {});
       }

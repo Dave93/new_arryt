@@ -6,7 +6,7 @@ import { contextWitUser } from "../../context";
 import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import dayjs from "dayjs";
-import { SQLWrapper, and, eq, sql } from "drizzle-orm";
+import { SQLWrapper, and, eq, sql, getTableColumns } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/pg-core";
 import Elysia, { t } from "elysia";
 import { WorkScheduleWithRelations } from "./dto/list.dto";
@@ -91,7 +91,9 @@ export const WorkSchedulesController = new Elysia({
   .post(
     "/",
     async ({ body: { data, fields }, drizzle, cacheControl }) => {
-      let selectFields = {};
+      // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
+      // ошибка Postgres "syntax error at end of input".
+      let selectFields: {} = getTableColumns(work_schedules);
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {});
       }
@@ -136,7 +138,9 @@ export const WorkSchedulesController = new Elysia({
   .put(
     "/:id",
     async ({ params: { id }, body: { data, fields }, drizzle, cacheControl }) => {
-      let selectFields = {};
+      // Без fields возвращаем всю строку: returning({}) даёт пустой RETURNING —
+      // ошибка Postgres "syntax error at end of input".
+      let selectFields: {} = getTableColumns(work_schedules);
       if (fields) {
         selectFields = parseSelectFields(fields, work_schedules, {});
       }
