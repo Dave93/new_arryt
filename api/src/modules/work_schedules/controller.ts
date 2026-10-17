@@ -20,8 +20,9 @@ import { WorkScheduleWithRelations } from "./dto/list.dto";
 function normalizeTime(value: string): string | null {
   const m = value.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (m) {
-    const [h, min, sec = "00"] = [Number(m[1]), m[2], m[3]];
-    return h < 24 && Number(min) < 60 ? `${String(h).padStart(2, "0")}:${min}:${sec}` : null;
+    const [h, min, sec] = [Number(m[1]), m[2], m[3] ?? "00"];
+    if (h >= 24 || Number(min) >= 60 || Number(sec) >= 60) return null;
+    return `${String(h).padStart(2, "0")}:${min}:${sec}`;
   }
   const d = dayjs(value);
   return d.isValid() ? d.format("HH:mm:ss") : null;
