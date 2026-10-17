@@ -305,7 +305,7 @@ function CourierRow({
         <div className="flex min-w-0 flex-col gap-0.5">
           {/* Новая вкладка: перекличка с выбранной датой и фильтрами остаётся открытой */}
           <Link
-            href={`/dashboard/users/${row.id}`}
+            href={`/dashboard/users/${row.id}?from=roll_call`}
             target="_blank"
             rel="noopener noreferrer"
             className="truncate text-[15px] font-semibold hover:text-primary hover:underline underline-offset-2"

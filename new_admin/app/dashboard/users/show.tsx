@@ -1119,14 +1119,34 @@ function UserTransactions({ userId }: { userId: string }) {
   );
 }
 
+/** Откуда открыли карточку: ?from=roll_call — из переклички (в новой вкладке). */
+const BACK_TARGETS: Record<string, { href: string; label: string }> = {
+  roll_call: { href: "/dashboard/roll_call", label: "Назад к перекличке" },
+};
+
 /**
- * «Назад к списку»: карточку часто открывают в новой вкладке (из переклички),
- * там истории нет (или в ней чужая страница) — тогда ведём на список.
+ * «Назад»: из переклички карточка открывается в новой вкладке, истории там нет —
+ * ведём обратно в перекличку. Иначе — назад, если пришли из админки, или к списку.
  */
-function goBack(router: ReturnType<typeof useRouter>) {
-  const cameFromAdmin = !!document.referrer && new URL(document.referrer).origin === window.location.origin;
-  if (cameFromAdmin && window.history.length > 1) router.back();
-  else router.push("/dashboard/users");
+function BackButton() {
+  const router = useRouter();
+  const [target, setTarget] = useState<{ href: string; label: string } | null>(null);
+  useEffect(() => {
+    const from = new URLSearchParams(window.location.search).get("from");
+    setTarget(from ? BACK_TARGETS[from] ?? null : null);
+  }, []);
+  const goBack = () => {
+    if (target) return router.push(target.href);
+    const cameFromAdmin = !!document.referrer && new URL(document.referrer).origin === window.location.origin;
+    if (cameFromAdmin && window.history.length > 1) router.back();
+    else router.push("/dashboard/users");
+  };
+  return (
+    <Button variant="ghost" size="sm" onClick={goBack}>
+      <ArrowLeft className="h-4 w-4 mr-2" />
+      {target?.label ?? "Назад к списку"}
+    </Button>
+  );
 }
 
 /** Время графика курьера хранится на 6 ч раньше местного — как в перекличке. */
@@ -1268,10 +1288,7 @@ export default function UserShow({ id }: UserShowProps) {
       {/* @ts-ignore */}
       <PageTitle title={`${user.last_name} ${user.first_name}` || "Загрузка..."} />
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => goBack(router)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Назад к списку
-        </Button>
+        <BackButton />
 
         <Button asChild>
           <Link href={`/dashboard/users/edit/?id=${id}`}>
@@ -1527,14 +1544,10 @@ export default function UserShow({ id }: UserShowProps) {
 }
 
 function UserSkeleton() {
-  const router = useRouter();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => goBack(router)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Назад к списку
-        </Button>
+        <BackButton />
         <Skeleton className="h-9 w-32" />
       </div>
 
