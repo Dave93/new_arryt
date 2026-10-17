@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import Link from "next/link";
 import {
   CalendarIcon,
   RefreshCw,
@@ -123,14 +124,18 @@ function CourierRow({
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <span
+            {/* Новая вкладка: перекличка с выбранной датой и фильтрами остаётся открытой */}
+            <Link
+              href={`/dashboard/users/${courier.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className={cn(
-                "text-sm truncate cursor-default",
+                "text-sm truncate hover:text-primary hover:underline underline-offset-2",
                 courier.is_online ? "font-medium" : "text-muted-foreground"
               )}
             >
               {courier.first_name} {courier.last_name}
-            </span>
+            </Link>
           </TooltipTrigger>
           <TooltipContent>
             {courier.first_name} {courier.last_name}
