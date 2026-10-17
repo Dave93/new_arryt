@@ -17,7 +17,7 @@ import { getSetting } from "../../utils/settings";
 import { CourierEfficiencyReportItem, WalletStatus } from "../user/dto/list.dto";
 import { getDistance } from "geolib";
 import { getHours, getMinutes } from "../../lib/dates";
-import { settingHour, settleDailyGarant } from "../../services/daily_garant/service";
+import { settingHour, garantDayStatuses, settleDailyGarant } from "../../services/daily_garant/service";
 import { MAX_GARANT_ADJUSTMENT } from "../../services/daily_garant/calculate";
 import { businessDayOf } from "../../services/daily_garant/calculate";
 
@@ -1772,6 +1772,13 @@ export const CouriersController = new Elysia({
       }),
     }
   )
+  .get('/api/couriers/roll_coll/garant', async ({ query: { date }, redis, drizzle, cacheControl }) => {
+    // Статусы дневного гаранта за день для «Переклички» — только расчёт, без начисления.
+    return garantDayStatuses({ db: drizzle, redis, cacheControl }, date);
+  }, {
+    permission: 'terminals.list',
+    query: t.Object({ date: t.String() }),
+  })
   .post('/api/couriers/try_set_daily_garant', async ({ body, redis, drizzle, cacheControl, user, status }) => {
     // Посмотреть расчёт может любой, кто видит филиалы (в т.ч. менеджер).
     // Начислить деньги — и тем более с ручной корректировкой — только

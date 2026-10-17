@@ -1,32 +1,26 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isToday } from "date-fns";
+import { ru } from "date-fns/locale";
 import Link from "next/link";
 import {
+  AlertTriangle,
   CalendarIcon,
-  RefreshCw,
+  ChevronRight,
   PhoneIcon,
-  Users,
-  Wifi,
-  WifiOff,
-  Clock,
+  RefreshCw,
+  Search,
 } from "lucide-react";
 
 import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import { Input } from "../../../components/ui/input";
 import { PageTitle } from "@/components/page-title";
 import { DailyGarantDialog } from "@/components/roll-call/daily-garant-dialog";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { apiClient } from "../../../lib/eden-client";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-} from "../../../components/ui/form";
 import {
   Popover,
   PopoverContent,
@@ -40,12 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { Badge } from "../../../components/ui/badge";
-import { Tooltip, TooltipTrigger, TooltipContent } from "../../../components/ui/tooltip";
 import { cn } from "../../../lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 
 interface RollCallItem {
   id: string;
@@ -61,7 +50,6 @@ interface Courier {
   is_online: boolean;
   is_late?: boolean;
   created_at?: string;
-  app_version?: string;
   drive_type?: string;
   daily_garant_id?: string;
   work_schedule?: string | null;
@@ -73,137 +61,301 @@ interface Terminal {
   id: string;
   name: string;
   region: string;
+  latitude: number;
+  longitude: number;
+  linked_terminal_id?: string | null;
+  organization_id: string;
+  organization?: { name: string } | null;
 }
 
-const filterSchema = z.object({
-  date: z.date(),
-  region: z.string().optional(),
-});
+interface GarantTariff {
+  id: string;
+  name: string;
+}
 
-type FilterValues = z.infer<typeof filterSchema>;
+interface GarantStatus {
+  courierId: string;
+  status: "paid" | "due" | "zero" | "blocked";
+  amount: number;
+  reason?: string;
+}
 
-const driveTypeIcons: Record<string, string> = {
-  car: "🚗",
-  bike: "🚴",
-  bycicle: "🚲",
-  foot: "🚶",
+type CourierStatus = "late" | "onshift" | "missing" | "off";
+type Filter = "all" | "onshift" | "late" | "missing" | "off" | "mismatch";
+
+interface Row extends Courier {
+  status: CourierStatus;
+  checkIn: string | null;
+  lateMinutes: number;
+  scheduleStart: string | null;
+}
+
+interface Point {
+  id: string;
+  name: string;
+  brands: string[];
+  terminalIds: string[];
+  rows: Row[];
+}
+
+const driveTypeLabels: Record<string, string> = {
+  car: "авто",
+  bike: "мото",
+  bycicle: "вело",
+  foot: "пешком",
 };
 
-function CourierRow({
-  courier,
-  date,
-  onRefetch,
+/** Терминалы двух брендов ближе этого — одна точка (как в расчёте гаранта). */
+const SAME_POINT_METERS = 100;
+/** Опоздание до 30 минут не штрафуется — как в дневном гаранте. */
+const LATE_GRACE_MINUTES = 30;
+
+const sum = (n: number) => new Intl.NumberFormat("ru-RU").format(Math.round(n));
+
+function distanceMeters(a: Terminal, b: Terminal) {
+  const R = 6_371_000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** Название точки без бренда: «C5 Chopar» и «C5 Les Ailes» → «C5». */
+function pointName(names: string[], brands: string[]) {
+  const words = brands.flatMap((b) => [b, b.split(" ")[0]]).filter(Boolean);
+  const strip = (n: string) =>
+    words
+      .reduce((acc, w) => acc.replace(new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi"), ""), n)
+      .replace(/\s+/g, " ")
+      .trim();
+  const stripped = names.map(strip).filter(Boolean);
+  return stripped.sort((a, b) => a.length - b.length)[0] || names[0];
+}
+
+/** Объединяет терминалы одной точки: явная связка или координаты ближе 100 м. */
+function groupTerminals(ids: string[], terminals: Map<string, Terminal>) {
+  const parent = new Map(ids.map((id) => [id, id]));
+  const find = (id: string): string => {
+    const p = parent.get(id)!;
+    if (p === id) return id;
+    const root = find(p);
+    parent.set(id, root);
+    return root;
+  };
+  const union = (a: string, b: string) => parent.set(find(a), find(b));
+  for (let i = 0; i < ids.length; i++) {
+    const a = terminals.get(ids[i]);
+    if (!a) continue;
+    if (a.linked_terminal_id && a.linked_terminal_id !== a.id && parent.has(a.linked_terminal_id)) {
+      union(a.id, a.linked_terminal_id);
+    }
+    for (let j = i + 1; j < ids.length; j++) {
+      const b = terminals.get(ids[j]);
+      if (b && a.organization_id !== b.organization_id && distanceMeters(a, b) <= SAME_POINT_METERS) {
+        union(a.id, b.id);
+      }
+    }
+  }
+  const groups = new Map<string, string[]>();
+  ids.forEach((id) => {
+    const root = find(id);
+    groups.set(root, [...(groups.get(root) ?? []), id]);
+  });
+  return [...groups.values()];
+}
+
+/** Начало смены выбранного дня; смена после полуночи (до 04:00) — уже следующие сутки. */
+function shiftStart(day: Date, schedule: string | null | undefined) {
+  const match = schedule?.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const start = new Date(day);
+  start.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  if (Number(match[1]) < 4) start.setDate(start.getDate() + 1);
+  return start;
+}
+
+function lateLabel(minutes: number) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `+${h ? `${h} ч ` : ""}${m} мин`;
+}
+
+function toRow(c: Courier, day: Date): Row {
+  const start = shiftStart(day, c.work_schedule);
+  const checkIn = c.created_at ? new Date(c.created_at) : null;
+  const lateMinutes = checkIn && start ? Math.max(0, Math.floor((checkIn.getTime() - start.getTime()) / 60000)) : 0;
+  let status: CourierStatus = "off";
+  if (checkIn) status = lateMinutes > LATE_GRACE_MINUTES ? "late" : "onshift";
+  else if (isToday(day) && start && Date.now() > start.getTime()) status = "missing";
+  return {
+    ...c,
+    status,
+    checkIn: checkIn ? format(checkIn, "HH:mm") : null,
+    lateMinutes,
+    scheduleStart: start ? format(start, "HH:mm") : null,
+  };
+}
+
+const matches = (r: Row, f: Filter) =>
+  f === "all" ||
+  (f === "onshift" && (r.status === "onshift" || r.status === "late")) ||
+  r.status === f ||
+  (f === "mismatch" && !!r.schedule_mismatch);
+
+const statusOrder: Record<CourierStatus, number> = { late: 0, onshift: 1, missing: 2, off: 3 };
+
+const FILTERS: { id: Filter; label: string; dot: string }[] = [
+  { id: "all", label: "Все", dot: "bg-slate-400" },
+  { id: "onshift", label: "На смене", dot: "bg-green-500" },
+  { id: "late", label: "Опоздали", dot: "bg-red-500" },
+  { id: "missing", label: "Не отметились", dot: "bg-amber-500" },
+  { id: "off", label: "Не в сети", dot: "bg-slate-300" },
+  { id: "mismatch", label: "График не совпадает", dot: "bg-orange-600" },
+];
+
+const BLOCKED_TEXT: Record<string, string> = {
+  no_garant: "тариф не назначен",
+  no_shift: "нет смены — не начисляется",
+  no_terminal: "не найден филиал для начисления",
+};
+
+function GarantCell({
+  row,
+  tariff,
+  garant,
 }: {
-  courier: Courier;
-  date: Date;
-  onRefetch?: () => void;
+  row: Row;
+  tariff?: GarantTariff;
+  garant?: GarantStatus;
 }) {
-  const checkedInToday = !!courier.created_at;
-  const timeStr = checkedInToday
-    ? format(new Date(courier.created_at!), "HH:mm")
-    : null;
+  if (!row.daily_garant_id) {
+    return <span className="text-sm text-muted-foreground">без дневного гаранта</span>;
+  }
+  let text = "нет смены — не начисляется";
+  let tone = "text-muted-foreground";
+  if (garant?.status === "due") {
+    text = `к начислению ${sum(garant.amount)} сум`;
+    tone = "text-primary";
+  } else if (garant?.status === "paid") {
+    text = `начислено ${sum(garant.amount)} сум ✓`;
+    tone = "text-green-700 dark:text-green-400";
+  } else if (garant?.status === "zero") {
+    text = "заработал гарант сам";
+  } else if (garant?.status === "blocked") {
+    text = BLOCKED_TEXT[garant.reason ?? ""] ?? "начислить нельзя";
+  }
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="truncate text-sm font-semibold">{tariff?.name ?? "тариф удалён"}</span>
+      <span className={cn("text-[13px] font-semibold", tone)}>{text}</span>
+    </div>
+  );
+}
+
+function CourierRow({
+  row,
+  day,
+  tariff,
+  garant,
+  onPaid,
+}: {
+  row: Row;
+  day: Date;
+  tariff?: GarantTariff;
+  garant?: GarantStatus;
+  onPaid: () => void;
+}) {
+  const name = [row.first_name, row.last_name].filter(Boolean).join(" ");
+  const initials = [row.first_name, row.last_name].map((w) => w?.trim()?.[0] ?? "").join("").toUpperCase();
+  const tone = {
+    late: { badge: "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300", avatar: "bg-red-100 text-red-800", row: "bg-red-50/40 dark:bg-red-950/10" },
+    onshift: { badge: "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300", avatar: "bg-green-100 text-green-800", row: "" },
+    missing: { badge: "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300", avatar: "bg-amber-100 text-amber-900", row: "" },
+    off: { badge: "bg-muted text-muted-foreground", avatar: "bg-muted text-muted-foreground", row: "" },
+  }[row.status];
+
+  let statusText = "Не в сети";
+  let statusHint = row.scheduleStart ? `смена по графику с ${row.scheduleStart}` : "графика нет";
+  if (row.status === "late") {
+    statusText = `${row.checkIn} · ${lateLabel(row.lateMinutes)}`;
+    statusHint = `опоздание от начала смены ${row.scheduleStart}`;
+  } else if (row.status === "onshift") {
+    statusText = row.lateMinutes > 0 ? `${row.checkIn} · ${lateLabel(row.lateMinutes)}` : `${row.checkIn} · вовремя`;
+    statusHint = row.lateMinutes > 0 ? "до 30 минут не штрафуется" : "отметился";
+  } else if (row.status === "missing") {
+    statusText = "Не отметился";
+  }
+
+  const canSettle = !!row.daily_garant_id && (garant?.status === "due" || garant?.status === "zero");
 
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-        courier.is_online
-          ? "bg-green-50 dark:bg-green-950/20"
-          : "bg-muted/30"
+        "grid grid-cols-1 items-center gap-x-4 gap-y-2.5 border-t px-4 py-3 first:border-t-0 sm:grid-cols-2 sm:px-5 xl:grid-cols-[minmax(220px,1.6fr)_minmax(140px,1fr)_minmax(160px,1fr)_minmax(200px,1.3fr)_168px]",
+        tone.row,
       )}
     >
-      {/* Status dot */}
-      <div
-        className={cn(
-          "h-2.5 w-2.5 rounded-full shrink-0",
-          courier.is_online
-            ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.4)]"
-            : "bg-gray-300 dark:bg-gray-600"
-        )}
-      />
+      <div className="flex min-w-0 items-center gap-3">
+        <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold", tone.avatar)} aria-hidden="true">
+          {initials}
+        </span>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          {/* Новая вкладка: перекличка с выбранной датой и фильтрами остаётся открытой */}
+          <Link
+            href={`/dashboard/users/${row.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="truncate text-[15px] font-semibold hover:text-primary hover:underline underline-offset-2"
+          >
+            {name}
+          </Link>
+          <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <span className={cn("h-1.5 w-1.5 rounded-full", row.is_online ? "bg-green-500" : "bg-slate-300")} aria-hidden="true" />
+            {row.is_online ? "в сети" : "не в сети"}
+            {row.drive_type && <> · {driveTypeLabels[row.drive_type] ?? row.drive_type}</>}
+          </span>
+        </div>
+      </div>
 
-      {/* Name + drive type + schedule */}
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/* Новая вкладка: перекличка с выбранной датой и фильтрами остаётся открытой */}
-            <Link
-              href={`/dashboard/users/${courier.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                "text-sm truncate hover:text-primary hover:underline underline-offset-2",
-                courier.is_online ? "font-medium" : "text-muted-foreground"
-              )}
-            >
-              {courier.first_name} {courier.last_name}
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>
-            {courier.first_name} {courier.last_name}
-          </TooltipContent>
-        </Tooltip>
-        {courier.drive_type && (
-          <span className="text-sm shrink-0" title={courier.drive_type}>
-            {driveTypeIcons[courier.drive_type] || "❓"}
+      <div className="flex flex-col items-start gap-1">
+        <span className="font-mono text-sm">{row.work_schedule ?? "—"}</span>
+        {row.schedule_mismatch && (
+          <span
+            className="rounded-md bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-900 dark:bg-orange-950/40 dark:text-orange-300"
+            title="Опоздание для гаранта считается от графика тарифа"
+          >
+            у курьера {row.assigned_schedule}
           </span>
-        )}
-        {courier.work_schedule && (
-          <span className="text-[11px] text-muted-foreground/70 shrink-0">
-            ({courier.work_schedule})
-          </span>
-        )}
-        {courier.schedule_mismatch && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="text-[11px] text-amber-600 shrink-0 cursor-help">⚠</span>
-            </TooltipTrigger>
-            <TooltipContent>
-              У курьера назначен график {courier.assigned_schedule} — не совпадает с тарифом гаранта ({courier.work_schedule})
-            </TooltipContent>
-          </Tooltip>
         )}
       </div>
 
-      {/* Check-in time / status */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {checkedInToday ? (
-          <span
-            className={cn(
-              "text-xs font-mono font-semibold px-2 py-0.5 rounded",
-              courier.is_late
-                ? "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400"
-                : "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-            )}
-          >
-            {timeStr}
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground/60 px-2">
-            {courier.is_online ? "не сегодня" : "не в сети"}
-          </span>
-        )}
+      <div className="flex flex-col items-start gap-1">
+        <span className={cn("rounded-lg px-2.5 py-1 text-[13px] font-bold", row.checkIn && "font-mono", tone.badge)}>
+          {statusText}
+        </span>
+        <span className="text-xs text-muted-foreground">{statusHint}</span>
+      </div>
 
-        {/* Actions */}
-        {courier.phone && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-blue-600"
-            onClick={() => {
-              window.location.href = `tel:${courier.phone!.replace("+998", "")}`;
-            }}
-            title={courier.phone}
-          >
-            <PhoneIcon className="h-3.5 w-3.5" />
+      <GarantCell row={row} tariff={tariff} garant={garant} />
+
+      <div className="flex items-center gap-1.5 sm:justify-end">
+        {row.phone && (
+          <Button asChild variant="outline" size="icon" className="h-10 w-10" title={row.phone}>
+            <a href={`tel:${row.phone}`} aria-label={`Позвонить: ${name}`}>
+              <PhoneIcon className="h-4 w-4" />
+            </a>
           </Button>
         )}
-        {courier.daily_garant_id && (
+        {canSettle && (
           <DailyGarantDialog
-            day={date}
-            courierId={courier.id}
-            courierName={[courier.first_name, courier.last_name].filter(Boolean).join(" ")}
-            onSuccess={onRefetch}
+            day={day}
+            courierId={row.id}
+            courierName={name}
+            onSuccess={onPaid}
+            trigger={garant?.status === "due" ? "button" : "outline"}
           />
         )}
       </div>
@@ -211,410 +363,272 @@ function CourierRow({
   );
 }
 
-function TerminalCard({
-  terminal,
-  date,
-  onRefetch,
-}: {
-  terminal: RollCallItem;
-  date: Date;
-  onRefetch?: () => void;
-}) {
-  const onlineCount = terminal.couriers.filter((c) => c.is_online).length;
-  const totalCount = terminal.couriers.length;
-  const onlinePercent = totalCount > 0 ? (onlineCount / totalCount) * 100 : 0;
-
-  // Sort: online first, then by check-in time (earliest first), then offline
-  const sortedCouriers = useMemo(() => {
-    return [...terminal.couriers].sort((a, b) => {
-      if (a.is_online !== b.is_online) return a.is_online ? -1 : 1;
-      if (a.created_at && b.created_at) {
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      }
-      if (a.created_at) return -1;
-      if (b.created_at) return 1;
-      return 0;
-    });
-  }, [terminal.couriers]);
-
-  return (
-    <Card className="w-full overflow-hidden">
-      <CardHeader className="px-4 py-3 pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-semibold leading-tight">
-              {terminal.name}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              <span className="text-green-600 font-medium">{onlineCount}</span>
-              {" / "}
-              {totalCount} курьеров
-            </p>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-3 pt-1">
-        <div className="space-y-1.5">
-          {sortedCouriers.map((courier) => (
-            <CourierRow
-              key={courier.id}
-              courier={courier}
-              date={date}
-              onRefetch={onRefetch}
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Mock data for UI preview
-const MOCK_DATA: RollCallItem[] = [
-  {
-    id: "t1",
-    name: "40 Chopar Pizza",
-    couriers: [
-      { id: "c1", first_name: "Азиз", last_name: "Каримов", phone: "+998901234567", is_online: true, created_at: new Date().toISOString(), drive_type: "car", daily_garant_id: "dg1", work_schedule: "10:00-22:00" },
-      { id: "c2", first_name: "Бобур", last_name: "Рахимов", phone: "+998901234568", is_online: true, created_at: new Date(Date.now() - 3600000).toISOString(), drive_type: "bike", work_schedule: "10:00-22:00" },
-      { id: "c3", first_name: "Санжар", last_name: "Юсупов", phone: "+998901234569", is_online: false, drive_type: "foot", work_schedule: "15:00-03:00" },
-      { id: "c4", first_name: "Дилшод", last_name: "Алиев", phone: "+998901234570", is_online: true, is_late: true, created_at: new Date(Date.now() - 1800000).toISOString(), drive_type: "car", work_schedule: "10:00-22:00" },
-    ],
-  },
-  {
-    id: "t2",
-    name: "40 Les Ailes",
-    couriers: [
-      { id: "c5", first_name: "Жасур", last_name: "Тошматов", phone: "+998901234571", is_online: true, created_at: new Date(Date.now() - 900000).toISOString(), drive_type: "bike", work_schedule: "10:00-22:00" },
-      { id: "c6", first_name: "Шерзод", last_name: "Бекназаров", phone: "+998901234572", is_online: false, drive_type: "car", work_schedule: "15:00-03:00" },
-      { id: "c7", first_name: "Нодир", last_name: "Курьер", phone: "+998901234573", is_online: false, work_schedule: "10:00-22:00" },
-    ],
-  },
-  {
-    id: "t3",
-    name: "Alpomish Les Ailes",
-    couriers: [
-      { id: "c8", first_name: "Отабек", last_name: "Мирзаев", phone: "+998901234574", is_online: true, created_at: new Date(Date.now() - 600000).toISOString(), drive_type: "car", work_schedule: "10:00-22:00" },
-      { id: "c9", first_name: "Фаррух", last_name: "Садиков", phone: "+998901234575", is_online: true, created_at: new Date(Date.now() - 2400000).toISOString(), drive_type: "bike", work_schedule: "15:00-03:00" },
-      { id: "c10", first_name: "Ислом", last_name: "Набиев", phone: "+998901234576", is_online: true, is_late: false, created_at: new Date(Date.now() - 300000).toISOString(), drive_type: "foot", work_schedule: "10:00-22:00" },
-      { id: "c11", first_name: "Рустам", last_name: "Холматов", phone: "+998901234577", is_online: false, drive_type: "car", work_schedule: "10:00-22:00" },
-      { id: "c12", first_name: "Улугбек", last_name: "Сафаров", phone: "+998901234578", is_online: true, created_at: new Date(Date.now() - 1200000).toISOString(), drive_type: "bycicle", work_schedule: "10:00-22:00, 15:00-03:00" },
-    ],
-  },
-  {
-    id: "t4",
-    name: "Atlas",
-    couriers: [
-      { id: "c13", first_name: "Акбар", last_name: "Юлдашев", phone: "+998901234579", is_online: true, created_at: new Date(Date.now() - 7200000).toISOString(), drive_type: "car", daily_garant_id: "dg2", work_schedule: "10:00-22:00" },
-      { id: "c14", first_name: "Бахром", last_name: "Исмоилов", phone: "+998901234580", is_online: false, drive_type: "bike", work_schedule: "15:00-03:00" },
-    ],
-  },
-  {
-    id: "t5",
-    name: "Azia Chopar",
-    couriers: [
-      { id: "c15", first_name: "Мухаммад", last_name: "Расулов", phone: "+998901234581", is_online: true, created_at: new Date(Date.now() - 500000).toISOString(), drive_type: "car", work_schedule: "10:00-22:00" },
-      { id: "c16", first_name: "Абдулла", last_name: "Маматов", phone: "+998901234582", is_online: true, created_at: new Date(Date.now() - 4500000).toISOString(), drive_type: "foot", work_schedule: "15:00-03:00" },
-      { id: "c17", first_name: "Хусан", last_name: "Тургунов", phone: "+998901234583", is_online: false, work_schedule: "10:00-22:00" },
-      { id: "c18", first_name: "Сардор", last_name: "Достонов", phone: "+998901234584", is_online: true, is_late: true, created_at: new Date(Date.now() - 200000).toISOString(), drive_type: "bike", work_schedule: "10:00-22:00" },
-      { id: "c19", first_name: "Лазиз", last_name: "Камолов", phone: "+998901234585", is_online: false, drive_type: "car", work_schedule: "15:00-03:00" },
-    ],
-  },
-  {
-    id: "t6",
-    name: "Azia Les Ailes",
-    couriers: [
-      { id: "c20", first_name: "Тимур", last_name: "Ашуров", phone: "+998901234586", is_online: true, created_at: new Date(Date.now() - 1500000).toISOString(), drive_type: "car", work_schedule: "10:00-22:00" },
-      { id: "c21", first_name: "Комил", last_name: "Нурматов", phone: "+998901234587", is_online: true, created_at: new Date(Date.now() - 3000000).toISOString(), drive_type: "bike", work_schedule: "15:00-03:00" },
-      { id: "c22", first_name: "Элдор", last_name: "Хамидов", phone: "+998901234588", is_online: false, drive_type: "foot", work_schedule: "10:00-22:00" },
-    ],
-  },
-];
-
-const USE_MOCK = false; // Toggle to true to preview UI with mock data
-
 export default function RollCallList() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [terminals, setTerminals] = useState<Terminal[]>([]);
+  const [date, setDate] = useState<Date>(new Date());
+  const [region, setRegion] = useState("capital");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [closed, setClosed] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
 
-  const form = useForm<FilterValues>({
-    resolver: zodResolver(filterSchema),
-    defaultValues: {
-      date: new Date(),
-      region: "capital",
-    },
-  });
-
-  // Fetch terminals for region mapping
-  const { data: terminalsData } = useQuery({
+  const { data: terminalsData = [] } = useQuery({
     queryKey: ["terminals-cached"],
     queryFn: async () => {
       const { data } = await apiClient.api.terminals.cached.get();
-      return (data as Terminal[]) || [];
+      return (data as unknown as Terminal[]) || [];
     },
   });
 
-  const filterValues = form.watch();
+  const { data: tariffs = [] } = useQuery({
+    queryKey: ["dailyGarants"],
+    queryFn: async () => ((await apiClient.api.daily_garant.cached.get()).data as GarantTariff[]) || [],
+  });
 
-  const {
-    data = [],
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["roll-call", filterValues.date, searchQuery],
+  const { data = [], isLoading, dataUpdatedAt } = useQuery({
+    queryKey: ["roll-call", date.toDateString()],
     queryFn: async () => {
-      if (USE_MOCK) return MOCK_DATA;
-      try {
-        const { data: rollCallList } =
-          await apiClient.api.couriers.roll_coll.get({
-            query: {
-              date: filterValues.date.toISOString(),
-            },
-          });
-
-        if (rollCallList && Array.isArray(rollCallList)) {
-          return rollCallList as RollCallItem[];
-        }
-        return [];
-      } catch (error) {
+      const { data: list, error } = await apiClient.api.couriers.roll_coll.get({
+        query: { date: date.toISOString() },
+      });
+      if (error) {
         toast.error("Ошибка загрузки данных переклички");
         return [];
       }
+      return (Array.isArray(list) ? list : []) as unknown as RollCallItem[];
     },
   });
 
-  const terminalRegionMap = useMemo(() => {
-    const map = new Map<string, string>();
-    (terminalsData || []).forEach((t) => map.set(t.id, t.region));
-    return map;
-  }, [terminalsData]);
-
-  const filteredData = useMemo(() => {
-    let result = data;
-
-    const region = filterValues.region;
-    if (region && region !== "all" && terminalRegionMap.size > 0) {
-      result = result.filter(
-        (item) => terminalRegionMap.get(item.id) === region
-      );
-    }
-
-    if (searchQuery) {
-      result = result.filter((item) => item.name === searchQuery);
-    }
-
-    // Активные филиалы — наверх: больше курьеров онлайн, затем больше
-    // отметившихся за день. Название в конце — чтобы при равенстве порядок
-    // не прыгал между обновлениями.
-    const online = (t: (typeof result)[number]) => t.couriers.filter((c) => c.is_online).length;
-    const checkedIn = (t: (typeof result)[number]) => t.couriers.filter((c) => c.created_at).length;
-    return [...result].sort(
-      (a, b) =>
-        online(b) - online(a) ||
-        checkedIn(b) - checkedIn(a) ||
-        a.name.localeCompare(b.name, "ru"),
-    );
-  }, [data, searchQuery, filterValues.region, terminalRegionMap]);
-
-  // Summary stats (unique couriers only)
-  const stats = useMemo(() => {
-    const totalTerminals = filteredData.length;
-    const uniqueCouriers = new Map<string, { is_online: boolean; is_late?: boolean }>();
-    filteredData.forEach((t) => {
-      t.couriers.forEach((c) => {
-        if (!uniqueCouriers.has(c.id)) {
-          uniqueCouriers.set(c.id, { is_online: c.is_online, is_late: c.is_late });
-        }
+  // Статусы гаранта грузим отдельно — список показывается, не дожидаясь расчёта.
+  const { data: garants = [] } = useQuery({
+    queryKey: ["roll-call-garant", date.toDateString()],
+    queryFn: async () => {
+      const { data: list } = await apiClient.api.couriers.roll_coll.garant.get({
+        query: { date: date.toISOString() },
       });
-    });
-    const totalCouriers = uniqueCouriers.size;
-    const onlineCouriers = [...uniqueCouriers.values()].filter((c) => c.is_online).length;
-    const lateCouriers = [...uniqueCouriers.values()].filter((c) => c.is_late).length;
-    return { totalTerminals, totalCouriers, onlineCouriers, lateCouriers };
-  }, [filteredData]);
+      return (Array.isArray(list) ? list : []) as GarantStatus[];
+    },
+  });
 
-  const onRefresh = () => {
+  const terminalMap = useMemo(() => new Map(terminalsData.map((t) => [t.id, t])), [terminalsData]);
+  const tariffMap = useMemo(() => new Map(tariffs.map((t) => [t.id, t])), [tariffs]);
+  const garantMap = useMemo(() => new Map(garants.map((g) => [g.courierId, g])), [garants]);
+
+  // Точки: терминалы двух брендов на одном месте — один блок, курьеры без повторов.
+  const points = useMemo<Point[]>(() => {
+    const items = data.filter((t) => region === "all" || terminalMap.get(t.id)?.region === region);
+    const byId = new Map(items.map((t) => [t.id, t]));
+    return groupTerminals(items.map((t) => t.id), terminalMap).map((ids) => {
+      const terms = ids.map((id) => byId.get(id)!);
+      const brands = [...new Set(ids.map((id) => terminalMap.get(id)?.organization?.name).filter(Boolean) as string[])];
+      const couriers = new Map<string, Courier>();
+      terms.forEach((t) => t.couriers.forEach((c) => !couriers.has(c.id) && couriers.set(c.id, c)));
+      const rows = [...couriers.values()]
+        .map((c) => toRow(c, date))
+        .sort(
+          (a, b) =>
+            statusOrder[a.status] - statusOrder[b.status] ||
+            `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, "ru"),
+        );
+      return {
+        id: ids.slice().sort()[0],
+        name: pointName(terms.map((t) => t.name), brands),
+        brands,
+        terminalIds: ids,
+        rows,
+      };
+    });
+  }, [data, region, terminalMap, date]);
+
+  const searched = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return points;
+    return points
+      .map((p) => ({
+        ...p,
+        rows: p.rows.filter((r) =>
+          `${r.first_name} ${r.last_name} ${r.phone ?? ""}`.toLowerCase().includes(q) || p.name.toLowerCase().includes(q),
+        ),
+      }))
+      .filter((p) => p.rows.length > 0);
+  }, [points, search]);
+
+  // Счётчики — по уникальным курьерам: один курьер может работать в двух точках.
+  const counts = useMemo(() => {
+    const unique = new Map<string, Row>();
+    searched.forEach((p) => p.rows.forEach((r) => unique.set(r.id, r)));
+    const all = [...unique.values()];
+    return Object.fromEntries(FILTERS.map((f) => [f.id, all.filter((r) => matches(r, f.id)).length])) as Record<Filter, number>;
+  }, [searched]);
+
+  const visible = useMemo(() => {
+    const problems = (p: Point) => p.rows.filter((r) => r.status === "late" || r.status === "missing").length;
+    const onShift = (p: Point) => p.rows.filter((r) => r.status === "late" || r.status === "onshift").length;
+    return searched
+      .map((p) => ({ ...p, shown: p.rows.filter((r) => matches(r, filter)) }))
+      .filter((p) => p.shown.length > 0)
+      .sort((a, b) => problems(b) - problems(a) || onShift(b) - onShift(a) || a.name.localeCompare(b.name, "ru"));
+  }, [searched, filter]);
+
+  const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["roll-call"] });
+    queryClient.invalidateQueries({ queryKey: ["roll-call-garant"] });
   };
+
+  const attention = counts.late + counts.missing + counts.mismatch;
 
   return (
     <>
       <PageTitle title="Перекличка курьеров" />
-      <div className="px-4 py-3">
-        {/* Filters */}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(() => {})}>
-            <div className="flex items-center gap-3 flex-wrap">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-[200px] pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd.MM.yyyy")
-                            ) : (
-                              <span>Выберите дату</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
+      <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-5 px-4 py-4 sm:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            {format(date, "EEEE, d MMMM", { locale: ru })}
+            {dataUpdatedAt ? ` · обновлено в ${format(dataUpdatedAt, "HH:mm")}` : ""}
+          </p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Курьер, телефон или точка"
+                aria-label="Поиск курьера"
+                className="h-11 w-[240px] pl-9"
+              />
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-11 gap-2 font-normal">
+                  <CalendarIcon className="h-4 w-4" />
+                  {format(date, "dd.MM.yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar mode="single" selected={date} onSelect={(d) => d && setDate(d)} initialFocus />
+              </PopoverContent>
+            </Popover>
+            <Select value={region} onValueChange={setRegion}>
+              <SelectTrigger className="h-11 w-[150px]" aria-label="Регион">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все регионы</SelectItem>
+                <SelectItem value="capital">Столица</SelectItem>
+                <SelectItem value="region">Регион</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button className="h-11 gap-2" onClick={refresh}>
+              <RefreshCw className="h-4 w-4" />
+              Обновить
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2.5" role="group" aria-label="Фильтр по статусу">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              aria-pressed={filter === f.id}
+              className={cn(
+                "flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors",
+                filter === f.id
+                  ? "border-foreground bg-foreground text-background"
+                  : "bg-background hover:border-primary",
+              )}
+            >
+              <span className={cn("h-2 w-2 rounded-full", f.dot)} aria-hidden="true" />
+              {f.label}
+              <span className="font-extrabold">{isLoading ? "…" : counts[f.id]}</span>
+            </button>
+          ))}
+        </div>
+
+        {!isLoading && filter === "all" && attention > 0 && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>
+              <b>Требуют внимания:</b> {counts.late} опоздали, {counts.missing} не отметились
+              {counts.mismatch > 0 && <>, у {counts.mismatch} график не совпадает с тарифом</>}. Точки с проблемами — сверху.
+            </span>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-3.5">
+          <div className="hidden gap-4 px-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:grid xl:grid-cols-[minmax(220px,1.6fr)_minmax(140px,1fr)_minmax(160px,1fr)_minmax(200px,1.3fr)_168px]">
+            <span>Курьер</span>
+            <span>График тарифа</span>
+            <span>Отметка</span>
+            <span>Дневной гарант</span>
+            <span className="text-right">Действия</span>
+          </div>
+
+          {isLoading ? (
+            [1, 2, 3].map((i) => <Skeleton key={i} className="h-44 w-full rounded-2xl" />)
+          ) : visible.length === 0 ? (
+            <div className="rounded-2xl border border-dashed bg-background py-12 text-center text-muted-foreground">
+              По этому фильтру курьеров нет
+            </div>
+          ) : (
+            visible.map((p) => {
+              const open = !closed[p.id];
+              const late = p.rows.filter((r) => r.status === "late").length;
+              const missing = p.rows.filter((r) => r.status === "missing").length;
+              const onShift = p.rows.filter((r) => r.status === "late" || r.status === "onshift").length;
+              return (
+                <section key={p.id} className="overflow-hidden rounded-2xl border bg-background">
+                  <button
+                    type="button"
+                    onClick={() => setClosed((s) => ({ ...s, [p.id]: open }))}
+                    aria-expanded={open}
+                    className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-4 text-left hover:bg-muted/40 sm:px-5"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
+                        <ChevronRight className={cn("h-4 w-4 transition-transform", open && "rotate-90")} />
+                      </span>
+                      <span className="flex flex-col">
+                        <span className="text-[17px] font-bold">{p.name}</span>
+                        <span className="text-[13px] text-muted-foreground">{p.brands.join(" · ")}</span>
+                      </span>
+                    </span>
+                    <span className="flex flex-wrap gap-2 text-[13px] font-semibold">
+                      <span className="rounded-full bg-green-100 px-2.5 py-1 text-green-800 dark:bg-green-950/40 dark:text-green-300">
+                        на смене {onShift} / {p.rows.length}
+                      </span>
+                      {late > 0 && (
+                        <span className="rounded-full bg-red-100 px-2.5 py-1 text-red-800 dark:bg-red-950/40 dark:text-red-300">
+                          опоздали {late}
+                        </span>
+                      )}
+                      {missing > 0 && (
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                          не отметились {missing}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                  {open && (
+                    <div className="border-t">
+                      {p.shown.map((r) => (
+                        <CourierRow
+                          key={r.id}
+                          row={r}
+                          day={date}
+                          tariff={r.daily_garant_id ? tariffMap.get(r.daily_garant_id) : undefined}
+                          garant={garantMap.get(r.id)}
+                          onPaid={refresh}
                         />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="region"
-                render={({ field }) => (
-                  <FormItem>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || "all"}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-[150px]">
-                          <SelectValue placeholder="Регион" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">Все регионы</SelectItem>
-                        <SelectItem value="capital">Столица</SelectItem>
-                        <SelectItem value="region">Регион</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-              <Select
-                onValueChange={(val) => setSearchQuery(val === "all" ? "" : val)}
-                value={searchQuery || "all"}
-              >
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Все филиалы" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все филиалы</SelectItem>
-                  {data.map((terminal) => (
-                    <SelectItem key={terminal.id} value={terminal.name}>
-                      {terminal.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onRefresh}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Обновить
-              </Button>
-            </div>
-          </form>
-        </Form>
-
-        {/* Stats */}
-        {!isLoading && (
-          <div className="flex items-center gap-6 mt-3 text-sm">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>
-                <span className="font-semibold text-foreground">
-                  {stats.totalTerminals}
-                </span>{" "}
-                филиалов
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Wifi className="h-4 w-4 text-green-500" />
-              <span>
-                <span className="font-semibold text-green-600">
-                  {stats.onlineCouriers}
-                </span>{" "}
-                онлайн
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <WifiOff className="h-4 w-4" />
-              <span>
-                <span className="font-semibold text-foreground">
-                  {stats.totalCouriers - stats.onlineCouriers}
-                </span>{" "}
-                офлайн
-              </span>
-            </div>
-            {stats.lateCouriers > 0 && (
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Clock className="h-4 w-4 text-red-500" />
-                <span>
-                  <span className="font-semibold text-red-600">
-                    {stats.lateCouriers}
-                  </span>{" "}
-                  опоздали
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="px-4 pb-4">
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="w-full">
-                <CardHeader className="p-4">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-3 w-1/3 mt-1" />
-                  <Skeleton className="h-1 w-full mt-2" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-10 w-full rounded-lg" />
-                    <Skeleton className="h-10 w-full rounded-lg" />
-                    <Skeleton className="h-10 w-full rounded-lg" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : filteredData.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            Нет данных для отображения
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-            {filteredData.map((terminal) => (
-              <TerminalCard
-                key={terminal.id}
-                terminal={terminal}
-                date={filterValues.date}
-                onRefetch={refetch}
-              />
-            ))}
-          </div>
-        )}
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })
+          )}
+        </div>
       </div>
     </>
   );

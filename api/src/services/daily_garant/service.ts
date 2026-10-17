@@ -416,3 +416,65 @@ async function resolvePayingTerminal(
     .limit(1);
   return pickPayingTerminal(worked, all, payingOrg?.id ?? worked.organization_id);
 }
+
+export type GarantDayStatus = {
+  courierId: string;
+  /** paid — уже начислен; due — есть что начислить; zero — заработал гарант сам; blocked — начислить нельзя. */
+  status: "paid" | "due" | "zero" | "blocked";
+  /** К начислению по расчёту (для due) или сколько уже начислено (для paid). */
+  amount: number;
+  reason?: SettleReason;
+};
+
+/**
+ * Статус дневного гаранта за день для всех курьеров с гарантом и сменой —
+ * для «Переклички», чтобы не открывать калькулятор по одному. Только чтение:
+ * расчёт идёт через settleDailyGarant с dryRun.
+ */
+export async function garantDayStatuses(deps: SettleDeps, dayParam: string): Promise<GarantDayStatus[]> {
+  const { db, redis } = deps;
+  const workEndHour = settingHour(await getSetting(redis, "work_end_time"), 4);
+  const day = normalizeDay(dayParam);
+  const { start, end } = businessDayWindow(day, workEndHour);
+  const startIso = start.toISOString();
+  const endIso = end.toISOString();
+
+  const couriers = await db
+    .selectDistinct({ id: users.id })
+    .from(users)
+    .innerJoin(work_schedule_entries, eq(work_schedule_entries.user_id, users.id))
+    .where(
+      and(
+        eq(users.status, "active"),
+        sql`${users.daily_garant_id} is not null`,
+        gte(work_schedule_entries.date_start, startIso),
+        lt(work_schedule_entries.date_start, endIso)
+      )
+    );
+
+  return Promise.all(
+    couriers.map(async ({ id }): Promise<GarantDayStatus> => {
+      const r = await settleDailyGarant(deps, { courierId: id, day, dryRun: true });
+      if (r.reason === "already_paid") {
+        const [{ paid }] = await db
+          .select({ paid: sql<number>`coalesce(sum(${order_transactions.amount}), 0)::float` })
+          .from(order_transactions)
+          .where(
+            and(
+              eq(order_transactions.courier_id, id),
+              eq(order_transactions.transaction_type, "daily_garant"),
+              or(
+                like(order_transactions.comment, `${commentPrefix(day)}%`),
+                and(isNull(order_transactions.comment), gte(order_transactions.created_at, startIso), lt(order_transactions.created_at, endIso))
+              )
+            )
+          );
+        return { courierId: id, status: "paid", amount: Number(paid), reason: r.reason };
+      }
+      if (r.status === "dry_run") {
+        return { courierId: id, status: (r.total ?? 0) > 0 ? "due" : "zero", amount: r.total ?? 0 };
+      }
+      return { courierId: id, status: "blocked", amount: 0, reason: r.reason };
+    })
+  );
+}

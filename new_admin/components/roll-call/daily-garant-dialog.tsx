@@ -56,11 +56,14 @@ export function DailyGarantDialog({
   courierId,
   courierName,
   onSuccess,
+  trigger = "icon",
 }: {
   day: Date;
   courierId: string;
   courierName: string;
   onSuccess?: () => void;
+  /** icon — значок калькулятора; button — кнопка «Гарант» (основная), outline — она же второстепенная. */
+  trigger?: "icon" | "button" | "outline";
 }) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<Settlement | null>(null);
@@ -141,15 +144,26 @@ export function DailyGarantDialog({
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 text-muted-foreground hover:text-primary"
-        onClick={() => setOpen(true)}
-        title="Дневной гарант"
-      >
-        <Calculator className="h-3.5 w-3.5" />
-      </Button>
+      {trigger === "icon" ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-primary"
+          onClick={() => setOpen(true)}
+          title="Дневной гарант"
+        >
+          <Calculator className="h-3.5 w-3.5" />
+        </Button>
+      ) : (
+        <Button
+          variant={trigger === "button" ? "default" : "outline"}
+          className="h-10 gap-1.5 px-3"
+          onClick={() => setOpen(true)}
+        >
+          <Calculator className="h-4 w-4" />
+          Гарант
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
