@@ -10,7 +10,8 @@ import { toast } from "sonner";
 import { apiClient } from "../../../lib/eden-client";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import Link from "next/link";
-import { Eye, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Eye, Plus, Edit, Trash2, Loader2, Copy } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../../components/ui/tooltip";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiErrorMessage } from "@/lib/api-error";
 import {
@@ -156,24 +157,37 @@ const columns: ColumnDef<WorkSchedule>[] = [
   {
     id: "actions",
     cell: ({ row }) => (
-      <div className="flex justify-end gap-2">
-        <Button asChild size="sm" variant="ghost">
-          <Link href={`/dashboard/work_schedules/${row.original.id}`}>
-            <Eye className="h-4 w-4 mr-2" />
-            View
-          </Link>
-        </Button>
-        <Button asChild size="sm" variant="ghost">
-          <Link href={`/dashboard/work_schedules/edit?id=${row.original.id}`}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Link>
-        </Button>
+      <div className="flex justify-end gap-1">
+        <IconLink href={`/dashboard/work_schedules/${row.original.id}`} label="Просмотр">
+          <Eye className="h-4 w-4" />
+        </IconLink>
+        <IconLink href={`/dashboard/work_schedules/edit?id=${row.original.id}`} label="Редактировать">
+          <Edit className="h-4 w-4" />
+        </IconLink>
+        <IconLink href={`/dashboard/work_schedules/create?copy=${row.original.id}`} label="Копировать">
+          <Copy className="h-4 w-4" />
+        </IconLink>
         <DeleteWorkScheduleButton id={row.original.id} name={row.original.name} />
       </div>
     ),
   },
 ];
+
+/** Компактная кнопка-значок с подсказкой. */
+function IconLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button asChild size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary">
+          <Link href={href} aria-label={label}>
+            {children}
+          </Link>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 type Usage = { active_couriers: number; only_schedule: string[] };
 
@@ -222,10 +236,20 @@ function DeleteWorkScheduleButton({ id, name }: { id: string; name: string }) {
 
   return (
     <>
-      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={openDialog}>
-        <Trash2 className="h-4 w-4 mr-2" />
-        Удалить
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            onClick={openDialog}
+            aria-label="Удалить"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Удалить</TooltipContent>
+      </Tooltip>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -91,6 +91,47 @@ export default function WorkScheduleCreate() {
     },
   });
 
+  // Копия графика: /create?copy=<id> — форма заполняется данными исходного
+  // графика, к названию добавляется «(копия)».
+  const [copyId, setCopyId] = useState<string | null>(null);
+  useEffect(() => {
+    setCopyId(new URLSearchParams(window.location.search).get("copy"));
+  }, []);
+  const { data: source } = useQuery({
+    queryKey: ["workSchedule", copyId],
+    queryFn: async () => {
+      const { data, error } = await apiClient.api.work_schedules({ id: copyId! }).get();
+      if (error) {
+        toast.error(apiErrorMessage(error, "Не удалось загрузить график для копирования"));
+        return null;
+      }
+      return ((data as { data?: unknown })?.data ?? data) as {
+        name: string;
+        active: boolean;
+        organization_id: string;
+        days: string[] | null;
+        start_time: string;
+        end_time: string;
+        max_start_time: string;
+        bonus_price: number;
+      } | null;
+    },
+    enabled: !!copyId,
+  });
+  useEffect(() => {
+    if (!source) return;
+    form.reset({
+      name: `${source.name.trim()} (копия)`,
+      active: source.active,
+      organization_id: source.organization_id,
+      days: (source.days ?? []).map(String),
+      start_time: source.start_time?.slice(0, 5) ?? "",
+      end_time: source.end_time?.slice(0, 5) ?? "",
+      max_start_time: source.max_start_time?.slice(0, 5) ?? "",
+      bonus_price: source.bonus_price || undefined,
+    });
+  }, [source, form]);
+
   // Обработка отправки формы
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
@@ -116,7 +157,7 @@ export default function WorkScheduleCreate() {
 
   return (
     <div className="space-y-6">
-      <PageTitle title="Создать новый рабочий график" />
+      <PageTitle title={copyId ? "Копия рабочего графика" : "Создать новый рабочий график"} />
       <div className="flex items-center">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/dashboard/work_schedules">
@@ -174,7 +215,11 @@ export default function WorkScheduleCreate() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Организация</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        key={`org-${field.value}-${organizations.length}`}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите организацию" />
