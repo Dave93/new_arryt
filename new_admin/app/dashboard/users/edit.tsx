@@ -243,6 +243,7 @@ export default function UserEdit() {
               "longitude",
               "status",
               "max_active_order_count",
+              "daily_garant_id",
               "doc_files",
               "terminals.id",
               "terminals.name",
@@ -649,9 +650,8 @@ export default function UserEdit() {
                     <FormItem>
                       <FormLabel>Дневной гарант</FormLabel>
                       <Select 
-                        key={`daily-garant-${field.value}`}
-                        onValueChange={field.onChange} 
-                        value={field.value}
+                        key={`daily-garant-${field.value}-${dailyGarants.length}`}
+                        onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
