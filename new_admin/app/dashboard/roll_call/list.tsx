@@ -321,13 +321,13 @@ function CourierRow({
       </div>
 
       <div className="flex flex-col items-start gap-1">
-        <span className="font-mono text-sm">{row.work_schedule ?? "—"}</span>
+        <span className="font-mono text-sm">{row.assigned_schedule ?? row.work_schedule ?? "—"}</span>
         {row.schedule_mismatch && (
           <span
             className="rounded-md bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-900 dark:bg-orange-950/40 dark:text-orange-300"
             title="Опоздание для гаранта считается от графика тарифа"
           >
-            у курьера {row.assigned_schedule}
+            по тарифу {row.work_schedule}
           </span>
         )}
       </div>
@@ -559,7 +559,7 @@ export default function RollCallList() {
         <div className="flex flex-col gap-3.5">
           <div className="hidden gap-4 px-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:grid xl:grid-cols-[minmax(220px,1.6fr)_minmax(140px,1fr)_minmax(160px,1fr)_minmax(200px,1.3fr)_168px]">
             <span>Курьер</span>
-            <span>График тарифа</span>
+            <span>График курьера</span>
             <span>Отметка</span>
             <span>Дневной гарант</span>
             <span className="text-right">Действия</span>
