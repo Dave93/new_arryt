@@ -79,6 +79,7 @@ interface Order {
   delivery_schedule?: string | null;
   later_time?: string | null;
   delivery_address: string;
+  delivery_comment?: string | null;
   from_lat?: number; // Origin Latitude
   from_lon?: number; // Origin Longitude
   to_lat?: number;   // Destination Latitude
@@ -216,7 +217,7 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
           fields: [
             "id", "order_number", "created_at", "order_price", "delivery_price",
             "pre_distance", "distance",
-            "payment_type", "delivery_type", "delivery_schedule", "later_time", "delivery_address", "from_lat", "from_lon",
+            "payment_type", "delivery_type", "delivery_schedule", "later_time", "delivery_address", "delivery_comment", "from_lat", "from_lon",
             "to_lat", "to_lon",
             "order_status.id", "order_status.name", "order_status.color",
             "customers.id", "customers.name", "customers.phone",
@@ -628,6 +629,12 @@ export default function OrderDetailsClientPage({ orderId }: OrderDetailsClientPa
                         <span className="font-medium">Адрес:</span>{" "}
                         {orderData.delivery_address}
                       </p>
+                      {orderData.delivery_comment?.trim() && (
+                        <p>
+                          <span className="font-medium">Комментарий клиента:</span>{" "}
+                          {orderData.delivery_comment}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div>
