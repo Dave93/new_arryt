@@ -85,6 +85,43 @@ type ReportCouriersByTerminal = {
   terminal_name: string;
 };
 
+import { distanceMeters } from "../../services/daily_garant/calculate";
+
+/**
+ * Маршрут от филиала до клиента через OSRM (5000 — авто, 5001 — пешком).
+ * Если сервис маршрутов недоступен или не ответил за 3 с, оцениваем по
+ * прямой ×1,3 и средней скорости — иначе заказ не создавался вовсе
+ * (так было 12 и 16 октября 2026, когда OSRM падал).
+ */
+async function routeOrEstimate(
+  port: 5000 | 5001,
+  from: { latitude: number; longitude: number },
+  to: { latitude: number; longitude: number },
+): Promise<{ distance: number; duration: number; estimated: boolean }> {
+  try {
+    const res = await fetch(
+      `http://127.0.0.1:${port}/route/v1/driving/${from.longitude},${from.latitude};${to.longitude},${to.latitude}?steps=true&overview=false`,
+      { signal: AbortSignal.timeout(3000) },
+    );
+    const data = await res.json();
+    const route = data?.routes?.[0];
+    if (route && Number.isFinite(route.distance)) {
+      return { distance: route.distance, duration: route.duration, estimated: false };
+    }
+    throw new Error(`OSRM: нет маршрута (${data?.code ?? res.status})`);
+  } catch (e) {
+    const distance = distanceMeters(from, to) * ROAD_FACTOR;
+    const speed = port === 5001 ? FOOT_SPEED_MS : CAR_SPEED_MS;
+    console.warn(`OSRM ${port} недоступен, расстояние оценено по прямой: ${Math.round(distance)} м`, e);
+    return { distance, duration: distance / speed, estimated: true };
+  }
+}
+/** Дорога длиннее прямой примерно на треть. */
+const ROAD_FACTOR = 1.3;
+/** Средняя скорость по городу, м/с: авто ~25 км/ч, пешком ~5 км/ч. */
+const CAR_SPEED_MS = 25 / 3.6;
+const FOOT_SPEED_MS = 5 / 3.6;
+
 /** Адрес заказа, когда клиент указал только точку на карте. */
 const NO_ADDRESS_TEXT = "Адрес не указан — точка на карте";
 
@@ -1400,10 +1437,8 @@ export const OrdersController = new Elysia({
             for (const d of activeDeliveryPricingSorted) {
               if (d.drive_type == "foot") {
                 try {
-                  const responseJson = await fetch(
-                    `http://127.0.0.1:5001/route/v1/driving/${currentTerminal.longitude},${currentTerminal.latitude};${actualLon},${actualLat}?steps=true&overview=false`,
-                  );
-                  const data = await responseJson.json();
+                  const route = await routeOrEstimate(5001, currentTerminal, { latitude: actualLat, longitude: actualLon });
+                  const data = { routes: [route] };
                   if (d.price_per_km == 0 && d.rules) {
                     const rules = d.rules as DeliveryPricingRulesDto[];
                     const maxDistance: any = max(rules, (i: any) => +i.to);
@@ -1428,10 +1463,8 @@ export const OrdersController = new Elysia({
                 }
               } else {
                 try {
-                  const responseJson = await fetch(
-                    `http://127.0.0.1:5000/route/v1/driving/${currentTerminal.longitude},${currentTerminal.latitude};${actualLon},${actualLat}?steps=true&overview=false`,
-                  );
-                  const data = await responseJson.json();
+                  const route = await routeOrEstimate(5000, currentTerminal, { latitude: actualLat, longitude: actualLon });
+                  const data = { routes: [route] };
                   const tempDistance = data.routes[0].distance + 100; // add 100 meters
                   if (!minDeliveryPricing) {
                     minDistance = tempDistance;
@@ -1450,6 +1483,12 @@ export const OrdersController = new Elysia({
                   console.log("car error", e);
                 }
               }
+            }
+
+            if (!minDeliveryPricing) {
+              // Раньше здесь падало на minDeliveryPricing.id, и общий catch отвечал «Forbidden».
+              set.status = 409;
+              return { error: `No delivery pricing fits this order (distance or drive type)` };
             }
 
             let price = 0;
