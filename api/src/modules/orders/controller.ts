@@ -85,6 +85,9 @@ type ReportCouriersByTerminal = {
   terminal_name: string;
 };
 
+/** Адрес заказа, когда клиент указал только точку на карте. */
+const NO_ADDRESS_TEXT = "Адрес не указан — точка на карте";
+
 export const OrdersController = new Elysia({
   name: "@app/orders",
 })
@@ -1557,8 +1560,8 @@ export const OrdersController = new Elysia({
                 payment_type: payment_method,
                 order_status_id: orderStatus!.id,
                 customer_id: customer.id,
-                delivery_address: address,
-                delivery_comment: comment,
+                delivery_address: address?.trim() || NO_ADDRESS_TEXT,
+                delivery_comment: comment ?? null,
                 delivery_type: minDeliveryPricing!.drive_type,
                 additional_phone: additionalPhone,
                 house,
@@ -1757,9 +1760,11 @@ export const OrdersController = new Elysia({
         customerPhone: t.String(),
         toLat: t.Number(),
         toLon: t.Number(),
-        address: t.String(),
+        // Сайт присылает null, когда клиент поставил точку на карте без адреса —
+        // такие заказы раньше отклонялись (422) и не доходили до Arryt.
+        address: t.Optional(t.Nullable(t.String())),
         price: t.Number(),
-        comment: t.String(),
+        comment: t.Optional(t.Nullable(t.String())),
         payment_method: t.String(),
         delivery_schedule: t.Optional(t.Nullable(t.String())),
         later_time: t.Optional(t.Nullable(t.String())),
