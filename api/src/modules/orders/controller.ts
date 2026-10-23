@@ -1266,8 +1266,10 @@ export const OrdersController = new Elysia({
             const searchOrder = await drizzle
               .select({
                 id: orders.id,
+                cancelled: order_status.cancel,
               })
               .from(orders)
+              .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
               .where(
                 and(
                   eq(orders.order_number, order_number.toString()),
@@ -1287,8 +1289,13 @@ export const OrdersController = new Elysia({
 
             if (searchOrder && searchOrder.length > 0) {
               set.status = 409;
-              // The id lets a caller whose earlier create timed out link the order Arryt already holds.
-              return { error: `Order already exists`, id: searchOrder[0].id };
+              // The id lets a caller whose earlier create timed out link the order Arryt already holds, and
+              // `cancelled` tells it not to link one that was cancelled meanwhile.
+              return {
+                error: `Order already exists`,
+                id: searchOrder[0].id,
+                cancelled: searchOrder[0].cancelled === true,
+              };
             }
 
             const terminals = await cacheControl.getTerminals();
