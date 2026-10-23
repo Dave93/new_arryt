@@ -1287,7 +1287,8 @@ export const OrdersController = new Elysia({
 
             if (searchOrder && searchOrder.length > 0) {
               set.status = 409;
-              return { error: `Order already exists` };
+              // The id lets a caller whose earlier create timed out link the order Arryt already holds.
+              return { error: `Order already exists`, id: searchOrder[0].id };
             }
 
             const terminals = await cacheControl.getTerminals();
