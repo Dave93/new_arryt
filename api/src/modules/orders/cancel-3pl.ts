@@ -145,6 +145,7 @@ async function resolveRefusal(
     claimId: string,
     label: string,
     refused: { status: number; body: string },
+    sentVersion?: number,
 ): Promise<Cancel3plResult> {
     const claim = await readClaim(carrier, claimId, label);
     if (!claim.ok) {
@@ -161,6 +162,15 @@ async function resolveRefusal(
         console.log(`[${label}] ${carrier.name} claim ${claimId} is "${claim.status}", it is delivered`);
 
         return { ok: false, kind: "finished", error: `${carrier.name} claim is delivered` };
+    }
+
+    // The claim changed after our read (a performer was assigned, the courier arrived): the cancel went out with a
+    // stale version and may have been refused for that alone, which a retry with the fresh one settles. If it is
+    // refused again the version no longer moves and the answer below follows.
+    if (sentVersion !== undefined && claim.version !== undefined && claim.version !== sentVersion) {
+        console.log(`[${label}] ${carrier.name} claim ${claimId} moved from version ${sentVersion} to ${claim.version} (status "${claim.status}"), retry`);
+
+        return transient(`${carrier.name} claim changed during the cancel (status "${claim.status}")`);
     }
 
     console.log(
@@ -196,6 +206,7 @@ async function sendCancel(
     claimId: string,
     label: string,
     cancelBody: Record<string, unknown>,
+    sentVersion?: number,
 ): Promise<Cancel3plResult> {
     const call = await carrierCall(label, `${carrier.name} cancel`, carrier.url("cancel", claimId), {
         method: "POST",
@@ -211,7 +222,7 @@ async function sendCancel(
         return transient(call.error);
     }
 
-    return resolveRefusal(carrier, claimId, label, call);
+    return resolveRefusal(carrier, claimId, label, call, sentVersion);
 }
 
 export async function cancelYandexClaim(
@@ -239,10 +250,15 @@ export async function cancelYandexClaim(
 
     // `free` only: a claim whose courier is already at the pickup needs a cancel with payment, which nothing here
     // sends on its own. Yandex refuses the free one, and that comes back as `unavailable`.
-    return sendCancel(redis, flagKey, yandex, claimId, label, {
-        ...(version !== undefined ? { version } : {}),
-        cancel_state: "free",
-    });
+    return sendCancel(
+        redis,
+        flagKey,
+        yandex,
+        claimId,
+        label,
+        { ...(version !== undefined ? { version } : {}), cancel_state: "free" },
+        version,
+    );
 }
 
 export async function cancelUzumDelivery(
