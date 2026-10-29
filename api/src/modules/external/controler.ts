@@ -1277,7 +1277,7 @@ export const externalControler = new Elysia({
         };
         const hadClaim = Object.values(heldClaims).some(Boolean);
         const carriers = [
-            { key: 'yandex_id', name: 'Yandex', cancel: (id: string) => cancelYandexClaim(redis, id, "external_cancel_yandex") },
+            { key: 'yandex_id', name: 'Yandex', cancel: (id: string) => cancelYandexClaim(redis, id, "external_cancel_yandex", { external: true }) },
             { key: 'uzum_id', name: 'Uzum', cancel: (id: string) => cancelUzumDelivery(redis, id, "external_cancel_uzum", { external: true }) },
             { key: 'noor_id', name: 'Noor', cancel: (id: string) => cancelNoorDelivery(redis, id, "external_cancel_noor", { external: true }) },
         ] as const;

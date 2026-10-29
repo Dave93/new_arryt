@@ -218,6 +218,7 @@ export async function cancelYandexClaim(
     redis: Redis,
     claimId: string,
     label = "cancel_yandex",
+    opts: Cancel3plOptions = {},
 ): Promise<Cancel3plResult> {
     // The cancel request carries the claim's `version`, which only claims/info has. The read comes before the flag:
     // when it fails nothing was sent, and the flag spans one request instead of three.
@@ -226,9 +227,12 @@ export async function cancelYandexClaim(
     // from here). If every call still answers 400 (state_mismatch), the next suspect is the missing `cancel_state`
     // from cancel-info (Uzum takes it from there); the status and body of every non-2xx answer are in the log.
     const claim = await readClaim(yandex, claimId, label);
-    if (!claim.ok) {
+    if (!claim.ok && opts.external) {
         return transient(claim.error);
     }
+    // An operator route ignores the result and drops the claim from the order either way, so it still sends the
+    // cancel it always sent (without a version) when the read fails: skipping it would leave the claim alive.
+    const version = claim.ok ? claim.version : undefined;
 
     const flagKey = `yandex_operator_cancel:${claimId}`;
     await redis.set(flagKey, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
@@ -236,7 +240,7 @@ export async function cancelYandexClaim(
     // `free` only: a claim whose courier is already at the pickup needs a cancel with payment, which nothing here
     // sends on its own. Yandex refuses the free one, and that comes back as `unavailable`.
     return sendCancel(redis, flagKey, yandex, claimId, label, {
-        ...(claim.version !== undefined ? { version: claim.version } : {}),
+        ...(version !== undefined ? { version } : {}),
         cancel_state: "free",
     });
 }
