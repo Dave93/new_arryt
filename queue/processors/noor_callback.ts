@@ -82,6 +82,14 @@ export default async function processNoorCallback(redis: Redis, db: DB, cacheCon
         return 'processNoorCallback';
     }
 
+    // A late callback does not move an order that is already cancelled or finished: it would come back to the
+    // missed list or go «on the way» again.
+    const currentStatus = orderStatuses.find((s) => s.id === order.order_status_id);
+    if (currentStatus && (currentStatus.cancel || currentStatus.finish)) {
+        console.log(`[NC] SKIP: order ${order.order_number} is already ${currentStatus.cancel ? 'cancelled' : 'finished'}, noor stage "${stage}" not applied`);
+        return 'processNoorCallback';
+    }
+
     // Map Noor stage to our order status
     const orgStatuses = orderStatusByOrganization[order.organization_id];
     const orderStatusId = orgStatuses?.[stage];
