@@ -11,7 +11,8 @@ import { UZUM_BASE_URL, uzumHeaders } from "../../utils/uzum";
  * below and changes nothing). The flag is set AFTER a 2xx cancel, so a carrier callback that arrives between the
  * request and the caller's update sees it. It is never set before the request: a callback that finds the flag drops
  * the courier and the claim id of the row without looking at the claim's status, so a flag left standing while the
- * carrier refuses the cancel would strip a live claim (courier at the pickup) from the order.
+ * carrier refuses the cancel would strip a live claim (courier at the pickup) from the order. A Redis that fails
+ * while the flag goes up is logged and ignored: the carrier has cancelled, the caller goes on to its update.
  *
  * A refusal of the carrier is not a failure of the carrier: a claim that is already cancelled (the first try
  * cancelled it and the caller's update failed), or delivered, or in a state that cannot be cancelled for free, answers
@@ -190,6 +191,19 @@ async function resolveRefusal(
     };
 }
 
+/**
+ * Puts the operator-cancel flag up after a 2xx cancel. The flag only covers the moments before the caller's update,
+ * so a failing Redis is logged and does not undo what already happened: the carrier cancelled, and the caller must go
+ * on to the update (a retry would find a Noor order cancelled with no way to tell, and answer «unavailable»).
+ */
+async function raiseFlag(redis: Redis, flagKey: string, label: string): Promise<void> {
+    try {
+        await redis.set(flagKey, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
+    } catch (e) {
+        console.log(`[${label}] ERROR: could not set ${flagKey} after the carrier cancelled`, e);
+    }
+}
+
 /** The claim-cancel request. The flag goes up after a 2xx, nothing is set for a refused or failed one. */
 async function sendCancel(
     redis: Redis,
@@ -206,7 +220,7 @@ async function sendCancel(
         body: JSON.stringify(cancelBody),
     });
     if (call.kind === "ok") {
-        await redis.set(flagKey, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
+        await raiseFlag(redis, flagKey, label);
 
         return { ok: true };
     }
@@ -307,7 +321,7 @@ export async function cancelNoorDelivery(
 
     // `ok` only says that a response arrived (a 4xx/5xx is `ok` too), so a cancel counts when the status is 2xx.
     if (cancelRes.ok && cancelRes.status >= 200 && cancelRes.status < 300) {
-        await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
+        await raiseFlag(redis, `noor_operator_cancel:${noorId}`, label);
 
         return { ok: true };
     }
