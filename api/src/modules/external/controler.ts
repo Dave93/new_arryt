@@ -311,6 +311,8 @@ export const externalControler = new Elysia({
                         to_lat: orders.to_lat,
                         to_lon: orders.to_lon,
                         order_status_id: orders.order_status_id,
+                        cancelled: order_status.cancel,
+                        finished: order_status.finish,
                     }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
@@ -318,6 +320,21 @@ export const externalControler = new Elysia({
                     )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
+                        // The lookup reaches back 35 days, so it can find an order that is over. The update below puts
+                        // the order back to the first status without a courier: a delivered or cancelled one must not
+                        // come back to life (a cancel status may carry `finish` too, so cancelled is checked first).
+                        if (order[0].cancelled === true) {
+                            set.status = 409;
+
+                            return { success: false, error_code: 'ORDER_CANCELLED', error: `Order is cancelled` };
+                        }
+
+                        if (order[0].finished === true) {
+                            set.status = 409;
+
+                            return { success: false, error_code: 'ORDER_FINISHED', error: `Order already finished` };
+                        }
+
                         const terminalsList = await cacheControl.getTerminals();
                         const terminal = terminalsList.find((terminal) => terminal.external_id === terminal_id);
                         if (!terminal) {
