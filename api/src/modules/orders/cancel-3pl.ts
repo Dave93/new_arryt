@@ -30,9 +30,11 @@ export type Cancel3plOptions = { external?: boolean };
 
 const OPERATOR_CANCEL_TTL_SECONDS = 7200;
 
-// orderly gives up on cancel-order after 10 s and Elysia closes an idle request after 30 s, so a carrier that does
-// not answer must not be waited for longer than this per request (a cancel is at most three requests: read, cancel,
-// read again).
+// A carrier request is cut off after this long. It bounds one request, not the whole cancel: Yandex and Uzum take up to
+// 3 x 7 = 21 s (read, cancel, read again), a row with two carriers 28 s, with three 49 s. That is more than orderly's
+// 10 s client timeout and Elysia's 30 s idle timeout, so orderly can time out first and retry while this call is still
+// running. Overlapping calls converge: the later one finds the claim cancelled (the cancel is refused, the re-read says
+// released) and every update is idempotent.
 const CARRIER_TIMEOUT_MS = 7000;
 
 // Claim statuses (Yandex Cargo API, Uzum implements the same one). The cancelled ones are the list the callbacks
