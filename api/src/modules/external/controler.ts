@@ -6,7 +6,7 @@ import { InferSelectModel, and, desc, eq, gte, lte, sum, inArray } from "drizzle
 import { Elysia, t } from "elysia";
 import { max, set, sort } from "radash";
 import { DeliveryPricingRulesDto } from "../delivery_pricing/dto/rules.dto";
-import { cancelNoorDelivery, cancelUzumDelivery, cancelYandexClaim } from "../orders/cancel-3pl";
+import { Cancel3plResult, cancelNoorDelivery, cancelUzumDelivery, cancelYandexClaim } from "../orders/cancel-3pl";
 import { liveOrderFirst } from "../orders/live-order-first";
 
 export const externalControler = new Elysia({
@@ -1205,7 +1205,7 @@ export const externalControler = new Elysia({
         if (order.length == 0) {
             set.status = 404;
 
-            return { error: `Order not found` };
+            return { success: false, error_code: 'ORDER_NOT_FOUND', error: `Order not found` };
         }
 
         // A repeat of a cancel changes nothing (checked first: a cancel status may carry `finish` too), and a
@@ -1219,48 +1219,78 @@ export const externalControler = new Elysia({
         if (order[0].finished === true) {
             set.status = 409;
 
-            return { error: `Order already finished` };
+            return { success: false, error_code: 'ORDER_FINISHED', error: `Order already finished` };
         }
 
-        // A delivery handed to a carrier is called off at the carrier first, the way the operator does it. When
-        // that fails nothing is changed here and the answer is 5xx, which orderly retries (a 4xx it would take for
-        // «already cancelled»).
-        const carrierCancelFailed = (carrier: string, error: string) => {
-            console.log(`[external/cancel-order] ${carrier} cancel failed for order ${order[0].id}: ${error}`);
+        // A delivery handed to a carrier is called off at the carrier first, the way the operator does it. When the
+        // carrier does not release it nothing is changed here, and the answer says why:
+        //  - 502                                  the carrier or the claim read failed, orderly retries
+        //  - 409 ORDER_FINISHED                   the carrier says it is delivered
+        //  - 409 CARRIER_CANCEL_UNAVAILABLE       the carrier refuses the cancel (courier on the way), no retry helps
+        // A plain 4xx would be taken by orderly for «already cancelled», so a refusal never goes out as one.
+        const carrierCancelFailed = (carrier: string, failed: Extract<Cancel3plResult, { ok: false }>) => {
+            console.log(`[external/cancel-order] ${carrier} cancel failed for order ${order[0].id}: ${failed.kind}, ${failed.error}`);
+
+            if (failed.kind === 'finished') {
+                set.status = 409;
+
+                return { success: false, error_code: 'ORDER_FINISHED', error: `Order already finished` };
+            }
+
+            if (failed.kind === 'unavailable') {
+                set.status = 409;
+
+                return { success: false, error_code: 'CARRIER_CANCEL_UNAVAILABLE', error: failed.error };
+            }
+
             set.status = 502;
 
-            return { error: `${carrier} cancel failed: ${error}` };
+            return { error: failed.error };
         };
-        const releasedFromCarrier: { yandex_id?: null; uzum_id?: null; noor_id?: null } = {};
 
-        if (order[0].yandex_id) {
-            const cancelled = await cancelYandexClaim(redis, order[0].yandex_id, "external_cancel_yandex");
-            if (!cancelled.ok) {
-                return carrierCancelFailed("Yandex", cancelled.error);
-            }
-            releasedFromCarrier.yandex_id = null;
-        }
+        // The id of a released claim leaves the row at once, not with the final update. A row can hold two claims
+        // (Yandex, then Noor): when Noor refuses after Yandex was cancelled, a yandex_id left on the row would send
+        // the Yandex callback to «courier mismatch» instead of dropping it as «order not found». The courier goes
+        // with the LAST claim: while another carrier holds the delivery, courier_id is that carrier's virtual
+        // courier. The update is bound to the claim id, so it leaves a claim an operator created meanwhile alone.
+        const heldClaims: { yandex_id: string | null; uzum_id: string | null; noor_id: string | null } = {
+            yandex_id: order[0].yandex_id,
+            uzum_id: order[0].uzum_id,
+            noor_id: order[0].noor_id,
+        };
+        const hadClaim = Object.values(heldClaims).some(Boolean);
+        const carriers = [
+            { key: 'yandex_id', name: 'Yandex', cancel: (id: string) => cancelYandexClaim(redis, id, "external_cancel_yandex") },
+            { key: 'uzum_id', name: 'Uzum', cancel: (id: string) => cancelUzumDelivery(redis, id, "external_cancel_uzum", { external: true }) },
+            { key: 'noor_id', name: 'Noor', cancel: (id: string) => cancelNoorDelivery(redis, id, "external_cancel_noor") },
+        ] as const;
 
-        if (order[0].uzum_id) {
-            const cancelled = await cancelUzumDelivery(redis, order[0].uzum_id);
-            if (!cancelled.ok) {
-                return carrierCancelFailed("Uzum", cancelled.error);
+        for (const carrier of carriers) {
+            const claimId = heldClaims[carrier.key];
+            if (!claimId) {
+                continue;
             }
-            releasedFromCarrier.uzum_id = null;
-        }
 
-        if (order[0].noor_id) {
-            const cancelled = await cancelNoorDelivery(redis, order[0].noor_id, "external_cancel_noor");
+            const cancelled = await carrier.cancel(claimId);
             if (!cancelled.ok) {
-                return carrierCancelFailed("Noor", cancelled.error);
+                return carrierCancelFailed(carrier.name, cancelled);
             }
-            releasedFromCarrier.noor_id = null;
+
+            heldClaims[carrier.key] = null;
+            const lastClaim = !Object.values(heldClaims).some(Boolean);
+            await drizzle.update(orders).set({
+                [carrier.key]: null,
+                ...(lastClaim ? { courier_id: null } : {}),
+            }).where(and(
+                eq(orders.id, order[0].id),
+                eq(orders[carrier.key], claimId),
+            )).execute();
         }
 
         await drizzle.update(orders).set({
             order_status_id: canceledStatus.id,
             // the carrier's virtual courier goes with the claim, as in the operator cancel
-            ...(Object.keys(releasedFromCarrier).length > 0 ? { courier_id: null, ...releasedFromCarrier } : {}),
+            ...(hadClaim ? { courier_id: null } : {}),
             cancel_reason: body.reason || undefined,
         }).where(and(
             eq(orders.id, order[0].id)
