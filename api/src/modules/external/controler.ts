@@ -1262,43 +1262,52 @@ export const externalControler = new Elysia({
         const carriers = [
             { key: 'yandex_id', name: 'Yandex', cancel: (id: string) => cancelYandexClaim(redis, id, "external_cancel_yandex") },
             { key: 'uzum_id', name: 'Uzum', cancel: (id: string) => cancelUzumDelivery(redis, id, "external_cancel_uzum", { external: true }) },
-            { key: 'noor_id', name: 'Noor', cancel: (id: string) => cancelNoorDelivery(redis, id, "external_cancel_noor") },
+            { key: 'noor_id', name: 'Noor', cancel: (id: string) => cancelNoorDelivery(redis, id, "external_cancel_noor", { external: true }) },
         ] as const;
 
-        for (const carrier of carriers) {
-            const claimId = heldClaims[carrier.key];
-            if (!claimId) {
-                continue;
+        // Redis or the database failing is as transient as the carrier: answer 502 and keep the driver's text in the
+        // log, not in the body. A Yandex or Uzum claim cancelled here and not recorded is found released by the retry.
+        try {
+            for (const carrier of carriers) {
+                const claimId = heldClaims[carrier.key];
+                if (!claimId) {
+                    continue;
+                }
+
+                const cancelled = await carrier.cancel(claimId);
+                if (!cancelled.ok) {
+                    return carrierCancelFailed(carrier.name, cancelled);
+                }
+
+                heldClaims[carrier.key] = null;
+                const lastClaim = !Object.values(heldClaims).some(Boolean);
+                await drizzle.update(orders).set({
+                    [carrier.key]: null,
+                    ...(lastClaim ? { courier_id: null } : {}),
+                }).where(and(
+                    eq(orders.id, order[0].id),
+                    eq(orders[carrier.key], claimId),
+                )).execute();
             }
 
-            const cancelled = await carrier.cancel(claimId);
-            if (!cancelled.ok) {
-                return carrierCancelFailed(carrier.name, cancelled);
-            }
-
-            heldClaims[carrier.key] = null;
-            const lastClaim = !Object.values(heldClaims).some(Boolean);
             await drizzle.update(orders).set({
-                [carrier.key]: null,
-                ...(lastClaim ? { courier_id: null } : {}),
+                order_status_id: canceledStatus.id,
+                // the carrier's virtual courier goes with the claim, as in the operator cancel
+                ...(hadClaim ? { courier_id: null } : {}),
+                cancel_reason: body.reason || undefined,
             }).where(and(
-                eq(orders.id, order[0].id),
-                eq(orders[carrier.key], claimId),
+                eq(orders.id, order[0].id)
             )).execute();
+
+            return {
+                success: true,
+            };
+        } catch (e) {
+            console.log(`[external/cancel-order] order ${order[0].id}: cancel failed`, e);
+            set.status = 502;
+
+            return { error: `temporarily unavailable` };
         }
-
-        await drizzle.update(orders).set({
-            order_status_id: canceledStatus.id,
-            // the carrier's virtual courier goes with the claim, as in the operator cancel
-            ...(hadClaim ? { courier_id: null } : {}),
-            cancel_reason: body.reason || undefined,
-        }).where(and(
-            eq(orders.id, order[0].id)
-        )).execute();
-
-        return {
-            success: true,
-        };
     }, {
         body: t.Object({
             order_id: t.String(),

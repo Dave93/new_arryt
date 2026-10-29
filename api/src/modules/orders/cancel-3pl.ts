@@ -28,6 +28,11 @@ export type Cancel3plOptions = { external?: boolean };
 
 const OPERATOR_CANCEL_TTL_SECONDS = 7200;
 
+// orderly gives up on cancel-order after 10 s and Elysia closes an idle request after 30 s, so a carrier that does
+// not answer must not be waited for longer than this per request (a cancel is at most three requests: read, cancel,
+// read again).
+const CARRIER_TIMEOUT_MS = 7000;
+
 // Claim statuses (Yandex Cargo API, Uzum implements the same one). The cancelled ones are the list the callbacks
 // treat as a cancel (queue/processors/yandex_callback.ts); `performer_not_found` has no courier, there is nothing
 // left to cancel.
@@ -56,7 +61,7 @@ type CarrierCall =
 /** One request to a carrier: 2xx is ok, network / 5xx / 408 / 425 / 429 is transient, any other 4xx is a refusal. */
 async function carrierCall(label: string, what: string, url: string, init: RequestInit): Promise<CarrierCall> {
     try {
-        const res = await fetch(url, init);
+        const res = await fetch(url, { ...init, signal: AbortSignal.timeout(CARRIER_TIMEOUT_MS) });
         const text = await res.text();
         if (res.ok) {
             let json: any = {};
@@ -170,6 +175,19 @@ async function resolveRefusal(
     };
 }
 
+/**
+ * Removes the flag of a cancel that did not go through. A failed `del` is only logged: the answer of the caller does
+ * not depend on it, but the flag then stays up to 2 h on a claim that may be alive, and a callback that finds it would
+ * drop the courier and the claim id of a live order, so the log is how it is found.
+ */
+async function dropFlag(redis: Redis, flagKey: string, label: string): Promise<void> {
+    try {
+        await redis.del(flagKey);
+    } catch (e) {
+        console.log(`[${label}] ERROR: could not remove ${flagKey}, it stays up to ${OPERATOR_CANCEL_TTL_SECONDS} s`, e);
+    }
+}
+
 /** The claim-cancel request with the flag already set: ok keeps the flag, anything else removes it. */
 async function sendCancel(
     redis: Redis,
@@ -188,7 +206,7 @@ async function sendCancel(
         return { ok: true };
     }
 
-    await redis.del(flagKey);
+    await dropFlag(redis, flagKey, label);
     if (call.kind === "transient") {
         return transient(call.error);
     }
@@ -261,6 +279,7 @@ export async function cancelNoorDelivery(
     redis: Redis,
     noorId: string,
     label = "cancel_noor",
+    opts: Cancel3plOptions = {},
 ): Promise<Cancel3plResult> {
     const flagKey = `noor_operator_cancel:${noorId}`;
     await redis.set(flagKey, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
@@ -275,7 +294,9 @@ export async function cancelNoorDelivery(
                 "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
             },
         },
-        { label, maxAttempts: 2 },
+        // noorFetch retries and waits 15 s per attempt, up to 31 s for the default two: more than orderly or Elysia
+        // wait. The external cancel makes one attempt and the answer says «transient», orderly is the one to retry.
+        opts.external ? { label, maxAttempts: 1, timeoutMs: CARRIER_TIMEOUT_MS } : { label, maxAttempts: 2 },
     );
 
     // `ok` only says that a response arrived (a 4xx/5xx is `ok` too), so a cancel counts when the status is 2xx.
@@ -283,7 +304,7 @@ export async function cancelNoorDelivery(
         return { ok: true };
     }
 
-    await redis.del(flagKey);
+    await dropFlag(redis, flagKey, label);
 
     if (!cancelRes.ok) {
         console.log(`[${label}] ERROR: Noor cancel request failed: ${cancelRes.error}`);
