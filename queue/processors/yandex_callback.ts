@@ -111,6 +111,14 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
             return 'processYandexCallback';
         }
 
+        // A late callback does not move an order that is already cancelled or finished: it would come back to the
+        // missed list or go «on the way» again.
+        const currentStatus = orderStatuses.find((s) => s.id === order.order_status_id);
+        if (currentStatus && (currentStatus.cancel || currentStatus.finish)) {
+            console.log(`[YC] SKIP: order ${order.order_number} is already ${currentStatus.cancel ? 'cancelled' : 'finished'}, yandex status "${yandexResponse.status}" not applied`);
+            return 'processYandexCallback';
+        }
+
         // Яндекс отменил claim до забора заказа: возвращаем заказ в пропущенные, иначе он висит «у курьера Яндекс».
         // cancelled_with_items_on_hands / failed / returned_finish не трогаем: курьер мог уже забрать заказ.
         const yandexReturnToMissedStatuses = ['cancelled', 'cancelled_by_taxi', 'estimating_failed'];

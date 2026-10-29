@@ -95,6 +95,14 @@ export default async function processUzumCallback(redis: Redis, db: DB, cacheCon
         return 'processUzumCallback';
     }
 
+    // A late callback does not move an order that is already cancelled or finished: it would come back to the
+    // missed list or go «on the way» again.
+    const currentStatus = orderStatuses.find((s) => s.id === order.order_status_id);
+    if (currentStatus && (currentStatus.cancel || currentStatus.finish)) {
+        console.log(`[UC] SKIP: order ${order.order_number} is already ${currentStatus.cancel ? 'cancelled' : 'finished'}, uzum status "${uzumResponse.status}" not applied`);
+        return 'processUzumCallback';
+    }
+
     if (!orderStatusId) {
         console.log(`[UC] SKIP: no orderStatusId mapping for uzum status "${uzumResponse.status}" in org ${order.organization_id}`);
     }

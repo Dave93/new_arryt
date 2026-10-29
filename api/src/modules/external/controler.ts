@@ -6,6 +6,7 @@ import { InferSelectModel, and, desc, eq, gte, lte, sum, inArray } from "drizzle
 import { Elysia, t } from "elysia";
 import { max, set, sort } from "radash";
 import { DeliveryPricingRulesDto } from "../delivery_pricing/dto/rules.dto";
+import { Cancel3plResult, cancelNoorDelivery, cancelUzumDelivery, cancelYandexClaim } from "../orders/cancel-3pl";
 import { liveOrderFirst } from "../orders/live-order-first";
 
 export const externalControler = new Elysia({
@@ -36,6 +37,7 @@ export const externalControler = new Elysia({
                     }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
+                        gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
                     )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
@@ -92,6 +94,7 @@ export const externalControler = new Elysia({
                     }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
+                        gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
                     )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
@@ -308,13 +311,30 @@ export const externalControler = new Elysia({
                         to_lat: orders.to_lat,
                         to_lon: orders.to_lon,
                         order_status_id: orders.order_status_id,
+                        cancelled: order_status.cancel,
+                        finished: order_status.finish,
                     }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
-                        gte(orders.created_at, dayjs().subtract(15, 'day').toISOString())
+                        gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
                     )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
+                        // The lookup reaches back 35 days, so it can find an order that is over. The update below puts
+                        // the order back to the first status without a courier: a delivered or cancelled one must not
+                        // come back to life (a cancel status may carry `finish` too, so cancelled is checked first).
+                        if (order[0].cancelled === true) {
+                            set.status = 409;
+
+                            return { success: false, error_code: 'ORDER_CANCELLED', error: `Order is cancelled` };
+                        }
+
+                        if (order[0].finished === true) {
+                            set.status = 409;
+
+                            return { success: false, error_code: 'ORDER_FINISHED', error: `Order already finished` };
+                        }
+
                         const terminalsList = await cacheControl.getTerminals();
                         const terminal = terminalsList.find((terminal) => terminal.external_id === terminal_id);
                         if (!terminal) {
@@ -529,6 +549,7 @@ export const externalControler = new Elysia({
             }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                 eq(orders.order_number, order_id.toString()),
                 eq(orders.organization_id, currentOrganization.id),
+                gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
             )).orderBy(...liveOrderFirst).limit(1).execute();
 
             if (!order.length) {
@@ -969,6 +990,7 @@ export const externalControler = new Elysia({
         }).from(orders).where(and(
             eq(orders.order_number, id),
             eq(orders.organization_id, apiToken.organization_id!),
+            gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
         ))
             .leftJoin(users, eq(orders.courier_id, users.id))
             .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
@@ -1161,7 +1183,7 @@ export const externalControler = new Elysia({
             success: true,
         };
     })
-    .post('/api/external/cancel-order', async ({ body, set, request: { headers }, drizzle, cacheControl }) => {
+    .post('/api/external/cancel-order', async ({ body, set, request: { headers }, drizzle, cacheControl, redis }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
@@ -1186,29 +1208,127 @@ export const externalControler = new Elysia({
 
         const order = await drizzle.select({
             id: orders.id,
+            cancelled: order_status.cancel,
+            finished: order_status.finish,
+            yandex_id: orders.yandex_id,
+            uzum_id: orders.uzum_id,
+            noor_id: orders.noor_id,
         }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
             eq(orders.order_number, body.order_id),
             eq(orders.organization_id, organizations.id),
-        )).orderBy(...liveOrderFirst).execute();
+            gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
+        )).orderBy(...liveOrderFirst).limit(1).execute();
 
         if (order.length == 0) {
             set.status = 404;
 
-            return { error: `Order not found` };
+            return { success: false, error_code: 'ORDER_NOT_FOUND', error: `Order not found` };
         }
 
-        await drizzle.update(orders).set({
-            order_status_id: canceledStatus.id,
-        }).where(and(
-            eq(orders.id, order[0].id)
-        )).execute();
+        // A repeat of a cancel changes nothing (checked first: a cancel status may carry `finish` too), and a
+        // delivered order is not taken back.
+        if (order[0].cancelled === true) {
+            return {
+                success: true,
+            };
+        }
 
-        return {
-            success: true,
+        if (order[0].finished === true) {
+            set.status = 409;
+
+            return { success: false, error_code: 'ORDER_FINISHED', error: `Order already finished` };
+        }
+
+        // A delivery handed to a carrier is called off at the carrier first, the way the operator does it. When the
+        // carrier does not release it nothing is changed here, and the answer says why:
+        //  - 502                                  the carrier or the claim read failed, orderly retries
+        //  - 409 ORDER_FINISHED                   the carrier says it is delivered
+        //  - 409 CARRIER_CANCEL_UNAVAILABLE       the carrier refuses the cancel (courier on the way), no retry helps
+        // A plain 4xx would be taken by orderly for «already cancelled», so a refusal never goes out as one.
+        const carrierCancelFailed = (carrier: string, failed: Extract<Cancel3plResult, { ok: false }>) => {
+            console.log(`[external/cancel-order] ${carrier} cancel failed for order ${order[0].id}: ${failed.kind}, ${failed.error}`);
+
+            if (failed.kind === 'finished') {
+                set.status = 409;
+
+                return { success: false, error_code: 'ORDER_FINISHED', error: `Order already finished` };
+            }
+
+            if (failed.kind === 'unavailable') {
+                set.status = 409;
+
+                return { success: false, error_code: 'CARRIER_CANCEL_UNAVAILABLE', error: failed.error };
+            }
+
+            set.status = 502;
+
+            return { error: failed.error };
         };
+
+        // The id of a released claim leaves the row at once, not with the final update. A row can hold two claims
+        // (Yandex, then Noor): when Noor refuses after Yandex was cancelled, a yandex_id left on the row would send
+        // the Yandex callback to «courier mismatch» instead of dropping it as «order not found». The courier goes
+        // with the LAST claim: while another carrier holds the delivery, courier_id is that carrier's virtual
+        // courier. The update is bound to the claim id, so it leaves a claim an operator created meanwhile alone.
+        const heldClaims: { yandex_id: string | null; uzum_id: string | null; noor_id: string | null } = {
+            yandex_id: order[0].yandex_id,
+            uzum_id: order[0].uzum_id,
+            noor_id: order[0].noor_id,
+        };
+        const hadClaim = Object.values(heldClaims).some(Boolean);
+        const carriers = [
+            { key: 'yandex_id', name: 'Yandex', cancel: (id: string) => cancelYandexClaim(redis, id, "external_cancel_yandex", { external: true }) },
+            { key: 'uzum_id', name: 'Uzum', cancel: (id: string) => cancelUzumDelivery(redis, id, "external_cancel_uzum", { external: true }) },
+            { key: 'noor_id', name: 'Noor', cancel: (id: string) => cancelNoorDelivery(redis, id, "external_cancel_noor", { external: true }) },
+        ] as const;
+
+        // Redis or the database failing is as transient as the carrier: answer 502 and keep the driver's text in the
+        // log, not in the body. A Yandex or Uzum claim cancelled here and not recorded is found released by the retry.
+        try {
+            for (const carrier of carriers) {
+                const claimId = heldClaims[carrier.key];
+                if (!claimId) {
+                    continue;
+                }
+
+                const cancelled = await carrier.cancel(claimId);
+                if (!cancelled.ok) {
+                    return carrierCancelFailed(carrier.name, cancelled);
+                }
+
+                heldClaims[carrier.key] = null;
+                const lastClaim = !Object.values(heldClaims).some(Boolean);
+                await drizzle.update(orders).set({
+                    [carrier.key]: null,
+                    ...(lastClaim ? { courier_id: null } : {}),
+                }).where(and(
+                    eq(orders.id, order[0].id),
+                    eq(orders[carrier.key], claimId),
+                )).execute();
+            }
+
+            await drizzle.update(orders).set({
+                order_status_id: canceledStatus.id,
+                // the carrier's virtual courier goes with the claim, as in the operator cancel
+                ...(hadClaim ? { courier_id: null } : {}),
+                cancel_reason: body.reason || undefined,
+            }).where(and(
+                eq(orders.id, order[0].id)
+            )).execute();
+
+            return {
+                success: true,
+            };
+        } catch (e) {
+            console.log(`[external/cancel-order] order ${order[0].id}: cancel failed`, e);
+            set.status = 502;
+
+            return { error: `temporarily unavailable` };
+        }
     }, {
         body: t.Object({
             order_id: t.String(),
+            reason: t.Optional(t.String()),
         }),
     })
     .post('/api/external/terminal-period-withdraws', async ({ body: { terminal_id, date_from, date_to }, status, request: { headers }, drizzle, cacheControl }) => {

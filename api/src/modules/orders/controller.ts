@@ -17,6 +17,8 @@ import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import { noorFetch } from "../../utils/noor";
 import { cancelUzumClaim } from "../../utils/uzum";
+import { cancelNoorDelivery, cancelUzumDelivery, cancelYandexClaim } from "./cancel-3pl";
+import { findLiveOrderByNumber } from "./live-order-first";
 import dayjs from "dayjs";
 import {
   InferSelectModel,
@@ -1263,32 +1265,12 @@ export const OrdersController = new Elysia({
             (org: any) => org.id === apiToken.organization_id,
           );
           if (currentOrganization) {
-            const searchOrder = await drizzle
-              .select({
-                id: orders.id,
-                cancelled: order_status.cancel,
-              })
-              .from(orders)
-              .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
-              .where(
-                and(
-                  eq(orders.order_number, order_number.toString()),
-                  eq(orders.organization_id, currentOrganization.id),
-                  // A cancelled order of this number (a hold called its delivery off) is not a duplicate: the
-                  // same number is created again, and the other lookups by number take the live row first.
-                  sql`coalesce(${order_status.cancel}, false) = false`,
-                  gte(
-                    orders.created_at,
-                    dayjs().startOf("month").format("YYYY-MM-DD HH:mm:ss"),
-                  ),
-                  lte(
-                    orders.created_at,
-                    dayjs().endOf("month").format("YYYY-MM-DD HH:mm:ss"),
-                  ),
-                ),
-              )
-              .limit(1)
-              .execute();
+            // Fast path for a plain repeat; the check is repeated under the advisory lock before the insert.
+            const searchOrder = await findLiveOrderByNumber(
+              drizzle,
+              currentOrganization.id,
+              order_number.toString(),
+            );
 
             if (searchOrder && searchOrder.length > 0) {
               set.status = 409;
@@ -1597,61 +1579,93 @@ export const OrdersController = new Elysia({
               )[0];
             }
 
-            const newOrders = await drizzle
-              .insert(orders)
-              .values({
-                order_number: order_number.toString(),
-                organization_id: currentOrganization.id,
-                terminal_id: currentTerminal.id,
-                delivery_pricing_id: minDeliveryPricing!.id,
-                order_price: order_price!,
-                delivery_price: price,
-                customer_delivery_price: customerPrice,
-                payment_type: payment_method,
-                order_status_id: orderStatus!.id,
-                customer_id: customer.id,
-                delivery_address: address?.trim() || NO_ADDRESS_TEXT,
-                delivery_comment: comment ?? null,
-                delivery_type: minDeliveryPricing!.drive_type,
-                additional_phone: additionalPhone,
-                house,
-                entrance,
-                flat,
-                from_lat: currentTerminal.latitude,
-                from_lon: currentTerminal.longitude,
-                pre_distance: minDistance,
-                pre_duration: Math.round(minDuration),
-                to_lat: actualLat,
-                to_lon: actualLon,
-                delivery_schedule: delivery_schedule || "now",
-                later_time: later_time || null,
-              })
-              .returning({
-                id: orders.id,
-                created_at: orders.created_at,
-                order_number: orders.order_number,
-                order_status_id: orders.order_status_id,
-                terminal_id: orders.terminal_id,
-                organization_id: orders.organization_id,
-              })
-              .execute();
+            // Two creates of one number run the tariff and route work above in parallel, so both would pass the
+            // read at the top. The advisory lock serialises them for this number: the second one waits for the
+            // first commit, repeats the check and answers 409. The transaction is only the check and the inserts
+            // (nothing slow inside); the queue jobs go out after the commit.
+            const created = await drizzle.transaction(async (tx) => {
+              await tx.execute(
+                sql`select pg_advisory_xact_lock(hashtext(${currentOrganization.id}), hashtext(${order_number.toString()}))`,
+              );
 
-            const currentOrder = newOrders[0];
+              const duplicate = await findLiveOrderByNumber(
+                tx,
+                currentOrganization.id,
+                order_number.toString(),
+              );
+              if (duplicate.length > 0) {
+                return { duplicateId: duplicate[0].id } as const;
+              }
 
-            for (const item of orderItems) {
-              await drizzle
-                .insert(order_items)
+              const newOrders = await tx
+                .insert(orders)
                 .values({
-                  order_id: currentOrder.id,
-                  order_created_at: currentOrder.created_at,
-                  product_id: item.productId,
-                  quantity: item.quantity,
-                  name: item.name,
-                  price: parseInt(item.price),
-                  weight: item.weight ? item.weight/1000 : null,
+                  order_number: order_number.toString(),
+                  organization_id: currentOrganization.id,
+                  terminal_id: currentTerminal.id,
+                  delivery_pricing_id: minDeliveryPricing!.id,
+                  order_price: order_price!,
+                  delivery_price: price,
+                  customer_delivery_price: customerPrice,
+                  payment_type: payment_method,
+                  order_status_id: orderStatus!.id,
+                  customer_id: customer.id,
+                  delivery_address: address?.trim() || NO_ADDRESS_TEXT,
+                  delivery_comment: comment ?? null,
+                  delivery_type: minDeliveryPricing!.drive_type,
+                  additional_phone: additionalPhone,
+                  house,
+                  entrance,
+                  flat,
+                  from_lat: currentTerminal.latitude,
+                  from_lon: currentTerminal.longitude,
+                  pre_distance: minDistance,
+                  pre_duration: Math.round(minDuration),
+                  to_lat: actualLat,
+                  to_lon: actualLon,
+                  delivery_schedule: delivery_schedule || "now",
+                  later_time: later_time || null,
+                })
+                .returning({
+                  id: orders.id,
+                  created_at: orders.created_at,
+                  order_number: orders.order_number,
+                  order_status_id: orders.order_status_id,
+                  terminal_id: orders.terminal_id,
+                  organization_id: orders.organization_id,
                 })
                 .execute();
+
+              const newOrder = newOrders[0];
+
+              for (const item of orderItems) {
+                await tx
+                  .insert(order_items)
+                  .values({
+                    order_id: newOrder.id,
+                    order_created_at: newOrder.created_at,
+                    product_id: item.productId,
+                    quantity: item.quantity,
+                    name: item.name,
+                    price: parseInt(item.price),
+                    weight: item.weight ? item.weight/1000 : null,
+                  })
+                  .execute();
+              }
+
+              return { order: newOrder } as const;
+            });
+
+            if ("duplicateId" in created) {
+              set.status = 409;
+              return {
+                error: `Order already exists`,
+                id: created.duplicateId,
+                cancelled: false,
+              };
             }
+
+            const currentOrder = created.order;
 
             await newOrderNotify.add(currentOrder.id, currentOrder, {
               attempts: 3,
@@ -1793,7 +1807,7 @@ export const OrdersController = new Elysia({
             //     );
             // }
 
-            return newOrders[0];
+            return currentOrder;
           }
         }
       } catch (e) {
@@ -3012,24 +3026,8 @@ export const OrdersController = new Elysia({
 
       const claimId = order[0].yandex_id;
 
-      try {
-        await fetch(
-          `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${claimId}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept-Language": "ru",
-              Authorization: `Bearer ${process.env.YANDEX_DELIVERY_TOKEN}`,
-            },
-            body: JSON.stringify({ cancel_state: "free" }),
-          },
-        );
-      } catch (e) {
-        console.log("[cancel_yandex] ERROR: Yandex cancel request failed", e);
-      }
-
-      await redis.set(`yandex_operator_cancel:${claimId}`, "true", "EX", 7200);
+      // A failed request does not stop the operator: the claim is dropped from the order either way.
+      await cancelYandexClaim(redis, claimId, "cancel_yandex");
 
       await drizzle
         .update(orders)
@@ -3170,9 +3168,7 @@ export const OrdersController = new Elysia({
 
       const claimId = order[0].uzum_id;
 
-      await cancelUzumClaim(claimId);
-
-      await redis.set(`uzum_operator_cancel:${claimId}`, "true", "EX", 7200);
+      await cancelUzumDelivery(redis, claimId);
 
       await drizzle
         .update(orders)
@@ -3298,23 +3294,7 @@ export const OrdersController = new Elysia({
 
       const noorId = order[0].noor_id;
 
-      const cancelRes = await noorFetch(
-        `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept-Language": "ru",
-            "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
-          },
-        },
-        { label: "cancel_noor", maxAttempts: 2 },
-      );
-      if (!cancelRes.ok) {
-        console.log(`[cancel_noor] ERROR: Noor cancel request failed: ${cancelRes.error}`);
-      }
-
-      await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", 7200);
+      await cancelNoorDelivery(redis, noorId, "cancel_noor");
 
       await drizzle
         .update(orders)
