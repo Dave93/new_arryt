@@ -1186,15 +1186,31 @@ export const externalControler = new Elysia({
 
         const order = await drizzle.select({
             id: orders.id,
+            cancelled: order_status.cancel,
+            finished: order_status.finish,
         }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
             eq(orders.order_number, body.order_id),
             eq(orders.organization_id, organizations.id),
-        )).orderBy(...liveOrderFirst).execute();
+        )).orderBy(...liveOrderFirst).limit(1).execute();
 
         if (order.length == 0) {
             set.status = 404;
 
             return { error: `Order not found` };
+        }
+
+        // A repeat of a cancel changes nothing (checked first: a cancel status may carry `finish` too), and a
+        // delivered order is not taken back.
+        if (order[0].cancelled === true) {
+            return {
+                success: true,
+            };
+        }
+
+        if (order[0].finished === true) {
+            set.status = 409;
+
+            return { error: `Order already finished` };
         }
 
         await drizzle.update(orders).set({
