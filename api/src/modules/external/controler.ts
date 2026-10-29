@@ -37,6 +37,7 @@ export const externalControler = new Elysia({
                     }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
+                        gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
                     )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
@@ -93,6 +94,7 @@ export const externalControler = new Elysia({
                     }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
+                        gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
                     )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
@@ -312,7 +314,7 @@ export const externalControler = new Elysia({
                     }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
-                        gte(orders.created_at, dayjs().subtract(15, 'day').toISOString())
+                        gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
                     )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
@@ -530,6 +532,7 @@ export const externalControler = new Elysia({
             }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                 eq(orders.order_number, order_id.toString()),
                 eq(orders.organization_id, currentOrganization.id),
+                gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
             )).orderBy(...liveOrderFirst).limit(1).execute();
 
             if (!order.length) {
@@ -970,6 +973,7 @@ export const externalControler = new Elysia({
         }).from(orders).where(and(
             eq(orders.order_number, id),
             eq(orders.organization_id, apiToken.organization_id!),
+            gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
         ))
             .leftJoin(users, eq(orders.courier_id, users.id))
             .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
@@ -1195,6 +1199,7 @@ export const externalControler = new Elysia({
         }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
             eq(orders.order_number, body.order_id),
             eq(orders.organization_id, organizations.id),
+            gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
         )).orderBy(...liveOrderFirst).limit(1).execute();
 
         if (order.length == 0) {

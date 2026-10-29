@@ -1278,13 +1278,11 @@ export const OrdersController = new Elysia({
                   // A cancelled order of this number (a hold called its delivery off) is not a duplicate: the
                   // same number is created again, and the other lookups by number take the live row first.
                   sql`coalesce(${order_status.cancel}, false) = false`,
+                  // The same window as the lookups by number in external/controler.ts, with no upper bound: a
+                  // retry just after midnight of the 1st must still see the order created the day before.
                   gte(
                     orders.created_at,
-                    dayjs().startOf("month").format("YYYY-MM-DD HH:mm:ss"),
-                  ),
-                  lte(
-                    orders.created_at,
-                    dayjs().endOf("month").format("YYYY-MM-DD HH:mm:ss"),
+                    dayjs().subtract(35, "day").toISOString(),
                   ),
                 ),
               )
