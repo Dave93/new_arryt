@@ -57,7 +57,8 @@ const transient = (error: string): Cancel3plResult => ({ ok: false, kind: "trans
 
 type CarrierCall =
     | { kind: "ok"; json: any }
-    | { kind: "transient"; error: string }
+    // `answered`: false when no HTTP answer arrived at all (network, timeout), true for a 5xx/408/425/429
+    | { kind: "transient"; error: string; answered: boolean }
     | { kind: "refused"; status: number; body: string };
 
 /** One request to a carrier: 2xx is ok, network / 5xx / 408 / 425 / 429 is transient, any other 4xx is a refusal. */
@@ -78,14 +79,14 @@ async function carrierCall(label: string, what: string, url: string, init: Reque
 
         console.log(`[${label}] ${what} answered HTTP ${res.status}: ${text}`);
         if (res.status >= 500 || RETRYABLE_STATUSES.has(res.status)) {
-            return { kind: "transient", error: `${what} answered HTTP ${res.status}` };
+            return { kind: "transient", error: `${what} answered HTTP ${res.status}`, answered: true };
         }
 
         return { kind: "refused", status: res.status, body: text };
     } catch (e) {
         console.log(`[${label}] ERROR: ${what} request failed`, e);
 
-        return { kind: "transient", error: `${what} request failed` };
+        return { kind: "transient", error: `${what} request failed`, answered: false };
     }
 }
 
@@ -253,7 +254,8 @@ export async function cancelUzumDelivery(
     label = "cancel_uzum",
     opts: Cancel3plOptions = {},
 ): Promise<Cancel3plResult> {
-    // Uzum wants the cancel state from cancel-info. Without it the operator route sends `free`, as it always did.
+    // Uzum wants the cancel state from cancel-info. The operator route keeps what it always did: when cancel-info
+    // answers with an error it sends `free`, when it does not answer at all (network, timeout) nothing is sent.
     const info = await carrierCall(label, "Uzum cancel-info", uzum.url("cancel-info", claimId), {
         method: "POST",
         headers: uzum.headers(),
@@ -267,6 +269,8 @@ export async function cancelUzumDelivery(
         }
 
         return resolveRefusal(uzum, claimId, label, info);
+    } else if (info.kind === "transient" && !info.answered) {
+        return transient(info.error);
     }
 
     // `paid` would be a cancel with payment: the external cancel does not do that on its own, whatever the
