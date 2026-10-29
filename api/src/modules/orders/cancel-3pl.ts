@@ -6,10 +6,12 @@ import { UZUM_BASE_URL, uzumHeaders } from "../../utils/uzum";
  * Cancels the delivery claim of an order at a third-party carrier. Shared by the operator routes
  * (`/api/orders/:id/cancel_*`) and the external `cancel-order`, so both do the same thing at the carrier.
  *
- * Only the carrier side lives here: the `*_operator_cancel` flag and the claim-cancel request. The caller updates
+ * Only the carrier side lives here: the claim-cancel request and the `*_operator_cancel` flag. The caller updates
  * the order (and decides what a failure means: an operator route goes on, `cancel-order` answers with the status
- * below and changes nothing). The flag is set BEFORE the request, so a carrier callback that arrives between the
- * request and the caller's update already sees it, and it is removed again when the request did not cancel.
+ * below and changes nothing). The flag is set AFTER a 2xx cancel, so a carrier callback that arrives between the
+ * request and the caller's update sees it. It is never set before the request: a callback that finds the flag drops
+ * the courier and the claim id of the row without looking at the claim's status, so a flag left standing while the
+ * carrier refuses the cancel would strip a live claim (courier at the pickup) from the order.
  *
  * A refusal of the carrier is not a failure of the carrier: a claim that is already cancelled (the first try
  * cancelled it and the caller's update failed), or delivered, or in a state that cannot be cancelled for free, answers
@@ -185,20 +187,7 @@ async function resolveRefusal(
     };
 }
 
-/**
- * Removes the flag of a cancel that did not go through. A failed `del` is only logged: the answer of the caller does
- * not depend on it, but the flag then stays up to 2 h on a claim that may be alive, and a callback that finds it would
- * drop the courier and the claim id of a live order, so the log is how it is found.
- */
-async function dropFlag(redis: Redis, flagKey: string, label: string): Promise<void> {
-    try {
-        await redis.del(flagKey);
-    } catch (e) {
-        console.log(`[${label}] ERROR: could not remove ${flagKey}, it stays up to ${OPERATOR_CANCEL_TTL_SECONDS} s`, e);
-    }
-}
-
-/** The claim-cancel request with the flag already set: ok keeps the flag, anything else removes it. */
+/** The claim-cancel request. The flag goes up after a 2xx, nothing is set for a refused or failed one. */
 async function sendCancel(
     redis: Redis,
     flagKey: string,
@@ -214,10 +203,11 @@ async function sendCancel(
         body: JSON.stringify(cancelBody),
     });
     if (call.kind === "ok") {
+        await redis.set(flagKey, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
+
         return { ok: true };
     }
 
-    await dropFlag(redis, flagKey, label);
     if (call.kind === "transient") {
         return transient(call.error);
     }
@@ -231,8 +221,7 @@ export async function cancelYandexClaim(
     label = "cancel_yandex",
     opts: Cancel3plOptions = {},
 ): Promise<Cancel3plResult> {
-    // The cancel request carries the claim's `version`, which only claims/info has. The read comes before the flag:
-    // when it fails nothing was sent, and the flag spans one request instead of three.
+    // The cancel request carries the claim's `version`, which only claims/info has.
     //
     // BEFORE DEPLOY: one live Yandex cancel must be made by hand (the request with `version` was never sent live
     // from here). If every call still answers 400 (state_mismatch), the next suspect is the missing `cancel_state`
@@ -245,14 +234,11 @@ export async function cancelYandexClaim(
     // cancel it always sent (without a version) when the read fails: skipping it would leave the claim alive.
     const version = claim.ok ? claim.version : undefined;
 
-    const flagKey = `yandex_operator_cancel:${claimId}`;
-    await redis.set(flagKey, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
-
     // `free` only: a claim whose courier is already at the pickup needs a cancel with payment, which nothing here
     // sends on its own. Yandex refuses the free one, and that comes back as `unavailable`.
     return sendCancel(
         redis,
-        flagKey,
+        `yandex_operator_cancel:${claimId}`,
         yandex,
         claimId,
         label,
@@ -289,10 +275,7 @@ export async function cancelUzumDelivery(
         return resolveRefusal(uzum, claimId, label, { status: 200, body: `cancel_state "${cancelState}"` });
     }
 
-    const flagKey = `uzum_operator_cancel:${claimId}`;
-    await redis.set(flagKey, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
-
-    return sendCancel(redis, flagKey, uzum, claimId, label, { cancel_state: cancelState });
+    return sendCancel(redis, `uzum_operator_cancel:${claimId}`, uzum, claimId, label, { cancel_state: cancelState });
 }
 
 export async function cancelNoorDelivery(
@@ -301,9 +284,6 @@ export async function cancelNoorDelivery(
     label = "cancel_noor",
     opts: Cancel3plOptions = {},
 ): Promise<Cancel3plResult> {
-    const flagKey = `noor_operator_cancel:${noorId}`;
-    await redis.set(flagKey, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
-
     const cancelRes = await noorFetch(
         `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
         {
@@ -321,10 +301,10 @@ export async function cancelNoorDelivery(
 
     // `ok` only says that a response arrived (a 4xx/5xx is `ok` too), so a cancel counts when the status is 2xx.
     if (cancelRes.ok && cancelRes.status >= 200 && cancelRes.status < 300) {
+        await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", OPERATOR_CANCEL_TTL_SECONDS);
+
         return { ok: true };
     }
-
-    await dropFlag(redis, flagKey, label);
 
     if (!cancelRes.ok) {
         console.log(`[${label}] ERROR: Noor cancel request failed: ${cancelRes.error}`);
