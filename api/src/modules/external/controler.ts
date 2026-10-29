@@ -6,6 +6,7 @@ import { InferSelectModel, and, desc, eq, gte, lte, sum, inArray } from "drizzle
 import { Elysia, t } from "elysia";
 import { max, set, sort } from "radash";
 import { DeliveryPricingRulesDto } from "../delivery_pricing/dto/rules.dto";
+import { cancelNoorDelivery, cancelUzumDelivery, cancelYandexClaim } from "../orders/cancel-3pl";
 import { liveOrderFirst } from "../orders/live-order-first";
 
 export const externalControler = new Elysia({
@@ -1161,7 +1162,7 @@ export const externalControler = new Elysia({
             success: true,
         };
     })
-    .post('/api/external/cancel-order', async ({ body, set, request: { headers }, drizzle, cacheControl }) => {
+    .post('/api/external/cancel-order', async ({ body, set, request: { headers }, drizzle, cacheControl, redis }) => {
         const token = headers.get('authorization')?.split(' ')[1] ?? null;
 
         const apiTokens = await cacheControl.getApiTokens();
@@ -1188,6 +1189,9 @@ export const externalControler = new Elysia({
             id: orders.id,
             cancelled: order_status.cancel,
             finished: order_status.finish,
+            yandex_id: orders.yandex_id,
+            uzum_id: orders.uzum_id,
+            noor_id: orders.noor_id,
         }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
             eq(orders.order_number, body.order_id),
             eq(orders.organization_id, organizations.id),
@@ -1213,8 +1217,46 @@ export const externalControler = new Elysia({
             return { error: `Order already finished` };
         }
 
+        // A delivery handed to a carrier is called off at the carrier first, the way the operator does it. When
+        // that fails nothing is changed here and the answer is 5xx, which orderly retries (a 4xx it would take for
+        // «already cancelled»).
+        const carrierCancelFailed = (carrier: string, error: string) => {
+            console.log(`[external/cancel-order] ${carrier} cancel failed for order ${order[0].id}: ${error}`);
+            set.status = 502;
+
+            return { error: `${carrier} cancel failed: ${error}` };
+        };
+        const releasedFromCarrier: { yandex_id?: null; uzum_id?: null; noor_id?: null } = {};
+
+        if (order[0].yandex_id) {
+            const cancelled = await cancelYandexClaim(redis, order[0].yandex_id, "external_cancel_yandex");
+            if (!cancelled.ok) {
+                return carrierCancelFailed("Yandex", cancelled.error);
+            }
+            releasedFromCarrier.yandex_id = null;
+        }
+
+        if (order[0].uzum_id) {
+            const cancelled = await cancelUzumDelivery(redis, order[0].uzum_id);
+            if (!cancelled.ok) {
+                return carrierCancelFailed("Uzum", cancelled.error);
+            }
+            releasedFromCarrier.uzum_id = null;
+        }
+
+        if (order[0].noor_id) {
+            const cancelled = await cancelNoorDelivery(redis, order[0].noor_id, "external_cancel_noor");
+            if (!cancelled.ok) {
+                return carrierCancelFailed("Noor", cancelled.error);
+            }
+            releasedFromCarrier.noor_id = null;
+        }
+
         await drizzle.update(orders).set({
             order_status_id: canceledStatus.id,
+            // the carrier's virtual courier goes with the claim, as in the operator cancel
+            ...(Object.keys(releasedFromCarrier).length > 0 ? { courier_id: null, ...releasedFromCarrier } : {}),
+            cancel_reason: body.reason || undefined,
         }).where(and(
             eq(orders.id, order[0].id)
         )).execute();
@@ -1225,6 +1267,7 @@ export const externalControler = new Elysia({
     }, {
         body: t.Object({
             order_id: t.String(),
+            reason: t.Optional(t.String()),
         }),
     })
     .post('/api/external/terminal-period-withdraws', async ({ body: { terminal_id, date_from, date_to }, status, request: { headers }, drizzle, cacheControl }) => {

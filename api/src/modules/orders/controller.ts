@@ -17,6 +17,7 @@ import { parseFilterFields } from "../../lib/parseFilterFields";
 import { parseSelectFields } from "../../lib/parseSelectFields";
 import { noorFetch } from "../../utils/noor";
 import { cancelUzumClaim } from "../../utils/uzum";
+import { cancelNoorDelivery, cancelUzumDelivery, cancelYandexClaim } from "./cancel-3pl";
 import dayjs from "dayjs";
 import {
   InferSelectModel,
@@ -3012,24 +3013,8 @@ export const OrdersController = new Elysia({
 
       const claimId = order[0].yandex_id;
 
-      try {
-        await fetch(
-          `https://b2b.taxi.yandex.net/b2b/cargo/integration/v2/claims/cancel?claim_id=${claimId}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept-Language": "ru",
-              Authorization: `Bearer ${process.env.YANDEX_DELIVERY_TOKEN}`,
-            },
-            body: JSON.stringify({ cancel_state: "free" }),
-          },
-        );
-      } catch (e) {
-        console.log("[cancel_yandex] ERROR: Yandex cancel request failed", e);
-      }
-
-      await redis.set(`yandex_operator_cancel:${claimId}`, "true", "EX", 7200);
+      // A failed request does not stop the operator: the claim is dropped from the order either way.
+      await cancelYandexClaim(redis, claimId, "cancel_yandex");
 
       await drizzle
         .update(orders)
@@ -3170,9 +3155,7 @@ export const OrdersController = new Elysia({
 
       const claimId = order[0].uzum_id;
 
-      await cancelUzumClaim(claimId);
-
-      await redis.set(`uzum_operator_cancel:${claimId}`, "true", "EX", 7200);
+      await cancelUzumDelivery(redis, claimId);
 
       await drizzle
         .update(orders)
@@ -3298,23 +3281,7 @@ export const OrdersController = new Elysia({
 
       const noorId = order[0].noor_id;
 
-      const cancelRes = await noorFetch(
-        `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept-Language": "ru",
-            "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
-          },
-        },
-        { label: "cancel_noor", maxAttempts: 2 },
-      );
-      if (!cancelRes.ok) {
-        console.log(`[cancel_noor] ERROR: Noor cancel request failed: ${cancelRes.error}`);
-      }
-
-      await redis.set(`noor_operator_cancel:${noorId}`, "true", "EX", 7200);
+      await cancelNoorDelivery(redis, noorId, "cancel_noor");
 
       await drizzle
         .update(orders)
