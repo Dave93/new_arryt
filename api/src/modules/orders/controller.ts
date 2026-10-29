@@ -1274,6 +1274,9 @@ export const OrdersController = new Elysia({
                 and(
                   eq(orders.order_number, order_number.toString()),
                   eq(orders.organization_id, currentOrganization.id),
+                  // A cancelled order of this number (a hold called its delivery off) is not a duplicate: the
+                  // same number is created again, and the other lookups by number take the live row first.
+                  sql`coalesce(${order_status.cancel}, false) = false`,
                   gte(
                     orders.created_at,
                     dayjs().startOf("month").format("YYYY-MM-DD HH:mm:ss"),
@@ -1289,8 +1292,8 @@ export const OrdersController = new Elysia({
 
             if (searchOrder && searchOrder.length > 0) {
               set.status = 409;
-              // The id lets a caller whose earlier create timed out link the order Arryt already holds, and
-              // `cancelled` tells it not to link one that was cancelled meanwhile.
+              // The id lets a caller whose earlier create timed out link the order Arryt already holds. Only a
+              // live order answers here; `cancelled` stays in the body for callers that read it (always false).
               return {
                 error: `Order already exists`,
                 id: searchOrder[0].id,
