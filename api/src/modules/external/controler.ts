@@ -6,6 +6,7 @@ import { InferSelectModel, and, desc, eq, gte, lte, sum, inArray } from "drizzle
 import { Elysia, t } from "elysia";
 import { max, set, sort } from "radash";
 import { DeliveryPricingRulesDto } from "../delivery_pricing/dto/rules.dto";
+import { liveOrderFirst } from "../orders/live-order-first";
 
 export const externalControler = new Elysia({
     name: "@app/external",
@@ -32,10 +33,10 @@ export const externalControler = new Elysia({
                 if (currentOrganization) {
                     const order = await drizzle.select({
                         id: orders.id,
-                    }).from(orders).where(and(
+                    }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
-                    )).limit(1).execute();
+                    )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
                         await drizzle.update(orders).set({
@@ -88,10 +89,10 @@ export const externalControler = new Elysia({
                         to_lat: orders.to_lat,
                         to_lon: orders.to_lon,
                         order_status_id: orders.order_status_id,
-                    }).from(orders).where(and(
+                    }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
-                    )).limit(1).execute();
+                    )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
                         const terminalsList = await cacheControl.getTerminals();
@@ -307,11 +308,11 @@ export const externalControler = new Elysia({
                         to_lat: orders.to_lat,
                         to_lon: orders.to_lon,
                         order_status_id: orders.order_status_id,
-                    }).from(orders).where(and(
+                    }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                         eq(orders.order_number, order_id.toString()),
                         eq(orders.organization_id, currentOrganization.id),
                         gte(orders.created_at, dayjs().subtract(15, 'day').toISOString())
-                    )).limit(1).execute();
+                    )).orderBy(...liveOrderFirst).limit(1).execute();
 
                     if (order.length > 0) {
                         const terminalsList = await cacheControl.getTerminals();
@@ -525,10 +526,10 @@ export const externalControler = new Elysia({
             const order = await drizzle.select({
                 id: orders.id,
                 created_at: orders.created_at,
-            }).from(orders).where(and(
+            }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
                 eq(orders.order_number, order_id.toString()),
                 eq(orders.organization_id, currentOrganization.id),
-            )).orderBy(desc(orders.created_at)).limit(1).execute();
+            )).orderBy(...liveOrderFirst).limit(1).execute();
 
             if (!order.length) {
                 set.status = 404;
@@ -970,6 +971,8 @@ export const externalControler = new Elysia({
             eq(orders.organization_id, apiToken.organization_id!),
         ))
             .leftJoin(users, eq(orders.courier_id, users.id))
+            .leftJoin(order_status, eq(orders.order_status_id, order_status.id))
+            .orderBy(...liveOrderFirst)
             .limit(1).execute();
 
         if (order.length == 0) {
@@ -1183,10 +1186,10 @@ export const externalControler = new Elysia({
 
         const order = await drizzle.select({
             id: orders.id,
-        }).from(orders).where(and(
+        }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
             eq(orders.order_number, body.order_id),
             eq(orders.organization_id, organizations.id),
-        )).execute();
+        )).orderBy(...liveOrderFirst).execute();
 
         if (order.length == 0) {
             set.status = 404;
