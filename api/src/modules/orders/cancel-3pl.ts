@@ -32,10 +32,11 @@ export type Cancel3plOptions = { external?: boolean };
 const OPERATOR_CANCEL_TTL_SECONDS = 7200;
 
 // A carrier request is cut off after this long. It bounds one request, not the whole cancel: Yandex and Uzum take up to
-// 3 x 7 = 21 s (read, cancel, read again), a row with two carriers 28 s, with three 49 s. That is more than orderly's
-// 10 s client timeout and Elysia's 30 s idle timeout, so orderly can time out first and retry while this call is still
-// running. Overlapping calls converge: the later one finds the claim cancelled (the cancel is refused, the re-read says
-// released) and every update is idempotent.
+// 3 x 7 = 21 s (read, cancel, read again), Noor 2 x 7 = 14 s (cancel, then the order read behind order.is.closed). A row
+// with two carriers takes up to 35 s (Yandex or Uzum plus Noor) or 42 s (Yandex plus Uzum), with three 56 s. That is more
+// than orderly's 10 s client timeout, and past Elysia's 30 s idle timeout, so orderly can time out first and retry
+// while this call is still running. Overlapping calls converge: the later one finds the claim cancelled (the cancel is
+// refused, the re-read says released; for Noor the closed order reads as stage 21-29) and every update is idempotent.
 const CARRIER_TIMEOUT_MS = 7000;
 
 // Claim statuses (Yandex Cargo API, Uzum implements the same one). The cancelled ones are the list the callbacks
@@ -194,7 +195,7 @@ async function resolveRefusal(
 /**
  * Puts the operator-cancel flag up after a 2xx cancel. The flag only covers the moments before the caller's update,
  * so a failing Redis is logged and does not undo what already happened: the carrier cancelled, and the caller must go
- * on to the update (a retry would find a Noor order cancelled with no way to tell, and answer «unavailable»).
+ * on to the update (a retry would find the claim cancelled and still answer ok, but only after one more round trip).
  */
 async function raiseFlag(redis: Redis, flagKey: string, label: string): Promise<void> {
     try {
@@ -298,6 +299,82 @@ export async function cancelUzumDelivery(
     return sendCancel(redis, `uzum_operator_cancel:${claimId}`, uzum, claimId, label, { cancel_state: cancelState });
 }
 
+// Noor order stages (`stage` of GET /api/v1/orders/:id, Noor-Api-Docs-09-02-2026):
+//  - 14 Delivered, 15 DeliveredFinish: finished, the food reached the customer
+//  - 19 Returned, 20 ReturnedFinish: the food went back to the restaurant, nothing was delivered, so it is released
+//    like 21 CancelledByTaxi, 22 Cancelled, 23 CancelledWithPayment, 24 CancelledWithItemsOnHand, 25 Failed,
+//    26 EstimatingFailed, 27 PerformerNotFound, 28 CancelledOutOfZone, 29 CancelledOutOfRange (the Yandex
+//    `returned_finish` is released the same way)
+//  - every other stage (1-13, 16-18) is an order on its way
+const NOOR_FINISHED_STAGES = new Set([14, 15]);
+const NOOR_RELEASED_STAGES = new Set([19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
+
+const noorHeaders = (): Record<string, string> => ({
+    "Accept-Language": "ru",
+    "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
+});
+
+/**
+ * Noor answers a cancel of a closed order 400 {"error":"order.is.closed"}, and «closed» is delivered OR cancelled, so
+ * the answer cannot tell them apart: read the order and let its stage decide. The text of the 400 is not matched (Noor
+ * translates its messages by Accept-Language), any 400 of the cancel gets here. A released stage is the cancel we
+ * wanted (a retry of one that went through, Noor's own cancel, an order that came back), delivered is `finished`,
+ * anything else is an order on its way. When the order cannot be read nothing is known: transient. A late cancel is
+ * charged by Noor (stages 23, 24); that is accepted and nothing here avoids it.
+ */
+async function resolveNoorOrder(noorId: string, label: string): Promise<Cancel3plResult> {
+    const read = await noorFetch(
+        `https://back.noor.uz/api/v1/orders/${noorId}`,
+        { method: "GET", headers: noorHeaders() },
+        { label, maxAttempts: 1, timeoutMs: CARRIER_TIMEOUT_MS },
+    );
+    if (!read.ok) {
+        console.log(`[${label}] ERROR: Noor order ${noorId} read failed: ${read.error}`);
+
+        return transient("Noor order read failed");
+    }
+    if (read.status < 200 || read.status >= 300) {
+        console.log(`[${label}] Noor order ${noorId} read answered HTTP ${read.status}: ${read.text}`);
+
+        return transient(`Noor order read answered HTTP ${read.status}`);
+    }
+
+    // The order carries the client's phone and address: only the stage and the field names ever reach the log.
+    let stage = NaN;
+    let shape = "not JSON";
+    try {
+        const json = JSON.parse(read.text);
+        const raw = json?.stage;
+        if (typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "")) {
+            stage = Number(raw);
+        }
+        shape = `stage ${JSON.stringify(raw)}, fields ${json && typeof json === "object" ? Object.keys(json).join(",") : typeof json}`;
+    } catch {
+        // not JSON: no stage
+    }
+    if (!Number.isInteger(stage)) {
+        console.log(`[${label}] Noor order ${noorId} read returned no usable stage (${shape})`);
+
+        return transient("Noor order read returned no stage");
+    }
+
+    if (NOOR_RELEASED_STAGES.has(stage)) {
+        console.log(`[${label}] Noor order ${noorId} is in stage ${stage}, cancel counts as done`);
+
+        return { ok: true };
+    }
+
+    if (NOOR_FINISHED_STAGES.has(stage)) {
+        console.log(`[${label}] Noor order ${noorId} is in stage ${stage}, it is delivered`);
+
+        return { ok: false, kind: "finished", error: "Noor order is delivered" };
+    }
+
+    console.log(`[${label}] Noor refuses the cancel of order ${noorId}: stage ${stage}`);
+
+    return { ok: false, kind: "unavailable", error: `Noor does not cancel an order in stage ${stage}` };
+}
+
 export async function cancelNoorDelivery(
     redis: Redis,
     noorId: string,
@@ -308,11 +385,7 @@ export async function cancelNoorDelivery(
         `https://back.noor.uz/api/v1/orders/${noorId}/cancel`,
         {
             method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept-Language": "ru",
-                "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
-            },
+            headers: { "Content-Type": "application/json", ...noorHeaders() },
         },
         // noorFetch retries and waits 15 s per attempt, up to 31 s for the default two: more than orderly or Elysia
         // wait. The external cancel makes one attempt and the answer says «transient», orderly is the one to retry.
@@ -337,8 +410,14 @@ export async function cancelNoorDelivery(
         return transient(`Noor cancel answered HTTP ${cancelRes.status}`);
     }
 
-    // The code never reads a Noor order, so there is nothing to tell «already cancelled» from «on its way»: a 4xx
-    // is a refusal that a retry does not change. The body is in the log above.
+    // A 400 is Noor's «order.is.closed» (its only documented error, but the text is translated, so it is not matched):
+    // the external cancel reads the order to see why. The operator route ignores the result, so it does not spend a
+    // second request on it.
+    if (opts.external && cancelRes.status === 400) {
+        return resolveNoorOrder(noorId, label);
+    }
+
+    // Any other 4xx (401, 403, 404, 422) is a refusal that a retry does not change. The body is in the log above.
     return {
         ok: false,
         kind: "unavailable",
