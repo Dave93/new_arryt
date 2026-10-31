@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { cancelNoorDelivery } from "./cancel-3pl";
 
 // Noor cancel (PATCH /orders/:id/cancel) answers 200 "OK" or 400 {"error":"order.is.closed"}, and «closed» is
-// delivered OR cancelled, so on that 400 the order is read (GET /orders/:id, `stage`) to tell them apart.
-// Noor-Api-Docs-09-02-2026: 14 Delivered, 15 DeliveredFinish, 19 Returned, 20 ReturnedFinish are finished,
-// 21..29 are the cancelled / failed stages, everything else is on its way.
-const CANCELLED_STAGES = [21, 22, 23, 24, 25, 26, 27, 28, 29];
-const FINISHED_STAGES = [14, 15, 19, 20];
+// delivered OR cancelled, so on a 400 the order is read (GET /orders/:id, `stage`) to tell them apart. The text of the
+// 400 is not matched (Noor translates its messages by Accept-Language).
+// Noor-Api-Docs-09-02-2026: 14 Delivered and 15 DeliveredFinish are finished; 19 Returned and 20 ReturnedFinish (the
+// food went back to the restaurant) are released like 21..29 (cancelled, failed, not found, out of zone / range);
+// everything else is on its way.
+const RELEASED_STAGES = [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29];
+const FINISHED_STAGES = [14, 15];
 const LIVE_STAGES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18];
 
 type Reply = { status: number; body?: unknown } | "network";
@@ -18,11 +20,15 @@ const realLog = console.log;
 let calls: Call[] = [];
 let events: string[] = [];
 let flags: string[] = [];
+let logs: string[] = [];
 
 beforeEach(() => {
     process.env.NOOR_DELIVERY_TOKEN = "noor-token";
+    logs = [];
     console.warn = () => {};
-    console.log = () => {};
+    console.log = (...args: unknown[]) => {
+        logs.push(args.map(String).join(" "));
+    };
 });
 
 afterEach(() => {
@@ -63,6 +69,12 @@ async function cancel(patch: Reply, get?: Reply, external = true) {
 
 const closed: Reply = { status: 400, body: { error: "order.is.closed" } };
 const order = (stage: unknown): Reply => ({ status: 200, body: { id: 1, vendor_order_id: "2", reason: null, stage } });
+// what Noor really returns carries the client's phone and address
+const CLIENT_PHONE = "+998977304681";
+const orderOf = (stage: unknown): Reply => ({
+    status: 200,
+    body: { id: 1, stage, origin: [{ address: "Tashkent, Belarik 64A", client: { phone: CLIENT_PHONE } }] },
+});
 
 describe("noor cancel: 200", () => {
     test("is ok, one request, the flag goes up after the cancel", async () => {
@@ -81,8 +93,8 @@ describe("noor cancel: 400 order.is.closed, then the order is read", () => {
         expect(calls[1].headers["X-Auth"]).toBe("noor-token");
     });
 
-    for (const stage of CANCELLED_STAGES) {
-        test(`stage ${stage} (cancelled / failed) -> ok, nothing to alert, no flag`, async () => {
+    for (const stage of RELEASED_STAGES) {
+        test(`stage ${stage} (returned / cancelled / failed) -> ok, nothing to alert, no flag`, async () => {
             const res = await cancel(closed, order(stage));
             expect(res).toEqual({ ok: true });
             expect(flags).toEqual([]);
@@ -91,7 +103,7 @@ describe("noor cancel: 400 order.is.closed, then the order is read", () => {
     }
 
     for (const stage of FINISHED_STAGES) {
-        test(`stage ${stage} (delivered / returned) -> finished`, async () => {
+        test(`stage ${stage} (delivered) -> finished`, async () => {
             const res = await cancel(closed, order(stage));
             expect(res).toMatchObject({ ok: false, kind: "finished" });
             expect(flags).toEqual([]);
@@ -130,6 +142,65 @@ describe("noor cancel: the order read itself fails -> transient (502, orderly re
             const res = await cancel(closed, get);
             expect(res).toMatchObject({ ok: false, kind: "transient" });
             expect(flags).toEqual([]);
+            // one attempt: orderly is the one to retry, not noorFetch
+            expect(calls.filter((c) => c.method === "GET").length).toBe(1);
+        });
+    }
+
+    test("a read that hangs is cut off after 7 s", async () => {
+        calls = [];
+        globalThis.fetch = (async (url: any, init: any = {}) => {
+            calls.push({ method: init.method ?? "GET", url: String(url), headers: init.headers ?? {} });
+            if (init.method === "PATCH") {
+                return new Response(JSON.stringify({ error: "order.is.closed" }), { status: 400 });
+            }
+
+            return new Promise((_, reject) => {
+                init.signal?.addEventListener("abort", () => reject(init.signal.reason));
+            });
+        }) as typeof fetch;
+        const started = Date.now();
+        const res = await cancelNoorDelivery({ set: async () => {} } as any, "noor-1", "t", { external: true });
+        const took = Date.now() - started;
+        expect(res).toMatchObject({ ok: false, kind: "transient" });
+        expect(took).toBeGreaterThanOrEqual(6500);
+        expect(took).toBeLessThan(9000);
+        expect(calls.filter((c) => c.method === "GET").length).toBe(1);
+    }, 20000);
+
+    test("a read with no usable stage logs the stage and the field names, never the order itself", async () => {
+        for (const get of [orderOf(null), orderOf("closed"), { status: 200, body: "OK" } as Reply]) {
+            logs = [];
+            const res = await cancel(closed, get);
+            expect(res).toMatchObject({ ok: false, kind: "transient" });
+            expect(logs.some((l) => l.includes("no usable stage"))).toBe(true);
+            expect(logs.join("\n")).not.toContain(CLIENT_PHONE);
+            expect(logs.join("\n")).not.toContain("Belarik");
+        }
+    });
+});
+
+describe("noor cancel: any 400 of the cancel reads the order, the text is not matched", () => {
+    const answers: Array<[string, Reply]> = [
+        ["a translated body", { status: 400, body: { error: "Заказ закрыт" } }],
+        ["another error code", { status: 400, body: { error: "something.else" } }],
+        ["an empty body", { status: 400 }],
+        ["a plain text body", { status: 400, body: "bad request" }],
+    ];
+    for (const [name, patch] of answers) {
+        test(`${name}: stage 22 -> ok`, async () => {
+            expect(await cancel(patch, order(22))).toEqual({ ok: true });
+            expect(calls.map((c) => c.method)).toEqual(["PATCH", "GET"]);
+            expect(flags).toEqual([]);
+        });
+        test(`${name}: stage 15 -> finished, stage 20 -> ok, stage 8 -> unavailable`, async () => {
+            expect(await cancel(patch, order(15))).toMatchObject({ ok: false, kind: "finished" });
+            expect(await cancel(patch, order(20))).toEqual({ ok: true });
+            expect(await cancel(patch, order(8))).toMatchObject({ ok: false, kind: "unavailable" });
+        });
+        test(`${name}: the read fails -> transient`, async () => {
+            expect(await cancel(patch, { status: 503 })).toMatchObject({ ok: false, kind: "transient" });
+            expect(await cancel(patch, "network")).toMatchObject({ ok: false, kind: "transient" });
         });
     }
 });
@@ -149,15 +220,13 @@ describe("noor cancel: every other answer of the cancel is as before", () => {
         }
     });
 
-    test("any other 4xx, and a 400 that is not order.is.closed, is unavailable and the order is not read", async () => {
+    test("any 4xx other than 400 (401, 403, 404, 422) is unavailable and the order is not read", async () => {
         const refusals: Reply[] = [
-            { status: 400, body: { error: "something.else" } },
-            { status: 400, body: "bad request" },
-            { status: 400 },
             { status: 401 },
             { status: 403 },
             { status: 404, body: { error: "order.not.found" } },
             { status: 422 },
+            { status: 409 },
         ];
         for (const patch of refusals) {
             const res = await cancel(patch, order(22));

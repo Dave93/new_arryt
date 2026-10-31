@@ -299,34 +299,30 @@ export async function cancelUzumDelivery(
     return sendCancel(redis, `uzum_operator_cancel:${claimId}`, uzum, claimId, label, { cancel_state: cancelState });
 }
 
-// Noor order stages (`stage` of GET /api/v1/orders/:id, Noor-Api-Docs-09-02-2026): 14 Delivered, 15 DeliveredFinish,
-// 19 Returned, 20 ReturnedFinish are finished; 21 CancelledByTaxi, 22 Cancelled, 23 CancelledWithPayment,
-// 24 CancelledWithItemsOnHand, 25 Failed, 26 EstimatingFailed, 27 PerformerNotFound, 28 CancelledOutOfZone,
-// 29 CancelledOutOfRange are over without a delivery. Every other stage is an order on its way.
-const NOOR_FINISHED_STAGES = new Set([14, 15, 19, 20]);
-const NOOR_CANCELLED_STAGES = new Set([21, 22, 23, 24, 25, 26, 27, 28, 29]);
+// Noor order stages (`stage` of GET /api/v1/orders/:id, Noor-Api-Docs-09-02-2026):
+//  - 14 Delivered, 15 DeliveredFinish: finished, the food reached the customer
+//  - 19 Returned, 20 ReturnedFinish: the food went back to the restaurant, nothing was delivered, so it is released
+//    like 21 CancelledByTaxi, 22 Cancelled, 23 CancelledWithPayment, 24 CancelledWithItemsOnHand, 25 Failed,
+//    26 EstimatingFailed, 27 PerformerNotFound, 28 CancelledOutOfZone, 29 CancelledOutOfRange (the Yandex
+//    `returned_finish` is released the same way)
+//  - every other stage (1-13, 16-18) is an order on its way
+const NOOR_FINISHED_STAGES = new Set([14, 15]);
+const NOOR_RELEASED_STAGES = new Set([19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
 
 const noorHeaders = (): Record<string, string> => ({
     "Accept-Language": "ru",
     "X-Auth": process.env.NOOR_DELIVERY_TOKEN!,
 });
 
-/** Noor answers a cancel of a closed order with 400 {"error":"order.is.closed"}, its only documented error. */
-function isOrderClosed(body: string): boolean {
-    try {
-        return JSON.parse(body)?.error === "order.is.closed";
-    } catch {
-        return false;
-    }
-}
-
 /**
- * «Closed» is delivered OR cancelled, so the cancel answer cannot tell them apart: read the order and look at its
- * stage. Cancelled / failed is the cancel we wanted (a retry of one that went through, or Noor's own cancel), delivered
- * is `finished`, anything else is an order on its way. When the order cannot be read nothing is known: transient. A
- * late cancel is charged by Noor (stages 23, 24); that is accepted and nothing here avoids it.
+ * Noor answers a cancel of a closed order 400 {"error":"order.is.closed"}, and «closed» is delivered OR cancelled, so
+ * the answer cannot tell them apart: read the order and let its stage decide. The text of the 400 is not matched (Noor
+ * translates its messages by Accept-Language), any 400 of the cancel gets here. A released stage is the cancel we
+ * wanted (a retry of one that went through, Noor's own cancel, an order that came back), delivered is `finished`,
+ * anything else is an order on its way. When the order cannot be read nothing is known: transient. A late cancel is
+ * charged by Noor (stages 23, 24); that is accepted and nothing here avoids it.
  */
-async function resolveNoorClosed(noorId: string, label: string): Promise<Cancel3plResult> {
+async function resolveNoorOrder(noorId: string, label: string): Promise<Cancel3plResult> {
     const read = await noorFetch(
         `https://back.noor.uz/api/v1/orders/${noorId}`,
         { method: "GET", headers: noorHeaders() },
@@ -343,22 +339,26 @@ async function resolveNoorClosed(noorId: string, label: string): Promise<Cancel3
         return transient(`Noor order read answered HTTP ${read.status}`);
     }
 
+    // The order carries the client's phone and address: only the stage and the field names ever reach the log.
     let stage = NaN;
+    let shape = "not JSON";
     try {
-        const raw = JSON.parse(read.text)?.stage;
+        const json = JSON.parse(read.text);
+        const raw = json?.stage;
         if (typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "")) {
             stage = Number(raw);
         }
+        shape = `stage ${JSON.stringify(raw)}, fields ${json && typeof json === "object" ? Object.keys(json).join(",") : typeof json}`;
     } catch {
         // not JSON: no stage
     }
     if (!Number.isInteger(stage)) {
-        console.log(`[${label}] Noor order ${noorId} read returned no stage: ${read.text}`);
+        console.log(`[${label}] Noor order ${noorId} read returned no usable stage (${shape})`);
 
         return transient("Noor order read returned no stage");
     }
 
-    if (NOOR_CANCELLED_STAGES.has(stage)) {
+    if (NOOR_RELEASED_STAGES.has(stage)) {
         console.log(`[${label}] Noor order ${noorId} is in stage ${stage}, cancel counts as done`);
 
         return { ok: true };
@@ -410,13 +410,14 @@ export async function cancelNoorDelivery(
         return transient(`Noor cancel answered HTTP ${cancelRes.status}`);
     }
 
-    // The external cancel looks at the order behind «order.is.closed». The operator route ignores the result, so
-    // it does not spend a second request on it.
-    if (opts.external && cancelRes.status === 400 && isOrderClosed(cancelRes.text)) {
-        return resolveNoorClosed(noorId, label);
+    // A 400 is Noor's «order.is.closed» (its only documented error, but the text is translated, so it is not matched):
+    // the external cancel reads the order to see why. The operator route ignores the result, so it does not spend a
+    // second request on it.
+    if (opts.external && cancelRes.status === 400) {
+        return resolveNoorOrder(noorId, label);
     }
 
-    // Any other 4xx is a refusal that a retry does not change. The body is in the log above.
+    // Any other 4xx (401, 403, 404, 422) is a refusal that a retry does not change. The body is in the log above.
     return {
         ok: false,
         kind: "unavailable",
