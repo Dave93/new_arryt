@@ -3,6 +3,7 @@ import { DB } from "@api/src/lib/db";
 import { CacheControlService } from "@api/src/modules/cache/service";
 import { SearchService } from "@api/src/services/search/service";
 import { getSetting } from "@api/src/utils/settings";
+import { resolveYandexTaxiClass } from "@api/src/utils/yandex-taxi-class";
 import { Queue } from "bullmq";
 import { sleep, sleepSync } from "bun";
 import { eq, getTableColumns } from "drizzle-orm";
@@ -66,8 +67,6 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
 
         comment += 'Savollar: +998 71 2050642';
 
-        const expressTerminals = ['419b466b-a575-4e2f-b771-7206342bc242'];
-
         // generate 6 digit code
         const pinCode = Math.floor(100000 + Math.random() * 900000);
 
@@ -82,7 +81,7 @@ export default async function processCheckAndSendYandex(db: DB, redis: Redis, ca
             client_requirements: {
                 cargo_options,
                 door_to_door: true,
-                taxi_class: taxiClass || (expressTerminals.includes(order!.orders_terminals!.id) ? 'express' : 'courier'),
+                taxi_class: resolveYandexTaxiClass({ organizationId: order.organization_id, terminalId: order!.orders_terminals!.id, requested: taxiClass }),
             },
             emergency_contact: {
                 name: yandexSenderName ? yandexSenderName : order!.orders_terminals!.manager_name,
