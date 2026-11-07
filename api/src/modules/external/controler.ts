@@ -1,4 +1,5 @@
 import { delivery_pricing, manager_withdraw, order_items, order_locations, order_status, orders, users } from "../../../drizzle/schema";
+import { extractNoorCallback, isNoorWebhookAuthorized } from "@api/src/utils/noor-webhook";
 import { contextWitUser } from "../../context";
 import { getMinutes, getMinutesNow } from "../../lib/dates";
 import dayjs from "dayjs";
@@ -1162,21 +1163,21 @@ export const externalControler = new Elysia({
         console.log('[NOOR-WEBHOOK] headers:', JSON.stringify(allHeaders));
         console.log('[NOOR-WEBHOOK] body:', JSON.stringify(body));
 
-        const token = headers.get('x-auth');
-        if (!token || token !== process.env.NOOR_WEBHOOK_TOKEN) {
-            console.log('[NOOR-WEBHOOK] AUTH FAILED: x-auth token mismatch or missing');
+        if (!isNoorWebhookAuthorized(headers, process.env.NOOR_WEBHOOK_TOKEN)) {
+            console.log('[NOOR-WEBHOOK] AUTH FAILED: token mismatch or missing (checked authorization and x-auth)');
             return status(403, { error: 'Forbidden' });
         }
 
         console.log('[NOOR-WEBHOOK] AUTH OK, processing...');
 
-        if (body?.id) {
-            await processNoorCallbackQueue.add(`${body.id}_${(new Date()).getTime()}`, body, {
+        const { noorId, stage } = extractNoorCallback(body);
+        if (noorId) {
+            await processNoorCallbackQueue.add(`${noorId}_${(new Date()).getTime()}`, body, {
                 attempts: 3, removeOnComplete: true,
             });
-            console.log('[NOOR-WEBHOOK] added to queue, noor_id:', body.id);
+            console.log('[NOOR-WEBHOOK] added to queue, noor_id:', noorId, 'stage:', stage);
         } else {
-            console.log('[NOOR-WEBHOOK] SKIP: no id in body');
+            console.log('[NOOR-WEBHOOK] SKIP: no order id in body');
         }
 
         return {
