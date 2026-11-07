@@ -4,14 +4,16 @@ import { CacheControlService } from "@api/src/modules/cache/service";
 import dayjs from "dayjs";
 import { and, desc, eq, gte } from "drizzle-orm";
 import Redis from "ioredis";
+import { extractNoorCallback, shouldReturnToMissed } from "@api/src/utils/noor-webhook";
 
 export default async function processNoorCallback(redis: Redis, db: DB, cacheControl: CacheControlService, data: any) {
     console.log('[NC] === START processNoorCallback ===');
     console.log('[NC] callback data:', JSON.stringify(data));
-    console.log('[NC] callback stage:', data.stage);
+    const { noorId, stage } = extractNoorCallback(data);
+    console.log('[NC] callback stage:', stage);
     console.log('[NC] time:', dayjs().format('DD.MM.YYYY HH:mm:ss'));
 
-    const noorOrderId = data.id?.toString();
+    const noorOrderId = noorId;
     if (!noorOrderId) {
         console.log('[NC] SKIP: no order id in callback data');
         return 'processNoorCallback';
@@ -66,7 +68,6 @@ export default async function processNoorCallback(redis: Redis, db: DB, cacheCon
     }, {});
 
     const org = organizations.find((o) => o.id == order.organization_id)!;
-    const stage = data.stage?.toString();
 
     // Check operator-initiated cancel flag
     const operatorCancelFlag = await redis.get(`noor_operator_cancel:${noorOrderId}`);
@@ -87,6 +88,36 @@ export default async function processNoorCallback(redis: Redis, db: DB, cacheCon
     const currentStatus = orderStatuses.find((s) => s.id === order.order_status_id);
     if (currentStatus && (currentStatus.cancel || currentStatus.finish)) {
         console.log(`[NC] SKIP: order ${order.order_number} is already ${currentStatus.cancel ? 'cancelled' : 'finished'}, noor stage "${stage}" not applied`);
+        return 'processNoorCallback';
+    }
+
+    // Noor cancelled / failed / found no performer before the food was handed over: back to the missed list,
+    // otherwise the order hangs «at courier Noor» and send_yandex silently does nothing (the order has a courier).
+    if (shouldReturnToMissed(stage)) {
+        const initialStatus = orderStatuses.find(
+            (s) => s.sort == 1 && s.organization_id == order.organization_id,
+        );
+        if (!initialStatus) {
+            console.log(`[NC] SKIP: noor stage ${stage}, no initial status for org ${order.organization_id}`);
+            return 'processNoorCallback';
+        }
+
+        await db.update(orders).set({
+            courier_id: null,
+            noor_id: null,
+            order_status_id: initialStatus.id,
+        }).where(and(eq(orders.id, order.id), gte(orders.created_at, dayjs().subtract(2, 'day').toISOString())));
+
+        await db.insert(order_actions).values({
+            terminal_id: order.terminal_id,
+            order_id: order.id,
+            order_created_at: order.created_at,
+            action: 'STATUS_CHANGE',
+            action_text: `Noor Доставка отменена (стадия ${stage}). Заказ возвращён в пропущенные.`,
+            duration: 0,
+        });
+
+        console.log(`[NC] RETURNED to missed: order=${order.order_number}, noor stage=${stage}, status set to ${initialStatus.id}`);
         return 'processNoorCallback';
     }
 
