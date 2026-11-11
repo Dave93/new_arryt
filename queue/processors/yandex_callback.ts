@@ -4,6 +4,7 @@ import { CacheControlService } from "@api/src/modules/cache/service";
 import dayjs from "dayjs";
 import { and, desc, eq, gte } from "drizzle-orm";
 import Redis from "ioredis";
+import { yandexCancelAction } from "@api/src/utils/yandex-callback";
 
 export default async function processYandexCallback(redis: Redis, db: DB, cacheControl: CacheControlService, data: any) {
 
@@ -119,10 +120,28 @@ export default async function processYandexCallback(redis: Redis, db: DB, cacheC
             return 'processYandexCallback';
         }
 
-        // Яндекс отменил claim до забора заказа: возвращаем заказ в пропущенные, иначе он висит «у курьера Яндекс».
+        // `cancelled` without the operator flag: the claim was cancelled outside Arryt (operators change the tariff or
+        // the carrier in the Yandex cabinet). The order stays as it is, only a note goes to the history (once per claim).
+        const cancelAction = yandexCancelAction(yandexResponse.status);
+        if (cancelAction === 'leave') {
+            const firstNote = await redis.set(`yandex_external_cancel_noted:${claimId}`, '1', 'EX', 86400, 'NX');
+            if (firstNote) {
+                await db.insert(order_actions).values({
+                    terminal_id: order.terminal_id,
+                    order_id: order.id,
+                    order_created_at: order.created_at,
+                    action: 'STATUS_CHANGE',
+                    action_text: `Заявка Яндекс Доставки отменена не из Arryt (${yandexResponse.status}). Заказ оставлен как есть.`,
+                    duration: 0,
+                });
+            }
+            console.log(`[YC] SKIP: claim ${claimId} cancelled outside Arryt, order ${order.order_number} left as is`);
+            return 'processYandexCallback';
+        }
+
+        // Яндекс сам отменил claim до забора заказа: возвращаем заказ в пропущенные, иначе он висит «у курьера Яндекс».
         // cancelled_with_items_on_hands / failed / returned_finish не трогаем: курьер мог уже забрать заказ.
-        const yandexReturnToMissedStatuses = ['cancelled', 'cancelled_by_taxi', 'estimating_failed'];
-        if (yandexReturnToMissedStatuses.includes(yandexResponse.status)) {
+        if (cancelAction === 'return_to_missed') {
             const initialStatus = orderStatuses.find(
                 (s) => s.sort == 1 && s.organization_id == order.organization_id,
             );
