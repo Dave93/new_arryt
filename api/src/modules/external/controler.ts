@@ -9,6 +9,7 @@ import { max, set, sort } from "radash";
 import { DeliveryPricingRulesDto } from "../delivery_pricing/dto/rules.dto";
 import { Cancel3plResult, cancelNoorDelivery, cancelUzumDelivery, cancelYandexClaim } from "../orders/cancel-3pl";
 import { liveOrderFirst } from "../orders/live-order-first";
+import { orderAddressColumns } from "@api/src/utils/order-address";
 
 export const externalControler = new Elysia({
     name: "@app/external",
@@ -280,6 +281,81 @@ export const externalControler = new Elysia({
             order_id: t.Number(),
             lat: t.Number(),
             lon: t.Number(),
+        })
+    })
+    // The text of the address the courier reads: the street line and its house, flat and entrance, the comment and the
+    // extra phone, as the caller corrected them after the create. The pin stays where it is and nothing is priced again:
+    // a move of the pin is `change-location`'s, which re-prices the delivery (and adds to it once the courier is on the
+    // way), so a text sent through it would pay the courier for a trip nobody made. A field left out keeps its column.
+    // A carrier the order was handed to (Yandex, Noor, Uzum) keeps the address of its claim.
+    .post("/api/external/change-address", async ({ body, set, request: { headers }, drizzle, cacheControl }) => {
+        const token = headers.get("authorization")?.split(" ")[1] ?? null;
+
+        const apiTokens = await cacheControl.getApiTokens();
+        const apiToken = apiTokens.find((apiToken: any) => apiToken.token === token && apiToken.active);
+        if (!apiToken) {
+            set.status = 403;
+
+            return { error: `Forbidden` };
+        }
+
+        const columns = orderAddressColumns(body);
+        if (Object.keys(columns).length === 0) {
+            set.status = 400;
+
+            return { success: false, error_code: 'NOTHING_TO_CHANGE', error: `No address field given` };
+        }
+
+        const organization = await cacheControl.getOrganization(apiToken.organization_id);
+        if (!organization) {
+            set.status = 403;
+
+            return { error: `Forbidden` };
+        }
+
+        const order = await drizzle.select({
+            id: orders.id,
+            cancelled: order_status.cancel,
+            finished: order_status.finish,
+        }).from(orders).leftJoin(order_status, eq(orders.order_status_id, order_status.id)).where(and(
+            eq(orders.order_number, body.order_id.toString()),
+            eq(orders.organization_id, organization.id),
+            gte(orders.created_at, dayjs().subtract(35, 'day').toISOString()),
+        )).orderBy(...liveOrderFirst).limit(1).execute();
+
+        if (order.length == 0) {
+            set.status = 404;
+
+            return { success: false, error_code: 'ORDER_NOT_FOUND', error: `Order not found` };
+        }
+
+        // Nobody drives a closed order any more (a cancel status may carry `finish` too, so cancelled is checked first).
+        if (order[0].cancelled === true) {
+            set.status = 409;
+
+            return { success: false, error_code: 'ORDER_CANCELLED', error: `Order is cancelled` };
+        }
+
+        if (order[0].finished === true) {
+            set.status = 409;
+
+            return { success: false, error_code: 'ORDER_FINISHED', error: `Order already finished` };
+        }
+
+        await drizzle.update(orders).set(columns).where(eq(orders.id, order[0].id)).execute();
+
+        return {
+            success: true,
+        };
+    }, {
+        body: t.Object({
+            order_id: t.Number(),
+            address: t.Optional(t.Nullable(t.String())),
+            house: t.Optional(t.Nullable(t.String())),
+            flat: t.Optional(t.Nullable(t.String())),
+            entrance: t.Optional(t.Nullable(t.String())),
+            comment: t.Optional(t.Nullable(t.String())),
+            additionalPhone: t.Optional(t.Nullable(t.String())),
         })
     })
     .post("/api/external/change-terminal", async ({ body: { order_id, terminal_id }, set, request: {

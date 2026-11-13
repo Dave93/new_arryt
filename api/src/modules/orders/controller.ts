@@ -19,6 +19,7 @@ import { noorFetch } from "../../utils/noor";
 import { cancelUzumClaim } from "../../utils/uzum";
 import { cancelNoorDelivery, cancelUzumDelivery, cancelYandexClaim } from "./cancel-3pl";
 import { findLiveOrderByNumber } from "./live-order-first";
+import { NO_ADDRESS_TEXT } from "../../utils/order-address";
 import dayjs from "dayjs";
 import {
   InferSelectModel,
@@ -123,9 +124,6 @@ const ROAD_FACTOR = 1.3;
 /** Средняя скорость по городу, м/с: авто ~25 км/ч, пешком ~5 км/ч. */
 const CAR_SPEED_MS = 25 / 3.6;
 const FOOT_SPEED_MS = 5 / 3.6;
-
-/** Адрес заказа, когда клиент указал только точку на карте. */
-const NO_ADDRESS_TEXT = "Адрес не указан — точка на карте";
 
 export const OrdersController = new Elysia({
   name: "@app/orders",
