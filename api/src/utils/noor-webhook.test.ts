@@ -81,6 +81,15 @@ describe("the log lines of a Noor callback", () => {
         }
     });
 
+    test("never throws on a hostile body, and lets no control character through", () => {
+        const hostile = JSON.parse('{"stage":{"toString":1},"vendor_order_id":{"toString":1},"order":{"id":{"toString":1}}}');
+        expect(noorWebhookLogLine(new Headers({}), hostile)).toBe("noor_id=- vendor_order_id=- stage=- auth_headers=none");
+        for (const odd of [null, 0, 5, "str", true, [], [{ order: { id: 1 } }], { order: null }, { order: [] }, { order: "x" }]) {
+            expect(noorCallbackSummary(odd)).toBe("noor_id=- vendor_order_id=- stage=-");
+        }
+        expect(noorCallbackSummary({ order: { id: "a\u0085b\x1b[31mc" }, stage: "\x00\x07" })).toBe("noor_id=ab31mc vendor_order_id=- stage=-");
+    });
+
     test("stays one line of short tokens whatever the body holds", () => {
         expect(noorCallbackSummary(undefined)).toBe("noor_id=- vendor_order_id=- stage=-");
         expect(noorCallbackSummary({ vendor_order_id: "1 2\nforged=line", order: { id: "x".repeat(100) }, stage: "" }))
