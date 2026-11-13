@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { extractNoorCallback, isNoorWebhookAuthorized, shouldReturnToMissed } from "./noor-webhook";
+import { extractNoorCallback, isNoorWebhookAuthorized, noorCallbackSummary, noorWebhookLogLine, shouldReturnToMissed } from "./noor-webhook";
 
 describe("isNoorWebhookAuthorized", () => {
     const headers = (h: Record<string, string>) => new Headers(h);
@@ -48,3 +48,52 @@ describe("shouldReturnToMissed", () => {
         expect(shouldReturnToMissed(null)).toBe(false);
     });
 });
+
+describe("the log lines of a Noor callback", () => {
+    const TOKEN = "noor-test-token-0000";
+    // The shape Noor sends (Noor-Api-Docs-09-02-2026): the customer's name, phone and address ride in the body.
+    const body = {
+        vendor_order_id: "953496",
+        stage: 27,
+        order: {
+            id: 524912,
+            vendor_order_id: "953496",
+            stage: 27,
+            origin: [{ address: "Chilonzor 9", client: { phone: "+998901234567", name: "Aziz" } }],
+            destination: [{ address: "Yunusobod 4, kv 12", apartment: "12", entrance: "2" }],
+        },
+    };
+
+    test("names the order ids and the stage", () => {
+        expect(noorCallbackSummary(body)).toBe("noor_id=524912 vendor_order_id=953496 stage=27");
+    });
+
+    test("names which auth headers came, never their values", () => {
+        const line = noorWebhookLogLine(new Headers({ authorization: TOKEN, "x-auth": TOKEN, "user-agent": "noor" }), body);
+        expect(line).toBe("noor_id=524912 vendor_order_id=953496 stage=27 auth_headers=authorization,x-auth");
+        expect(line).not.toContain(TOKEN);
+        expect(noorWebhookLogLine(new Headers({}), body)).toContain("auth_headers=none");
+    });
+
+    test("never carries the customer's data", () => {
+        for (const line of [noorCallbackSummary(body), noorWebhookLogLine(new Headers({ authorization: TOKEN }), body)]) {
+            for (const secret of [TOKEN, "+998901234567", "Aziz", "Chilonzor", "Yunusobod"]) expect(line).not.toContain(secret);
+        }
+    });
+
+    test("never throws on a hostile body, and lets no control character through", () => {
+        const hostile = JSON.parse('{"stage":{"toString":1},"vendor_order_id":{"toString":1},"order":{"id":{"toString":1}}}');
+        expect(noorWebhookLogLine(new Headers({}), hostile)).toBe("noor_id=- vendor_order_id=- stage=- auth_headers=none");
+        for (const odd of [null, 0, 5, "str", true, [], [{ order: { id: 1 } }], { order: null }, { order: [] }, { order: "x" }]) {
+            expect(noorCallbackSummary(odd)).toBe("noor_id=- vendor_order_id=- stage=-");
+        }
+        expect(noorCallbackSummary({ order: { id: "a\u0085b\x1b[31mc" }, stage: "\x00\x07" })).toBe("noor_id=ab31mc vendor_order_id=- stage=-");
+    });
+
+    test("stays one line of short tokens whatever the body holds", () => {
+        expect(noorCallbackSummary(undefined)).toBe("noor_id=- vendor_order_id=- stage=-");
+        expect(noorCallbackSummary({ vendor_order_id: "1 2\nforged=line", order: { id: "x".repeat(100) }, stage: "" }))
+            .toBe(`noor_id=${"x".repeat(40)} vendor_order_id=12forgedline stage=-`);
+    });
+});
+

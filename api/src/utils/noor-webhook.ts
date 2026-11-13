@@ -31,6 +31,38 @@ export function extractNoorCallback(body: any): { noorId: string | null; stage: 
     };
 }
 
+/**
+ * A value as one short token for a log line: only a string, number or boolean, cut to `[A-Za-z0-9_.:-]` and 40
+ * characters, `-` for anything else. A JSON object never reaches `String()`, which throws for `{"toString":1}`: the
+ * webhook logs before it checks the token, so a throw here would turn an unauthenticated 403 into a 500.
+ */
+function logValue(v: unknown): string {
+    if (typeof v !== "string" && typeof v !== "number" && typeof v !== "boolean") return "-";
+    return String(v).replace(/[^\w.:-]/g, "").slice(0, 40) || "-";
+}
+
+const asObject = (v: unknown): Record<string, unknown> => (v !== null && typeof v === "object" ? (v as Record<string, unknown>) : {});
+
+/**
+ * What a log line may say about a Noor callback: its order ids and the stage, read as `extractNoorCallback` reads them.
+ * Never the body itself, which carries the customer's name, phone and address (`order.origin[].client`,
+ * `order.destination[]`). Never throws, whatever the body is.
+ */
+export function noorCallbackSummary(body: unknown): string {
+    const b = asObject(body);
+    const order = asObject(b.order);
+    return `noor_id=${logValue(order.id ?? b.id)} vendor_order_id=${logValue(b.vendor_order_id ?? order.vendor_order_id)} stage=${logValue(b.stage ?? order.stage)}`;
+}
+
+/**
+ * The one log line of an incoming Noor webhook: `noorCallbackSummary` and the names of the auth headers that came, never
+ * their values. Noor sends its static token raw in `Authorization`, so a dump of the headers is a dump of the secret.
+ */
+export function noorWebhookLogLine(headers: Headers, body: unknown): string {
+    const auth = ["authorization", "x-auth"].filter((name) => headers.has(name));
+    return `${noorCallbackSummary(body)} auth_headers=${auth.length > 0 ? auth.join(",") : "none"}`;
+}
+
 // 21 CancelledByTaxi, 22 Cancelled, 23 CancelledWithPayment, 25 Failed, 26 EstimatingFailed, 27 PerformerNotFound,
 // 28 CancelledOutOfZone, 29 CancelledOutOfRange: nothing was handed to the customer, the order goes back to missed so
 // the operator (or the next carrier) can take it. Not here: 16-20 (return flow: the courier already has the food) and

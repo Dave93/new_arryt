@@ -4,11 +4,12 @@ import { CacheControlService } from "@api/src/modules/cache/service";
 import dayjs from "dayjs";
 import { and, desc, eq, gte } from "drizzle-orm";
 import Redis from "ioredis";
-import { extractNoorCallback, shouldReturnToMissed } from "@api/src/utils/noor-webhook";
+import { extractNoorCallback, noorCallbackSummary, shouldReturnToMissed } from "@api/src/utils/noor-webhook";
 
 export default async function processNoorCallback(redis: Redis, db: DB, cacheControl: CacheControlService, data: any) {
     console.log('[NC] === START processNoorCallback ===');
-    console.log('[NC] callback data:', JSON.stringify(data));
+    // Never the body: it carries the customer's name, phone and address.
+    console.log('[NC] callback:', noorCallbackSummary(data));
     const { noorId, stage } = extractNoorCallback(data);
     console.log('[NC] callback stage:', stage);
     console.log('[NC] time:', dayjs().format('DD.MM.YYYY HH:mm:ss'));

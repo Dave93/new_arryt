@@ -1,5 +1,5 @@
 import { delivery_pricing, manager_withdraw, order_items, order_locations, order_status, orders, users } from "../../../drizzle/schema";
-import { extractNoorCallback, isNoorWebhookAuthorized } from "@api/src/utils/noor-webhook";
+import { extractNoorCallback, isNoorWebhookAuthorized, noorWebhookLogLine } from "@api/src/utils/noor-webhook";
 import { contextWitUser } from "../../context";
 import { getMinutes, getMinutesNow } from "../../lib/dates";
 import dayjs from "dayjs";
@@ -1230,14 +1230,9 @@ export const externalControler = new Elysia({
     .post('/api/external/noor-callback', async ({ body, request: { headers }, status, queues: {
         processNoorCallbackQueue
     } }) => {
-        const allHeaders: Record<string, string> = {};
-        headers.forEach((value, key) => {
-            allHeaders[key] = value;
-        });
-        console.log('[NOOR-WEBHOOK] === INCOMING REQUEST ===');
-        console.log('[NOOR-WEBHOOK] time:', new Date().toISOString());
-        console.log('[NOOR-WEBHOOK] headers:', JSON.stringify(allHeaders));
-        console.log('[NOOR-WEBHOOK] body:', JSON.stringify(body));
+        // Ids, stage and the names of the auth headers only: the token rides in `authorization`, and the body carries the
+        // customer's name, phone and address.
+        console.log('[NOOR-WEBHOOK]', new Date().toISOString(), noorWebhookLogLine(headers, body));
 
         if (!isNoorWebhookAuthorized(headers, process.env.NOOR_WEBHOOK_TOKEN)) {
             console.log('[NOOR-WEBHOOK] AUTH FAILED: token mismatch or missing (checked authorization and x-auth)');
