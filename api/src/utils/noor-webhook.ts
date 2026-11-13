@@ -31,6 +31,31 @@ export function extractNoorCallback(body: any): { noorId: string | null; stage: 
     };
 }
 
+/** A value as one short token for a log line: no whitespace or quotes, at most 40 characters, `-` when absent. */
+function logValue(v: unknown): string {
+    if (v === undefined || v === null || v === "") return "-";
+    return String(v).replace(/[\s"'=]/g, "").slice(0, 40) || "-";
+}
+
+/**
+ * What a log line may say about a Noor callback: its order ids and the stage. Never the body itself, which carries the
+ * customer's name, phone and address (`order.origin[].client`, `order.destination[]`).
+ */
+export function noorCallbackSummary(body: any): string {
+    const { noorId, stage } = extractNoorCallback(body);
+    const vendorOrderId = body?.vendor_order_id ?? body?.order?.vendor_order_id;
+    return `noor_id=${logValue(noorId)} vendor_order_id=${logValue(vendorOrderId)} stage=${logValue(stage)}`;
+}
+
+/**
+ * The one log line of an incoming Noor webhook: `noorCallbackSummary` and the names of the auth headers that came, never
+ * their values. Noor sends its static token raw in `Authorization`, so a dump of the headers is a dump of the secret.
+ */
+export function noorWebhookLogLine(headers: Headers, body: any): string {
+    const auth = ["authorization", "x-auth"].filter((name) => headers.has(name));
+    return `${noorCallbackSummary(body)} auth_headers=${auth.length > 0 ? auth.join(",") : "none"}`;
+}
+
 // 21 CancelledByTaxi, 22 Cancelled, 23 CancelledWithPayment, 25 Failed, 26 EstimatingFailed, 27 PerformerNotFound,
 // 28 CancelledOutOfZone, 29 CancelledOutOfRange: nothing was handed to the customer, the order goes back to missed so
 // the operator (or the next carrier) can take it. Not here: 16-20 (return flow: the courier already has the food) and
