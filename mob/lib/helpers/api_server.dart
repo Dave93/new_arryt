@@ -56,13 +56,20 @@ class ApiServer {
             UserData? user = HiveHelper.getUserData();
             if (user!.tokenExpires.isBefore(DateTime.now())) {
               var refreshed = false;
+              // Выкидываем на вход, только если сервер сам отверг ключ обновления
+              // (400/401). Обрыв сети, таймаут или 5xx при перезапуске API — не
+              // повод стирать сессию: курьеры на мобильном интернете вылетали так
+              // раз в 5 часов, хотя ключ обновления жил ещё 5 суток.
+              var refreshRejected = false;
               try {
                 var response = await http.post(
                   Uri.parse("${options.baseUrl}/api/users/refresh_token"),
                   headers: {'Content-Type': 'application/json'},
                   body: '{"refresh_token": "${user.refreshToken}"}',
                 );
-                if (response.statusCode == 200) {
+                if (response.statusCode == 400 || response.statusCode == 401) {
+                  refreshRejected = true;
+                } else if (response.statusCode == 200) {
                   var result = jsonDecode(response.body);
                   if (result['errors'] == null) {
                     var data = result;
@@ -82,14 +89,24 @@ class ApiServer {
                 print(e);
               }
 
-              // Обновить токен не вышло — дальше идти некуда, просим войти заново.
               if (!refreshed) {
-                await _forceReLogin();
+                if (refreshRejected) {
+                  // Ключ обновления недействителен — войти заново и правда нужно.
+                  await _forceReLogin();
+                  return handler.reject(
+                    DioException(
+                      requestOptions: options,
+                      type: DioExceptionType.cancel,
+                      error: 'Session expired',
+                    ),
+                  );
+                }
+                // Временный сбой: сессию не трогаем, следующий запрос попробует снова.
                 return handler.reject(
                   DioException(
                     requestOptions: options,
-                    type: DioExceptionType.cancel,
-                    error: 'Session expired',
+                    type: DioExceptionType.connectionError,
+                    error: 'connection: token refresh failed, will retry',
                   ),
                 );
               }
