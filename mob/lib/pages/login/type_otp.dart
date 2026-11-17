@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/helpers/api_error_message.dart';
 import 'package:arryt/helpers/hive_helper.dart'; // Add this import
 import 'package:arryt/models/user_data.dart';
 import 'package:arryt/riverpods/otp_phone/provider.dart';
@@ -118,9 +119,7 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
     } catch (e) {
       if (mounted) {
         // Сервер объясняет отказ сам: cooldown или дневной лимит в 5 отправок.
-        final message = e is DioException && e.error is String
-            ? e.error as String
-            : AppLocalizations.of(context)!.error_label;
+        final message = apiErrorMessage(context, e);
         AnimatedSnackBar.material(
           message,
           type: AnimatedSnackBarType.error,
@@ -256,7 +255,7 @@ class _LoginTypeOtpPageState extends ConsumerState<LoginTypeOtpPage> {
         });
         _btnController.error();
         AnimatedSnackBar.material(
-          AppLocalizations.of(context)!.otpCodeError,
+          apiErrorMessage(context, e, fallback: AppLocalizations.of(context)!.otpCodeError),
           type: AnimatedSnackBarType.error,
         ).show(context);
         Future.delayed(const Duration(milliseconds: 1000)).then((value) {

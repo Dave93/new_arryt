@@ -168,5 +168,11 @@
     "location_disclosure_title": "Location access",
     "location_disclosure_text": "Arryt collects location data to assign you orders, build the delivery route and show it to your manager and the customer. Collection continues even when the app is closed or not in use.",
     "location_disclosure_accept": "Accept",
-    "location_disclosure_decline": "Decline"
+    "location_disclosure_decline": "Decline",
+    "otp_error_cooldown": "The code was just sent. Try again in a minute.",
+    "otp_error_daily_limit": "Today's limit of SMS codes is used up. Try again tomorrow or contact your manager.",
+    "otp_error_expired": "The code has expired. Request a new one.",
+    "otp_error_too_many_attempts": "Too many attempts. Request a new code.",
+    "otp_error_used": "This code has already been used. Request a new one.",
+    "otp_error_network": "No connection to the server. Check the internet and try again."
 }

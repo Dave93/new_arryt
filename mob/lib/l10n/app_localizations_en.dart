@@ -517,4 +517,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get location_disclosure_decline => 'Decline';
+
+  @override
+  String get otp_error_cooldown => 'The code was just sent. Try again in a minute.';
+
+  @override
+  String get otp_error_daily_limit => 'Today\'s limit of SMS codes is used up. Try again tomorrow or contact your manager.';
+
+  @override
+  String get otp_error_expired => 'The code has expired. Request a new one.';
+
+  @override
+  String get otp_error_too_many_attempts => 'Too many attempts. Request a new code.';
+
+  @override
+  String get otp_error_used => 'This code has already been used. Request a new one.';
+
+  @override
+  String get otp_error_network => 'No connection to the server. Check the internet and try again.';
 }

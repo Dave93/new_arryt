@@ -517,4 +517,22 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get location_disclosure_decline => 'Rad etish';
+
+  @override
+  String get otp_error_cooldown => 'Kod hozirgina yuborildi. Bir daqiqadan keyin qayta urinib ko‘ring.';
+
+  @override
+  String get otp_error_daily_limit => 'Bugungi SMS-kodlar limiti tugadi. Ertaga urinib ko‘ring yoki menejerga murojaat qiling.';
+
+  @override
+  String get otp_error_expired => 'Kodning amal qilish muddati tugadi. Yangisini so‘rang.';
+
+  @override
+  String get otp_error_too_many_attempts => 'Urinishlar soni juda ko‘p. Yangi kod so‘rang.';
+
+  @override
+  String get otp_error_used => 'Bu kod allaqachon ishlatilgan. Yangisini so‘rang.';
+
+  @override
+  String get otp_error_network => 'Server bilan aloqa yo‘q. Internetni tekshirib, qayta urinib ko‘ring.';
 }

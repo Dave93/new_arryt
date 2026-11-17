@@ -1116,6 +1116,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Decline'**
   String get location_disclosure_decline;
+
+  /// No description provided for @otp_error_cooldown.
+  ///
+  /// In en, this message translates to:
+  /// **'The code was just sent. Try again in a minute.'**
+  String get otp_error_cooldown;
+
+  /// No description provided for @otp_error_daily_limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s limit of SMS codes is used up. Try again tomorrow or contact your manager.'**
+  String get otp_error_daily_limit;
+
+  /// No description provided for @otp_error_expired.
+  ///
+  /// In en, this message translates to:
+  /// **'The code has expired. Request a new one.'**
+  String get otp_error_expired;
+
+  /// No description provided for @otp_error_too_many_attempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Request a new code.'**
+  String get otp_error_too_many_attempts;
+
+  /// No description provided for @otp_error_used.
+  ///
+  /// In en, this message translates to:
+  /// **'This code has already been used. Request a new one.'**
+  String get otp_error_used;
+
+  /// No description provided for @otp_error_network.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection to the server. Check the internet and try again.'**
+  String get otp_error_network;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

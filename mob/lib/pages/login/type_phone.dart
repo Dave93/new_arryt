@@ -1,5 +1,6 @@
 import 'package:animated_snack_bar/animated_snack_bar.dart';
 import 'package:arryt/helpers/api_server.dart';
+import 'package:arryt/helpers/api_error_message.dart';
 import 'package:arryt/riverpods/otp_phone/provider.dart';
 import 'package:arryt/riverpods/otp_token/provider.dart';
 import 'package:auto_route/auto_route.dart';
@@ -61,8 +62,9 @@ class _LoginTypePhonePageState extends ConsumerState<LoginTypePhonePage> {
         });
       } catch (e) {
         _btnController.reset();
+        // Причина отказа — лимит, «подождите минуту», нет сети — вместо «Xato».
         AnimatedSnackBar.material(
-          AppLocalizations.of(context)!.error_label,
+          apiErrorMessage(context, e),
           type: AnimatedSnackBarType.error,
         ).show(context);
       }

@@ -517,4 +517,22 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get location_disclosure_decline => 'Отказаться';
+
+  @override
+  String get otp_error_cooldown => 'Код только что отправлен. Повторите через минуту.';
+
+  @override
+  String get otp_error_daily_limit => 'Лимит SMS-кодов на сегодня исчерпан. Попробуйте завтра или обратитесь к менеджеру.';
+
+  @override
+  String get otp_error_expired => 'Срок действия кода истёк. Запросите новый.';
+
+  @override
+  String get otp_error_too_many_attempts => 'Слишком много попыток. Запросите новый код.';
+
+  @override
+  String get otp_error_used => 'Этот код уже использован. Запросите новый.';
+
+  @override
+  String get otp_error_network => 'Нет связи с сервером. Проверьте интернет и повторите.';
 }
