@@ -625,13 +625,9 @@ export const UsersController = new Elysia({
       await redis.set(cooldownKey, "1", "EX", 60);
 
       let userEntity = (await drizzle.select().from(users).where(eq(users.phone, phone)).limit(1))[0];
-      // Заблокированному SMS не шлём: войти он всё равно не сможет.
-      if (userEntity?.status === "blocked") {
-        set.status = 400;
-        return {
-          message: "User is blocked",
-        };
-      }
+      // Статус здесь не раскрываем: эндпоинт без авторизации, и ответ
+      // «заблокирован» позволял бы проверить любой номер. О блокировке курьер
+      // узнаёт в verify-otp — только введя верный код со своего телефона.
       if (!userEntity) {
         [userEntity] = await drizzle
           .insert(users)
