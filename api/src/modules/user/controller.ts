@@ -625,6 +625,13 @@ export const UsersController = new Elysia({
       await redis.set(cooldownKey, "1", "EX", 60);
 
       let userEntity = (await drizzle.select().from(users).where(eq(users.phone, phone)).limit(1))[0];
+      // Заблокированному SMS не шлём: войти он всё равно не сможет.
+      if (userEntity?.status === "blocked") {
+        set.status = 400;
+        return {
+          message: "User is blocked",
+        };
+      }
       if (!userEntity) {
         [userEntity] = await drizzle
           .insert(users)
@@ -798,15 +805,6 @@ export const UsersController = new Elysia({
           if (dayjs(currentDate).isBefore(dayjs(otp_instance.expiry_date))) {
             //Check if OTP is equal to the OTP in the DB
             if (otp === otp_instance.otp) {
-              otp_instance.verified = true;
-              await drizzle
-                .update(otpTable)
-                .set({
-                  verified: true,
-                })
-                .where(eq(otpTable.id, otp_instance.id))
-                .execute();
-
               let userData = await redis.hget(
                 `${process.env.PROJECT_PREFIX}_user`,
                 otp_instance.user_id
@@ -822,6 +820,9 @@ export const UsersController = new Elysia({
               const userParsed = JSON.parse(userData);
               const user = userParsed.user;
 
+              // Статус проверяем до того, как потратить код: иначе заблокированный
+              // курьер видел «User is blocked», а при повторной отправке того же
+              // кода — «код уже использован» и думал, что дело в коде.
               if (user!.status == "blocked") {
                 set.status = 400;
                 return {
@@ -834,6 +835,15 @@ export const UsersController = new Elysia({
                   message: "User is inactive",
                 };
               }
+
+              otp_instance.verified = true;
+              await drizzle
+                .update(otpTable)
+                .set({
+                  verified: true,
+                })
+                .where(eq(otpTable.id, otp_instance.id))
+                .execute();
 
               if (deviceToken) {
                 await drizzle
