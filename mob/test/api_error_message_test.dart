@@ -36,13 +36,18 @@ void main() {
         contains('Слишком много попыток'));
   });
 
+  testWidgets('заблокированный аккаунт — понятный текст', (tester) async {
+    expect(await messageFor(tester, serverError('User is blocked'), const Locale('uz')), contains('bloklangan'));
+    expect(await messageFor(tester, serverError('User is inactive'), const Locale('ru')), contains('не активен'));
+  });
+
   testWidgets('сетевой сбой не показывает текст исключения', (tester) async {
     final e = serverError('DioException [connection error]: SocketException: Failed host lookup');
     expect(await messageFor(tester, e, const Locale('ru')), contains('Нет связи'));
   });
 
   testWidgets('неизвестный ответ сервера показывается как есть, без текста — «Xato»', (tester) async {
-    expect(await messageFor(tester, serverError('User is blocked'), const Locale('uz')), 'User is blocked');
+    expect(await messageFor(tester, serverError('Something unexpected'), const Locale('uz')), 'Something unexpected');
     expect(await messageFor(tester, Exception('x'), const Locale('uz')), 'Xato');
   });
 }

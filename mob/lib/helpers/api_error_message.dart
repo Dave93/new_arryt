@@ -12,6 +12,8 @@ String apiErrorMessage(BuildContext context, Object error, {String? fallback}) {
   final raw = error is DioException && error.error is String ? (error.error as String).trim() : '';
   final text = raw.toLowerCase();
 
+  if (text.contains('user is blocked')) return l10n.otp_error_blocked;
+  if (text.contains('user is inactive')) return l10n.otp_error_inactive;
   if (text.contains('daily otp limit')) return l10n.otp_error_daily_limit;
   if (text.contains('sent recently')) return l10n.otp_error_cooldown;
   if (text.contains('too many attempts')) return l10n.otp_error_too_many_attempts;

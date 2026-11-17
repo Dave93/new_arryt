@@ -535,4 +535,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get otp_error_network => 'No connection to the server. Check the internet and try again.';
+
+  @override
+  String get otp_error_blocked => 'Your account is blocked. Contact your manager.';
+
+  @override
+  String get otp_error_inactive => 'Your account is not active. Contact your manager.';
 }

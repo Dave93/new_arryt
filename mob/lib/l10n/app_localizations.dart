@@ -1152,6 +1152,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No connection to the server. Check the internet and try again.'**
   String get otp_error_network;
+
+  /// No description provided for @otp_error_blocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is blocked. Contact your manager.'**
+  String get otp_error_blocked;
+
+  /// No description provided for @otp_error_inactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is not active. Contact your manager.'**
+  String get otp_error_inactive;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

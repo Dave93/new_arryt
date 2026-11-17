@@ -535,4 +535,10 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get otp_error_network => 'Server bilan aloqa yo‘q. Internetni tekshirib, qayta urinib ko‘ring.';
+
+  @override
+  String get otp_error_blocked => 'Akkaunt bloklangan. Menejerga murojaat qiling.';
+
+  @override
+  String get otp_error_inactive => 'Akkaunt faol emas. Menejerga murojaat qiling.';
 }

@@ -535,4 +535,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get otp_error_network => 'Нет связи с сервером. Проверьте интернет и повторите.';
+
+  @override
+  String get otp_error_blocked => 'Аккаунт заблокирован. Обратитесь к менеджеру.';
+
+  @override
+  String get otp_error_inactive => 'Аккаунт не активен. Обратитесь к менеджеру.';
 }
