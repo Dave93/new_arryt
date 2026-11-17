@@ -12,7 +12,6 @@ import 'package:arryt/pages/profile/profile.dart';
 import 'package:arryt/pages/settings/settings.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:arryt/l10n/app_localizations.dart';
-import 'package:upgrader/upgrader.dart';
 import '../../../router.dart';
 import '../../../widgets/home/check_permissions.dart';
 import '../../../widgets/no_role_set.dart';
@@ -134,9 +133,6 @@ class _HomeViewPageState extends State<HomeViewPage> {
               ),
             );
 
-            if (userRole.code == 'courier') {
-              return UpgradeAlert(child: body);
-            }
             return body;
           } else {
             getIt<AppRouter>().replace(LoginTypePhoneRoute());

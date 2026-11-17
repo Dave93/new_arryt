@@ -105,7 +105,7 @@ dependencies:
   syncfusion_flutter_datepicker: ^27.1.48
   tab_indicator_styler: ^2.0.0
   top_snackbar_flutter: ^3.1.0
-  upgrader: ^11.1.0
+  in_app_update: ^4.2.3
   url_launcher: ^6.3.0
   webview_flutter: ^4.9.0
   win32: ^5.5.4

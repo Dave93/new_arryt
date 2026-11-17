@@ -2,6 +2,7 @@ import 'dart:isolate';
 import 'dart:ui';
 import 'package:flutter/services.dart';
 
+import 'package:arryt/helpers/app_update.dart';
 import 'package:arryt/main.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -45,7 +46,7 @@ class AppView extends StatefulWidget {
   State<AppView> createState() => _AppViewState();
 }
 
-class _AppViewState extends State<AppView> {
+class _AppViewState extends State<AppView> with WidgetsBindingObserver {
   static const String _isolateName = "LocatorIsolate";
   ReceivePort port = ReceivePort();
   final _rootRouter = getIt<AppRouter>();
@@ -54,10 +55,21 @@ class _AppViewState extends State<AppView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Обязательное обновление из Google Play — сразу при запуске.
+    WidgetsBinding.instance.addPostFrameCallback((_) => AppUpdate.check());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Вернулись в приложение — проверяем снова: закрыть окно и работать
+    // на старой версии нельзя.
+    if (state == AppLifecycleState.resumed) AppUpdate.check();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
